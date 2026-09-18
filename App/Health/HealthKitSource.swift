@@ -16,9 +16,6 @@ final class HealthKitSource: HealthSource, @unchecked Sendable {
         .oxygenSaturation,
         .appleSleepingWristTemperature,
         .bodyTemperature,
-        .bodyMass,
-        .activeEnergyBurned,
-        .basalEnergyBurned,
     ]
 
     static var readTypes: Set<HKObjectType> {
