@@ -1,57 +1,6 @@
 import SwiftUI
 import SwiftData
 
-/// The coach entry: a mark in the corner that retracts while you read, and a standard
-/// sheet when you tap it.
-///
-/// The coach covers the screen edge to edge and is itself translucent, so the app
-/// behind blurs through it. Dismiss by dragging down or tapping the empty area —
-/// the grabber says which.
-struct CoachLayer: View {
-    @Environment(AppModel.self) private var model
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    @State private var isOpen = false
-
-    var body: some View {
-        GeometryReader { geometry in
-            button
-                .padding(.trailing, Tokens.screenMargin)
-                .padding(.bottom, 98)
-                .frame(width: geometry.size.width, height: geometry.size.height,
-                       alignment: .bottomTrailing)
-        }
-        .animation(reduceMotion ? nil : .easeOut(duration: 0.22),
-                   value: model.coachEntryExpanded)
-        // fullScreenCover, not sheet: the large detent always leaves an inset strip of
-        // the parent at the top, and iOS lays a dimming layer under a sheet — so the
-        // material ends up blurring flat grey instead of the app.
-        .fullScreenCover(isPresented: $isOpen) {
-            CoachSheet()
-                .presentationBackground(.ultraThinMaterial)
-        }
-    }
-
-    private var button: some View {
-        Button { Haptics.light(); isOpen = true } label: {
-            Image("LogoMark")
-                .renderingMode(.template)
-                .resizable()
-                .scaledToFit()
-                .frame(width: 24, height: 24)
-                .foregroundStyle(Tokens.accent)
-                .frame(width: 54, height: 54)
-                .glassSurface(Circle())
-                .shadow(color: .black.opacity(0.14), radius: 12, x: 0, y: 5)
-        }
-        .buttonStyle(.plain)
-        .opacity(model.coachEntryExpanded ? 1 : 0)
-        .scaleEffect(model.coachEntryExpanded ? 1 : 0.7)
-        .allowsHitTesting(model.coachEntryExpanded)
-        .accessibilityLabel("Ask Coach Jett")
-    }
-}
-
 // MARK: - The sheet
 
 struct CoachSheet: View {

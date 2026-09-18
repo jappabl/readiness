@@ -29,7 +29,7 @@ struct SignalDetailView: View {
                     trends
                 }
                 .padding(.horizontal, Tokens.screenMargin)
-                .padding(.bottom, 96)
+                .padding(.bottom, 16)
             }
         }
         .navigationBarTitleDisplayMode(.inline)

@@ -48,6 +48,16 @@ public struct MetricReading: Sendable, Equatable, Codable {
     public let zScore: Double
     public let sampleCount: Int
 
+    /// Whether the measurement itself sits above its baseline.
+    ///
+    /// Not the same question as whether that is good news, and the two diverge for
+    /// every inverted metric. Call sites that derived this from the aligned z told the
+    /// user a resting heart rate of 70 against a baseline of 53 was "below usual".
+    public var isAboveBaseline: Bool { zScore > 0 }
+
+    /// Whether the reading is good news, which is the aligned question.
+    public var isFavourable: Bool { zScore * kind.polarity >= 0 }
+
     public init(kind: MetricKind, value: Double, baseline: Double, zScore: Double, sampleCount: Int) {
         self.kind = kind
         self.value = value

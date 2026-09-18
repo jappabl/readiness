@@ -179,6 +179,9 @@ struct StatCard: View {
     let value: String
     var unit: String?
     var trend: Trend?
+    /// Direction and valence are separate facts. A resting heart rate can point up
+    /// while pointing up is the bad news, so the arrow and its colour are set apart.
+    var trendFavourable = true
     /// When present, the card shows where the reading sits in the user's own range.
     var range: (z: Double, polarity: Double, tint: Color)?
     var status: String?
@@ -208,7 +211,7 @@ struct StatCard: View {
                     Image(systemName: trend == .up ? "arrowtriangle.up.fill"
                                                    : "arrowtriangle.down.fill")
                         .font(.system(size: 9))
-                        .foregroundStyle(trend == .up ? Tokens.positive : Tokens.negative)
+                        .foregroundStyle(trendFavourable ? Tokens.positive : Tokens.negative)
                 }
             }
             .minimumScaleFactor(0.6)
@@ -307,43 +310,6 @@ struct TimelineRow: View {
         .accessibilityElement(children: .combine)
     }
 }
-
-/// The segmented energy meter from the reference — discrete ticks, filled to a share.
-struct SegmentedMeter: View {
-    let fraction: Double
-    let symbol: String
-    var tint: Color = Tokens.accent
-    private let segments = 34
-
-    var body: some View {
-        HStack(spacing: 10) {
-            Image(systemName: symbol).font(.system(size: 14)).foregroundStyle(tint)
-            GeometryReader { geometry in
-                let filled = Int((Double(segments) * max(0, min(1, fraction))).rounded())
-                HStack(spacing: 2) {
-                    ForEach(0..<segments, id: \.self) { index in
-                        RoundedRectangle(cornerRadius: 1)
-                            .fill(index < filled ? tint : Tokens.ringTrack)
-                            .frame(width: max(1.5, geometry.size.width / Double(segments) - 2))
-                    }
-                }
-                .frame(height: 18)
-            }
-            .frame(height: 18)
-            Text("\(Int((fraction * 100).rounded()))%")
-                .font(.system(size: 15, weight: .medium))
-                .monospacedDigit()
-                .foregroundStyle(Tokens.textPrimary)
-        }
-        .bevelCard(padding: 14)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(Int((fraction * 100).rounded())) percent")
-    }
-}
-
-/// Where today's reading sits inside this user's own range. The dot is the z-score
-/// mapped onto ±3 SD, polarity-adjusted so the left end always means "worse" whether
-/// the metric is one you want high or low.
 struct RangeBar: View {
     let z: Double
     let polarity: Double
@@ -359,10 +325,15 @@ struct RangeBar: View {
             let width = geometry.size.width
             ZStack(alignment: .leading) {
                 Capsule()
-                    .fill(LinearGradient(
-                        colors: [Tokens.ringTrack, tint.opacity(0.35), Tokens.ringTrack],
-                        startPoint: .leading, endPoint: .trailing))
+                    .fill(Tokens.ringTrack)
                     .frame(height: 4)
+                // The baseline itself, so the dot's distance from it is the message.
+                // A tinted track glowed in the middle, which said the usual range was
+                // the alarming part.
+                Capsule()
+                    .fill(Tokens.textSecondary.opacity(0.45))
+                    .frame(width: 1.5, height: 9)
+                    .offset(x: width / 2 - 0.75)
                 Circle()
                     .fill(tint)
                     .frame(width: 9, height: 9)
@@ -481,29 +452,111 @@ struct Sparkline: View {
     }
 }
 
-/// Reports whether the user looks like they are reading (scrolling down) or deciding
-/// (scrolling up, or resting near the top). Used to retract the coach button while it
-/// would otherwise be in the way.
-struct ScrollIntent: ViewModifier {
-    let onChange: (Bool) -> Void
+// MARK: - The bar
 
-    /// Enough movement to be a deliberate scroll rather than a rubber-band pixel.
-    private let threshold: CGFloat = 6
-    /// Within this of the top, the button always shows.
-    private let topZone: CGFloat = 40
+/// The ask, as a bubble rather than a button.
+///
+/// This is the one control in the app with no brand colour on it. A green logo in a
+/// circle reads as a widget somebody bolted on; a soap film reads as the surface of
+/// the thing itself. The rim carries the iridescence, the specular sells the sphere.
+struct JettOrb: View {
+    var size: CGFloat = 28
 
-    func body(content: Content) -> some View {
-        if #available(iOS 18.0, *) {
-            content.onScrollGeometryChange(for: CGFloat.self) { geometry in
-                geometry.contentOffset.y
-            } action: { old, new in
-                let delta = new - old
-                guard abs(delta) > threshold else { return }
-                // contentOffset grows going down the page.
-                onChange(delta < 0 || new < topZone)
-            }
-        } else {
-            content
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(RadialGradient(
+                    colors: [.white, Color(red: 0.93, green: 0.94, blue: 0.99)],
+                    center: UnitPoint(x: 0.36, y: 0.30),
+                    startRadius: size * 0.04,
+                    endRadius: size * 0.80))
+
+            // Iridescence gathers at the rim, the way it does on a real film.
+            Circle()
+                .strokeBorder(AngularGradient(stops: [
+                    .init(color: Color(red: 0.60, green: 0.72, blue: 1.00), location: 0.00),
+                    .init(color: Color(red: 1.00, green: 0.80, blue: 0.64), location: 0.20),
+                    .init(color: Color(red: 0.66, green: 0.96, blue: 0.86), location: 0.44),
+                    .init(color: Color(red: 0.78, green: 0.70, blue: 1.00), location: 0.68),
+                    .init(color: Color(red: 1.00, green: 0.82, blue: 0.78), location: 0.86),
+                    .init(color: Color(red: 0.60, green: 0.72, blue: 1.00), location: 1.00),
+                ], center: .center), lineWidth: size * 0.20)
+                .blur(radius: size * 0.045)
+
+            // The small high specular is what makes it read as a sphere rather than a disc.
+            Ellipse()
+                .fill(.white.opacity(0.95))
+                .frame(width: size * 0.30, height: size * 0.19)
+                .offset(x: -size * 0.13, y: -size * 0.25)
+                .blur(radius: size * 0.045)
+
+            // Bounce light opposite it, much fainter.
+            Ellipse()
+                .fill(.white.opacity(0.45))
+                .frame(width: size * 0.21, height: size * 0.12)
+                .offset(x: size * 0.15, y: size * 0.23)
+                .blur(radius: size * 0.06)
         }
+        .frame(width: size, height: size)
+        .shadow(color: Color(red: 0.42, green: 0.42, blue: 0.60).opacity(0.30),
+                radius: size * 0.20, y: size * 0.07)
+    }
+}
+
+/// Five slots on a floating surface, the middle one being the coach.
+///
+/// The coach sits in the bar rather than over it because it is a destination like any
+/// other, not something hovering in front of your reading.
+struct FloatingTabBar: View {
+    @Binding var selection: Int
+    var onAsk: () -> Void
+
+    static let height: CGFloat = 64
+
+    var body: some View {
+        HStack(spacing: 0) {
+            item(0, "Today", "sun.max", "sun.max.fill")
+            item(1, "Train", "dumbbell", "dumbbell.fill")
+            ask
+            item(2, "Trends", "chart.bar", "chart.bar.fill")
+            item(3, "Profile", "person", "person.fill")
+        }
+        .frame(height: Self.height)
+        .frame(maxWidth: .infinity)
+        .background(Tokens.surface, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .shadow(color: .black.opacity(0.10), radius: 16, x: 0, y: 5)
+        .shadow(color: .black.opacity(0.04), radius: 2, x: 0, y: 1)
+        .padding(.horizontal, 12)
+    }
+
+    private func item(_ tag: Int, _ title: String, _ symbol: String, _ filled: String) -> some View {
+        Button { selection = tag } label: {
+            VStack(spacing: 3) {
+                Image(systemName: selection == tag ? filled : symbol)
+                    .font(.system(size: 18, weight: .medium))
+                    .frame(height: 22)
+                Text(title)
+                    .font(.system(size: 10, weight: selection == tag ? .semibold : .medium))
+            }
+            .foregroundStyle(selection == tag ? Tokens.textPrimary : Tokens.textSecondary)
+            .frame(maxWidth: .infinity)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(selection == tag ? [.isSelected, .isButton] : .isButton)
+    }
+
+    private var ask: some View {
+        Button { Haptics.light(); onAsk() } label: {
+            VStack(spacing: 3) {
+                JettOrb(size: 30).frame(height: 22)
+                Text("Jett").font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(Tokens.textSecondary)
+            }
+            .frame(maxWidth: .infinity)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(PressableStyle())
+        .accessibilityLabel("Ask Coach Jett")
     }
 }

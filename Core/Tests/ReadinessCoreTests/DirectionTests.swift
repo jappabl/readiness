@@ -44,3 +44,36 @@ struct DirectionTests {
         }
     }
 }
+
+/// The call sites kept re-deriving "is this above baseline?" from the aligned z and
+/// getting it backwards for inverted metrics. The reading answers it itself now.
+@Suite("A reading states its own direction")
+struct ReadingDirectionTests {
+
+    @Test("a raised resting heart rate is above baseline and unfavourable")
+    func raisedRestingHeartRate() {
+        let raised = MetricReading(kind: .restingHeartRate, value: 70, baseline: 53,
+                                   zScore: 3.2, sampleCount: 60)
+        #expect(raised.isAboveBaseline)
+        #expect(!raised.isFavourable)
+    }
+
+    @Test("a low HRV is below baseline and unfavourable")
+    func lowHRV() {
+        let low = MetricReading(kind: .hrv, value: 20, baseline: 53,
+                                zScore: -2.5, sampleCount: 60)
+        #expect(!low.isAboveBaseline)
+        #expect(!low.isFavourable)
+    }
+
+    @Test("direction and favourability agree only for metrics where higher is better")
+    func polarityDecidesWhetherTheyAgree() {
+        for kind in MetricKind.allCases {
+            let reading = MetricReading(kind: kind, value: 0, baseline: 0,
+                                        zScore: 1.5, sampleCount: 60)
+            #expect(reading.isAboveBaseline, "\(kind) read above its baseline")
+            #expect(reading.isFavourable == (kind.polarity > 0),
+                    "\(kind) favourability must follow its polarity, not its direction")
+        }
+    }
+}

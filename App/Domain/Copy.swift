@@ -11,9 +11,10 @@ enum Copy {
 
 
     /// Where a reading sits in the user's own range. Not a grade — the app has no
-    /// basis for calling a number "excellent".
-    static func position(_ alignedZ: Double) -> String {
-        switch alignedZ {
+    /// basis for calling a number "excellent" — and not a verdict either: this is the
+    /// measurement's own direction, so it takes the raw z, never the aligned one.
+    static func position(_ z: Double) -> String {
+        switch z {
         case 1...:      return "Above usual"
         case ..<(-1):   return "Below usual"
         default:        return "Usual"
@@ -65,15 +66,50 @@ enum Copy {
     /// resting heart rate contributes negatively but the reading itself is *above*
     /// baseline, and saying "below" there is simply false.
     static func describe(_ contribution: InputContribution) -> String {
-        let direction = contribution.zScore < 0 ? "below" : "above"
-        let magnitude = abs(contribution.zScore)
+        "\(contribution.kind.displayName) \(deviation(contribution.zScore))"
+    }
+
+    /// How far a reading sits from its own baseline, in the measurement's own
+    /// direction. Raw z, never the contribution's sign: a raised resting heart rate
+    /// contributes negatively but the reading itself is *above* baseline.
+    static func deviation(_ z: Double) -> String {
+        let direction = z < 0 ? "below" : "above"
         let strength: String
-        switch magnitude {
+        switch abs(z) {
         case 2...: strength = "well "
         case 1..<2: strength = ""
         default: strength = "slightly "
         }
-        return "\(contribution.kind.displayName) \(strength)\(direction) baseline"
+        return "\(strength)\(direction) baseline"
+    }
+
+    /// The same phrase, sentence-cased for standing on its own under a graph.
+    static func deviationPhrase(_ z: Double) -> String {
+        let phrase = deviation(z)
+        return phrase.prefix(1).uppercased() + phrase.dropFirst()
+    }
+
+    /// Iconography lives with the words because they are one voice: an adjustment and
+    /// the glyph that stands for it should never be chosen independently.
+    static func symbol(for adjustment: SessionAdjustment) -> String {
+        switch adjustment {
+        case .proceedAsPlanned:         return "checkmark"
+        case .reduceWorkingSets:        return "rectangle.stack"
+        case .capEffort:                return "gauge.medium"
+        case .reduceLoad:               return "scalemass"
+        case .deferLowerBody:           return "calendar.badge.clock"
+        case .swapConditioningToZone2:  return "figure.run"
+        }
+    }
+
+    static func symbol(for kind: MetricKind) -> String {
+        switch kind {
+        case .hrv:              return "waveform.path.ecg"
+        case .restingHeartRate: return "heart.fill"
+        case .sleepDebt:        return "moon.zzz.fill"
+        case .respiratoryRate:  return "lungs.fill"
+        case .bloodOxygen:      return "drop.fill"
+        }
     }
 
     static func confidenceNote(_ confidence: ReadinessConfidence, days: Int) -> String? {

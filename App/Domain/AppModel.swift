@@ -25,7 +25,6 @@ final class AppModel {
     private var series: [DailyPhysiology] = []
 
     /// Retracts while the user is reading, returns when they stop or scroll back.
-    var coachEntryExpanded = true
 
     /// How the user answered today's call. Stored so views react when it changes.
     var todayResponse: RecommendationResponse?

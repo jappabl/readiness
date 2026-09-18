@@ -33,24 +33,34 @@ struct ReadinessApp: App {
 
 struct RootView: View {
     @State private var tab = 0
+    @State private var askingJett = false
 
     var body: some View {
-        ZStack(alignment: .bottom) {
-            TabView(selection: $tab) {
-                NavigationStack { TodayView() }
-                    .tabItem { Label("Today", systemImage: "sun.max") }.tag(0)
-                NavigationStack { TrainView() }
-                    .tabItem { Label("Train", systemImage: "figure.strengthtraining.traditional") }.tag(1)
-                NavigationStack { TrendsView() }
-                    .tabItem { Label("Trends", systemImage: "chart.xyaxis.line") }.tag(2)
-                NavigationStack { ProfileView() }
-                    .tabItem { Label("Profile", systemImage: "person") }.tag(3)
-            }
-            .tint(Tokens.accent)
-
-            // The coach lives over Today rather than beside it, so it can blur the
-            // app behind it — including the tab bar.
-            if tab == 0 { CoachLayer() }
+        TabView(selection: $tab) {
+            NavigationStack { TodayView() }.hidingSystemTabBar().tag(0)
+            NavigationStack { TrainView() }.hidingSystemTabBar().tag(1)
+            NavigationStack { TrendsView() }.hidingSystemTabBar().tag(2)
+            NavigationStack { ProfileView() }.hidingSystemTabBar().tag(3)
         }
+        .tint(Tokens.accent)
+        // The bar floats, so it becomes part of the safe area rather than sitting on
+        // top of the content — every screen scrolls clear of it without knowing it exists.
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            FloatingTabBar(selection: $tab) { askingJett = true }
+                .padding(.top, 6)
+        }
+        // fullScreenCover, not sheet: the large detent always leaves an inset strip of
+        // the parent at the top, and iOS lays a dimming layer under a sheet — so the
+        // material ends up blurring flat grey instead of the app.
+        .fullScreenCover(isPresented: $askingJett) {
+            CoachSheet()
+                .presentationBackground(.ultraThinMaterial)
+        }
+    }
+}
+
+private extension View {
+    func hidingSystemTabBar() -> some View {
+        toolbar(.hidden, for: .tabBar)
     }
 }

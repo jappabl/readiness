@@ -19,7 +19,7 @@ struct TrainView: View {
                 }
                 .padding(.horizontal, Tokens.screenMargin)
                 .padding(.top, 4)
-                .padding(.bottom, 96)
+                .padding(.bottom, 16)
             }
         }
         .navigationTitle("Train")

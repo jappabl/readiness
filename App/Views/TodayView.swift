@@ -72,17 +72,13 @@ struct TodayView: View {
                 summaryCard
                 checkInPrompt
                 session
-                energy
                 healthMonitor
                 insight
             }
             .padding(.horizontal, Tokens.screenMargin)
             .padding(.top, 2)
-            .padding(.bottom, 130)
+            .padding(.bottom, 16)
         }
-        .modifier(ScrollIntent { expanded in
-            if model.coachEntryExpanded != expanded { model.coachEntryExpanded = expanded }
-        })
     }
 
     // MARK: - Rings and coaching, one card
@@ -234,26 +230,6 @@ struct TodayView: View {
         }
     }
 
-    // MARK: - Energy
-
-    /// The reference's segmented meter, driven by the only energy figure we hold:
-    /// what the user reported this morning. No check-in, no meter.
-    @ViewBuilder
-    private var energy: some View {
-        if let checkIn = model.todayCheckIn {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Energy").sectionHeading()
-                Button { showingCheckIn = true } label: {
-                    SegmentedMeter(fraction: Double(checkIn.energy) / 5.0,
-                                   symbol: "bolt.fill", tint: Tokens.recoveryHigh)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(PressableStyle())
-                .accessibilityHint("Edit your check-in")
-            }
-        }
-    }
-
     // MARK: - Health monitor
 
     private var healthMonitor: some View {
@@ -273,14 +249,14 @@ struct TodayView: View {
     @ViewBuilder
     private func statCard(_ kind: MetricKind, symbol: String, label: String) -> some View {
         if let reading = model.reading(kind) {
-            let aligned = reading.zScore * kind.polarity
             StatCard(symbol: symbol, label: label,
                      value: reading.value.formatted(.number.precision(.fractionLength(1))),
                      unit: reading.kind.unit,
-                     trend: aligned >= 0 ? .up : .down,
+                     trend: reading.isAboveBaseline ? .up : .down,
+                     trendFavourable: reading.isFavourable,
                      range: (z: reading.zScore, polarity: kind.polarity,
-                             tint: aligned >= 0 ? Tokens.recoveryHigh : Tokens.strainLow),
-                     status: Copy.position(aligned))
+                             tint: reading.isFavourable ? Tokens.recoveryHigh : Tokens.strainLow),
+                     status: Copy.position(reading.zScore))
         }
     }
 }
