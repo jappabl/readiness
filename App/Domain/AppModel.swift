@@ -109,14 +109,48 @@ final class AppModel {
     }
 
     private func persistPrescriptions(for assembled: AssembledDay, into context: ModelContext) {
-        let date = Calendar.current.startOfDay(for: assembled.date)
-        let existing = (try? context.fetch(FetchDescriptor<PrescriptionRow>())) ?? []
-        for row in existing where Calendar.current.isDate(row.date, inSameDayAs: date) {
-            context.delete(row)
-        }
-        for p in prescriptions {
-            context.insert(PrescriptionRow(date: date, prescription: p,
-                                           state: assembled.readiness.state))
+        let calendar = Calendar.current
+        let date = calendar.startOfDay(for: assembled.date)
+
+        let rows = ((try? context.fetch(FetchDescriptor<PrescriptionRow>())) ?? [])
+            .filter { calendar.isDate($0.date, inSameDayAs: date) }
+        let gradedIDs = Set(((try? context.fetch(FetchDescriptor<OutcomeRow>())) ?? [])
+            .map(\.prescriptionID))
+
+        let byID = Dictionary(rows.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+        let incoming = Dictionary(prescriptions.map { ($0.lift.name, $0) },
+                                  uniquingKeysWith: { a, _ in a })
+
+        let plan = PrescriptionReconciler.plan(
+            existing: rows.map { PrescriptionSnapshot(id: $0.id, liftName: $0.liftName,
+                                                      hasOutcome: gradedIDs.contains($0.id)) },
+            incoming: prescriptions.map(\.lift.name))
+
+        for action in plan {
+            switch action {
+            case .freeze:
+                // Already lifted against. Rewriting the prediction now would mean grading
+                // the day against a number that was revised after the fact.
+                continue
+
+            case .delete(let id):
+                if let row = byID[id] { context.delete(row) }
+
+            case .update(let id):
+                guard let row = byID[id], let p = incoming[row.liftName] else { continue }
+                row.predictedLoad = p.prescribedLoad
+                row.predictedReps = p.repTarget
+                row.targetRIR = p.rirTarget
+                row.stateRaw = assembled.readiness.state.rawValue
+                row.workingWeight = p.lift.workingWeight
+                row.increment = p.lift.increment
+                row.appliedPercent = p.appliedPercent
+
+            case .insert(let liftName):
+                guard let p = incoming[liftName] else { continue }
+                context.insert(PrescriptionRow(date: date, prescription: p,
+                                               state: assembled.readiness.state))
+            }
         }
         try? context.save()
     }

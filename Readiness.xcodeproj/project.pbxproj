@@ -27,6 +27,7 @@
 		0ED32B17A93C4515750BF3CB /* PlateMath.swift in Sources */ = {isa = PBXBuildFile; fileRef = 244FEDB997DEFAB44B64DA10 /* PlateMath.swift */; };
 		9996F64132FEDBA859EFDA59 /* PrescriptionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4EF47B2CFAC159D366A840E /* PrescriptionEngine.swift */; };
 		4609B0E60E54FEBDD3446845 /* ReadinessEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = F80893B5588106223AF7C425 /* ReadinessEngine.swift */; };
+		7E1CD966D6E4A8B83BFDF9D1 /* PrescriptionReconciler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 913DE101C6969E4C2408E709 /* PrescriptionReconciler.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -53,6 +54,7 @@
 		244FEDB997DEFAB44B64DA10 /* PlateMath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PlateMath.swift"; sourceTree = "<group>"; };
 		B4EF47B2CFAC159D366A840E /* PrescriptionEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PrescriptionEngine.swift"; sourceTree = "<group>"; };
 		F80893B5588106223AF7C425 /* ReadinessEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ReadinessEngine.swift"; sourceTree = "<group>"; };
+		913DE101C6969E4C2408E709 /* PrescriptionReconciler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PrescriptionReconciler.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -159,6 +161,7 @@
 				32B61338F8AE6B5708A7055B /* BaselineEngine.swift */,
 				95EACCDCE819ACA79FB81BAA /* Metrics.swift */,
 				244FEDB997DEFAB44B64DA10 /* PlateMath.swift */,
+				913DE101C6969E4C2408E709 /* PrescriptionReconciler.swift */,
 				B4EF47B2CFAC159D366A840E /* PrescriptionEngine.swift */,
 				F80893B5588106223AF7C425 /* ReadinessEngine.swift */,
 			);
@@ -252,6 +255,7 @@
 				89B3A19051585F0BEA35392B /* BaselineEngine.swift in Sources */,
 				5E1E9BEE0EA06FBB36C39A9D /* Metrics.swift in Sources */,
 				0ED32B17A93C4515750BF3CB /* PlateMath.swift in Sources */,
+				7E1CD966D6E4A8B83BFDF9D1 /* PrescriptionReconciler.swift in Sources */,
 				9996F64132FEDBA859EFDA59 /* PrescriptionEngine.swift in Sources */,
 				4609B0E60E54FEBDD3446845 /* ReadinessEngine.swift in Sources */,
 			);

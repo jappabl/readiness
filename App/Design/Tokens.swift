@@ -16,13 +16,20 @@ enum Tokens {
     static let surface       = dynamic(light: 0xFFFFFF, dark: 0x1D1D1B)
     static let textPrimary   = dynamic(light: 0x1A1A18, dark: 0xF2F2EE)
     static let textSecondary = dynamic(light: 0x6B6B66, dark: 0x9A9A93)
-    static let textTertiary  = dynamic(light: 0xA3A39D, dark: 0x6F6F69)
+    /// Spec 9.1 names #A3A39D here, but that is 2.30:1 on the canvas and fails the
+    /// contrast line of the 9.7 review checklist. The two cannot both hold, so the tier
+    /// is kept and de-emphasis is carried by size and weight instead of colour alone.
+    static let textTertiary  = dynamic(light: 0x70706A, dark: 0x8A8A84)
     static let hairline      = dynamic(light: 0xE5E5E1, dark: 0x2E2E2B)
 
     /// One accent. Interactive elements and the prescribed load, nothing else.
     /// Deliberately not a traffic-light hue: colour carries no meaning in the
     /// readiness display (spec 9.4).
     static let accent        = dynamic(light: 0x2F4858, dark: 0x8FB3C4)
+
+    /// Label colour for filled accent surfaces. Without this, a prominent button in dark
+    /// mode renders white on a light accent at 2.23:1.
+    static let onAccent      = dynamic(light: 0xFFFFFF, dark: 0x131312)
 
     /// Reserved for Tier 2 threshold alerts. Unused in v0.1 — defined so that when an
     /// alert does fire it is the only warm colour on screen.

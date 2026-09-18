@@ -149,19 +149,19 @@ struct ExplainView: View {
         }
     }
 
+    /// One string rather than an HStack of fragments, which wrapped into a mess.
+    private var temperatureLine: String? {
+        guard let deviation = day.wristTemperatureDeviationC else { return nil }
+        let value = deviation.formatted(.number.precision(.fractionLength(2)).sign(strategy: .always()))
+        let base = "Wrist temperature \(value) °C from baseline"
+        guard day.readiness.gateApplied == .elevatedWristTemperature else { return base + "." }
+        return base + " — above the illness threshold, which capped today."
+    }
+
     private var footnote: some View {
         VStack(alignment: .leading, spacing: 6) {
-            if let deviation = day.wristTemperatureDeviationC {
-                HStack(spacing: 4) {
-                    Text("Wrist temperature")
-                    Text(deviation, format: .number.precision(.fractionLength(2)).sign(strategy: .always()))
-                        .monospacedDigit()
-                    Text("°C from baseline")
-                    if day.readiness.gateApplied == .elevatedWristTemperature {
-                        Text("— above the illness threshold, which capped today.")
-                    }
-                }
-                .qualifier()
+            if let line = temperatureLine {
+                Text(line).qualifier()
             }
             Text("Model \(day.readiness.modelVersion) · \(day.daysOfHistory) days of history · "
                  + "confidence \(day.readiness.confidence.rawValue)")

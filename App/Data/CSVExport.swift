@@ -9,7 +9,7 @@ enum CSVExport {
         "date", "readiness_state", "composite_z", "model_version", "confidence", "gate",
         "lift", "predicted_load", "predicted_reps", "target_rir",
         "achieved_load", "achieved_reps", "achieved_rir", "completed_as_prescribed",
-        "load_error", "load_error_pct",
+        "load_error", "load_error_pct", "rep_error",
     ].joined(separator: ",")
 
     static func build(context: ModelContext) -> String {
@@ -50,6 +50,9 @@ enum CSVExport {
                 outcome.map { $0.completedAsPrescribed ? "true" : "false" } ?? "",
                 error.map { String(format: "%.2f", $0) } ?? "",
                 errorPct.map { String(format: "%.4f", $0) } ?? "",
+                // A rep shortfall at the prescribed load is prediction error too, and
+                // on a hard day it is the signal that shows up first.
+                outcome.map { String($0.achievedReps - p.predictedReps) } ?? "",
             ]
             lines.append(fields.joined(separator: ","))
         }

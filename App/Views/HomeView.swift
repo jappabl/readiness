@@ -4,6 +4,7 @@ import SwiftData
 struct HomeView: View {
     @Environment(AppModel.self) private var model
     @Environment(\.modelContext) private var context
+    @Environment(\.dynamicTypeSize) private var typeSize
     @State private var showingLog = false
 
     var body: some View {
@@ -42,12 +43,33 @@ struct HomeView: View {
                     header(for: day)
                     prescriptionBlock
                 }
+                // At accessibility sizes a pinned button grows tall enough to cover the
+                // prescription it refers to, so it rides along with the content instead.
+                if typeSize.isAccessibilitySize {
+                    logButton.padding(.top, 4)
+                }
             }
             .padding(.horizontal, Tokens.screenMargin)
             .padding(.top, 8)
-            .padding(.bottom, 40)
+            .padding(.bottom, typeSize.isAccessibilitySize ? 88 : 40)
         }
-        .safeAreaInset(edge: .bottom) { logBar }
+        .safeAreaInset(edge: .bottom) {
+            if !typeSize.isAccessibilitySize { logBar }
+        }
+    }
+
+    private var logButton: some View {
+        Button {
+            showingLog = true
+        } label: {
+            Text("Log this session")
+                .font(.body.weight(.semibold))
+                .foregroundStyle(Tokens.onAccent)
+                .frame(maxWidth: .infinity)
+                .frame(minHeight: 44)
+        }
+        .buttonStyle(.borderedProminent)
+        .tint(Tokens.accent)
     }
 
     // MARK: - Readiness, expressed typographically and never chromatically (spec 9.4)
@@ -104,19 +126,9 @@ struct HomeView: View {
     private var logBar: some View {
         Group {
             if case .ready = model.phase, !model.prescriptions.isEmpty {
-                Button {
-                    showingLog = true
-                } label: {
-                    Text("Log this session")
-                        .font(.body.weight(.semibold))
-                        .frame(maxWidth: .infinity)
-                        .frame(minHeight: 44)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(Tokens.accent)
-                .padding(.horizontal, Tokens.screenMargin)
-                .padding(.bottom, 8)
-                .background(.clear)
+                logButton
+                    .padding(.horizontal, Tokens.screenMargin)
+                    .padding(.bottom, 8)
             }
         }
     }
@@ -143,22 +155,25 @@ struct PrescriptionRowView: View {
                 Text("lb").qualifier()
             }
 
-            HStack(spacing: 4) {
-                Text("\(prescription.repTarget) reps")
-                Text("·")
-                Text("RIR \(prescription.rirTarget)")
-                if abs(prescription.appliedPercent) > 0.001 {
-                    Text("·")
-                    Text(prescription.appliedPercent, format: .percent.precision(.fractionLength(1)))
-                }
-            }
-            .font(.subheadline)
-            .foregroundStyle(Tokens.textSecondary)
+            // One Text rather than an HStack of fragments: at accessibility sizes the
+            // separators were wrapping onto lines of their own.
+            Text(metadata)
+                .font(.subheadline)
+                .foregroundStyle(Tokens.textSecondary)
         }
         .card()
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(
             "\(prescription.lift.name), \(Int(prescription.prescribedLoad)) pounds, "
             + "\(prescription.repTarget) reps, \(prescription.rirTarget) reps in reserve")
+    }
+
+    private var metadata: String {
+        var parts = ["\(prescription.repTarget) reps", "RIR \(prescription.rirTarget)"]
+        if abs(prescription.appliedPercent) > 0.001 {
+            parts.append(prescription.appliedPercent
+                .formatted(.percent.precision(.fractionLength(1))))
+        }
+        return parts.joined(separator: " · ")
     }
 }
