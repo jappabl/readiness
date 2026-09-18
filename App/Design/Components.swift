@@ -542,9 +542,12 @@ struct FloatingTabBar: View {
     private var ask: some View {
         Button { Haptics.light(); onAsk() } label: {
             VStack(spacing: 3) {
-                JettOrb(size: 30).frame(height: 22)
-                Text("Jett").font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(Tokens.textSecondary)
+                JettOrb(size: 28).frame(height: 22)
+                // The name is the affordance — the ring says "something lives here",
+                // the word says what. It carries the weight of a selected tab because
+                // the coach is always available, never merely current.
+                Text("Jett").font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(Tokens.textPrimary)
             }
             .frame(maxWidth: .infinity)
             .contentShape(Rectangle())
