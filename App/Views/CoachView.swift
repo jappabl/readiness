@@ -79,7 +79,13 @@ struct CoachSheet: View {
 
     private var title: some View {
         VStack(spacing: 10) {
-            JettFace(size: 62)
+            // Thinking until the first word lands, speaking while it streams. The
+            // mood comes from the day's call, so a bad morning shows on his face
+            // before he has said anything.
+            JettRive(size: 62,
+                     isThinking: isStreaming && (messages.last?.text.isEmpty ?? true),
+                     isSpeaking: isStreaming && !(messages.last?.text.isEmpty ?? true),
+                     mood: model.recommendation?.state.jettMood ?? 1)
 
             VStack(spacing: 4) {
                 Text("Coach Jett")

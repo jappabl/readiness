@@ -8,6 +8,9 @@
 
 /* Begin PBXBuildFile section */
 		7559CC8D141A93DBF5685EEB /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6F9973165E2B0FD4A3AAC566 /* Assets.xcassets */; };
+		D3044245B5C9457DB81D0F5A /* RiveRuntime.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 49A1D7FFCBF64F3A8A42C5E3 /* RiveRuntime.xcframework */; };
+		60FCFF2119B043AAB29DEA7D /* RiveRuntime.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 49A1D7FFCBF64F3A8A42C5E3 /* RiveRuntime.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		FE15FC9A7F34489A80B47855 /* Jett.riv in Resources */ = {isa = PBXBuildFile; fileRef = 0F4B1A7BEA4E4BB28065BC11 /* Jett.riv */; };
 		0DF6ECC7EE2545BEBDBD8DAF /* Readiness.storekit in Resources */ = {isa = PBXBuildFile; fileRef = BCEE1D3EF7944F4BB5157CB5 /* Readiness.storekit */; };
 		58FD71D67A497BE6E4037D13 /* ClaudeCoachProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3779549DC90963FFB7EC5B96 /* ClaudeCoachProvider.swift */; };
 		7F4D405B9C01F5887FFDBF05 /* CoachProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBCC3151D19B79D645F78D9A /* CoachProvider.swift */; };
@@ -15,6 +18,7 @@
 		009D4826D7C7474F9942DFB4 /* CoachUsage.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1AB0117C12A40B9AD8AC6A2 /* CoachUsage.swift */; };
 		1F2ABFDB99F5A157202064B1 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = A05C07BD369FE0B4C393E4DD /* Models.swift */; };
 		8EB8022FAEB8B072A5B48D87 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0BCBBC313CD0F4786FBECC8 /* Components.swift */; };
+		3847AA30AB8B469E81244BA6 /* JettRive.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75C97A7B460546DC971F8390 /* JettRive.swift */; };
 		EE03F8BEDCD6A9A537C094A1 /* Haptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = D05CEB565B3FE57087B3DF2F /* Haptics.swift */; };
 		8B34409B561B864F27FC08B8 /* Tokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DC92FB9E866D08DA7B20B63 /* Tokens.swift */; };
 		D5DD1FF9090A37E50C8620A7 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8D4A3BC6412D0F227E7426E /* AppModel.swift */; };
@@ -79,6 +83,9 @@
 		E1AB0117C12A40B9AD8AC6A2 /* CoachUsage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CoachUsage.swift"; sourceTree = "<group>"; };
 		A05C07BD369FE0B4C393E4DD /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Models.swift"; sourceTree = "<group>"; };
 		F0BCBBC313CD0F4786FBECC8 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Components.swift"; sourceTree = "<group>"; };
+		49A1D7FFCBF64F3A8A42C5E3 /* RiveRuntime.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = RiveRuntime.xcframework; path = Frameworks/RiveRuntime.xcframework; sourceTree = SOURCE_ROOT; };
+		75C97A7B460546DC971F8390 /* JettRive.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "JettRive.swift"; sourceTree = "<group>"; };
+		0F4B1A7BEA4E4BB28065BC11 /* Jett.riv */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Jett.riv"; path = "App/Jett.riv"; sourceTree = SOURCE_ROOT; };
 		D05CEB565B3FE57087B3DF2F /* Haptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Haptics.swift"; sourceTree = "<group>"; };
 		0DC92FB9E866D08DA7B20B63 /* Tokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Tokens.swift"; sourceTree = "<group>"; };
 		A8D4A3BC6412D0F227E7426E /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppModel.swift"; sourceTree = "<group>"; };
@@ -133,11 +140,26 @@
 		C8E4DCF35AF6C72C1EB7D54F /* Training.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Training.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		7DC60644219E4E9B9063586E /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				60FCFF2119B043AAB29DEA7D /* RiveRuntime.xcframework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFrameworksBuildPhase section */
 		25AA648F3681889018A23852 = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D3044245B5C9457DB81D0F5A /* RiveRuntime.xcframework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -156,6 +178,8 @@
 				E76FA9E061A1016B19FC8C06 /* App/Views */,
 				6222F745E99EBCEC3F9E21D5 /* Core/Sources/ReadinessCore */,
 				6F9973165E2B0FD4A3AAC566 /* Assets.xcassets */,
+				49A1D7FFCBF64F3A8A42C5E3 /* RiveRuntime.xcframework */,
+				0F4B1A7BEA4E4BB28065BC11 /* Jett.riv */,
 				8CFC39A16F9B9B06CE4648BB /* Info.plist */,
 				2AFF84FB9571D12AFA48462D /* Readiness.entitlements */,
 				786F9325F29F7C3BE8A6717D /* Products */,
@@ -204,6 +228,7 @@
 			isa = PBXGroup;
 			children = (
 				F0BCBBC313CD0F4786FBECC8 /* Components.swift */,
+				75C97A7B460546DC971F8390 /* JettRive.swift */,
 				D05CEB565B3FE57087B3DF2F /* Haptics.swift */,
 				0DC92FB9E866D08DA7B20B63 /* Tokens.swift */,
 			);
@@ -302,6 +327,7 @@
 				592FA99528F1CC09D6D76063 /* Sources */,
 				25AA648F3681889018A23852 /* Frameworks */,
 				BABC7856FF8DEE040F4405E7 /* Resources */,
+				7DC60644219E4E9B9063586E /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
@@ -345,12 +371,15 @@
 		};
 /* End PBXProject section */
 
+
+
 /* Begin PBXResourcesBuildPhase section */
 		BABC7856FF8DEE040F4405E7 = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				7559CC8D141A93DBF5685EEB /* Assets.xcassets in Resources */,
+				FE15FC9A7F34489A80B47855 /* Jett.riv in Resources */,
 				0DF6ECC7EE2545BEBDBD8DAF /* Readiness.storekit in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -368,6 +397,7 @@
 				009D4826D7C7474F9942DFB4 /* CoachUsage.swift in Sources */,
 				1F2ABFDB99F5A157202064B1 /* Models.swift in Sources */,
 				8EB8022FAEB8B072A5B48D87 /* Components.swift in Sources */,
+				3847AA30AB8B469E81244BA6 /* JettRive.swift in Sources */,
 				EE03F8BEDCD6A9A537C094A1 /* Haptics.swift in Sources */,
 				8B34409B561B864F27FC08B8 /* Tokens.swift in Sources */,
 				D5DD1FF9090A37E50C8620A7 /* AppModel.swift in Sources */,

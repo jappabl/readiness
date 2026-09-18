@@ -57,7 +57,7 @@ struct OnboardingView: View {
     private var welcome: some View {
         VStack(spacing: 0) {
             Spacer()
-            JettFace(size: 84)
+            JettRive(size: 84)
             Text("Readiness")
                 .font(.system(size: 34, weight: .bold))
                 .foregroundStyle(Tokens.textPrimary)
@@ -275,7 +275,7 @@ struct OnboardingView: View {
     private var readingStep: some View {
         VStack(spacing: 22) {
             Spacer()
-            JettFace(size: 76)
+            JettRive(size: 76, isThinking: true)
             VStack(spacing: 8) {
                 Text("Reading your history")
                     .font(.system(size: 24, weight: .bold))

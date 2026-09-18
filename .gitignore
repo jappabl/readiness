@@ -3,3 +3,7 @@
 DerivedData/
 *.xcuserstate
 xcuserdata/
+
+# Vendored binary framework: run Scripts/fetch-rive.sh
+Frameworks/RiveRuntime.xcframework/
+Readiness.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/

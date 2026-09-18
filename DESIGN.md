@@ -208,6 +208,17 @@ either side is an outline glyph with a label; this is a person, and the asymmetr
 point — you do not need telling twice what it is, and the missing label is what makes
 the slot read as somebody rather than as a destination.
 
+**He is animated where he is present, and static where he is a button.** The coach
+sheet and onboarding run the Rive file; the tab bar and the paywall use the PNG. A 38pt
+face breathing permanently in the tab bar is noise, and the tab bar is somewhere you
+tap rather than somewhere he is.
+
+The `.riv` carries one artboard and one state machine, both named `Jett`, with three
+inputs: `isThinking`, `isSpeaking`, `mood` (0 concerned, 1 neutral, 2 pleased). Blinking
+and breathing run on their own timers **inside the file**, which is why there is no
+trigger for either — the app must never have to remember to make him blink. Mood comes
+from the day's call, so a bad morning shows on his face before he has said anything.
+
 He was a ring for a while, and the ring was wrong. It was clean and it said nothing: the
 app is already full of rings, so one more reads as a gauge rather than a person. A face
 is the only element here somebody could feel they are talking to, which is the entire
