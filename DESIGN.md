@@ -301,6 +301,17 @@ listing them; a single metric on its own rarely makes the case. None when one nu
 already says it. Stacked charts use the compact card, because three full-height ones
 push the point off the screen.
 
+**An answer is one column: the call, the evidence, what to do.** Nothing else. The
+charts sit in that column without a card around them, because a bordered box in the
+middle of a thought reads as an interruption rather than as the evidence for the
+sentence above it. Three weights carry the structure: the call in bold primary, the
+action in secondary, the chart's own read a step quieter than both.
+
+**A chart replaces the sentence, it does not accompany it.** The chart already names the
+metric and shows the number, so saying either again in prose is the single thing that
+makes these answers feel bloated. With a chart, an answer is one line before it and one
+line after it.
+
 **Every chart says what it means.** A line on its own is a shape, and three stacked is
 three shapes. Each carries one short line read off the data — "Lowest in 28 days",
 "Sitting where it usually does" — derived rather than written by the model, so it can

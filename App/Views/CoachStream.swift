@@ -29,7 +29,7 @@ struct CoachTurnView: View {
             // The first line is the answer and is set as one: bigger, heavier, and on
             // its own. Everything after it is the detail you read only if you want it.
             let segments = CoachSegments.parse(message.text)
-            VStack(alignment: .leading, spacing: 11) {
+            VStack(alignment: .leading, spacing: 15) {
                 ForEach(Array(segments.enumerated()), id: \.offset) { index, segment in
                     switch segment {
                     case .text(let prose):
@@ -185,8 +185,8 @@ struct CoachChartCard: View {
 
     var body: some View {
         if values.count >= 2 {
-            VStack(alignment: .leading, spacing: 7) {
-                DrawingLine(values: values, tint: tint, lineHeight: compact ? 30 : 44) { head in
+            VStack(alignment: .leading, spacing: 6) {
+                DrawingLine(values: values, tint: tint, lineHeight: 40) { head in
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
                         Text(kind.displayName)
                             .font(.system(size: 13, weight: .medium))
@@ -209,15 +209,14 @@ struct CoachChartCard: View {
                 if let reading {
                     Text(MetricNarration.brief(reading: reading, series: values))
                         .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(Tokens.textSecondary)
+                        .foregroundStyle(Tokens.textTertiary)
                 }
             }
-            .padding(compact ? 11 : 14)
+            // No card around it. The answer is a single column of thought, and a
+            // bordered box in the middle of it reads as an interruption rather than as
+            // the evidence for the sentence above.
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Tokens.surface.opacity(0.7),
-                        in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .strokeBorder(Color.primary.opacity(0.06), lineWidth: 0.5))
+            .padding(.vertical, 2)
             .accessibilityElement(children: .combine)
             .accessibilityLabel("\(kind.displayName) over the last \(values.count) days")
         }

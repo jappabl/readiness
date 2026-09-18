@@ -19,11 +19,11 @@ struct RehearsalCoachProvider: CoachProvider {
     /// history, and a canned line claiming "lowest in two weeks" sits directly above a
     /// chart that may say otherwise. Same rule as the paywall demo.
     private static let answer = """
-        You're flat today. Here's what moved.
+        You're flat today.
 
         [chart:hrv]
 
-        Take 15% off the bar and stop at 4 RIR. You'll still get the work in.
+        Take 15% off the bar and stop at 4 RIR.
         """
 
     func stream(messages: [CoachMessage],
