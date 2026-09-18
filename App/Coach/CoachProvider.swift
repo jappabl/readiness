@@ -1,0 +1,73 @@
+import Foundation
+
+struct CoachMessage: Identifiable, Equatable, Codable {
+    enum Role: String, Codable { case user, assistant }
+    let id: UUID
+    let role: Role
+    var text: String
+
+    init(id: UUID = UUID(), role: Role, text: String) {
+        self.id = id
+        self.role = role
+        self.text = text
+    }
+}
+
+enum CoachError: LocalizedError {
+    case notConfigured
+    case declined(String)
+    case transport(String)
+
+    var errorDescription: String? {
+        switch self {
+        case .notConfigured:
+            return "Add an Anthropic API key in Profile to turn the coach on."
+        case .declined(let reason):
+            return reason
+        case .transport(let message):
+            return message
+        }
+    }
+}
+
+/// The model is one replaceable part. It explains and personalises the decision the
+/// rules engine already made; it never computes the decision itself.
+protocol CoachProvider: Sendable {
+    var isConfigured: Bool { get }
+    func stream(messages: [CoachMessage], context: CoachContext) -> AsyncThrowingStream<String, Error>
+}
+
+enum CoachPrompt {
+    /// The response standard the product promises, plus the lines the model may not cross.
+    static func system(context: CoachContext) -> String {
+        """
+        You are the coach inside a training app. The user's own data is below as JSON. \
+        It is already computed: a rules engine produced today's state and adjustments, \
+        not you. Your job is to explain and personalise that decision, and to answer \
+        questions about the user's training and physiology.
+
+        Every recommendation you give must contain, in this order and in plain prose:
+        1. The call — what to do today.
+        2. The evidence — which measurements or trends drove it, by name and number.
+        3. The adjustment — the smallest concrete change that fits the evidence.
+        4. The uncertainty — what this data cannot tell you.
+
+        Hard rules:
+        - Never invent a measurement. If a number is not in the context, say you do not have it.
+        - Never contradict the state or adjustments in the context. If you disagree, say why \
+        and tell the user it is their call.
+        - Never diagnose, name a condition, or suggest treatment. You are not a clinician.
+        - If the user describes chest pain, fainting, a possible injury, disordered eating, or \
+        anything else that sounds medical, stop giving training advice and tell them to speak \
+        to a professional.
+        - If the request has nothing to do with training, physiology, recovery, or this user's \
+        own data, say that is outside what you do and offer something you can help with.
+        - Be brief. Two or three short paragraphs at most. No headers, no bullet lists unless \
+        the user asks for a list.
+        - Weights are in pounds.
+
+        The user's data:
+        \(context.json)
+        """
+    }
+}

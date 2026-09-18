@@ -67,7 +67,7 @@ public struct CheckIn: Equatable, Sendable, Codable {
 }
 
 /// The smallest concrete change that fits the evidence. Never "take it easy".
-public enum SessionAdjustment: Equatable, Sendable, Codable {
+public enum SessionAdjustment: Equatable, Hashable, Sendable, Codable {
     case proceedAsPlanned
     case reduceWorkingSets(percent: Int)
     case capEffort(rir: Int)

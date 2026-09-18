@@ -8,8 +8,10 @@ struct ReadinessApp: App {
     private let container: ModelContainer = {
         do {
             return try ModelContainer(
-                for: LiftConfig.self, DailyMetricRow.self,
-                     ReadinessRow.self, PrescriptionRow.self, OutcomeRow.self)
+                for: WorkoutTemplate.self, TemplateExercise.self,
+                     WorkoutSession.self, LoggedSet.self,
+                     CheckInRow.self, DailyMetricRow.self,
+                     RecommendationRow.self, UserProfile.self)
         } catch {
             fatalError("Could not create the local store: \(error)")
         }
@@ -32,10 +34,16 @@ struct ReadinessApp: App {
 struct RootView: View {
     var body: some View {
         TabView {
-            NavigationStack { HomeView() }
-                .tabItem { Label("Today", systemImage: "figure.strengthtraining.traditional") }
-            NavigationStack { HistoryView() }
-                .tabItem { Label("History", systemImage: "list.bullet") }
+            NavigationStack { TodayView().navigationTitle("Today") }
+                .tabItem { Label("Today", systemImage: "sun.max") }
+            NavigationStack { TrainView() }
+                .tabItem { Label("Train", systemImage: "figure.strengthtraining.traditional") }
+            NavigationStack { CoachView() }
+                .tabItem { Label("Coach", systemImage: "bubble.left.and.text.bubble.right") }
+            NavigationStack { TrendsView() }
+                .tabItem { Label("Trends", systemImage: "chart.xyaxis.line") }
+            NavigationStack { ProfileView() }
+                .tabItem { Label("Profile", systemImage: "person") }
         }
         .tint(Tokens.accent)
     }

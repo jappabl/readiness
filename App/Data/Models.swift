@@ -1,30 +1,143 @@
 import Foundation
 import SwiftData
 
-/// The lifts the user actually trains, and the weights they are currently working with.
-/// This plus HealthKit is the entire input surface of the app (principle P1).
-@Model
-final class LiftConfig {
-    var name: String
-    var workingWeight: Double
-    var increment: Double
-    var repTarget: Int
-    var rirTarget: Int
-    var order: Int
+// MARK: - Program
 
-    init(name: String, workingWeight: Double, increment: Double,
-         repTarget: Int = 5, rirTarget: Int = 2, order: Int = 0) {
+/// A reusable session. The user's plan of record, which the agent may propose changes to
+/// but never overwrites.
+@Model
+final class WorkoutTemplate {
+    var name: String
+    var order: Int
+    @Relationship(deleteRule: .cascade, inverse: \TemplateExercise.template)
+    var exercises: [TemplateExercise] = []
+
+    init(name: String, order: Int = 0) {
         self.name = name
-        self.workingWeight = workingWeight
-        self.increment = increment
-        self.repTarget = repTarget
-        self.rirTarget = rirTarget
         self.order = order
     }
 
-    var lift: Lift {
-        Lift(name: name, workingWeight: workingWeight, increment: increment,
-             repTarget: repTarget, rirTarget: rirTarget)
+    var orderedExercises: [TemplateExercise] { exercises.sorted { $0.order < $1.order } }
+}
+
+@Model
+final class TemplateExercise {
+    var name: String
+    var muscleGroupRaw: String
+    var targetSets: Int
+    var targetReps: Int
+    var workingWeight: Double
+    var increment: Double
+    var targetRIR: Int
+    var restSeconds: Int
+    var order: Int
+    var template: WorkoutTemplate?
+
+    init(name: String, muscleGroup: MuscleGroup, targetSets: Int = 3, targetReps: Int = 5,
+         workingWeight: Double, increment: Double = 5, targetRIR: Int = 2,
+         restSeconds: Int = 180, order: Int = 0) {
+        self.name = name
+        self.muscleGroupRaw = muscleGroup.rawValue
+        self.targetSets = targetSets
+        self.targetReps = targetReps
+        self.workingWeight = workingWeight
+        self.increment = increment
+        self.targetRIR = targetRIR
+        self.restSeconds = restSeconds
+        self.order = order
+    }
+
+    var muscleGroup: MuscleGroup { MuscleGroup(rawValue: muscleGroupRaw) ?? .core }
+
+    var plannedExercise: PlannedExercise {
+        PlannedExercise(name: name, muscleGroup: muscleGroup, sets: targetSets,
+                        reps: targetReps, workingWeight: workingWeight,
+                        increment: increment, rir: targetRIR)
+    }
+}
+
+// MARK: - What actually happened
+
+@Model
+final class WorkoutSession {
+    var date: Date
+    var templateName: String
+    var isComplete: Bool
+    var sessionRPE: Double
+    var startedAt: Date
+    var finishedAt: Date?
+    @Relationship(deleteRule: .cascade, inverse: \LoggedSet.session)
+    var sets: [LoggedSet] = []
+
+    init(date: Date, templateName: String) {
+        self.date = date
+        self.templateName = templateName
+        self.isComplete = false
+        self.sessionRPE = 0
+        self.startedAt = Date()
+    }
+
+    var orderedSets: [LoggedSet] { sets.sorted { $0.order < $1.order } }
+
+    var liftSets: [LiftSet] {
+        sets.map { LiftSet(load: $0.load, reps: $0.reps, rir: $0.rir,
+                           muscleGroup: $0.muscleGroup, isWarmup: $0.isWarmup) }
+    }
+
+    var load: SessionLoad {
+        StrainEngine.sessionLoad(sets: liftSets, sessionRPE: sessionRPE)
+    }
+}
+
+@Model
+final class LoggedSet {
+    var exerciseName: String
+    var muscleGroupRaw: String
+    var load: Double
+    var reps: Int
+    var rir: Int
+    var isWarmup: Bool
+    var order: Int
+    var timestamp: Date
+    var session: WorkoutSession?
+
+    init(exerciseName: String, muscleGroup: MuscleGroup, load: Double, reps: Int,
+         rir: Int, isWarmup: Bool = false, order: Int) {
+        self.exerciseName = exerciseName
+        self.muscleGroupRaw = muscleGroup.rawValue
+        self.load = load
+        self.reps = reps
+        self.rir = rir
+        self.isWarmup = isWarmup
+        self.order = order
+        self.timestamp = Date()
+    }
+
+    var muscleGroup: MuscleGroup { MuscleGroup(rawValue: muscleGroupRaw) ?? .core }
+    /// Epley, which is the usual convention and good enough in the 1-10 rep range.
+    var estimatedOneRepMax: Double { load * (1 + Double(reps) / 30.0) }
+}
+
+// MARK: - Daily record
+
+@Model
+final class CheckInRow {
+    @Attribute(.unique) var date: Date
+    var soreness: Int
+    var energy: Int
+    var stress: Int
+    var mood: Int
+
+    init(date: Date, checkIn: CheckIn) {
+        self.date = date
+        self.soreness = checkIn.soreness
+        self.energy = checkIn.energy
+        self.stress = checkIn.stress
+        self.mood = checkIn.mood
+    }
+
+    var checkIn: CheckIn {
+        CheckIn(soreness: soreness, energy: energy, stress: stress, mood: mood)
     }
 }
 
@@ -53,90 +166,78 @@ final class DailyMetricRow {
     var kind: MetricKind? { MetricKind(rawValue: kindRaw) }
 }
 
-/// One row per day. `modelVersion` is recorded from row one so a later change to the
-/// weight vector can be evaluated retrospectively against the same outcomes (spec 4.2).
+/// How the user answered the agent. This is the feedback loop: without it the app can
+/// never find out whether its calls were worth making.
+enum RecommendationResponse: String, Codable, CaseIterable {
+    case accepted, modified, rejected
+}
+
 @Model
-final class ReadinessRow {
+final class RecommendationRow {
     @Attribute(.unique) var date: Date
     var stateRaw: String
     var composite: Double
-    var contributionsJSON: String
+    var evidenceJSON: String
+    var adjustmentsJSON: String
+    var uncertaintyJSON: String
     var modelVersion: String
     var confidenceRaw: String
     var gateRaw: String?
+    var responseRaw: String?
 
-    init(date: Date, result: ReadinessResult) {
+    init(date: Date, readiness: ReadinessResult, recommendation: Recommendation) {
         self.date = date
-        self.stateRaw = result.state.rawValue
-        self.composite = result.composite
-        self.modelVersion = result.modelVersion
-        self.confidenceRaw = result.confidence.rawValue
-        self.gateRaw = result.gateApplied?.rawValue
-        self.contributionsJSON =
-            (try? JSONEncoder().encode(result.contributions))
-                .flatMap { String(data: $0, encoding: .utf8) } ?? "[]"
+        self.stateRaw = recommendation.state.rawValue
+        self.composite = readiness.composite
+        self.modelVersion = recommendation.modelVersion
+        self.confidenceRaw = recommendation.confidence.rawValue
+        self.gateRaw = readiness.gateApplied?.rawValue
+        self.evidenceJSON = Self.encode(recommendation.evidence)
+        self.adjustmentsJSON = Self.encode(recommendation.adjustments)
+        self.uncertaintyJSON = Self.encode(recommendation.uncertainty)
     }
 
-    var state: ReadinessState { ReadinessState(rawValue: stateRaw) ?? .atBaseline }
+    /// Refresh today's row in place. The row is kept rather than replaced so that a
+    /// response already recorded against it survives.
+    func update(readiness: ReadinessResult, recommendation: Recommendation) {
+        stateRaw = recommendation.state.rawValue
+        composite = readiness.composite
+        modelVersion = recommendation.modelVersion
+        confidenceRaw = recommendation.confidence.rawValue
+        gateRaw = readiness.gateApplied?.rawValue
+        evidenceJSON = Self.encode(recommendation.evidence)
+        adjustmentsJSON = Self.encode(recommendation.adjustments)
+        uncertaintyJSON = Self.encode(recommendation.uncertainty)
+    }
+
+    private static func encode<T: Encodable>(_ value: T) -> String {
+        (try? JSONEncoder().encode(value)).flatMap { String(data: $0, encoding: .utf8) } ?? "[]"
+    }
+
+    private func decode<T: Decodable>(_ json: String, as type: T.Type) -> T? {
+        guard let data = json.data(using: .utf8) else { return nil }
+        return try? JSONDecoder().decode(type, from: data)
+    }
+
+    var state: TrainingState { TrainingState(rawValue: stateRaw) ?? .maintain }
     var confidence: ReadinessConfidence { ReadinessConfidence(rawValue: confidenceRaw) ?? .low }
     var gate: ReadinessGate? { gateRaw.flatMap(ReadinessGate.init(rawValue:)) }
-    var contributions: [InputContribution] {
-        guard let data = contributionsJSON.data(using: .utf8) else { return [] }
-        return (try? JSONDecoder().decode([InputContribution].self, from: data)) ?? []
-    }
+    var response: RecommendationResponse? { responseRaw.flatMap(RecommendationResponse.init(rawValue:)) }
+    var evidence: [InputContribution] { decode(evidenceJSON, as: [InputContribution].self) ?? [] }
+    var adjustments: [SessionAdjustment] { decode(adjustmentsJSON, as: [SessionAdjustment].self) ?? [] }
+    var uncertainty: [String] { decode(uncertaintyJSON, as: [String].self) ?? [] }
 }
 
+/// User-stated context the agent is allowed to rely on.
 @Model
-final class PrescriptionRow {
-    var id: UUID
-    var date: Date
-    var liftName: String
-    var predictedLoad: Double
-    var predictedReps: Int
-    var targetRIR: Int
-    var stateRaw: String
-    var workingWeight: Double
-    var increment: Double
-    var appliedPercent: Double
+final class UserProfile {
+    var goal: String
+    var limitations: String
+    var unitsAreMetric: Bool
 
-    init(date: Date, prescription: Prescription, state: ReadinessState) {
-        self.id = UUID()
-        self.date = date
-        self.liftName = prescription.lift.name
-        self.predictedLoad = prescription.prescribedLoad
-        self.predictedReps = prescription.repTarget
-        self.targetRIR = prescription.rirTarget
-        self.stateRaw = state.rawValue
-        self.workingWeight = prescription.lift.workingWeight
-        self.increment = prescription.lift.increment
-        self.appliedPercent = prescription.appliedPercent
-    }
-
-    var state: ReadinessState { ReadinessState(rawValue: stateRaw) ?? .atBaseline }
-}
-
-/// The grading record. This table is the only asset that compounds, so it is designed
-/// properly on day one (spec 3.4).
-@Model
-final class OutcomeRow {
-    var prescriptionID: UUID
-    var date: Date
-    var liftName: String
-    var achievedLoad: Double
-    var achievedReps: Int
-    var achievedRIR: Int
-    var completedAsPrescribed: Bool
-    var timestamp: Date
-
-    init(prescriptionID: UUID, date: Date, liftName: String, achievedLoad: Double,
-         achievedReps: Int, achievedRIR: Int, completedAsPrescribed: Bool) {
-        self.prescriptionID = prescriptionID
-        self.date = date
-        self.liftName = liftName
-        self.achievedLoad = achievedLoad
-        self.achievedReps = achievedReps
-        self.achievedRIR = achievedRIR
-        self.completedAsPrescribed = completedAsPrescribed
-        self.timestamp = Date()
+    init(goal: String = "", limitations: String = "", unitsAreMetric: Bool = false) {
+        self.goal = goal
+        self.limitations = limitations
+        self.unitsAreMetric = unitsAreMetric
     }
 }

@@ -9,15 +9,20 @@ final class AppModel {
 
     enum Phase {
         case loading
-        case needsLifts
+        case needsProgram
         case ready
         case failed(String)
     }
 
     var phase: Phase = .loading
     var day: AssembledDay?
-    var prescriptions: [Prescription] = []
+    var recommendation: Recommendation?
+    var todayCheckIn: CheckIn?
+    var acwr: Double?
+    var recentInsight: String?
     var seededSampleCount: Int?
+
+    private var series: [DailyPhysiology] = []
 
     private let healthKit = HealthKitSource()
     private var context: ModelContext?
@@ -28,53 +33,54 @@ final class AppModel {
 
     // MARK: - Load
 
-    /// Spec AC1: a readiness state and a prescribed session inside 60 seconds of a
-    /// fresh install, with no calibration wait. Everything already on the device is used.
     func refresh() async {
         guard let context else { return }
-        phase = .loading
+        if case .ready = phase {} else { phase = .loading }
 
         do {
             guard HealthKitSource.isAvailable else { throw HealthSourceError.unavailable }
 
-            // One prompt, covering read and (on the simulator) write.
             #if targetEnvironment(simulator)
             try await healthKit.requestAuthorization(alsoShare: HealthKitSeeder.shareTypes)
-            #else
-            try await healthKit.requestAuthorization()
-            #endif
-
-            // A fresh simulator has a real but empty HealthKit store. Seed it so the
-            // genuine read path is exercised rather than bypassed.
-            #if targetEnvironment(simulator)
             if await !healthKit.hasAnyData() {
                 seededSampleCount = try? await HealthKitSeeder.seed(days: Self.historyDays,
                                                                     into: healthKit)
             }
+            #else
+            try await healthKit.requestAuthorization()
             #endif
 
-            let series = try await healthKit.dailySeries(days: Self.historyDays)
-            let usable = series.filter { $0.hrvSDNN != nil || $0.restingHeartRate != nil }
+            let fetched = try await healthKit.dailySeries(days: Self.historyDays)
+            let usable = fetched.filter { $0.hrvSDNN != nil || $0.restingHeartRate != nil }
 
             guard let assembled = DayAssembler.assemble(series: usable), usable.count >= 2 else {
-                phase = .failed("No health history found yet. Wear your watch overnight and come back.")
+                phase = .failed("No health history yet. Wear your watch overnight and come back.")
                 return
             }
-
             day = assembled
-            persist(assembled, into: context)
+            self.series = usable
+            persistMetrics(assembled, into: context)
 
-            let lifts = (try? context.fetch(
-                FetchDescriptor<LiftConfig>(sortBy: [SortDescriptor(\.order)]))) ?? []
-            guard !lifts.isEmpty else { phase = .needsLifts; return }
+            todayCheckIn = fetchTodayCheckIn(from: context)
+            acwr = computeACWR(from: context)
 
-            prescriptions = lifts.map {
-                PrescriptionEngine.prescribe(lift: $0.lift,
-                                             state: assembled.readiness.state,
-                                             multiDayTrendPresent: assembled.multiDayTrendPresent)
-            }
-            persistPrescriptions(for: assembled, into: context)
-            phase = .ready
+            let templates = (try? context.fetch(
+                FetchDescriptor<WorkoutTemplate>(sortBy: [SortDescriptor(\.order)]))) ?? []
+            let planned = plannedToday(templates: templates)
+
+            let rec = RecommendationEngine.recommend(RecommendationInput(
+                readiness: assembled.readiness,
+                checkIn: todayCheckIn,
+                acwr: acwr,
+                hasPlannedLowerBody: planned?.orderedExercises
+                    .contains { $0.muscleGroup.isLowerBody } ?? false,
+                hasPlannedConditioning: false))
+
+            recommendation = rec
+            persistRecommendation(rec, readiness: assembled.readiness, into: context)
+            recentInsight = computeInsight(from: context)
+
+            phase = templates.isEmpty ? .needsProgram : .ready
 
         } catch {
             phase = .failed(error.localizedDescription)
@@ -87,17 +93,205 @@ final class AppModel {
         }
     }
 
-    // MARK: - Persistence
+    // MARK: - Today's plan
 
-    private func persist(_ assembled: AssembledDay, into context: ModelContext) {
-        let date = Calendar.current.startOfDay(for: assembled.date)
+    /// v1 has no calendar: the plan for today is the first template in the program.
+    /// Scheduling is a later problem and does not change what the agent can say now.
+    func plannedToday(templates: [WorkoutTemplate]) -> WorkoutTemplate? {
+        templates.sorted { $0.order < $1.order }.first
+    }
 
-        let existing = (try? context.fetch(FetchDescriptor<ReadinessRow>())) ?? []
-        for row in existing where Calendar.current.isDate(row.date, inSameDayAs: date) {
+    // MARK: - Check-in
+
+    func saveCheckIn(_ checkIn: CheckIn) async {
+        guard let context else { return }
+        let today = Calendar.current.startOfDay(for: Date())
+        let existing = (try? context.fetch(FetchDescriptor<CheckInRow>())) ?? []
+        for row in existing where Calendar.current.isDate(row.date, inSameDayAs: today) {
             context.delete(row)
         }
-        context.insert(ReadinessRow(date: date, result: assembled.readiness))
+        context.insert(CheckInRow(date: today, checkIn: checkIn))
+        try? context.save()
+        await refresh()
+    }
 
+    private func fetchTodayCheckIn(from context: ModelContext) -> CheckIn? {
+        let today = Calendar.current.startOfDay(for: Date())
+        let rows = (try? context.fetch(FetchDescriptor<CheckInRow>())) ?? []
+        return rows.first { Calendar.current.isDate($0.date, inSameDayAs: today) }?.checkIn
+    }
+
+    // MARK: - Feedback loop
+
+    func record(_ response: RecommendationResponse) {
+        guard let context else { return }
+        let today = Calendar.current.startOfDay(for: Date())
+        let rows = (try? context.fetch(FetchDescriptor<RecommendationRow>())) ?? []
+        guard let row = rows.first(where: { Calendar.current.isDate($0.date, inSameDayAs: today) })
+        else { return }
+        row.responseRaw = response.rawValue
+        try? context.save()
+    }
+
+    var todayResponse: RecommendationResponse? {
+        guard let context else { return nil }
+        let today = Calendar.current.startOfDay(for: Date())
+        let rows = (try? context.fetch(FetchDescriptor<RecommendationRow>())) ?? []
+        return rows.first { Calendar.current.isDate($0.date, inSameDayAs: today) }?.response
+    }
+
+    // MARK: - Series for the dashboard
+
+    /// Raw daily values for one metric, oldest first.
+    func recentSeries(_ kind: MetricKind, days: Int = 14) -> [Double] {
+        let values: [Double?] = series.map { physiology in
+            switch kind {
+            case .hrv: return physiology.hrvSDNN
+            case .restingHeartRate: return physiology.restingHeartRate
+            case .sleepDebt: return physiology.sleepHours.map { DayAssembler.sleepNeedHours - $0 }
+            case .respiratoryRate: return physiology.respiratoryRate
+            case .bloodOxygen: return physiology.bloodOxygenPercent
+            }
+        }
+        return Array(values.compactMap { $0 }.suffix(days))
+    }
+
+    func sleepHoursSeries(days: Int = 14) -> [Double] {
+        Array(series.compactMap(\.sleepHours).suffix(days))
+    }
+
+    /// Re-runs the readiness model for each of the last `days` days, so the Readiness card
+    /// can show a trend rather than a single number with no context.
+    func compositeHistory(days: Int = 14) -> [Double] {
+        guard series.count > 1 else { return [] }
+        let start = max(1, series.count - days)
+        return (start..<series.count).compactMap { end in
+            DayAssembler.assemble(series: Array(series[0..<end + 1]))?.readiness.composite
+        }
+    }
+
+    var latestSleepHours: Double? { series.last?.sleepHours }
+
+    func sleepHours(on date: Date) -> Double? {
+        let calendar = Calendar.current
+        return series.first { calendar.isDate($0.date, inSameDayAs: date) }?.sleepHours
+    }
+
+    func baseline(_ kind: MetricKind) -> Double? {
+        day?.readings.first { $0.kind == kind }?.baseline
+    }
+
+    func reading(_ kind: MetricKind) -> MetricReading? {
+        day?.readings.first { $0.kind == kind }
+    }
+
+    // MARK: - Coach context
+
+    /// Assembles the only health information that ever leaves the device.
+    func coachContext(context: ModelContext) -> CoachContext? {
+        guard let day, let recommendation else { return nil }
+        let calendar = Calendar.current
+
+        let recommendations = (try? context.fetch(
+            FetchDescriptor<RecommendationRow>(sortBy: [SortDescriptor(\.date)]))) ?? []
+        let sessions = (try? context.fetch(FetchDescriptor<WorkoutSession>())) ?? []
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withFullDate]
+
+        let recentDays = recommendations.suffix(CoachContext.maximumRecentDays).map { row in
+            CoachContext.DaySummary(
+                day: formatter.string(from: row.date),
+                state: row.stateRaw,
+                composite: (row.composite * 100).rounded() / 100,
+                volume: sessions
+                    .filter { calendar.isDate($0.date, inSameDayAs: row.date) }
+                    .reduce(0) { $0 + $1.load.volumeLoad })
+        }
+
+        let templates = (try? context.fetch(
+            FetchDescriptor<WorkoutTemplate>(sortBy: [SortDescriptor(\.order)]))) ?? []
+        let program = (plannedToday(templates: templates)?.orderedExercises ?? []).map {
+            CoachContext.ExerciseSummary(name: $0.name, muscle: $0.muscleGroupRaw,
+                                         sets: $0.targetSets, reps: $0.targetReps,
+                                         weight: $0.workingWeight, rir: $0.targetRIR)
+        }
+
+        let profile = (try? context.fetch(FetchDescriptor<UserProfile>()))?.first
+
+        return CoachContextBuilder.build(
+            today: Date(), readiness: day.readiness, readings: day.readings,
+            daysOfHistory: day.daysOfHistory, recommendation: recommendation,
+            checkIn: todayCheckIn, acwr: acwr, recentDays: Array(recentDays),
+            program: program, goal: profile?.goal, limitations: profile?.limitations,
+            describe: Copy.describe)
+    }
+
+    // MARK: - Insight
+
+    /// Pairs each logged session with the sleep that preceded it, then asks Core whether
+    /// there is a pattern worth stating. Usually there is not, and it says nothing.
+    private func computeInsight(from context: ModelContext) -> String? {
+        let sessions = (try? context.fetch(FetchDescriptor<WorkoutSession>())) ?? []
+        guard !sessions.isEmpty else { return nil }
+        let calendar = Calendar.current
+
+        let sleepByDay = Dictionary(
+            series.compactMap { physiology -> (Date, Double)? in
+                guard let hours = physiology.sleepHours else { return nil }
+                return (calendar.startOfDay(for: physiology.date), hours)
+            }, uniquingKeysWith: { a, _ in a })
+
+        let days: [InsightEngine.TrainingDay] = sessions.compactMap { session in
+            guard let sleep = sleepByDay[calendar.startOfDay(for: session.date)] else { return nil }
+            let load = session.load
+            let lower = load.hardSetsByMuscle.keys.contains { $0.isLowerBody }
+            return InsightEngine.TrainingDay(sleepHours: sleep,
+                                             volumeLoad: load.volumeLoad,
+                                             isLowerBody: lower)
+        }
+        return InsightEngine.sleepPerformancePattern(days)
+    }
+
+    // MARK: - Derived load
+
+    private func computeACWR(from context: ModelContext) -> Double? {
+        let sessions = (try? context.fetch(FetchDescriptor<WorkoutSession>())) ?? []
+        guard !sessions.isEmpty else { return nil }
+
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        var daily: [Double] = []
+        for offset in stride(from: StrainEngine.chronicDays - 1, through: 0, by: -1) {
+            guard let date = calendar.date(byAdding: .day, value: -offset, to: today) else { continue }
+            let volume = sessions
+                .filter { calendar.isDate($0.date, inSameDayAs: date) }
+                .reduce(0.0) { $0 + $1.load.volumeLoad }
+            daily.append(volume)
+        }
+        return StrainEngine.acwr(daily: daily)
+    }
+
+    /// Volume load per day for the last `days` days, oldest first. Drives the Load card.
+    func recentVolume(days: Int, context: ModelContext) -> [Double] {
+        let sessions = (try? context.fetch(FetchDescriptor<WorkoutSession>())) ?? []
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        return stride(from: days - 1, through: 0, by: -1).compactMap { offset in
+            guard let date = calendar.date(byAdding: .day, value: -offset, to: today) else { return nil }
+            return sessions.filter { calendar.isDate($0.date, inSameDayAs: date) }
+                .reduce(0.0) { $0 + $1.load.volumeLoad }
+        }
+    }
+
+    // MARK: - Persistence
+
+    private func persistMetrics(_ assembled: AssembledDay, into context: ModelContext) {
+        let calendar = Calendar.current
+        let date = calendar.startOfDay(for: assembled.date)
+        let existing = (try? context.fetch(FetchDescriptor<DailyMetricRow>())) ?? []
+        for row in existing where calendar.isDate(row.date, inSameDayAs: date) {
+            context.delete(row)
+        }
         let lowConfidence = assembled.readiness.confidence == .low
         for reading in assembled.readings {
             context.insert(DailyMetricRow(date: date, kind: reading.kind, value: reading.value,
@@ -108,78 +302,17 @@ final class AppModel {
         try? context.save()
     }
 
-    private func persistPrescriptions(for assembled: AssembledDay, into context: ModelContext) {
+    private func persistRecommendation(_ rec: Recommendation, readiness: ReadinessResult,
+                                       into context: ModelContext) {
         let calendar = Calendar.current
-        let date = calendar.startOfDay(for: assembled.date)
+        let date = calendar.startOfDay(for: Date())
+        let rows = (try? context.fetch(FetchDescriptor<RecommendationRow>())) ?? []
 
-        let rows = ((try? context.fetch(FetchDescriptor<PrescriptionRow>())) ?? [])
-            .filter { calendar.isDate($0.date, inSameDayAs: date) }
-        let gradedIDs = Set(((try? context.fetch(FetchDescriptor<OutcomeRow>())) ?? [])
-            .map(\.prescriptionID))
-
-        let byID = Dictionary(rows.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
-        let incoming = Dictionary(prescriptions.map { ($0.lift.name, $0) },
-                                  uniquingKeysWith: { a, _ in a })
-
-        let plan = PrescriptionReconciler.plan(
-            existing: rows.map { PrescriptionSnapshot(id: $0.id, liftName: $0.liftName,
-                                                      hasOutcome: gradedIDs.contains($0.id)) },
-            incoming: prescriptions.map(\.lift.name))
-
-        for action in plan {
-            switch action {
-            case .freeze:
-                // Already lifted against. Rewriting the prediction now would mean grading
-                // the day against a number that was revised after the fact.
-                continue
-
-            case .delete(let id):
-                if let row = byID[id] { context.delete(row) }
-
-            case .update(let id):
-                guard let row = byID[id], let p = incoming[row.liftName] else { continue }
-                row.predictedLoad = p.prescribedLoad
-                row.predictedReps = p.repTarget
-                row.targetRIR = p.rirTarget
-                row.stateRaw = assembled.readiness.state.rawValue
-                row.workingWeight = p.lift.workingWeight
-                row.increment = p.lift.increment
-                row.appliedPercent = p.appliedPercent
-
-            case .insert(let liftName):
-                guard let p = incoming[liftName] else { continue }
-                context.insert(PrescriptionRow(date: date, prescription: p,
-                                               state: assembled.readiness.state))
-            }
+        if let existing = rows.first(where: { calendar.isDate($0.date, inSameDayAs: date) }) {
+            existing.update(readiness: readiness, recommendation: rec)
+        } else {
+            context.insert(RecommendationRow(date: date, readiness: readiness, recommendation: rec))
         }
         try? context.save()
-    }
-
-    // MARK: - Copy
-
-    static func phrase(for state: ReadinessState) -> String {
-        switch state {
-        case .aboveBaseline: return "Above baseline"
-        case .atBaseline: return "At baseline"
-        case .belowBaseline: return "Below baseline"
-        case .wellBelowBaseline: return "Well below baseline"
-        }
-    }
-
-    static func call(for result: ReadinessResult) -> String {
-        if let gate = result.gateApplied {
-            switch gate {
-            case .elevatedWristTemperature:
-                return "Your temperature is up. Train light, or not at all."
-            case .acuteLoadSpike:
-                return "Your load has climbed fast this week. Holding you at baseline."
-            }
-        }
-        switch result.state {
-        case .aboveBaseline: return "Add weight if the first set moves fast."
-        case .atBaseline: return "Run the program as written."
-        case .belowBaseline: return "Pull back a little. Keep the reps honest."
-        case .wellBelowBaseline: return "Cut the load. Today is technique, not records."
-        }
     }
 }

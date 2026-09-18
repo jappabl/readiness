@@ -35,6 +35,11 @@ enum Tokens {
     /// alert does fire it is the only warm colour on screen.
     static let alert         = dynamic(light: 0x9A5B20, dark: 0xD79A5B)
 
+    /// Direction of travel on a trend. Colour here carries meaning, never decoration,
+    /// and never encodes the recommendation itself.
+    static let positive      = dynamic(light: 0x2E6B4F, dark: 0x7FC0A0)
+    static let negative      = dynamic(light: 0x8C4A2F, dark: 0xD79A78)
+
     static let cardRadius: CGFloat = 14
     static let screenMargin: CGFloat = 16
     static let cardGap: CGFloat = 12
