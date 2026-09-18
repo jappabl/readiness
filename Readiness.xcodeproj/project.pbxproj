@@ -10,6 +10,7 @@
 		7559CC8D141A93DBF5685EEB /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6F9973165E2B0FD4A3AAC566 /* Assets.xcassets */; };
 		58FD71D67A497BE6E4037D13 /* ClaudeCoachProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3779549DC90963FFB7EC5B96 /* ClaudeCoachProvider.swift */; };
 		7F4D405B9C01F5887FFDBF05 /* CoachProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBCC3151D19B79D645F78D9A /* CoachProvider.swift */; };
+		009D4826D7C7474F9942DFB4 /* CoachUsage.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1AB0117C12A40B9AD8AC6A2 /* CoachUsage.swift */; };
 		1F2ABFDB99F5A157202064B1 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = A05C07BD369FE0B4C393E4DD /* Models.swift */; };
 		8EB8022FAEB8B072A5B48D87 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0BCBBC313CD0F4786FBECC8 /* Components.swift */; };
 		EE03F8BEDCD6A9A537C094A1 /* Haptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = D05CEB565B3FE57087B3DF2F /* Haptics.swift */; };
@@ -42,6 +43,7 @@
 		9788F82F4037D6919392FD8D /* InsightEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B442940C409958B4371E3044 /* InsightEngine.swift */; };
 		B9D4082452FF35C638BB6CAC /* Metrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCD9613FE7E08C6AFA956056 /* Metrics.swift */; };
 		A90006729218FFE9BEF0D890 /* Percentile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2EF8D6020D810536E232D51A /* Percentile.swift */; };
+		0A675C7B69414B43AB8BD494 /* CoachRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6586C8628D44B985A05027 /* CoachRequest.swift */; };
 		03340C76D5B34BA2BAD69BD1 /* Onboarding.swift in Sources */ = {isa = PBXBuildFile; fileRef = 239658BBF7CB4FC894FF466B /* Onboarding.swift */; };
 		6FED05AB28624023AB0E1FF9 /* HomeComposition.swift in Sources */ = {isa = PBXBuildFile; fileRef = 765DF2FFD1DD410B9A15BEA5 /* HomeComposition.swift */; };
 		1C4F6CA506FB4D84B4240CD0 /* SleepAggregator.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6BAE466196B4430A721D45C /* SleepAggregator.swift */; };
@@ -62,6 +64,7 @@
 		6F9973165E2B0FD4A3AAC566 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = App/Assets.xcassets; sourceTree = "<group>"; };
 		3779549DC90963FFB7EC5B96 /* ClaudeCoachProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ClaudeCoachProvider.swift"; sourceTree = "<group>"; };
 		CBCC3151D19B79D645F78D9A /* CoachProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CoachProvider.swift"; sourceTree = "<group>"; };
+		E1AB0117C12A40B9AD8AC6A2 /* CoachUsage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CoachUsage.swift"; sourceTree = "<group>"; };
 		A05C07BD369FE0B4C393E4DD /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Models.swift"; sourceTree = "<group>"; };
 		F0BCBBC313CD0F4786FBECC8 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Components.swift"; sourceTree = "<group>"; };
 		D05CEB565B3FE57087B3DF2F /* Haptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Haptics.swift"; sourceTree = "<group>"; };
@@ -94,6 +97,7 @@
 		B442940C409958B4371E3044 /* InsightEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "InsightEngine.swift"; sourceTree = "<group>"; };
 		CCD9613FE7E08C6AFA956056 /* Metrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Metrics.swift"; sourceTree = "<group>"; };
 		2EF8D6020D810536E232D51A /* Percentile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Percentile.swift"; sourceTree = "<group>"; };
+		4D6586C8628D44B985A05027 /* CoachRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CoachRequest.swift"; sourceTree = "<group>"; };
 		239658BBF7CB4FC894FF466B /* Onboarding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Onboarding.swift"; sourceTree = "<group>"; };
 		765DF2FFD1DD410B9A15BEA5 /* HomeComposition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HomeComposition.swift"; sourceTree = "<group>"; };
 		F6BAE466196B4430A721D45C /* SleepAggregator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SleepAggregator.swift"; sourceTree = "<group>"; };
@@ -158,6 +162,7 @@
 			children = (
 				3779549DC90963FFB7EC5B96 /* ClaudeCoachProvider.swift */,
 				CBCC3151D19B79D645F78D9A /* CoachProvider.swift */,
+				E1AB0117C12A40B9AD8AC6A2 /* CoachUsage.swift */,
 			);
 			name = "Coach";
 			path = "App/Coach";
@@ -237,6 +242,7 @@
 				B442940C409958B4371E3044 /* InsightEngine.swift */,
 				CCD9613FE7E08C6AFA956056 /* Metrics.swift */,
 				2EF8D6020D810536E232D51A /* Percentile.swift */,
+				4D6586C8628D44B985A05027 /* CoachRequest.swift */,
 				239658BBF7CB4FC894FF466B /* Onboarding.swift */,
 				765DF2FFD1DD410B9A15BEA5 /* HomeComposition.swift */,
 				F6BAE466196B4430A721D45C /* SleepAggregator.swift */,
@@ -324,6 +330,7 @@
 			files = (
 				58FD71D67A497BE6E4037D13 /* ClaudeCoachProvider.swift in Sources */,
 				7F4D405B9C01F5887FFDBF05 /* CoachProvider.swift in Sources */,
+				009D4826D7C7474F9942DFB4 /* CoachUsage.swift in Sources */,
 				1F2ABFDB99F5A157202064B1 /* Models.swift in Sources */,
 				8EB8022FAEB8B072A5B48D87 /* Components.swift in Sources */,
 				EE03F8BEDCD6A9A537C094A1 /* Haptics.swift in Sources */,
@@ -356,6 +363,7 @@
 				9788F82F4037D6919392FD8D /* InsightEngine.swift in Sources */,
 				B9D4082452FF35C638BB6CAC /* Metrics.swift in Sources */,
 				A90006729218FFE9BEF0D890 /* Percentile.swift in Sources */,
+				0A675C7B69414B43AB8BD494 /* CoachRequest.swift in Sources */,
 				03340C76D5B34BA2BAD69BD1 /* Onboarding.swift in Sources */,
 				6FED05AB28624023AB0E1FF9 /* HomeComposition.swift in Sources */,
 				1C4F6CA506FB4D84B4240CD0 /* SleepAggregator.swift in Sources */,
