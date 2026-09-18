@@ -169,6 +169,9 @@ struct CoachStepRow: View {
 /// or four times as many tokens as pointing at it.
 struct CoachChartCard: View {
     let kind: MetricKind
+    /// Set when several charts stack in one answer, where three full-height cards
+    /// would push the point off the screen.
+    var compact = false
 
     @Environment(AppModel.self) private var model
 
@@ -207,9 +210,9 @@ struct CoachChartCard: View {
                 }
 
                 DrawingLine(values: values, tint: tint) { headValue = $0 }
-                    .frame(height: 44)
+                    .frame(height: compact ? 30 : 44)
 
-                if let reading {
+                if let reading, !compact {
                     Text("\(values.count) days · baseline "
                          + reading.baseline.formatted(.number.precision(.fractionLength(1)))
                          + " \(kind.unit)")
@@ -217,7 +220,7 @@ struct CoachChartCard: View {
                         .foregroundStyle(Tokens.textTertiary)
                 }
             }
-            .padding(14)
+            .padding(compact ? 11 : 14)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Tokens.surface.opacity(0.7),
                         in: RoundedRectangle(cornerRadius: 14, style: .continuous))

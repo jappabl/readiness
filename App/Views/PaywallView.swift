@@ -59,13 +59,12 @@ struct PaywallView: View {
     }
 
     private var heading: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        HStack(spacing: 11) {
+            JettOrb(size: 34)
             Text("Coach Jett")
                 .font(.system(size: 30, weight: .bold))
                 .foregroundStyle(Tokens.textPrimary)
-            Text("Unlimited, on your own numbers.")
-                .font(.system(size: 15))
-                .foregroundStyle(Tokens.textSecondary)
+            Spacer(minLength: 0)
         }
     }
 
@@ -80,7 +79,11 @@ struct PaywallView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.vertical, 20)
         } else {
-            VStack(spacing: 10) {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Unlimited answers on every plan, on your own numbers.")
+                    .font(.system(size: 13))
+                    .foregroundStyle(Tokens.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
                 ForEach(store.products, id: \.id) { product in
                     planRow(product)
                 }

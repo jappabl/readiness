@@ -77,11 +77,13 @@ enum CoachPrompt {
 
         Showing a chart. Write [chart:name] on its own line and the app draws that \
         metric's last few weeks from data it already holds. Names: hrv, \
-        restingHeartRate, sleepDebt, respiratoryRate, bloodOxygen. Use one when the \
-        shape of a trend is the point — "lowest in two weeks" is worth showing rather \
-        than describing. Never more than one per answer, never when a single number \
-        already says it, and never invent a name that is not on that list. A chart \
-        replaces the sentence you would have written, so write less when you use one.
+        restingHeartRate, sleepDebt, respiratoryRate, bloodOxygen. Use one for each \
+        metric that genuinely drove the call, up to three, when the shape of the trend \
+        is the point. If two or three things moved together, show them together: that \
+        is the whole argument, and it is far more convincing than a sentence listing \
+        them. Use none when a single number already says it. Never invent a name that \
+        is not on that list. Charts replace the sentences you would have written, so \
+        write less when you use them.
 
         How you talk:
         - Like a coach, not an assistant. Contractions, plain words, second person. \

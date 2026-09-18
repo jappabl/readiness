@@ -292,9 +292,18 @@ headline, so a rambling opener has nowhere to hide.
 
 **Charts, not descriptions.** When the shape of a trend is the point, Jett writes
 `[chart:hrv]` and the app draws that metric from history it already holds. The model
-sends no data and makes no extra request — it names a metric in about six tokens, which
-is cheaper than the sentence it replaces. A chart is worth it for "lowest in two weeks";
-it is not worth it when a single number already says the thing. One per answer at most.
+sends no data and makes no extra request: it names a metric in about six tokens, which
+is cheaper than the sentence it replaces.
+
+One chart per metric that genuinely drove the call, up to three. **Two things moving
+together is the argument**, and stacking them is far more convincing than a sentence
+listing them; a single metric on its own rarely makes the case. None when one number
+already says it. Stacked charts use the compact card, because three full-height ones
+push the point off the screen.
+
+Lines draw themselves and the figure counts along with the head, so the value shown is
+always the value under the dot. The path is built point by point rather than trimmed,
+since trimming walks arc length and the number drifts out of step on steep sections.
 
 **Register.** Contractions, plain words, second person. "You're flat today", never "Your
 readiness is reduced". Have an opinion and say it once rather than laying out both sides.

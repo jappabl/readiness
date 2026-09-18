@@ -35,7 +35,7 @@ struct PaywallDemo: View {
     private struct Scene {
         let question: String
         let lead: String
-        var chart: MetricKind?
+        var charts: [MetricKind] = []
         var step: String?
         var closing: String
     }
@@ -49,14 +49,16 @@ struct PaywallDemo: View {
             .map(\.kind) ?? []
 
         return [
+            // Two charts, because two things moving together is the argument. One
+            // metric on its own rarely is.
             Scene(question: "Can I still train legs today?",
                   lead: "Yes, but lighter.",
-                  chart: drivers.first,
+                  charts: Array(drivers.prefix(2)),
                   closing: "Take 15% off the bar and stop at 4 RIR. You'll still get the work in."),
             Scene(question: "Why do I feel so flat this week?",
                   lead: "Here's what moved.",
-                  chart: drivers.dropFirst().first ?? drivers.first,
-                  closing: "Everything else in your numbers is sitting where it usually does."),
+                  charts: Array(drivers.prefix(3)),
+                  closing: "Everything else is sitting where it usually does."),
             Scene(question: "Make today easier.",
                   lead: "Done. Cut to three sets.",
                   step: "Adjusting today's session",
@@ -94,10 +96,12 @@ struct PaywallDemo: View {
                     .transition(.opacity.combined(with: .move(edge: .top)))
             }
 
-            if showsChart, let kind = scene.chart {
-                CoachChartCard(kind: kind)
-                    .id(sceneIndex)
-                    .transition(.opacity.combined(with: .scale(scale: 0.97, anchor: .top)))
+            if showsChart {
+                ForEach(Array(scene.charts.enumerated()), id: \.element) { order, kind in
+                    CoachChartCard(kind: kind, compact: true)
+                        .id("\(sceneIndex)-\(kind.rawValue)")
+                        .transition(.opacity.combined(with: .scale(scale: 0.97, anchor: .top)))
+                }
             }
 
             if showsClose {
@@ -109,7 +113,7 @@ struct PaywallDemo: View {
                     .transition(.opacity)
             }
         }
-        .frame(maxWidth: .infinity, minHeight: 250, alignment: .top)
+        .frame(maxWidth: .infinity, minHeight: 300, alignment: .top)
         .animation(.spring(response: 0.36, dampingFraction: 0.86), value: question)
         .animation(.spring(response: 0.36, dampingFraction: 0.86), value: thinking)
         .animation(.spring(response: 0.36, dampingFraction: 0.86), value: showsChart)
@@ -126,7 +130,7 @@ struct PaywallDemo: View {
         guard !reduceMotion else {
             question = scene.question
             answer = scene.lead
-            showsChart = scene.chart != nil
+            showsChart = !scene.charts.isEmpty
             showsStep = scene.step != nil
             showsClose = true
             return
@@ -153,10 +157,10 @@ struct PaywallDemo: View {
                     try? await Task.sleep(for: .milliseconds(75))
                 }
 
-                if scene.chart != nil {
+                if !scene.charts.isEmpty {
                     try? await Task.sleep(for: .milliseconds(300))
                     showsChart = true
-                    try? await Task.sleep(for: .milliseconds(1700))
+                    try? await Task.sleep(for: .milliseconds(2000))
                 }
 
                 try? await Task.sleep(for: .milliseconds(400))
