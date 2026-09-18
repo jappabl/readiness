@@ -16,17 +16,12 @@ struct RehearsalCoachProvider: CoachProvider {
     private let perChunk = Duration.milliseconds(45)
 
     private static let answer = """
-        You're **under baseline** today, mostly on HRV — 14.2 ms against your 53.4 ms \
-        baseline, which is the lowest it has been in two weeks. Resting heart rate is up \
-        to 70 bpm as well, and the two moving together usually means you are still \
-        carrying Tuesday's session.
+        You're flat today — HRV's the lowest it's been in two weeks.
 
-        I'd take 15% off the bar and stop every set at 4 reps in reserve. That keeps the \
-        movement and the practice without adding to what you are already recovering from.
+        14.2 ms against your 53.4 baseline, and resting heart rate's up to 70. Tuesday \
+        is still on you.
 
-        What this cannot see is whether you slept badly because of training or because of \
-        something else entirely — if it was a late night rather than fatigue, this reads \
-        harsher than it should.
+        Take 15% off the bar and stop at 4 RIR. You'll still get the work in.
         """
 
     func stream(messages: [CoachMessage],

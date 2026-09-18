@@ -6,8 +6,10 @@ import Foundation
 /// where the cache breakpoint sits, and whether the last round is allowed a tool.
 public enum CoachRequest {
 
-    /// Long enough for three short paragraphs, which is all the rules permit.
-    public static let maximumOutputTokens = 1024
+    /// Answers are meant to be under sixty words. This is a ceiling, not a target, but
+    /// leaving it at four figures invites the wall of text the voice rules exist to
+    /// prevent — and output tokens are the expensive half of the bill.
+    public static let maximumOutputTokens = 400
 
     /// The most recent `limit` turns, starting on a user message.
     ///

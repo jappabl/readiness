@@ -26,14 +26,29 @@ struct CoachTurnView: View {
             .accessibilityLabel("You: \(message.text)")
 
         case .assistant:
-            Text(Self.formatted(message.text))
-                .font(.system(size: 16))
-                .foregroundStyle(Tokens.textPrimary)
-                .lineSpacing(3.5)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .fixedSize(horizontal: false, vertical: true)
-                .textSelection(.enabled)
-                .accessibilityLabel("Jett: \(message.text)")
+            // The first line is the answer and is set as one: bigger, heavier, and on
+            // its own. Everything after it is the detail you read only if you want it.
+            let answer = CoachAnswer.split(message.text)
+            VStack(alignment: .leading, spacing: 9) {
+                if !answer.lead.isEmpty {
+                    Text(Self.formatted(answer.lead))
+                        .font(.system(size: 19, weight: .semibold))
+                        .foregroundStyle(Tokens.textPrimary)
+                        .lineSpacing(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                if !answer.body.isEmpty {
+                    Text(Self.formatted(answer.body))
+                        .font(.system(size: 15))
+                        .foregroundStyle(Tokens.textSecondary)
+                        .lineSpacing(3)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .textSelection(.enabled)
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Jett: \(message.text)")
         }
     }
 
