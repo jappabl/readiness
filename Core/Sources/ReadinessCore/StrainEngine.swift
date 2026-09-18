@@ -30,13 +30,21 @@ public enum StrainEngine {
     public static let acuteDays = 7
     public static let chronicDays = 28
 
+    /// Training days needed in the chronic window before the ratio means anything.
+    /// One session against 27 rest days is arithmetically a 4.0 spike and tells you
+    /// nothing — and a bogus spike silently caps a good morning.
+    public static let minimumTrainingDays = 3
+
     /// Acute (7 day) against chronic (28 day) load. Above ~1.5 is a spike.
+    /// Nil when there is not enough training in the window to compare against.
     public static func acwr(daily: [Double]) -> Double? {
         guard daily.count >= chronicDays else { return nil }
-        let acute = daily.suffix(acuteDays)
         let chronic = daily.suffix(chronicDays)
+        guard chronic.filter({ $0 > 0 }).count >= minimumTrainingDays else { return nil }
+
         let chronicMean = chronic.reduce(0, +) / Double(chronic.count)
         guard chronicMean > 0 else { return nil }
+        let acute = daily.suffix(acuteDays)
         let acuteMean = acute.reduce(0, +) / Double(acute.count)
         return acuteMean / chronicMean
     }

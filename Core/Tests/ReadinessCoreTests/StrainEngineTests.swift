@@ -87,6 +87,21 @@ struct ACWRTests {
         #expect(StrainEngine.acwr(daily: Array(repeating: 1000.0, count: 10)) == nil)
     }
 
+    @Test("one session against a month of rest is not a load spike")
+    func singleSessionIsNotASpike() {
+        // 27 rest days and one session gives a mathematically enormous ratio and a
+        // meaningless one. Reporting it would cap a good morning for no reason.
+        let daily = Array(repeating: 0.0, count: 27) + [1125.0]
+        #expect(StrainEngine.acwr(daily: daily) == nil)
+    }
+
+    @Test("enough training days in the window produce a ratio")
+    func enoughTrainingDaysProducesARatio() {
+        var daily = Array(repeating: 0.0, count: 28)
+        for index in [2, 6, 10, 15, 20, 24, 27] { daily[index] = 1000 }
+        #expect(StrainEngine.acwr(daily: daily) != nil)
+    }
+
     @Test("a month of rest cannot divide by zero")
     func zeroChronicIsSafe() {
         let acwr = StrainEngine.acwr(daily: Array(repeating: 0.0, count: 28))
