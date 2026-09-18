@@ -18,6 +18,16 @@ public enum MetricKind: String, CaseIterable, Sendable, Codable {
         }
     }
 
+    /// Whether the engine should score this metric's seven-day average rather than
+    /// today's reading.
+    ///
+    /// Only HRV. It is the noisiest input the app has, its night-to-night swing is
+    /// mostly measurement and sleep position rather than recovery, and the
+    /// athlete-monitoring literature is fairly consistent that the rolling average
+    /// carries the signal. The steady metrics are left alone: smoothing a resting heart
+    /// rate would throw away exactly the one-day step that makes it worth having.
+    public var scoresOnTrend: Bool { self == .hrv }
+
     public var displayName: String {
         switch self {
         case .hrv: return "Heart rate variability"
@@ -80,7 +90,12 @@ public struct MetricReading: Sendable, Equatable, Codable {
     public let kind: MetricKind
     public let value: Double
     public let baseline: Double
+    /// Today against the baseline. This is the one shown, so the words under a number
+    /// always describe the number beside them.
     public let zScore: Double
+    /// What the engine actually weighs. The same as `zScore` for every metric except
+    /// HRV, which is scored on its trend — see `MetricKind.scoresOnTrend`.
+    public let scoringZ: Double
     public let sampleCount: Int
 
     /// Whether the measurement itself sits above its baseline.
@@ -93,11 +108,13 @@ public struct MetricReading: Sendable, Equatable, Codable {
     /// Whether the reading is good news, which is the aligned question.
     public var isFavourable: Bool { zScore * kind.polarity >= 0 }
 
-    public init(kind: MetricKind, value: Double, baseline: Double, zScore: Double, sampleCount: Int) {
+    public init(kind: MetricKind, value: Double, baseline: Double, zScore: Double,
+                scoringZ: Double? = nil, sampleCount: Int) {
         self.kind = kind
         self.value = value
         self.baseline = baseline
         self.zScore = zScore
+        self.scoringZ = scoringZ ?? zScore
         self.sampleCount = sampleCount
     }
 }

@@ -159,7 +159,11 @@ struct EvidenceTests {
     func evidenceIsRankedAndShort() {
         let rec = RecommendationEngine.recommend(RecommendationInput(readiness: readiness(-1.0)))
         #expect(rec.evidence.count <= 3)
-        #expect(rec.evidence.first?.kind == .hrv, "HRV carries the most weight, so it should lead")
+        // Derived from the weights rather than named, so rebalancing the model does not
+        // silently turn this into a test of nothing.
+        let heaviest = ReadinessEngine.weights.max { $0.value < $1.value }?.key
+        #expect(rec.evidence.first?.kind == heaviest,
+                "with equal z across metrics, the heaviest weight drags most")
     }
 
     @Test("a thin baseline is admitted, not hidden")

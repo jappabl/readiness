@@ -32,11 +32,17 @@ struct ReadinessWeightTests {
         #expect(abs(total - 1.0) < 1e-9)
     }
 
-    @Test("HRV carries the heaviest weight, per spec 3.3")
-    func hrvHeaviest() {
-        let hrv = ReadinessEngine.weights[.hrv] ?? 0
-        for (kind, weight) in ReadinessEngine.weights where kind != .hrv {
-            #expect(hrv > weight, "HRV (\(hrv)) should outweigh \(kind) (\(weight))")
+    /// Replaces an earlier test that asserted HRV carried the heaviest weight. That was
+    /// the original spec's decision and it has been reversed deliberately: HRV is the
+    /// noisiest input the app reads, and it held the largest share of the call only
+    /// because convention says it should. The durable rule is the one below.
+    @Test("the noisiest input never carries the most weight")
+    func smoothedInputsDoNotLead() {
+        let smoothed = ReadinessEngine.weights.filter { $0.key.scoresOnTrend }
+        let heaviest = ReadinessEngine.weights.values.max() ?? 0
+        for (kind, weight) in smoothed {
+            #expect(weight < heaviest,
+                    "\(kind.rawValue) needs smoothing to be trusted, so it cannot lead")
         }
     }
 }

@@ -41,6 +41,8 @@ public enum BaselineEngine {
     public static func reading(kind: MetricKind, series: [Double]) -> MetricReading? {
         guard let today = series.last, let result = evaluate(series: series) else { return nil }
         return MetricReading(kind: kind, value: today, baseline: result.mean,
-                             zScore: result.zScore, sampleCount: result.sampleCount)
+                             zScore: result.zScore,
+                             scoringZ: kind.scoresOnTrend ? result.trendZScore : result.zScore,
+                             sampleCount: result.sampleCount)
     }
 }

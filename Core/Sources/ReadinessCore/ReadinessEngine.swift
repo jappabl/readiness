@@ -49,17 +49,28 @@ public struct ReadinessInput: Sendable {
 }
 
 public enum ReadinessEngine {
-    public static let modelVersion = "v0.1.0"
+    public static let modelVersion = "v0.2.0"
 
-    /// Phase 1 weights, from published effect sizes. Stated openly, summing to 1.0 so the
-    /// composite is a plain weighted mean of z-scores and the arithmetic checks by hand.
-    /// Wrist temperature and ACWR are deliberately absent: they are gates, not contributors.
+    /// Stated openly, summing to 1.0 so the composite is a plain weighted mean and the
+    /// arithmetic checks by hand. Wrist temperature and ACWR are deliberately absent:
+    /// they are gates, not contributors.
+    ///
+    /// These are still assumptions rather than anything measured on this app's users,
+    /// but they are ordered by how much each input can be trusted. Sleep leads: it is
+    /// the most causally established driver of how tomorrow goes, and the only one
+    /// somebody can act on directly. Resting heart rate is next, being steady enough
+    /// that a few beats mean something. HRV keeps a real share but no longer decides
+    /// the day alone — it is the noisiest thing here, and it previously held the
+    /// largest weight purely because convention says it should.
+    ///
+    /// The honest end state is weights learned per person from their own outcomes. This
+    /// is a better guess in the meantime.
     public static let weights: [MetricKind: Double] = [
-        .hrv: 0.40,
+        .sleepDebt: 0.30,
         .restingHeartRate: 0.25,
-        .sleepDebt: 0.20,
-        .respiratoryRate: 0.10,
-        .bloodOxygen: 0.05,
+        .hrv: 0.25,
+        .respiratoryRate: 0.13,
+        .bloodOxygen: 0.07,
     ]
 
     public static let wristTemperatureGateC: Double = 0.5
@@ -86,7 +97,8 @@ public enum ReadinessEngine {
         // nothing — it simply stops voting.
         let contributions = present.map { reading -> InputContribution in
             let weight = (weights[reading.kind] ?? 0) / totalWeight
-            let clamped = Swift.min(Swift.max(reading.zScore, -zClamp), zClamp)
+            // The scoring z, not the displayed one: HRV is weighed on its trend.
+            let clamped = Swift.min(Swift.max(reading.scoringZ, -zClamp), zClamp)
             let aligned = clamped * reading.kind.polarity
             return InputContribution(kind: reading.kind, zScore: reading.zScore,
                                      weight: weight, points: weight * aligned)

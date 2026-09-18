@@ -214,6 +214,13 @@ never reads as a reading.
 
 ## 6. Rules
 
+0. **The score is a weighted mean of z-scores against the user's own history**, and the
+   weights are stated on the Profile screen. Sleep leads, then resting heart rate, then
+   HRV. HRV is scored on its seven-day trend rather than one night, because it is the
+   noisiest input here and a single night is mostly measurement rather than recovery.
+   What is *displayed* is always today, so the words under a number describe that
+   number; only the engine sees the smoothed figure.
+
 1. **Never show a number the app did not measure.** No invented scores. Ring figures
    are percentiles against the user's own history, share of a target, or share of a
    typical week — all real quantities.
