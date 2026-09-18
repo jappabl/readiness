@@ -10,6 +10,15 @@ public enum MuscleGroup: String, CaseIterable, Sendable, Codable {
         }
     }
 
+    /// Roughly what the movement looks like. Used to give a session a visual anchor.
+    public var symbol: String {
+        switch self {
+        case .quads, .hamstrings, .glutes: return "figure.strengthtraining.functional"
+        case .back, .chest, .shoulders, .arms: return "figure.strengthtraining.traditional"
+        case .core: return "figure.core.training"
+        }
+    }
+
     public var displayName: String {
         switch self {
         case .quads: return "Quads"

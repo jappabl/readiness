@@ -70,6 +70,7 @@ struct TodayView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 summaryCard
+                checkInPrompt
                 session
                 energy
                 healthMonitor
@@ -100,41 +101,31 @@ struct TodayView: View {
             Divider().overlay(Tokens.hairline)
 
             if let rec = model.recommendation, let day = model.day {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Coaching").microLabel()
-                    Text(Copy.call(for: rec, gate: day.readiness.gateApplied))
-                        .font(.system(size: 15))
-                        .foregroundStyle(Tokens.textPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    // Data-quality language while the baseline is still forming.
-                    if let note = Copy.confidenceNote(rec.confidence, days: day.daysOfHistory) {
-                        Text(note)
-                            .font(.system(size: 13))
-                            .foregroundStyle(Tokens.textSecondary)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(14)
-
-                Divider().overlay(Tokens.hairline)
-                AccessoryRow(symbol: "sparkles", label: "Ask why") { showingWhy = true }
-                Divider().overlay(Tokens.hairline)
-
-                Button { showingCheckIn = true } label: {
-                    HStack(spacing: 7) {
-                        Image(systemName: model.todayCheckIn == nil
-                              ? "sparkles" : "checkmark.circle.fill")
-                            .font(.system(size: 13))
-                        Text(model.todayCheckIn == nil ? "Morning check-in" : "Check-in saved")
+                Button { showingWhy = true } label: {
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack {
+                            Text("Coaching").microLabel()
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(Tokens.textSecondary)
+                        }
+                        Text(Copy.call(for: rec, gate: day.readiness.gateApplied))
                             .font(.system(size: 15))
-                        Spacer()
-                        Image(systemName: "arrow.right").font(.system(size: 13))
+                            .foregroundStyle(Tokens.textPrimary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        if let note = Copy.confidenceNote(rec.confidence, days: day.daysOfHistory) {
+                            Text(note)
+                                .font(.system(size: 13))
+                                .foregroundStyle(Tokens.textSecondary)
+                        }
                     }
-                    .foregroundStyle(Tokens.textPrimary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(14)
                     .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(PressableStyle())
+                .accessibilityHint("Shows how this was calculated")
             }
         }
         .frame(maxWidth: .infinity)
@@ -190,6 +181,38 @@ struct TodayView: View {
         }
     }
 
+    // MARK: - Check-in
+
+    /// Asks once, then gets out of the way. A saved check-in is something the user
+    /// already knows; it does not need a row saying so.
+    @ViewBuilder
+    private var checkInPrompt: some View {
+        if model.todayCheckIn == nil {
+            Button { showingCheckIn = true } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "sun.horizon.fill")
+                        .font(.system(size: 15))
+                        .foregroundStyle(Tokens.accent)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("How are you feeling?")
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundStyle(Tokens.textPrimary)
+                        Text("Four quick answers sharpen today's call")
+                            .font(.system(size: 13))
+                            .foregroundStyle(Tokens.textSecondary)
+                    }
+                    Spacer(minLength: 0)
+                    Image(systemName: "arrow.right")
+                        .font(.system(size: 13))
+                        .foregroundStyle(Tokens.textSecondary)
+                }
+                .bevelCard(padding: 14)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(PressableStyle())
+        }
+    }
+
     // MARK: - Insight
 
     /// One pattern, or nothing at all.
@@ -216,8 +239,13 @@ struct TodayView: View {
         if let checkIn = model.todayCheckIn {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Energy").sectionHeading()
-                SegmentedMeter(fraction: Double(checkIn.energy) / 5.0,
-                               symbol: "bolt.fill", tint: Tokens.recoveryHigh)
+                Button { showingCheckIn = true } label: {
+                    SegmentedMeter(fraction: Double(checkIn.energy) / 5.0,
+                                   symbol: "bolt.fill", tint: Tokens.recoveryHigh)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(PressableStyle())
+                .accessibilityHint("Edit your check-in")
             }
         }
     }

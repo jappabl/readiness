@@ -10,27 +10,80 @@ struct PlannedSessionCard: View {
     var body: some View {
         let proposals = SessionPlanner.apply(recommendation.adjustments,
                                              to: template.orderedExercises.map(\.plannedExercise))
-        ListCard {
-            HStack {
-                Text(template.name)
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(Tokens.textPrimary)
-                Spacer()
-                if proposals.contains(where: \.changed) {
-                    Text("Adjusted")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(Tokens.strainLow)
-                        .padding(.horizontal, 8).padding(.vertical, 3)
-                        .background(Tokens.strainLow.opacity(0.14), in: Capsule())
-                }
-            }
-            .padding(.horizontal, 14).padding(.top, 14).padding(.bottom, 10)
+        let allDeferred = !proposals.isEmpty && proposals.allSatisfy(\.isDeferred)
 
+        ListCard {
+            header(proposals: proposals, allDeferred: allDeferred)
             ForEach(Array(proposals.enumerated()), id: \.offset) { index, proposal in
-                Divider().overlay(Tokens.hairline).padding(.leading, 14)
+                Divider().overlay(Tokens.hairline).padding(.leading, 66)
                 ProposedExerciseRow(proposal: proposal)
             }
         }
+    }
+
+    /// Icon, name, and the session's status said once — not repeated on every row.
+    private func header(proposals: [ProposedExercise], allDeferred: Bool) -> some View {
+        let tint = allDeferred ? Tokens.textSecondary : Tokens.strainLow
+        return HStack(spacing: 12) {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(tint.opacity(allDeferred ? 0.10 : 0.15))
+                .frame(width: 40, height: 40)
+                .overlay(
+                    Image(systemName: symbol)
+                        .font(.system(size: 19))
+                        .foregroundStyle(tint))
+                .saturation(allDeferred ? 0 : 1)
+                .overlay(alignment: .bottomTrailing) {
+                    if allDeferred {
+                        Image(systemName: "clock.badge.checkmark.fill")
+                            .font(.system(size: 13))
+                            .symbolRenderingMode(.palette)
+                            .foregroundStyle(Tokens.textSecondary, Tokens.surface)
+                            .offset(x: 5, y: 4)
+                    }
+                }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(template.name)
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(allDeferred ? Tokens.textSecondary : Tokens.textPrimary)
+                Text(subtitle(proposals: proposals, allDeferred: allDeferred))
+                    .font(.system(size: 13))
+                    .foregroundStyle(Tokens.textSecondary)
+                    .lineLimit(1)
+            }
+            Spacer(minLength: 8)
+            if proposals.contains(where: \.changed) {
+                // The icon carries "moved to tomorrow"; the word is just the when.
+                HStack(spacing: 4) {
+                    Image(systemName: allDeferred ? "calendar.badge.clock"
+                                                  : "slider.horizontal.3")
+                        .font(.system(size: 11, weight: .semibold))
+                    Text(allDeferred ? "Tomorrow" : "Adjusted")
+                        .font(.system(size: 12, weight: .medium))
+                }
+                .foregroundStyle(allDeferred ? Tokens.textSecondary : Tokens.strainLow)
+                .padding(.horizontal, 9).padding(.vertical, 5)
+                .background((allDeferred ? Tokens.textSecondary : Tokens.strainLow)
+                    .opacity(0.13), in: Capsule())
+                .accessibilityLabel(allDeferred ? "Moved to tomorrow" : "Adjusted")
+            }
+        }
+        .padding(.horizontal, 14).padding(.top, 14).padding(.bottom, 12)
+    }
+
+    /// The most-worked muscle group stands in for the whole session.
+    private var symbol: String {
+        let groups = template.orderedExercises.map(\.muscleGroup)
+        let counts = Dictionary(groups.map { ($0, 1) }, uniquingKeysWith: +)
+        return (counts.max { $0.value < $1.value }?.key ?? .core).symbol
+    }
+
+    /// The pill already says Deferred or Adjusted, so the subtitle describes the
+    /// session rather than repeating its status — and it fits on one line.
+    private func subtitle(proposals: [ProposedExercise], allDeferred: Bool) -> String {
+        let sets = proposals.reduce(0) { $0 + (allDeferred ? $1.planned.sets : $1.sets) }
+        return Copy.count(proposals.count, "exercise") + " · " + Copy.count(sets, "set")
     }
 }
 
@@ -42,19 +95,21 @@ struct ProposedExerciseRow: View {
             HStack(alignment: .firstTextBaseline) {
                 Text(proposal.planned.name)
                     .font(.system(size: 15))
-                    .foregroundStyle(proposal.isDeferred ? Tokens.textSecondary : Tokens.textPrimary)
-                    .strikethrough(proposal.isDeferred, color: Tokens.textSecondary)
+                    .foregroundStyle(proposal.isDeferred ? Tokens.textTertiary : Tokens.textPrimary)
+                    .strikethrough(proposal.isDeferred, color: Tokens.textTertiary)
                 Spacer(minLength: 10)
                 Text(proposedText)
                     .font(.system(size: 15)).monospacedDigit()
-                    .foregroundStyle(proposal.changed ? Tokens.strainLow : Tokens.textPrimary)
+                    .foregroundStyle(proposal.isDeferred ? Tokens.textTertiary
+                                     : (proposal.changed ? Tokens.strainLow : Tokens.textPrimary))
+                    .strikethrough(proposal.isDeferred, color: Tokens.textTertiary)
             }
-            if proposal.changed {
-                Text(proposal.isDeferred ? "Moved to tomorrow" : "was \(originalText)")
+            if proposal.changed && !proposal.isDeferred {
+                Text("was \(originalText)")
                     .font(.system(size: 13)).foregroundStyle(Tokens.textSecondary)
             }
         }
-        .padding(.horizontal, 14).padding(.vertical, 11)
+        .padding(.leading, 66).padding(.trailing, 14).padding(.vertical, 11)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(proposal.isDeferred
             ? "\(proposal.planned.name), moved to tomorrow"
@@ -64,7 +119,7 @@ struct ProposedExerciseRow: View {
 
     private var proposedText: String {
         proposal.isDeferred
-            ? "—"
+            ? "\(proposal.planned.sets)×\(proposal.planned.reps) · \(Int(proposal.planned.workingWeight)) lb"
             : "\(proposal.sets)×\(proposal.planned.reps) · \(Int(proposal.load)) lb · RIR \(proposal.rir)"
     }
 
