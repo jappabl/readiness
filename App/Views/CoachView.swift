@@ -63,6 +63,8 @@ struct CoachSheet: View {
     @State private var draft = ""
     @State private var isStreaming = false
     @State private var errorMessage: String?
+    @State private var proposal: CoachToolCall?
+    @State private var appliedNote: String?
     @FocusState private var composerFocused: Bool
 
     private let provider = ClaudeCoachProvider()
@@ -190,6 +192,12 @@ struct CoachSheet: View {
                     ForEach(messages) { message in
                         MessageBubble(message: message).id(message.id)
                     }
+                    if let proposal { proposalCard(proposal) }
+                    if let appliedNote {
+                        Label(appliedNote, systemImage: "checkmark.circle.fill")
+                            .font(.system(size: 14))
+                            .foregroundStyle(Tokens.accent)
+                    }
                     if let errorMessage {
                         Text(errorMessage)
                             .font(.system(size: 14))
@@ -207,6 +215,62 @@ struct CoachSheet: View {
                 withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
             }
         }
+    }
+
+    /// Jett proposes; the user decides. The original session is never overwritten
+    /// without an explicit tap.
+    private func proposalCard(_ call: CoachToolCall) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label("Jett suggests", systemImage: "sparkle")
+                .font(.system(size: 12, weight: .medium))
+                .textCase(.uppercase)
+                .tracking(0.5)
+                .foregroundStyle(Tokens.accent)
+
+            Text(Copy.describe(call.adjustment))
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(Tokens.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if !call.reason.isEmpty {
+                Text(call.reason)
+                    .font(.system(size: 14))
+                    .foregroundStyle(Tokens.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            HStack(spacing: 8) {
+                Button {
+                    model.coachAdjustment = call.adjustment
+                    model.record(.modified)
+                    appliedNote = "Applied to today's session"
+                    proposal = nil
+                } label: {
+                    Text("Apply")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(Tokens.onAccent)
+                        .frame(maxWidth: .infinity, minHeight: 42)
+                        .background(Tokens.accent, in: Capsule())
+                }
+                .buttonStyle(PressableStyle())
+
+                Button { proposal = nil } label: {
+                    Text("Not now")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(Tokens.textPrimary)
+                        .frame(maxWidth: .infinity, minHeight: 42)
+                        .background(Color.primary.opacity(0.07), in: Capsule())
+                }
+                .buttonStyle(PressableStyle())
+            }
+            .padding(.top, 2)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Tokens.accent.opacity(0.07),
+                    in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous)
+            .strokeBorder(Tokens.accent.opacity(0.28), lineWidth: 1))
     }
 
     private var composer: some View {
@@ -262,16 +326,32 @@ struct CoachSheet: View {
 
         Task {
             do {
-                for try await chunk in provider.stream(messages: messages.dropLast().map { $0 },
-                                                       context: coachContext) {
-                    if let index = messages.firstIndex(where: { $0.id == reply.id }) {
-                        messages[index].text += chunk
+                let events = provider.stream(
+                    messages: messages.dropLast().map { $0 },
+                    context: coachContext,
+                    applyTool: { call in
+                        await MainActor.run { proposal = call }
+                        // Jett is told it was proposed, not applied, so it describes the
+                        // change as a suggestion rather than a done deal.
+                        return "Shown to the user as a suggestion: "
+                            + "\(Copy.describe(call.adjustment)). Awaiting their approval."
+                    })
+
+                for try await event in events {
+                    switch event {
+                    case .text(let chunk):
+                        if let index = messages.firstIndex(where: { $0.id == reply.id }) {
+                            messages[index].text += chunk
+                        }
+                    case .toolCall:
+                        break   // surfaced through applyTool
                     }
                 }
             } catch {
                 messages.removeAll { $0.id == reply.id && $0.text.isEmpty }
                 errorMessage = error.localizedDescription
             }
+            messages.removeAll { $0.id == reply.id && $0.text.isEmpty }
             isStreaming = false
         }
     }

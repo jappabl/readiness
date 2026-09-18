@@ -14,8 +14,12 @@ struct PlannedSessionCard: View {
 
     private var proposals: [ProposedExercise] {
         let planned = template.orderedExercises.map(\.plannedExercise)
-        return SessionPlanner.apply(isOverridden ? [.proceedAsPlanned] : recommendation.adjustments,
-                                    to: planned)
+        guard !isOverridden else {
+            return SessionPlanner.apply([.proceedAsPlanned], to: planned)
+        }
+        // The planner already composes several adjustments in one pass.
+        let adjustments = recommendation.adjustments + (model.coachAdjustment.map { [$0] } ?? [])
+        return SessionPlanner.apply(adjustments, to: planned)
     }
 
     var body: some View {
@@ -27,7 +31,8 @@ struct PlannedSessionCard: View {
                 Divider().overlay(Tokens.hairline).padding(.leading, 62)
                 ProposedExerciseRow(proposal: proposal)
             }
-            if recommendation.adjustments.contains(where: { $0 != .proceedAsPlanned }) {
+            if recommendation.adjustments.contains(where: { $0 != .proceedAsPlanned })
+                || model.coachAdjustment != nil {
                 Divider().overlay(Tokens.hairline)
                 override(allDeferred: allDeferred)
             }
@@ -43,9 +48,12 @@ struct PlannedSessionCard: View {
                              label: "Use Jett's adjustment",
                              tint: Tokens.textSecondary) { model.record(.accepted) }
             } else {
-                AccessoryRow(symbol: allDeferred ? "calendar.badge.checkmark" : "checkmark",
-                             label: allDeferred ? "Train it today" : "Keep my original plan",
-                             tint: Tokens.accent) { model.record(.rejected) }
+                AccessoryRow(symbol: allDeferred ? "calendar.badge.checkmark" : "arrow.uturn.backward",
+                             label: allDeferred ? "Move back to today" : "Keep my original plan",
+                             tint: Tokens.textPrimary) {
+                    model.coachAdjustment = nil
+                    model.record(.rejected)
+                }
             }
         }
     }

@@ -102,17 +102,12 @@ struct TodayView: View {
 
             if let rec = model.recommendation, let day = model.day {
                 Button { showingWhy = true } label: {
-                    VStack(alignment: .leading, spacing: 6) {
-                        HStack {
-                            Text("Coaching").microLabel()
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 12, weight: .semibold))
-                                .foregroundStyle(Tokens.textSecondary)
-                        }
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text("Coaching").microLabel()
                         Text(Copy.call(for: rec, gate: day.readiness.gateApplied))
                             .font(.system(size: 15))
                             .foregroundStyle(Tokens.textPrimary)
+                            .lineSpacing(2)
                             .fixedSize(horizontal: false, vertical: true)
                         if let note = Copy.confidenceNote(rec.confidence, days: day.daysOfHistory) {
                             Text(note)
@@ -121,7 +116,8 @@ struct TodayView: View {
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(14)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 13)
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(PressableStyle())

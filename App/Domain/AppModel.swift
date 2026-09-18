@@ -30,6 +30,10 @@ final class AppModel {
     /// How the user answered today's call. Stored so views react when it changes.
     var todayResponse: RecommendationResponse?
 
+    /// A change the coach proposed and the user approved. Composed on top of the
+    /// engine's own adjustments — the coach adds to the call, it does not replace it.
+    var coachAdjustment: SessionAdjustment?
+
     private let healthKit = HealthKitSource()
     private var context: ModelContext?
 

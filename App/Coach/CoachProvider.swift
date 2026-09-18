@@ -30,11 +30,27 @@ enum CoachError: LocalizedError {
     }
 }
 
+/// A change the coach asked for. Already validated against what the engine accepts.
+struct CoachToolCall: Identifiable, Equatable, Sendable {
+    let id: String
+    let adjustment: SessionAdjustment
+    let reason: String
+}
+
+enum CoachEvent: Sendable {
+    case text(String)
+    case toolCall(CoachToolCall)
+}
+
 /// The model is one replaceable part. It explains and personalises the decision the
-/// rules engine already made; it never computes the decision itself.
+/// rules engine already made, and may propose a session change through a tool — but
+/// it never computes the decision and never applies a change itself.
 protocol CoachProvider: Sendable {
     var isConfigured: Bool { get }
-    func stream(messages: [CoachMessage], context: CoachContext) -> AsyncThrowingStream<String, Error>
+    func stream(messages: [CoachMessage],
+                context: CoachContext,
+                applyTool: @escaping @Sendable (CoachToolCall) async -> String)
+        -> AsyncThrowingStream<CoachEvent, Error>
 }
 
 enum CoachPrompt {
@@ -52,6 +68,8 @@ enum CoachPrompt {
         2. The evidence — which measurements or trends drove it, by name and number.
         3. The adjustment — the smallest concrete change that fits the evidence.
         4. The uncertainty — what this data cannot tell you.
+
+        You can change today's session with the adjust_session tool. Use it when the user         asks for the session to be easier, shorter, lighter, or moved. Propose one change,         then say in a sentence what you changed and why. The change is shown to the user for         approval — you are proposing, not deciding.
 
         Hard rules:
         - Never invent a measurement. If a number is not in the context, say you do not have it.
