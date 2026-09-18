@@ -27,6 +27,9 @@ final class AppModel {
     /// Retracts while the user is reading, returns when they stop or scroll back.
     var coachEntryExpanded = true
 
+    /// How the user answered today's call. Stored so views react when it changes.
+    var todayResponse: RecommendationResponse?
+
     private let healthKit = HealthKitSource()
     private var context: ModelContext?
 
@@ -81,6 +84,7 @@ final class AppModel {
 
             recommendation = rec
             persistRecommendation(rec, readiness: assembled.readiness, into: context)
+            todayResponse = fetchTodayResponse(from: context)
             recentInsight = computeInsight(from: context)
 
             phase = templates.isEmpty ? .needsProgram : .ready
@@ -118,6 +122,12 @@ final class AppModel {
         await refresh()
     }
 
+    private func fetchTodayResponse(from context: ModelContext) -> RecommendationResponse? {
+        let today = Calendar.current.startOfDay(for: Date())
+        let rows = (try? context.fetch(FetchDescriptor<RecommendationRow>())) ?? []
+        return rows.first { Calendar.current.isDate($0.date, inSameDayAs: today) }?.response
+    }
+
     private func fetchTodayCheckIn(from context: ModelContext) -> CheckIn? {
         let today = Calendar.current.startOfDay(for: Date())
         let rows = (try? context.fetch(FetchDescriptor<CheckInRow>())) ?? []
@@ -134,14 +144,10 @@ final class AppModel {
         else { return }
         row.responseRaw = response.rawValue
         try? context.save()
+        todayResponse = response
     }
 
-    var todayResponse: RecommendationResponse? {
-        guard let context else { return nil }
-        let today = Calendar.current.startOfDay(for: Date())
-        let rows = (try? context.fetch(FetchDescriptor<RecommendationRow>())) ?? []
-        return rows.first { Calendar.current.isDate($0.date, inSameDayAs: today) }?.response
-    }
+
 
     // MARK: - Series for the dashboard
 
