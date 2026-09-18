@@ -176,6 +176,14 @@ word shimmers, the answer lands, and the chart draws itself from **this user's o
 history**. Nobody reads three bullet points about a coach, and everybody will watch one
 work for eight seconds.
 
+Only the demo changes size, so only the demo absorbs the slack: the prices and the
+action are pinned, and the demo centres in what is left. Pinning them was not about
+keeping them visible, though it does that — it is that a price which moves while you are
+comparing two of them is worse than any amount of whitespace. Centring is the other half:
+the same short scene pinned to the top of its space reads as a hole underneath it, and
+centred reads as composed. Two charts at most here, because three made the tallest scene
+six times the shortest and no layout absorbs that.
+
 The script never states a measurement. The chart carries the specifics and it is real,
 so the demo cannot promise something the data does not say. No countdown timers, no
 invented discount: the saving badge is computed from the two real prices, because a

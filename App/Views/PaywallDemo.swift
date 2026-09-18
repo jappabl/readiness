@@ -57,7 +57,7 @@ struct PaywallDemo: View {
                   closing: "Take 15% off the bar and stop at 4 RIR. You'll still get the work in."),
             Scene(question: "Why do I feel so flat this week?",
                   lead: "Here's what moved.",
-                  charts: Array(drivers.prefix(3)),
+                  charts: Array(drivers.prefix(2)),
                   closing: "Everything else is sitting where it usually does."),
             Scene(question: "Make today easier.",
                   lead: "Done. Cut to three sets.",
@@ -113,7 +113,10 @@ struct PaywallDemo: View {
                     .transition(.opacity)
             }
         }
-        .frame(maxWidth: .infinity, minHeight: 300, alignment: .top)
+        // Centred, not top-aligned: the scenes differ in height by design, and content
+        // that sits in the middle of its space reads as composed, where the same content
+        // pinned to the top of it reads as a hole underneath.
+        .frame(maxWidth: .infinity, alignment: .leading)
         .animation(.spring(response: 0.36, dampingFraction: 0.86), value: question)
         .animation(.spring(response: 0.36, dampingFraction: 0.86), value: thinking)
         .animation(.spring(response: 0.36, dampingFraction: 0.86), value: showsChart)

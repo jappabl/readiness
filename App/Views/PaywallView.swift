@@ -22,16 +22,13 @@ struct PaywallView: View {
             Tokens.canvas.ignoresSafeArea()
             VStack(spacing: 0) {
                 closeRow
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 18) {
-                        heading
-                        PaywallDemo()
-                        plans
-                    }
+                // No scroll view. The demo is the only thing that changes size, so it
+                // takes the slack and centres in it; everything else holds still.
+                heading
                     .padding(.horizontal, Tokens.screenMargin)
-                    .padding(.bottom, 20)
-                }
-                .scrollBounceBehavior(.basedOnSize)
+                PaywallDemo()
+                    .padding(.horizontal, Tokens.screenMargin)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 footer
             }
         }
@@ -151,6 +148,12 @@ struct PaywallView: View {
 
     private var footer: some View {
         VStack(spacing: 10) {
+            // Prices sit here rather than in the scroll view. Pinned, they cannot be
+            // pushed around by a demo that changes height every few seconds, and they
+            // are on screen without scrolling — which is what somebody weighing two
+            // plans actually wants.
+            plans
+
             if let failure = store.failure {
                 Text(failure)
                     .font(.system(size: 13))
