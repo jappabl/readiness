@@ -10,17 +10,59 @@ import SwiftUI
 /// The script never states a measurement. The chart carries the specifics, and it is
 /// real, so the demo cannot claim something the data does not say.
 struct PaywallDemo: View {
+    @Environment(AppModel.self) private var model
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
+    @State private var sceneIndex = 0
     @State private var question = ""
     @State private var thinking = false
     @State private var answer = ""
     @State private var showsChart = false
+    @State private var showsStep = false
     @State private var showsClose = false
 
-    private static let ask = "Can I still train legs today?"
-    private static let opening = "Yes, but lighter today."
-    private static let closing = "Take 15% off the bar and stop at 4 RIR. You'll still get the work in."
+    private var scene: Scene {
+        let all = scenes
+        return all[min(sceneIndex, all.count - 1)]
+    }
+
+    /// Three scenes, because one answer only shows one thing Jett does. Together they
+    /// show him answering, pulling a trend, and changing the session, which is the
+    /// whole product without a single bullet point.
+    ///
+    /// No scene states a measurement. The chart carries the specifics and it is real,
+    /// so the demo can never claim something this user's data does not say.
+    private struct Scene {
+        let question: String
+        let lead: String
+        var chart: MetricKind?
+        var step: String?
+        var closing: String
+    }
+
+    /// The charts are whichever metrics actually drove today's call for this user, not
+    /// a hardcoded favourite. No scripted line names a metric, so the demo cannot end up
+    /// asserting that sleep is the problem while the chart shows a heart rate.
+    private var scenes: [Scene] {
+        let drivers = model.day?.readiness.contributions
+            .sorted { abs($0.points) > abs($1.points) }
+            .map(\.kind) ?? []
+
+        return [
+            Scene(question: "Can I still train legs today?",
+                  lead: "Yes, but lighter.",
+                  chart: drivers.first,
+                  closing: "Take 15% off the bar and stop at 4 RIR. You'll still get the work in."),
+            Scene(question: "Why do I feel so flat this week?",
+                  lead: "Here's what moved.",
+                  chart: drivers.dropFirst().first ?? drivers.first,
+                  closing: "Everything else in your numbers is sitting where it usually does."),
+            Scene(question: "Make today easier.",
+                  lead: "Done. Cut to three sets.",
+                  step: "Adjusting today's session",
+                  closing: "Same lifts, same loads, less volume. Approve it and I'll update the day."),
+        ]
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -47,13 +89,19 @@ struct PaywallDemo: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
 
-            if showsChart {
-                CoachChartCard(kind: .hrv)
+            if showsStep, let label = scene.step {
+                CoachStepRow(label: label)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+
+            if showsChart, let kind = scene.chart {
+                CoachChartCard(kind: kind)
+                    .id(sceneIndex)
                     .transition(.opacity.combined(with: .scale(scale: 0.97, anchor: .top)))
             }
 
             if showsClose {
-                Text(Self.closing)
+                Text(scene.closing)
                     .font(.system(size: 14))
                     .foregroundStyle(Tokens.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -65,6 +113,7 @@ struct PaywallDemo: View {
         .animation(.spring(response: 0.36, dampingFraction: 0.86), value: question)
         .animation(.spring(response: 0.36, dampingFraction: 0.86), value: thinking)
         .animation(.spring(response: 0.36, dampingFraction: 0.86), value: showsChart)
+        .animation(.spring(response: 0.36, dampingFraction: 0.86), value: showsStep)
         .animation(.spring(response: 0.36, dampingFraction: 0.86), value: showsClose)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("A demonstration of Coach Jett answering a question.")
@@ -75,33 +124,45 @@ struct PaywallDemo: View {
     /// state immediately rather than a performance.
     private func play() async {
         guard !reduceMotion else {
-            question = Self.ask
-            answer = Self.opening
-            showsChart = true
+            question = scene.question
+            answer = scene.lead
+            showsChart = scene.chart != nil
+            showsStep = scene.step != nil
             showsClose = true
             return
         }
         while !Task.isCancelled {
-            reset()
-            try? await Task.sleep(for: .milliseconds(700))
-            question = Self.ask
+            for index in scenes.indices {
+                reset()
+                sceneIndex = index
+                try? await Task.sleep(for: .milliseconds(500))
+                question = scene.question
 
-            try? await Task.sleep(for: .milliseconds(650))
-            thinking = true
-            try? await Task.sleep(for: .milliseconds(1400))
-            thinking = false
+                try? await Task.sleep(for: .milliseconds(600))
+                thinking = true
+                try? await Task.sleep(for: .milliseconds(1300))
+                thinking = false
 
-            for word in Self.opening.split(separator: " ") {
-                answer += (answer.isEmpty ? "" : " ") + word
-                try? await Task.sleep(for: .milliseconds(70))
+                if scene.step != nil {
+                    showsStep = true
+                    try? await Task.sleep(for: .milliseconds(650))
+                }
+
+                for word in scene.lead.split(separator: " ") {
+                    answer += (answer.isEmpty ? "" : " ") + word
+                    try? await Task.sleep(for: .milliseconds(75))
+                }
+
+                if scene.chart != nil {
+                    try? await Task.sleep(for: .milliseconds(300))
+                    showsChart = true
+                    try? await Task.sleep(for: .milliseconds(1700))
+                }
+
+                try? await Task.sleep(for: .milliseconds(400))
+                showsClose = true
+                try? await Task.sleep(for: .seconds(3))
             }
-
-            try? await Task.sleep(for: .milliseconds(350))
-            showsChart = true
-            try? await Task.sleep(for: .milliseconds(900))
-            showsClose = true
-
-            try? await Task.sleep(for: .seconds(4))
         }
     }
 
@@ -110,6 +171,7 @@ struct PaywallDemo: View {
         thinking = false
         answer = ""
         showsChart = false
+        showsStep = false
         showsClose = false
     }
 }

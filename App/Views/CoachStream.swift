@@ -180,6 +180,10 @@ struct CoachChartCard: View {
         model.day?.readings.first { $0.kind == kind }
     }
 
+    /// Tracks the drawing head, so the figure counts along with the line instead of
+    /// sitting there already knowing the answer.
+    @State private var headValue: Double?
+
     var body: some View {
         if values.count >= 2 {
             VStack(alignment: .leading, spacing: 8) {
@@ -191,17 +195,18 @@ struct CoachChartCard: View {
                         .padding(.horizontal, -9)
                         .padding(.vertical, -9)
                     Spacer(minLength: 8)
-                    if let reading {
-                        Text(reading.value, format: .number.precision(.fractionLength(1)))
+                    if let shown = headValue ?? reading?.value {
+                        Text(shown, format: .number.precision(.fractionLength(1)))
                             .font(.system(size: 17, weight: .semibold)).monospacedDigit()
                             .foregroundStyle(Tokens.textPrimary)
+                            .contentTransition(.numericText())
                         Text(kind.unit)
                             .font(.system(size: 12))
                             .foregroundStyle(Tokens.textSecondary)
                     }
                 }
 
-                Sparkline(values: values, tint: tint)
+                DrawingLine(values: values, tint: tint) { headValue = $0 }
                     .frame(height: 44)
 
                 if let reading {

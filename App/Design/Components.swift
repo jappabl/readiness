@@ -461,6 +461,115 @@ struct Sparkline: View {
     }
 }
 
+/// A line that draws itself, with the value at the drawing head available as it goes.
+///
+/// The line is built point by point rather than trimmed, because trimming walks arc
+/// length and the number would drift out of step with the tip on steep sections. Here
+/// the head position and the number come from the same fraction, so the figure is
+/// always exactly the value under the dot.
+struct DrawingLine: View {
+    let values: [Double]
+    var tint: Color = Tokens.accent
+    var duration: Double = 1.7
+    /// Called every frame with the value under the head, for a figure that counts along.
+    var onHead: ((Double) -> Void)?
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var started = Date()
+    @State private var finished = false
+
+    var body: some View {
+        TimelineView(.animation(paused: finished || reduceMotion)) { context in
+            let fraction = reduceMotion ? 1 : eased(rawFraction(at: context.date))
+            Canvas { canvas, size in
+                guard values.count >= 2 else { return }
+                let rect = CGRect(origin: .zero, size: size).insetBy(dx: 2, dy: 4)
+                canvas.stroke(path(in: rect, upTo: fraction),
+                              with: .color(tint),
+                              style: StrokeStyle(lineWidth: 2, lineCap: .round,
+                                                 lineJoin: .round))
+                if fraction > 0, fraction < 1, let head = headPoint(in: rect, at: fraction) {
+                    let dot = CGRect(x: head.x - 3, y: head.y - 3, width: 6, height: 6)
+                    canvas.fill(Path(ellipseIn: dot), with: .color(tint))
+                }
+            }
+            .onChange(of: fraction) { _, new in
+                onHead?(value(at: new))
+            }
+        }
+        .onAppear {
+            started = Date()
+            onHead?(reduceMotion ? (values.last ?? 0) : (values.first ?? 0))
+        }
+        .task {
+            guard !reduceMotion else { finished = true; return }
+            try? await Task.sleep(for: .seconds(duration))
+            finished = true
+            onHead?(values.last ?? 0)
+        }
+        .accessibilityHidden(true)
+    }
+
+    private func rawFraction(at date: Date) -> Double {
+        guard duration > 0 else { return 1 }
+        return min(1, max(0, date.timeIntervalSince(started) / duration))
+    }
+
+    private func eased(_ t: Double) -> Double { 1 - pow(1 - t, 3) }
+
+    private var span: (low: Double, high: Double) {
+        let low = values.min() ?? 0
+        let high = values.max() ?? 1
+        return high > low ? (low, high) : (low - 1, high + 1)
+    }
+
+    private func point(_ index: Int, _ rect: CGRect) -> CGPoint {
+        let (low, high) = span
+        let x = rect.minX + rect.width * Double(index) / Double(values.count - 1)
+        let y = rect.maxY - rect.height * (values[index] - low) / (high - low)
+        return CGPoint(x: x, y: y)
+    }
+
+    /// Everything up to the head, with the final segment cut at the exact fraction.
+    private func path(in rect: CGRect, upTo fraction: Double) -> Path {
+        var path = Path()
+        let head = fraction * Double(values.count - 1)
+        let whole = Int(head.rounded(.down))
+        path.move(to: point(0, rect))
+        if whole >= 1 {
+            for index in 1...whole { path.addLine(to: point(index, rect)) }
+        }
+        let remainder = head - Double(whole)
+        if remainder > 0, whole + 1 < values.count {
+            let from = point(whole, rect), to = point(whole + 1, rect)
+            path.addLine(to: CGPoint(x: from.x + (to.x - from.x) * remainder,
+                                     y: from.y + (to.y - from.y) * remainder))
+        }
+        return path
+    }
+
+    private func headPoint(in rect: CGRect, at fraction: Double) -> CGPoint? {
+        guard values.count >= 2 else { return nil }
+        let head = fraction * Double(values.count - 1)
+        let whole = Int(head.rounded(.down))
+        guard whole + 1 < values.count else { return point(values.count - 1, rect) }
+        let from = point(whole, rect), to = point(whole + 1, rect)
+        let remainder = head - Double(whole)
+        return CGPoint(x: from.x + (to.x - from.x) * remainder,
+                       y: from.y + (to.y - from.y) * remainder)
+    }
+
+    /// The reading under the head, interpolated so the figure moves smoothly.
+    private func value(at fraction: Double) -> Double {
+        guard values.count >= 2 else { return values.first ?? 0 }
+        let head = fraction * Double(values.count - 1)
+        let whole = Int(head.rounded(.down))
+        guard whole + 1 < values.count else { return values[values.count - 1] }
+        let remainder = head - Double(whole)
+        return values[whole] + (values[whole + 1] - values[whole]) * remainder
+    }
+}
+
 /// A quiet "what is this" on a number that needs one.
 ///
 /// Deliberately low contrast and small: it should be findable when you want it and
