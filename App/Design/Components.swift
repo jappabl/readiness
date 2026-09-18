@@ -460,8 +460,15 @@ struct Sparkline: View {
 /// rings, so the coach is one too — thin, lit, and see-through, which lets it sit among
 /// outline glyphs without bullying them the way a filled mark does. The sweep is a
 /// deliberate non-spectrum; it belongs to no signal, so it never reads as a reading.
+///
+/// It turns while Jett is thinking. That is the whole personality: a mascot would have
+/// to act, and this only has to move.
 struct JettOrb: View {
     var size: CGFloat = 30
+    var isThinking = false
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var spin: Double = 0
 
     private var sweep: AngularGradient {
         AngularGradient(stops: [
@@ -475,17 +482,20 @@ struct JettOrb: View {
 
     var body: some View {
         ZStack {
-            // The glow is most of the effect: without it the ring reads as a sticker.
-            Circle()
-                .strokeBorder(sweep, lineWidth: size * 0.30)
-                .blur(radius: size * 0.17)
-                .opacity(0.55)
+            Group {
+                // The glow is most of the effect: without it the ring reads as a sticker.
+                Circle()
+                    .strokeBorder(sweep, lineWidth: size * 0.30)
+                    .blur(radius: size * 0.17)
+                    .opacity(isThinking ? 0.8 : 0.55)
 
-            Circle()
-                .strokeBorder(sweep, lineWidth: size * 0.19)
+                Circle()
+                    .strokeBorder(sweep, lineWidth: size * 0.19)
+            }
+            .rotationEffect(.degrees(spin))
 
-            // A highlight along the top edge, so the band reads as rounded rather than
-            // printed flat.
+            // The highlight stays put while the sweep turns under it — light does not
+            // travel with the object it is falling on.
             Circle()
                 .strokeBorder(LinearGradient(colors: [.white.opacity(0.7), .clear],
                                              startPoint: .top, endPoint: .center),
@@ -493,6 +503,19 @@ struct JettOrb: View {
                 .blur(radius: size * 0.022)
         }
         .frame(width: size, height: size)
+        .animation(.easeOut(duration: 0.3), value: isThinking)
+        .onAppear { if isThinking { startSpinning() } }
+        .onChange(of: isThinking) { _, thinking in
+            if thinking { startSpinning() } else { withAnimation(.easeOut(duration: 0.4)) { spin = 0 } }
+        }
+    }
+
+    private func startSpinning() {
+        guard !reduceMotion else { return }
+        spin = 0
+        withAnimation(.linear(duration: 2.6).repeatForever(autoreverses: false)) {
+            spin = 360
+        }
     }
 }
 

@@ -42,6 +42,11 @@ enum Tokens {
     static let positive      = dynamic(light: 0x34A853, dark: 0x5BD45B)
     static let negative      = dynamic(light: 0xE9573F, dark: 0xF07A64)
 
+    /// Pulled from the coach ring's sweep, for the few marks that belong to Jett
+    /// rather than to the app. Keeps his surfaces off the brand green, which now reads
+    /// as "an action you take" everywhere else.
+    static let jettTint = dynamic(light: 0x6B5CF5, dark: 0x8A7DFF)
+
     // Skies behind the detail screens
     static let skyStrainTop      = dynamic(light: 0xCFE0EE, dark: 0x1B2430)
     static let skyStrainMid      = dynamic(light: 0xF6D3B0, dark: 0x2E2418)

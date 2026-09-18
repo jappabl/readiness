@@ -53,13 +53,7 @@ struct CoachSheet: View {
 
     private var title: some View {
         VStack(spacing: 10) {
-            Image("LogoMark")
-                .renderingMode(.template)
-                .resizable().scaledToFit()
-                .frame(width: 30, height: 30)
-                .foregroundStyle(Tokens.accent)
-                .frame(width: 66, height: 66)
-                .background(Tokens.accent.opacity(0.12), in: Circle())
+            JettOrb(size: 62, isThinking: isStreaming)
 
             VStack(spacing: 4) {
                 Text("Coach Jett")
@@ -100,7 +94,7 @@ struct CoachSheet: View {
                     HStack(spacing: 12) {
                         Image(systemName: "sparkle")
                             .font(.system(size: 14))
-                            .foregroundStyle(Tokens.accent)
+                            .foregroundStyle(Tokens.jettTint)
                         Text(prompt)
                             .font(.system(size: 16, weight: .medium))
                             .foregroundStyle(Tokens.textPrimary)
