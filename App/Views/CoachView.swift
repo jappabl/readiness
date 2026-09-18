@@ -5,6 +5,7 @@ import SwiftData
 
 struct CoachSheet: View {
     @Environment(AppModel.self) private var model
+    @Environment(Subscriptions.self) private var store
     @Environment(\.modelContext) private var context
 
     @Environment(\.dismiss) private var dismiss
@@ -14,6 +15,7 @@ struct CoachSheet: View {
     @State private var errorMessage: String?
     @State private var proposal: CoachToolCall?
     @State private var toolStep: String?
+    @State private var showingPaywall = false
     @State private var appliedNote: String?
     @FocusState private var composerFocused: Bool
 
@@ -37,6 +39,17 @@ struct CoachSheet: View {
             } else {
                 transcript
             }
+            if allowance.showsRemaining, let left = allowance.remaining {
+                Button { showingPaywall = true } label: {
+                    Text(left == 0
+                         ? "You've used your free answers. See plans"
+                         : "\(Copy.count(left, "free answer")) left")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(Tokens.textSecondary)
+                        .padding(.bottom, 2)
+                }
+                .buttonStyle(.plain)
+            }
             composer
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -47,6 +60,9 @@ struct CoachSheet: View {
                 .onEnded { value in
                     if value.translation.height > 90 { dismiss() }
                 })
+        .fullScreenCover(isPresented: $showingPaywall) {
+            PaywallView { showingPaywall = false }
+        }
     }
 
     private var grabber: some View {
@@ -275,9 +291,25 @@ struct CoachSheet: View {
         !isStreaming && !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
+    private var allowance: CoachAllowance {
+        Paywall.allowance(used: model.coachMessagesUsed, isSubscribed: store.isSubscribed)
+    }
+
     private func send(_ text: String) {
         guard !text.isEmpty, !isStreaming else { return }
+        // The wall lands where the value is, not before it: five real answers first.
+        guard allowance.isAllowed else {
+            Haptics.light()
+            showingPaywall = true
+            return
+        }
+        // Unlimited does not mean unlimited per second. A conversation never sees this.
+        if let wait = model.burstDelay() {
+            errorMessage = "One at a time. Try again in \(Int(wait))s."
+            return
+        }
         errorMessage = nil
+        model.recordCoachMessage()
 
         guard let coachContext = model.coachContext(context: context) else {
             errorMessage = "Still reading your health data. Try again in a moment."

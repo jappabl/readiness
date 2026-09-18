@@ -4,6 +4,7 @@ import SwiftData
 @main
 struct ReadinessApp: App {
     @State private var model = AppModel()
+    @State private var store = Subscriptions()
 
     private let container: ModelContainer = {
         do {
@@ -21,6 +22,8 @@ struct ReadinessApp: App {
         WindowGroup {
             RootView()
                 .environment(model)
+                .environment(store)
+                .task { await store.load() }
                 .task {
                     model.attach(container.mainContext)
                     guard !model.needsOnboarding else { return }

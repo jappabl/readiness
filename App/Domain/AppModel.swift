@@ -28,6 +28,40 @@ final class AppModel {
     /// runs on past it to the Health prompt and the baseline reveal.
     var onboardingFinished = false
 
+    /// How many answers the free trial has spent. UserDefaults rather than the store:
+    /// it is a counter, not a record, and it does not deserve a migration.
+    var coachMessagesUsed: Int {
+        get { UserDefaults.standard.integer(forKey: Self.coachUseKey) }
+        set { UserDefaults.standard.set(newValue, forKey: Self.coachUseKey) }
+    }
+    private static let coachUseKey = "coach.messages.used"
+
+    func recordCoachMessage() { coachMessagesUsed += 1 }
+
+    /// The burst bucket, persisted so quitting the app is not a way around it.
+    private static let burstKey = "coach.burst"
+
+    private var burstState: BurstLimiter.State {
+        get {
+            guard let data = UserDefaults.standard.data(forKey: Self.burstKey),
+                  let decoded = try? JSONDecoder().decode(BurstLimiter.State.self, from: data)
+            else { return BurstLimiter.State() }
+            return decoded
+        }
+        set {
+            if let data = try? JSONEncoder().encode(newValue) {
+                UserDefaults.standard.set(data, forKey: Self.burstKey)
+            }
+        }
+    }
+
+    /// Nil when the message may go, otherwise the seconds to wait.
+    func burstDelay(now: Date = Date()) -> TimeInterval? {
+        let decision = BurstLimiter.consume(burstState, now: now)
+        burstState = decision.state
+        return decision.allowed ? nil : decision.retryAfter
+    }
+
     private(set) var series: [DailyPhysiology] = []
 
     /// Retracts while the user is reading, returns when they stop or scroll back.

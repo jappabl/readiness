@@ -1,0 +1,200 @@
+import SwiftUI
+import StoreKit
+
+/// What Pro is, and what it costs, without a countdown timer or a fake discount.
+///
+/// The offer is honest about where the line sits: everything the app measures is free,
+/// and the coach is what you pay for, because the coach is the part with a cost every
+/// time it is used. Saying that plainly converts worse than urgency tricks and is the
+/// only version worth shipping.
+struct PaywallView: View {
+    var onDone: () -> Void
+
+    @Environment(Subscriptions.self) private var store
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.openURL) private var openURL
+
+    @State private var selected: String = Subscriptions.yearlyID
+    @State private var working = false
+
+    var body: some View {
+        ZStack {
+            Tokens.canvas.ignoresSafeArea()
+            VStack(spacing: 0) {
+                closeRow
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 18) {
+                        heading
+                        PaywallDemo()
+                        plans
+                    }
+                    .padding(.horizontal, Tokens.screenMargin)
+                    .padding(.bottom, 20)
+                }
+                .scrollBounceBehavior(.basedOnSize)
+                footer
+            }
+        }
+        .task { if store.products.isEmpty { await store.load() } }
+        .onChange(of: store.isSubscribed) { _, subscribed in
+            if subscribed { Haptics.committed(); onDone() }
+        }
+    }
+
+    private var closeRow: some View {
+        HStack {
+            Spacer()
+            Button { onDone() } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(Tokens.textSecondary)
+                    .frame(width: 34, height: 34)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Close")
+        }
+        .padding(.horizontal, 10)
+        .padding(.top, 6)
+    }
+
+    private var heading: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Coach Jett")
+                .font(.system(size: 30, weight: .bold))
+                .foregroundStyle(Tokens.textPrimary)
+            Text("Unlimited, on your own numbers.")
+                .font(.system(size: 15))
+                .foregroundStyle(Tokens.textSecondary)
+        }
+    }
+
+    @ViewBuilder
+    private var plans: some View {
+        if store.products.isEmpty {
+            HStack {
+                ProgressView().controlSize(.small)
+                Text("Loading plans…")
+                    .font(.system(size: 14)).foregroundStyle(Tokens.textSecondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.vertical, 20)
+        } else {
+            VStack(spacing: 10) {
+                ForEach(store.products, id: \.id) { product in
+                    planRow(product)
+                }
+            }
+        }
+    }
+
+    private func planRow(_ product: Product) -> some View {
+        let isSelected = selected == product.id
+        let isYearly = product.id == Subscriptions.yearlyID
+        return Button {
+            Haptics.decided()
+            selected = product.id
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: isSelected ? "largecircle.fill.circle" : "circle")
+                    .font(.system(size: 20))
+                    .foregroundStyle(isSelected ? Tokens.accent : Tokens.hairline)
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 7) {
+                        Text(isYearly ? "Yearly" : "Monthly")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(Tokens.textPrimary)
+                        if let saving = yearlySaving, isYearly {
+                            Text(saving)
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundStyle(Tokens.onAccent)
+                                .padding(.horizontal, 7).padding(.vertical, 3)
+                                .background(Tokens.accent, in: Capsule())
+                        }
+                    }
+                    Text(subtitle(for: product))
+                        .font(.system(size: 13))
+                        .foregroundStyle(Tokens.textSecondary)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Tokens.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(isSelected ? Tokens.accent : .clear, lineWidth: 2))
+            .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        }
+        .buttonStyle(PressableStyle())
+    }
+
+    private func subtitle(for product: Product) -> String {
+        var parts: [String] = [product.periodDescription]
+        if let monthly = product.monthlyEquivalent { parts.append("\(monthly) a month") }
+        if let intro = product.introductoryDescription { parts.append(intro) }
+        return parts.joined(separator: " · ")
+    }
+
+    /// Worked out from the real prices, never hardcoded: a "save 40%" badge that does
+    /// not match what is charged is a lie with a number on it.
+    private var yearlySaving: String? {
+        guard let yearly = store.yearly, let monthly = store.monthly else { return nil }
+        let fullYear = monthly.price * 12
+        guard fullYear > 0, yearly.price < fullYear else { return nil }
+        let share = (fullYear - yearly.price) / fullYear
+        let percent = Int((NSDecimalNumber(decimal: share).doubleValue * 100).rounded())
+        return percent >= 5 ? "SAVE \(percent)%" : nil
+    }
+
+    private var footer: some View {
+        VStack(spacing: 10) {
+            if let failure = store.failure {
+                Text(failure)
+                    .font(.system(size: 13))
+                    .foregroundStyle(Tokens.negative)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            PrimaryButton(label: working ? "…" : callToAction,
+                          enabled: !working && !store.products.isEmpty) {
+                buy()
+            }
+
+            HStack(spacing: 18) {
+                Button("Restore") { Task { working = true; await store.restore(); working = false } }
+                Button("Terms") { open("https://example.com/terms") }
+                Button("Privacy") { open("https://example.com/privacy") }
+            }
+            .font(.system(size: 12))
+            .foregroundStyle(Tokens.textTertiary)
+
+            Text("Cancel any time in Settings. "
+                 + "A free trial converts to a paid subscription unless cancelled before it ends.")
+                .font(.system(size: 11))
+                .foregroundStyle(Tokens.textTertiary)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.horizontal, Tokens.screenMargin)
+        .padding(.bottom, 12)
+    }
+
+    private var callToAction: String {
+        let product = store.products.first { $0.id == selected }
+        return product?.introductoryDescription == nil ? "Subscribe" : "Start free trial"
+    }
+
+    private func buy() {
+        guard let product = store.products.first(where: { $0.id == selected }) else { return }
+        working = true
+        Task {
+            await store.purchase(product)
+            working = false
+        }
+    }
+
+    private func open(_ string: String) {
+        if let url = URL(string: string) { openURL(url) }
+    }
+}

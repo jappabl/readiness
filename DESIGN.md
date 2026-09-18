@@ -169,6 +169,18 @@ Haptics here are the faintest in the vocabulary: a half-intensity tap when the a
 An answer arriving is not an achievement, and anything stronger would wear out fast and
 drown the taps that mean something happened.
 
+### Selling it
+
+A list of features is a claim. The paywall runs Jett instead: the question appears, the
+word shimmers, the answer lands, and the chart draws itself from **this user's own
+history**. Nobody reads three bullet points about a coach, and everybody will watch one
+work for eight seconds.
+
+The script never states a measurement. The chart carries the specifics and it is real,
+so the demo cannot promise something the data does not say. No countdown timers, no
+invented discount: the saving badge is computed from the two real prices, because a
+"save 40%" that does not match the receipt is a lie with a number on it.
+
 ### The goal-driven home
 
 Today is not one screen. The rings, the coaching line and the health monitor are fixed;

@@ -3,11 +3,14 @@ import SwiftData
 
 struct ProfileView: View {
     @Environment(AppModel.self) private var model
+    @Environment(Subscriptions.self) private var store
+    @Environment(\.openURL) private var openURL
     @Environment(\.modelContext) private var context
     @Query private var profiles: [UserProfile]
 
     @State private var apiKey = ""
     @State private var keySaved = false
+    @State private var showingPaywall = false
 
     private var profile: UserProfile {
         if let existing = profiles.first { return existing }
@@ -23,6 +26,7 @@ struct ProfileView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     about
+                    subscription
                     baselines
                     weights
                     coach
@@ -36,6 +40,9 @@ struct ProfileView: View {
         .navigationTitle("Profile")
         .toolbarBackground(Tokens.canvas, for: .navigationBar)
         .onAppear { apiKey = Keychain.apiKey ?? "" }
+        .fullScreenCover(isPresented: $showingPaywall) {
+            PaywallView { showingPaywall = false }
+        }
     }
 
     private func heading(_ title: String) -> some View {
@@ -90,6 +97,43 @@ struct ProfileView: View {
                 }
                 .padding(14)
             }
+        }
+    }
+
+    private var subscription: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            heading("Coach Jett")
+            ListCard {
+                if store.isSubscribed {
+                    FieldRow(label: "Plan") {
+                        Text("Pro").foregroundStyle(Tokens.accent)
+                    }
+                    Divider().overlay(Tokens.hairline).padding(.leading, 14)
+                    AccessoryRow(symbol: "gear", label: "Manage subscription") {
+                        // Apple owns cancellation and billing; sending people anywhere
+                        // else for it is both against the rules and worse.
+                        if let url = URL(string: "https://apps.apple.com/account/subscriptions") {
+                            openURL(url)
+                        }
+                    }
+                } else {
+                    let allowance = Paywall.allowance(used: model.coachMessagesUsed,
+                                                      isSubscribed: false)
+                    FieldRow(label: "Free answers left") {
+                        Text("\(allowance.remaining ?? 0) of \(Paywall.freeMessages)")
+                            .monospacedDigit()
+                    }
+                    Divider().overlay(Tokens.hairline).padding(.leading, 14)
+                    AccessoryRow(symbol: "sparkle", label: "See plans", tint: Tokens.accent) {
+                        showingPaywall = true
+                    }
+                }
+            }
+            footnote(store.isSubscribed
+                     ? "Unlimited answers. There is a burst limit to stop runaway usage, "
+                       + "which a conversation never reaches."
+                     : "Everything Readiness measures is free. Jett is the part with a "
+                       + "cost every time you ask.")
         }
     }
 
