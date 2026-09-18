@@ -129,7 +129,7 @@ a rule through it.
 | `TimelineRow` | Badged icon, title, subtitle, chevron |
 | `PressableStyle` | 0.975 scale + 0.8 opacity on press |
 | `FloatingTabBar` | Five slots on a floating white surface, inset 12 from the edges, radius 24 |
-| `JettOrb` | The coach. A polished bead: radial body lit from upper left, bounce light on the shaded edge, a soft specular with a hard core |
+| `JettOrb` | The coach. A lit ring: an angular sweep on a thin band, over a wider blurred copy of itself for glow |
 
 **Buttons inside cards are accessory rows, not filled buttons.** Filled buttons are
 reserved for the one primary action on a screen.
@@ -157,11 +157,12 @@ The coach sits in the middle slot of the tab bar, not floating over the content.
 the one control in the app with **no brand colour and no signal hue on it at all**: a
 green logo in a circle reads as a widget somebody bolted on.
 
-It is a **solid**, not a film — a worry stone you press rather than a bubble you would
-pop. What sells it is craft, not ornament: bounce light gathering along the shaded edge
-is what separates a sphere from a disc with a gradient on it, and the specular needs a
-hard core inside its soft pool or it reads as paint. It sits a little larger than the
-icons beside it, and it is the highest-contrast object in the bar.
+It is a **ring**, because everything in this app is rings — the mark is built from the
+grammar already here rather than an imported shape. Thin and see-through, it sits among
+outline glyphs without bullying them the way a filled mark does; a solid bead in that
+row reads as a blob. Most of the effect is the glow: the band alone looks like a
+sticker. The sweep is a deliberate non-spectrum that matches no signal, so the coach
+never reads as a reading.
 
 ---
 

@@ -454,49 +454,45 @@ struct Sparkline: View {
 
 // MARK: - The bar
 
-/// The ask, as a polished bead.
+/// The ask, as a ring of light.
 ///
-/// Deliberately a solid, not a film — the metaphor is a worry stone you press rather
-/// than a bubble you would pop. No signal hue and no brand green: this is the one
-/// object in the bar whose job is to be the most present thing there, and it does that
-/// with contrast and craft instead of colour.
+/// Built from the app's own grammar rather than an imported shape: everything here is
+/// rings, so the coach is one too — thin, lit, and see-through, which lets it sit among
+/// outline glyphs without bullying them the way a filled mark does. The sweep is a
+/// deliberate non-spectrum; it belongs to no signal, so it never reads as a reading.
 struct JettOrb: View {
     var size: CGFloat = 30
 
+    private var sweep: AngularGradient {
+        AngularGradient(stops: [
+            .init(color: Color(red: 0.45, green: 0.36, blue: 0.96), location: 0.00),
+            .init(color: Color(red: 0.24, green: 0.60, blue: 0.99), location: 0.28),
+            .init(color: Color(red: 0.28, green: 0.86, blue: 0.87), location: 0.50),
+            .init(color: Color(red: 0.99, green: 0.79, blue: 0.43), location: 0.75),
+            .init(color: Color(red: 0.45, green: 0.36, blue: 0.96), location: 1.00),
+        ], center: .center, angle: .degrees(-100))
+    }
+
     var body: some View {
         ZStack {
-            // The body, lit from the upper left.
+            // The glow is most of the effect: without it the ring reads as a sticker.
             Circle()
-                .fill(RadialGradient(
-                    colors: [Tokens.orbLit, Tokens.orbShade],
-                    center: UnitPoint(x: 0.32, y: 0.26),
-                    startRadius: 0,
-                    endRadius: size * 0.94))
+                .strokeBorder(sweep, lineWidth: size * 0.30)
+                .blur(radius: size * 0.17)
+                .opacity(0.55)
 
-            // Bounce light gathering along the shaded edge. This is what separates a
-            // sphere from a flat disc with a gradient on it.
             Circle()
-                .strokeBorder(
-                    LinearGradient(colors: [.clear, Tokens.orbRim.opacity(0.15), Tokens.orbRim],
-                                   startPoint: .topLeading, endPoint: .bottomTrailing),
-                    lineWidth: size * 0.10)
-                .blur(radius: size * 0.055)
+                .strokeBorder(sweep, lineWidth: size * 0.19)
 
-            // The specular: a soft pool with a small hard core inside it. One blurred
-            // blob reads as paint; the hard core is what reads as polish.
-            Ellipse()
-                .fill(.white.opacity(0.45))
-                .frame(width: size * 0.38, height: size * 0.28)
-                .offset(x: -size * 0.14, y: -size * 0.21)
-                .blur(radius: size * 0.10)
-            Ellipse()
-                .fill(.white.opacity(0.92))
-                .frame(width: size * 0.16, height: size * 0.11)
-                .offset(x: -size * 0.16, y: -size * 0.24)
+            // A highlight along the top edge, so the band reads as rounded rather than
+            // printed flat.
+            Circle()
+                .strokeBorder(LinearGradient(colors: [.white.opacity(0.7), .clear],
+                                             startPoint: .top, endPoint: .center),
+                              lineWidth: size * 0.06)
                 .blur(radius: size * 0.022)
         }
         .frame(width: size, height: size)
-        .shadow(color: .black.opacity(0.30), radius: size * 0.16, y: size * 0.08)
     }
 }
 
