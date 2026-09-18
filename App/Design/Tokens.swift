@@ -40,6 +40,29 @@ enum Tokens {
     static let positive      = dynamic(light: 0x2E6B4F, dark: 0x7FC0A0)
     static let negative      = dynamic(light: 0x8C4A2F, dark: 0xD79A78)
 
+    // MARK: - Signal hues
+    //
+    // One hue per signal, used on its ring and its sky. These identify *which* signal
+    // you are looking at; they never encode whether the day is good or bad — that is
+    // what the coaching card says in words.
+
+    static let readinessLow  = dynamic(light: 0x3E9B7A, dark: 0x4FB894)
+    static let readinessHigh = dynamic(light: 0x7FCFA4, dark: 0x93E0B8)
+    static let sleepLow      = dynamic(light: 0x4F63B0, dark: 0x6E83D4)
+    static let sleepHigh     = dynamic(light: 0x8AA2E8, dark: 0xA2B8F5)
+    static let loadLow       = dynamic(light: 0xC97B3C, dark: 0xDE9457)
+    static let loadHigh      = dynamic(light: 0xE9B06A, dark: 0xF2C68B)
+
+    static let ringTrack     = dynamic(light: 0xE7E7E3, dark: 0x2B2B28)
+
+    // Soft skies behind the detail screens.
+    static let skyReadinessTop    = dynamic(light: 0xD6F0E2, dark: 0x16302A)
+    static let skyReadinessBottom = dynamic(light: 0xF0F7F2, dark: 0x14201D)
+    static let skySleepTop        = dynamic(light: 0xDCE3F7, dark: 0x1A2038)
+    static let skySleepBottom     = dynamic(light: 0xF0F2FA, dark: 0x161A28)
+    static let skyLoadTop         = dynamic(light: 0xFBE8D4, dark: 0x2E2318)
+    static let skyLoadBottom      = dynamic(light: 0xFAF3EA, dark: 0x201A14)
+
     static let cardRadius: CGFloat = 14
     static let screenMargin: CGFloat = 16
     static let cardGap: CGFloat = 12

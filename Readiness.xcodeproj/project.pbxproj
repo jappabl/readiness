@@ -10,6 +10,7 @@
 		58FD71D67A497BE6E4037D13 /* ClaudeCoachProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3779549DC90963FFB7EC5B96 /* ClaudeCoachProvider.swift */; };
 		7F4D405B9C01F5887FFDBF05 /* CoachProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBCC3151D19B79D645F78D9A /* CoachProvider.swift */; };
 		1F2ABFDB99F5A157202064B1 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = A05C07BD369FE0B4C393E4DD /* Models.swift */; };
+		8EB8022FAEB8B072A5B48D87 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0BCBBC313CD0F4786FBECC8 /* Components.swift */; };
 		8B34409B561B864F27FC08B8 /* Tokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DC92FB9E866D08DA7B20B63 /* Tokens.swift */; };
 		D5DD1FF9090A37E50C8620A7 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8D4A3BC6412D0F227E7426E /* AppModel.swift */; };
 		3637D17E12D76F9EAA126693 /* Copy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 727B333776AC76D5EAD1EBBA /* Copy.swift */; };
@@ -23,8 +24,8 @@
 		E85FEC2DEE67CA79D5A50932 /* CoachView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1BE778E19957661A548446F /* CoachView.swift */; };
 		EFF0072F865AE99C3D5AEEC0 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5EA704A18A834AD6B3B10E9 /* ProfileView.swift */; };
 		F7A13A0A58D5EA34A47F332E /* ProgramViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1B13F77AD2D8F94F4953163 /* ProgramViews.swift */; };
-		88F91CFF460FAEEE7A2EA17E /* ScoreCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0881930AC99F4CC5379793C /* ScoreCards.swift */; };
 		03F7423240A620AD290DA7E0 /* SessionViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D172633C7AC91EFD03D370B /* SessionViews.swift */; };
+		F4DA05AA778706DA63AA2EA5 /* SignalDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8EC7DE941CACCBD1BF749F9 /* SignalDetailView.swift */; };
 		541C59ABE797C87E4BBA51A8 /* TodayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 413893742ACAB1BB14BDF3DD /* TodayView.swift */; };
 		C46266E031749544D0DF6C53 /* TrainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC32141384EFB7AF34329A9C /* TrainView.swift */; };
 		9B326C3D7DDEF1C10DE1ED1D /* TrendsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 416383B0D43FF50A3203AA60 /* TrendsView.swift */; };
@@ -33,6 +34,7 @@
 		BDB82120DDB718BC9BA82964 /* CoachContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C35BF053373C3F1604BD3E8 /* CoachContext.swift */; };
 		9788F82F4037D6919392FD8D /* InsightEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B442940C409958B4371E3044 /* InsightEngine.swift */; };
 		B9D4082452FF35C638BB6CAC /* Metrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCD9613FE7E08C6AFA956056 /* Metrics.swift */; };
+		A90006729218FFE9BEF0D890 /* Percentile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2EF8D6020D810536E232D51A /* Percentile.swift */; };
 		ED0B41D2C1E3FFB817C7FA7D /* PlateMath.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4CEE9A79692E9B36FF13658 /* PlateMath.swift */; };
 		080720883F4434252A843FBB /* PrescriptionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = D43DBF1295840B24695D5D1D /* PrescriptionEngine.swift */; };
 		6F01DF9CFABBDDEC10A42440 /* ReadinessEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = D38B16F137B828E985434ED7 /* ReadinessEngine.swift */; };
@@ -49,6 +51,7 @@
 		3779549DC90963FFB7EC5B96 /* ClaudeCoachProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ClaudeCoachProvider.swift"; sourceTree = "<group>"; };
 		CBCC3151D19B79D645F78D9A /* CoachProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CoachProvider.swift"; sourceTree = "<group>"; };
 		A05C07BD369FE0B4C393E4DD /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Models.swift"; sourceTree = "<group>"; };
+		F0BCBBC313CD0F4786FBECC8 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Components.swift"; sourceTree = "<group>"; };
 		0DC92FB9E866D08DA7B20B63 /* Tokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Tokens.swift"; sourceTree = "<group>"; };
 		A8D4A3BC6412D0F227E7426E /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppModel.swift"; sourceTree = "<group>"; };
 		727B333776AC76D5EAD1EBBA /* Copy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Copy.swift"; sourceTree = "<group>"; };
@@ -62,8 +65,8 @@
 		C1BE778E19957661A548446F /* CoachView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CoachView.swift"; sourceTree = "<group>"; };
 		A5EA704A18A834AD6B3B10E9 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProfileView.swift"; sourceTree = "<group>"; };
 		D1B13F77AD2D8F94F4953163 /* ProgramViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProgramViews.swift"; sourceTree = "<group>"; };
-		B0881930AC99F4CC5379793C /* ScoreCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ScoreCards.swift"; sourceTree = "<group>"; };
 		5D172633C7AC91EFD03D370B /* SessionViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SessionViews.swift"; sourceTree = "<group>"; };
+		A8EC7DE941CACCBD1BF749F9 /* SignalDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SignalDetailView.swift"; sourceTree = "<group>"; };
 		413893742ACAB1BB14BDF3DD /* TodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TodayView.swift"; sourceTree = "<group>"; };
 		BC32141384EFB7AF34329A9C /* TrainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TrainView.swift"; sourceTree = "<group>"; };
 		416383B0D43FF50A3203AA60 /* TrendsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TrendsView.swift"; sourceTree = "<group>"; };
@@ -72,6 +75,7 @@
 		3C35BF053373C3F1604BD3E8 /* CoachContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CoachContext.swift"; sourceTree = "<group>"; };
 		B442940C409958B4371E3044 /* InsightEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "InsightEngine.swift"; sourceTree = "<group>"; };
 		CCD9613FE7E08C6AFA956056 /* Metrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Metrics.swift"; sourceTree = "<group>"; };
+		2EF8D6020D810536E232D51A /* Percentile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Percentile.swift"; sourceTree = "<group>"; };
 		F4CEE9A79692E9B36FF13658 /* PlateMath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PlateMath.swift"; sourceTree = "<group>"; };
 		D43DBF1295840B24695D5D1D /* PrescriptionEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PrescriptionEngine.swift"; sourceTree = "<group>"; };
 		D38B16F137B828E985434ED7 /* ReadinessEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ReadinessEngine.swift"; sourceTree = "<group>"; };
@@ -148,6 +152,7 @@
 		D366506F9A24B90EE45BE894 /* App/Design */ = {
 			isa = PBXGroup;
 			children = (
+				F0BCBBC313CD0F4786FBECC8 /* Components.swift */,
 				0DC92FB9E866D08DA7B20B63 /* Tokens.swift */,
 			);
 			name = "Design";
@@ -184,8 +189,8 @@
 				C1BE778E19957661A548446F /* CoachView.swift */,
 				A5EA704A18A834AD6B3B10E9 /* ProfileView.swift */,
 				D1B13F77AD2D8F94F4953163 /* ProgramViews.swift */,
-				B0881930AC99F4CC5379793C /* ScoreCards.swift */,
 				5D172633C7AC91EFD03D370B /* SessionViews.swift */,
+				A8EC7DE941CACCBD1BF749F9 /* SignalDetailView.swift */,
 				413893742ACAB1BB14BDF3DD /* TodayView.swift */,
 				BC32141384EFB7AF34329A9C /* TrainView.swift */,
 				416383B0D43FF50A3203AA60 /* TrendsView.swift */,
@@ -202,6 +207,7 @@
 				3C35BF053373C3F1604BD3E8 /* CoachContext.swift */,
 				B442940C409958B4371E3044 /* InsightEngine.swift */,
 				CCD9613FE7E08C6AFA956056 /* Metrics.swift */,
+				2EF8D6020D810536E232D51A /* Percentile.swift */,
 				F4CEE9A79692E9B36FF13658 /* PlateMath.swift */,
 				D43DBF1295840B24695D5D1D /* PrescriptionEngine.swift */,
 				D38B16F137B828E985434ED7 /* ReadinessEngine.swift */,
@@ -285,6 +291,7 @@
 				58FD71D67A497BE6E4037D13 /* ClaudeCoachProvider.swift in Sources */,
 				7F4D405B9C01F5887FFDBF05 /* CoachProvider.swift in Sources */,
 				1F2ABFDB99F5A157202064B1 /* Models.swift in Sources */,
+				8EB8022FAEB8B072A5B48D87 /* Components.swift in Sources */,
 				8B34409B561B864F27FC08B8 /* Tokens.swift in Sources */,
 				D5DD1FF9090A37E50C8620A7 /* AppModel.swift in Sources */,
 				3637D17E12D76F9EAA126693 /* Copy.swift in Sources */,
@@ -298,8 +305,8 @@
 				E85FEC2DEE67CA79D5A50932 /* CoachView.swift in Sources */,
 				EFF0072F865AE99C3D5AEEC0 /* ProfileView.swift in Sources */,
 				F7A13A0A58D5EA34A47F332E /* ProgramViews.swift in Sources */,
-				88F91CFF460FAEEE7A2EA17E /* ScoreCards.swift in Sources */,
 				03F7423240A620AD290DA7E0 /* SessionViews.swift in Sources */,
+				F4DA05AA778706DA63AA2EA5 /* SignalDetailView.swift in Sources */,
 				541C59ABE797C87E4BBA51A8 /* TodayView.swift in Sources */,
 				C46266E031749544D0DF6C53 /* TrainView.swift in Sources */,
 				9B326C3D7DDEF1C10DE1ED1D /* TrendsView.swift in Sources */,
@@ -308,6 +315,7 @@
 				BDB82120DDB718BC9BA82964 /* CoachContext.swift in Sources */,
 				9788F82F4037D6919392FD8D /* InsightEngine.swift in Sources */,
 				B9D4082452FF35C638BB6CAC /* Metrics.swift in Sources */,
+				A90006729218FFE9BEF0D890 /* Percentile.swift in Sources */,
 				ED0B41D2C1E3FFB817C7FA7D /* PlateMath.swift in Sources */,
 				080720883F4434252A843FBB /* PrescriptionEngine.swift in Sources */,
 				6F01DF9CFABBDDEC10A42440 /* ReadinessEngine.swift in Sources */,

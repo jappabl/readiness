@@ -2,7 +2,7 @@ import SwiftUI
 import SwiftData
 
 /// Answers three questions, in order: how am I doing, why, and what should I do.
-/// The recommendation is the dominant element — the scores support it, not the reverse.
+/// The rings give the glance; the coaching card carries the decision.
 struct TodayView: View {
     @Environment(AppModel.self) private var model
     @Environment(\.modelContext) private var context
@@ -13,7 +13,7 @@ struct TodayView: View {
 
     var body: some View {
         ZStack {
-            Tokens.canvas.ignoresSafeArea()
+            SkyBackground(signal: .readiness).opacity(0.7)
             content
         }
         .sheet(isPresented: $showingCheckIn) { CheckInView() }
@@ -42,8 +42,9 @@ struct TodayView: View {
 
     private var dashboard: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 18) {
                 dateLine
+                rings
                 if let rec = model.recommendation, let day = model.day {
                     CoachingCard(recommendation: rec, day: day,
                                  response: model.todayResponse,
@@ -52,35 +53,56 @@ struct TodayView: View {
                                  onCheckIn: { showingCheckIn = true },
                                  hasCheckIn: model.todayCheckIn != nil)
                 }
-                scores
                 measurements
                 plannedSession
                 insight
             }
             .padding(.horizontal, Tokens.screenMargin)
             .padding(.top, 4)
-            .padding(.bottom, 88)
+            .padding(.bottom, 92)
         }
     }
 
     private var dateLine: some View {
         Text(Date(), format: .dateTime.weekday(.wide).month(.abbreviated).day())
-            .font(.footnote)
-            .foregroundStyle(Tokens.textTertiary)
+            .font(.subheadline.weight(.medium))
+            .foregroundStyle(Tokens.textSecondary)
     }
 
-    // MARK: - Scores
-
-    private var scores: some View {
-        VStack(alignment: .leading, spacing: Tokens.cardGap) {
-            Text("Today's signals").sectionHeader()
-            ReadinessScoreCard()
-            SleepScoreCard()
-            LoadScoreCard()
+    /// The glance. Tapping any ring opens the full picture for that signal.
+    private var rings: some View {
+        HStack(spacing: 10) {
+            ringLink(.readiness, percent: model.readinessPercent,
+                     caption: percentileCaption)
+            ringLink(.sleep, percent: model.sleepPercent,
+                     caption: model.sleepPercent == nil ? "no data" : "of need")
+            ringLink(.load, percent: model.loadPercent(context: context),
+                     caption: model.loadPercent(context: context) == nil ? "few sessions" : "of usual")
         }
     }
 
-    // MARK: - Key measurements
+    private var percentileCaption: String {
+        guard let percent = model.readinessPercent else { return "calibrating" }
+        switch percent {
+        case 90...: return "top 10%"
+        case ..<10: return "bottom 10%"
+        default: return "percentile"
+        }
+    }
+
+    private func ringLink(_ signal: Signal, percent: Int?, caption: String) -> some View {
+        NavigationLink {
+            SignalDetailView(signal: signal)
+        } label: {
+            RingGauge(signal: signal, percent: percent, caption: caption, lineWidth: 9)
+                .padding(.vertical, 14)
+                .padding(.horizontal, 8)
+                .frame(maxWidth: .infinity)
+                .background(Tokens.surface,
+                            in: RoundedRectangle(cornerRadius: Tokens.cardRadius))
+        }
+        .buttonStyle(.plain)
+    }
 
     private var measurements: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -99,8 +121,6 @@ struct TodayView: View {
         }
     }
 
-    // MARK: - Today's training
-
     @ViewBuilder
     private var plannedSession: some View {
         let templates = (try? context.fetch(
@@ -113,17 +133,12 @@ struct TodayView: View {
         }
     }
 
-    // MARK: - Insight
-
     @ViewBuilder
     private var insight: some View {
         if let line = model.recentInsight {
             VStack(alignment: .leading, spacing: 10) {
                 Text("Pattern").sectionHeader()
-                Text(line)
-                    .font(.body)
-                    .foregroundStyle(Tokens.textPrimary)
-                    .card()
+                Text(line).font(.subheadline).foregroundStyle(Tokens.textPrimary).card()
             }
         }
     }
@@ -140,11 +155,12 @@ struct CoachingCard: View {
     let onCheckIn: () -> Void
     let hasCheckIn: Bool
 
-    @Environment(AppModel.self) private var model
-    @ScaledMetric(relativeTo: .largeTitle) private var headlineSize: CGFloat = 44
+    @ScaledMetric(relativeTo: .largeTitle) private var headlineSize: CGFloat = 40
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Coaching").sectionHeader()
+
             Text(Copy.headline(for: recommendation.state))
                 .font(.system(size: headlineSize, weight: .semibold))
                 .foregroundStyle(Tokens.accent)
@@ -160,7 +176,9 @@ struct CoachingCard: View {
                 VStack(alignment: .leading, spacing: 4) {
                     ForEach(recommendation.evidence.prefix(3), id: \.kind) { contribution in
                         HStack(alignment: .firstTextBaseline, spacing: 8) {
-                            Text("•").foregroundStyle(Tokens.textTertiary)
+                            Circle().fill(Tokens.textTertiary)
+                                .frame(width: 3, height: 3)
+                                .offset(y: -3)
                             Text(Copy.describe(contribution))
                                 .font(.subheadline)
                                 .foregroundStyle(Tokens.textSecondary)
@@ -176,16 +194,12 @@ struct CoachingCard: View {
 
             if let response {
                 Label(responseLabel(response), systemImage: "checkmark.circle.fill")
-                    .font(.footnote)
-                    .foregroundStyle(Tokens.textSecondary)
+                    .font(.footnote).foregroundStyle(Tokens.textSecondary)
             }
 
             actions
         }
         .card()
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel("Today's recommendation: \(Copy.headline(for: recommendation.state)). "
-                            + Copy.call(for: recommendation, gate: day.readiness.gateApplied))
     }
 
     private func responseLabel(_ response: RecommendationResponse) -> String {
@@ -206,10 +220,9 @@ struct CoachingCard: View {
     @ViewBuilder
     private var buttons: some View {
         Button("Adjust session", action: onAdjust)
-            .buttonStyle(.borderedProminent)
-            .tint(Tokens.accent)
+            .buttonStyle(.borderedProminent).tint(Tokens.accent)
             .foregroundStyle(Tokens.onAccent)
-        Button("Why?", action: onWhy).buttonStyle(.bordered).tint(Tokens.accent)
+        Button("Ask why", action: onWhy).buttonStyle(.bordered).tint(Tokens.accent)
         Button(hasCheckIn ? "Check-in ✓" : "Check in", action: onCheckIn)
             .buttonStyle(.bordered).tint(Tokens.accent)
     }
@@ -223,25 +236,22 @@ struct MeasurementRow: View {
     var body: some View {
         HStack(alignment: .firstTextBaseline) {
             Text(reading.kind.displayName)
-                .font(.subheadline)
-                .foregroundStyle(Tokens.textPrimary)
+                .font(.subheadline).foregroundStyle(Tokens.textPrimary)
             Spacer()
             HStack(alignment: .firstTextBaseline, spacing: 4) {
                 Text(reading.value, format: .number.precision(.fractionLength(1)))
-                    .font(.subheadline)
-                    .monospacedDigit()
-                    .foregroundStyle(Tokens.textPrimary)
+                    .font(.subheadline).monospacedDigit().foregroundStyle(Tokens.textPrimary)
                 Text(reading.kind.unit).qualifier()
                 Text(deltaText)
-                    .font(.footnote)
-                    .monospacedDigit()
+                    .font(.footnote).monospacedDigit()
                     .foregroundStyle(isFavourable ? Tokens.positive : Tokens.negative)
             }
         }
         .padding(.vertical, 9)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(reading.kind.displayName) \(reading.value.formatted(.number.precision(.fractionLength(1)))) "
-                            + "\(reading.kind.unit), \(deltaText) standard deviations from baseline")
+        .accessibilityLabel("\(reading.kind.displayName) "
+            + "\(reading.value.formatted(.number.precision(.fractionLength(1)))) "
+            + "\(reading.kind.unit), \(deltaText) from baseline")
     }
 
     private var deltaText: String {

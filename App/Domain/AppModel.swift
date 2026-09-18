@@ -185,6 +185,44 @@ final class AppModel {
         day?.readings.first { $0.kind == kind }
     }
 
+    // MARK: - Ring figures
+    //
+    // Each ring needs a number, and each of these is a real quantity rather than a
+    // score someone made up.
+
+    /// Where today sits among this user's own days. Floored at 1 so the worst morning
+    /// still reads as a measurement rather than a missing one.
+    var readinessPercent: Int? {
+        guard let composite = day?.readiness.composite else { return nil }
+        return max(1, Percentile.percent(fromZ: composite))
+    }
+
+    /// How much of the nightly requirement was actually met.
+    var sleepPercent: Int? {
+        guard let hours = latestSleepHours else { return nil }
+        return Int(min(100, (hours / DayAssembler.sleepNeedHours * 100).rounded()))
+    }
+
+    /// Sessions needed in the four-week window before "a typical week" means anything.
+    static let minimumSessionsForLoad = 3
+
+    /// This week's training volume against a typical week for this user.
+    func loadPercent(context: ModelContext) -> Int? {
+        let calendar = Calendar.current
+        guard let cutoff = calendar.date(byAdding: .day, value: -StrainEngine.chronicDays,
+                                         to: Date()) else { return nil }
+        let sessions = ((try? context.fetch(FetchDescriptor<WorkoutSession>())) ?? [])
+            .filter { $0.date >= cutoff }
+        // One session against three empty weeks is not "100% of usual"; it is no baseline.
+        guard sessions.count >= Self.minimumSessionsForLoad else { return nil }
+
+        let daily = recentVolume(days: StrainEngine.chronicDays, context: context)
+        let typicalWeek = daily.reduce(0, +) / Double(StrainEngine.chronicDays) * 7
+        guard typicalWeek > 0 else { return nil }
+        let thisWeek = daily.suffix(StrainEngine.acuteDays).reduce(0, +)
+        return Int(min(100, (thisWeek / typicalWeek * 100).rounded()))
+    }
+
     // MARK: - Coach context
 
     /// Assembles the only health information that ever leaves the device.
