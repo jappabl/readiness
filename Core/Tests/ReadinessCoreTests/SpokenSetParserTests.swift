@@ -19,6 +19,22 @@ struct SpokenSetParserTests {
         #expect(SpokenSetParser.parse("2 sets of 10")?.reps == [10, 10])
     }
 
+    @Test("the set count still counts when the lift's name comes between")
+    func setCountSurvivesTheExerciseName() {
+        // How people actually say it out loud: the name sits between the count and
+        // the reps, so the two halves have to be heard separately.
+        #expect(SpokenSetParser.parse("three sets of bench press at 165 for 5")?.reps
+                == [5, 5, 5])
+        #expect(SpokenSetParser.parse("4 sets of squats for 8")?.reps == [8, 8, 8, 8])
+        #expect(SpokenSetParser.parse("two sets of deadlift 3x5")?.reps == [5, 5, 5])
+    }
+
+    @Test("one set stays one set")
+    func oneSetStaysOne() {
+        #expect(SpokenSetParser.parse("bench press at 165 for 5")?.reps == [5])
+        #expect(SpokenSetParser.parse("one set of bench for 5")?.reps == [5])
+    }
+
     @Test("digits and words are both heard")
     func digitsAndWords() {
         #expect(SpokenSetParser.parse("3 sets of 8, 6, 7")?.reps == [8, 6, 7])

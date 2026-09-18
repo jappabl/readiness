@@ -38,6 +38,13 @@ final class AppModel {
 
     func recordCoachMessage() { coachMessagesUsed += 1 }
 
+    /// Handed to the gym watcher so it can ask HealthKit whether a visit had exertion
+    /// in it, without the watcher knowing anything about HealthKit.
+    func workoutLookup() -> @Sendable (Date, Date) async -> Bool {
+        let source = healthKit
+        return { start, end in await source.hadWorkout(between: start, and: end) }
+    }
+
     /// The burst bucket, persisted so quitting the app is not a way around it.
     private static let burstKey = "coach.burst"
 

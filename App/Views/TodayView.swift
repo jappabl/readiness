@@ -3,6 +3,7 @@ import SwiftData
 
 struct TodayView: View {
     @Environment(AppModel.self) private var model
+    @Environment(GymPresence.self) private var gym
     @Environment(\.modelContext) private var context
 
     @State private var showingCheckIn = false
@@ -75,6 +76,14 @@ struct TodayView: View {
     private var dashboard: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
+                // Above everything, because it is a question and it is rare. It
+                // disappears the moment it is answered and never comes back for that
+                // place.
+                if let place = gym.placeToConfirm {
+                    GymConfirmCard(visit: place,
+                                   onConfirm: { gym.confirmGym(named: $0, at: place) },
+                                   onDecline: { gym.declineGym(at: place) })
+                }
                 summaryCard
                 checkInPrompt
                 // The screen below the fold is composed from the goal, not fixed:

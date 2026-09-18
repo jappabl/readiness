@@ -100,9 +100,13 @@ final class LoggedSet {
     var order: Int
     var timestamp: Date
     var session: WorkoutSession?
+    /// How the set felt, when the user said so out loud. Empty when they did not.
+    /// Nobody types this, which is exactly why it is worth capturing when speech makes
+    /// it free.
+    var feelRaw: String = ""
 
     init(exerciseName: String, muscleGroup: MuscleGroup, load: Double, reps: Int,
-         rir: Int, isWarmup: Bool = false, order: Int) {
+         rir: Int, isWarmup: Bool = false, order: Int, feel: SetFeel? = nil) {
         self.exerciseName = exerciseName
         self.muscleGroupRaw = muscleGroup.rawValue
         self.load = load
@@ -111,7 +115,10 @@ final class LoggedSet {
         self.isWarmup = isWarmup
         self.order = order
         self.timestamp = Date()
+        self.feelRaw = feel?.rawValue ?? ""
     }
+
+    var feel: SetFeel? { SetFeel(rawValue: feelRaw) }
 
     var muscleGroup: MuscleGroup { MuscleGroup(rawValue: muscleGroupRaw) ?? .core }
     /// Epley, which is the usual convention and good enough in the 1-10 rep range.
@@ -245,4 +252,49 @@ final class UserProfile {
         self.limitations = limitations
         self.unitsAreMetric = unitsAreMetric
     }
+}
+
+// MARK: - The store
+
+/// One container for the whole process. The app and the App Intent both run here, and
+/// two containers over one file means a set logged by voice would not show up until
+/// something refetched.
+extension WorkoutSession {
+    /// Today's session, reused if there already is one.
+    ///
+    /// Both the Start button and the voice intent come through here: a set logged by
+    /// speaking between sets has to land in the same session as the ones being tapped,
+    /// or the day quietly splits in two.
+    @MainActor
+    static func today(in context: ModelContext, named: String?) -> WorkoutSession {
+        let existing = (try? context.fetch(FetchDescriptor<WorkoutSession>()))?
+            .first { Calendar.current.isDateInToday($0.date) && !$0.isComplete }
+        if let existing {
+            if existing.templateName.isEmpty || existing.templateName == unnamed,
+               let named { existing.templateName = named }
+            return existing
+        }
+        let session = WorkoutSession(date: Calendar.current.startOfDay(for: Date()),
+                                     templateName: named ?? unnamed)
+        context.insert(session)
+        try? context.save()
+        return session
+    }
+
+    /// Used when a set arrives before anybody has picked a programme for the day.
+    static let unnamed = "Logged by voice"
+}
+
+enum Store {
+    static let container: ModelContainer = {
+        do {
+            return try ModelContainer(
+                for: WorkoutTemplate.self, TemplateExercise.self,
+                     WorkoutSession.self, LoggedSet.self,
+                     CheckInRow.self, DailyMetricRow.self,
+                     RecommendationRow.self, UserProfile.self)
+        } catch {
+            fatalError("Could not create the local store: \(error)")
+        }
+    }()
 }

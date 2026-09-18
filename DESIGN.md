@@ -362,3 +362,27 @@ important to", "Great question". Uncertainty appears only when it would change w
 someone does today, and then in half a sentence.
 
 He can be blunt. He is never chirpy.
+
+## Asking about what already happened
+
+**Ask after, not during.** A question about something the user is in the middle of is an
+interruption; the same question an hour later costs nothing and the answer is worth the
+same. The gym confirmation waits for the visit to end. The corollary is that the app has
+to be willing to notice something and say nothing at the time.
+
+**Never ask a question the phone could have answered.** "Do you lift here?" is a bad
+question; "Do you lift at Club One?" is a good one, and the map knows the difference. One
+named guess with a Yes, and the alternatives only for somebody who has already said no.
+
+**A question is not the loudest thing on the screen.** It gets a small pill, not a
+full-width button, however important the answer is to us. Colour still means what it
+means everywhere else.
+
+**Permission is asked for once, in front of the reason.** Never at launch, never before
+the feature has been chosen. A switch the user flipped themselves is the only thing that
+may raise a system dialog, and the switch follows what they asked for rather than what
+iOS has granted so far, so it never flicks back while a dialog is still up.
+
+**A switch row is tappable across its whole width.** A bare `Toggle` outside a `List`
+only responds on the switch itself, which is a 50pt target hard against the right edge.
+Wrap the row in a button and let the switch be the indicator.

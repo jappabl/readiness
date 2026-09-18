@@ -344,6 +344,21 @@ final class HealthKitSource: HealthSource, @unchecked Sendable {
         }
     }
 
+    /// Whether the watch recorded any workout overlapping a window. Used to decide
+    /// whether a place somebody stayed at was plausibly a gym before asking them.
+    func hadWorkout(between start: Date, and end: Date) async -> Bool {
+        guard Self.isAvailable, end > start else { return false }
+        let predicate = HKQuery.predicateForSamples(withStart: start, end: end)
+        return await withCheckedContinuation { continuation in
+            let query = HKSampleQuery(sampleType: HKObjectType.workoutType(),
+                                      predicate: predicate, limit: 1,
+                                      sortDescriptors: nil) { _, result, _ in
+                continuation.resume(returning: !(result ?? []).isEmpty)
+            }
+            store.execute(query)
+        }
+    }
+
     // MARK: - Background delivery (AC2)
 
     /// The competitor's loudest complaint is that nothing updates unless the app is

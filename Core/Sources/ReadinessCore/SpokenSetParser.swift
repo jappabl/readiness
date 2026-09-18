@@ -101,12 +101,20 @@ public enum SpokenSetParser {
            let count = Int(match[1]), let value = Int(match[2]), valid(reps: value) {
             return Array(repeating: value, count: min(count, 20))
         }
-        // "225 for 5"
+        // "225 for 5", and "three sets of bench press at 165 for 5" — said out loud the
+        // lift's name lands between the two numbers, so the count is read on its own.
         if let match = matches(#"\bfor\s+(\d+)"#, in: text).first,
            let value = Int(match[1]), valid(reps: value) {
-            return [value]
+            return Array(repeating: value, count: setCount(in: text))
         }
         return []
+    }
+
+    /// How many sets were claimed, from anywhere in the sentence. One when nobody said.
+    private static func setCount(in text: String) -> Int {
+        guard let match = matches(#"(\d+)\s+sets?\b"#, in: text).first,
+              let count = Int(match[1]), count > 0 else { return 1 }
+        return min(count, 20)
     }
 
     private static func numbers(in text: String) -> [Int] {

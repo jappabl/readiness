@@ -4,6 +4,7 @@ import SwiftData
 struct ProfileView: View {
     @Environment(AppModel.self) private var model
     @Environment(Subscriptions.self) private var store
+    @Environment(GymPresence.self) private var gym
     @Environment(\.openURL) private var openURL
     @Environment(\.modelContext) private var context
     @Query private var profiles: [UserProfile]
@@ -30,6 +31,7 @@ struct ProfileView: View {
                     baselines
                     weights
                     coach
+                    atTheGym
                     privacy
                 }
                 .padding(.horizontal, Tokens.screenMargin)
@@ -202,6 +204,59 @@ struct ProfileView: View {
                 }
             }
         }
+    }
+
+    /// Off until asked for. The permission this needs is the one people are most
+    /// suspicious of, so the reason sits directly above the switch rather than in a
+    /// dialog they have already dismissed.
+    private var atTheGym: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            heading("At the gym")
+            ListCard {
+                // The whole row is the control. A bare Toggle only responds on the
+                // switch itself outside a List, which is a 50pt target on the far edge.
+                Button {
+                    if gym.wantsWatching { gym.stopWatching() }
+                    else { gym.requestPermission(workoutsDuring: model.workoutLookup()) }
+                } label: {
+                    HStack {
+                        Text("Notice when I'm training")
+                            .font(.system(size: 15))
+                            .foregroundStyle(Tokens.textPrimary)
+                        Spacer(minLength: 12)
+                        Toggle("", isOn: .constant(gym.wantsWatching))
+                            .labelsHidden()
+                            .tint(Tokens.accent)
+                            .allowsHitTesting(false)
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 8)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                if !gym.knownGyms.isEmpty {
+                    Divider().background(Tokens.hairline)
+                    FieldRow(label: gym.knownGyms.count == 1 ? "Your gym" : "Your gyms") {
+                        Button("Forget") { gym.forgetGyms() }
+                            .font(.system(size: 14))
+                    }
+                }
+            }
+            footnote(gymFootnote)
+        }
+    }
+
+    private var gymFootnote: String {
+        if gym.needsSettings {
+            return "iOS is holding location back. Settings, Readiness, Location, Always "
+                 + "turns this on."
+        }
+        if gym.knownGyms.isEmpty {
+            return "Jett offers to log sets when you've been at your gym a few minutes. "
+                 + "Nothing about where you go leaves this device."
+        }
+        return "Learned: " + gym.knownGyms.map(\.name).joined(separator: ", ")
+             + ". Nothing about where you go leaves this device."
     }
 
     private var privacy: some View {

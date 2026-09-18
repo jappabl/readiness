@@ -75,11 +75,7 @@ struct TrainView: View {
                                  tint: template.exercises.isEmpty
                                      ? Tokens.textSecondary : Tokens.accent) {
                         guard !template.exercises.isEmpty else { return }
-                        let session = WorkoutSession(date: Calendar.current.startOfDay(for: Date()),
-                                                     templateName: template.name)
-                        context.insert(session)
-                        try? context.save()
-                        liveSession = session
+                        liveSession = WorkoutSession.today(in: context, named: template.name)
                     }
                 }
             }
@@ -190,7 +186,11 @@ struct LiveWorkoutView: View {
                 Text(exercise.name)
                     .font(.system(size: 24, weight: .bold))
                     .foregroundStyle(Tokens.textPrimary)
-                Text("Set \(setsLogged + 1) of \(exercise.targetSets)")
+                // Past the plan there is no "of": extra sets are a real thing people do,
+                // and now that sets arrive by voice it happens a lot.
+                Text(setsLogged < exercise.targetSets
+                     ? "Set \(setsLogged + 1) of \(exercise.targetSets)"
+                     : "Set \(setsLogged + 1)")
                     .font(.system(size: 14)).foregroundStyle(Tokens.textSecondary)
             }
             .padding(.top, 10)
@@ -233,7 +233,19 @@ struct LiveWorkoutView: View {
                     ForEach(Array(session.orderedSets.suffix(4).enumerated()), id: \.element.id) { index, set in
                         if index > 0 { Divider().overlay(Tokens.hairline).padding(.leading, 14) }
                         FieldRow(label: set.exerciseName) {
-                            Text("\(Int(set.load)) × \(set.reps) · RIR \(set.rir)").monospacedDigit()
+                            HStack(spacing: 7) {
+                                Text("\(Int(set.load)) × \(set.reps) · RIR \(set.rir)")
+                                    .monospacedDigit()
+                                // Only ever present on a set someone said out loud, and
+                                // the only thing here no sensor could have told us.
+                                if let feel = set.feel {
+                                    Text(feel.displayName)
+                                        .font(.system(size: 12, weight: .medium))
+                                        .foregroundStyle(Tokens.accent)
+                                        .padding(.horizontal, 7).padding(.vertical, 2)
+                                        .background(Tokens.accent.opacity(0.12), in: Capsule())
+                                }
+                            }
                         }
                     }
                 }

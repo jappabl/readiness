@@ -5,30 +5,25 @@ import SwiftData
 struct ReadinessApp: App {
     @State private var model = AppModel()
     @State private var store = Subscriptions()
+    @State private var gym = GymPresence()
 
-    private let container: ModelContainer = {
-        do {
-            return try ModelContainer(
-                for: WorkoutTemplate.self, TemplateExercise.self,
-                     WorkoutSession.self, LoggedSet.self,
-                     CheckInRow.self, DailyMetricRow.self,
-                     RecommendationRow.self, UserProfile.self)
-        } catch {
-            fatalError("Could not create the local store: \(error)")
-        }
-    }()
+    private let container = Store.container
 
     var body: some Scene {
         WindowGroup {
             RootView()
                 .environment(model)
                 .environment(store)
+                .environment(gym)
                 .task { await store.load() }
                 .task {
                     model.attach(container.mainContext)
                     guard !model.needsOnboarding else { return }
                     await model.refresh()
                     model.startBackgroundDelivery()
+                    // Only ever resumed, never requested here: asking for always-on
+                    // location at launch is how that permission gets denied forever.
+                    gym.resumeIfAuthorised(workoutsDuring: model.workoutLookup())
                 }
         }
         .modelContainer(container)
