@@ -4,9 +4,9 @@ import SwiftData
 /// The coach entry: a mark in the corner that retracts while you read, and a standard
 /// sheet when you tap it.
 ///
-/// The sheet fills the screen and is itself translucent, so the app behind it blurs
-/// through rather than sitting above it. Plain `.sheet` at the large detent: the
-/// grabber, swipe-to-dismiss and keyboard avoidance all come from the platform.
+/// The coach covers the screen edge to edge and is itself translucent, so the app
+/// behind blurs through it. Dismiss by dragging down or tapping the empty area —
+/// the grabber says which.
 struct CoachLayer: View {
     @Environment(AppModel.self) private var model
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -23,12 +23,12 @@ struct CoachLayer: View {
         }
         .animation(reduceMotion ? nil : .easeOut(duration: 0.22),
                    value: model.coachEntryExpanded)
-        .sheet(isPresented: $isOpen) {
+        // fullScreenCover, not sheet: the large detent always leaves an inset strip of
+        // the parent at the top, and iOS lays a dimming layer under a sheet — so the
+        // material ends up blurring flat grey instead of the app.
+        .fullScreenCover(isPresented: $isOpen) {
             CoachSheet()
-                .presentationDetents([.large])
-                .presentationDragIndicator(.visible)
                 .presentationBackground(.ultraThinMaterial)
-                .presentationCornerRadius(28)
         }
     }
 
@@ -58,6 +58,7 @@ struct CoachSheet: View {
     @Environment(AppModel.self) private var model
     @Environment(\.modelContext) private var context
 
+    @Environment(\.dismiss) private var dismiss
     @State private var messages: [CoachMessage] = []
     @State private var draft = ""
     @State private var isStreaming = false
@@ -68,6 +69,7 @@ struct CoachSheet: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            grabber
             title
             if messages.isEmpty && errorMessage == nil {
                 suggestions
@@ -76,48 +78,101 @@ struct CoachSheet: View {
             }
             composer
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .background(.ultraThinMaterial)
+        .ignoresSafeArea(.container, edges: .bottom)
+        .gesture(
+            DragGesture(minimumDistance: 20)
+                .onEnded { value in
+                    if value.translation.height > 90 { dismiss() }
+                })
+    }
+
+    private var grabber: some View {
+        Capsule()
+            .fill(Color.primary.opacity(0.22))
+            .frame(width: 36, height: 5)
+            .padding(.top, 8)
+            .frame(maxWidth: .infinity)
+            .contentShape(Rectangle())
+            .accessibilityLabel("Drag down to close")
+            .accessibilityAddTraits(.isButton)
+            .accessibilityAction { dismiss() }
     }
 
     private var title: some View {
-        HStack(spacing: 9) {
+        VStack(spacing: 10) {
             Image("LogoMark")
                 .renderingMode(.template)
                 .resizable().scaledToFit()
-                .frame(width: 17, height: 17)
+                .frame(width: 30, height: 30)
                 .foregroundStyle(Tokens.accent)
-            Text("Coach Jett")
-                .font(.system(size: 17, weight: .semibold))
-                .foregroundStyle(Tokens.textPrimary)
-            Spacer()
+                .frame(width: 66, height: 66)
+                .background(Tokens.accent.opacity(0.12), in: Circle())
+
+            VStack(spacing: 4) {
+                Text("Coach Jett")
+                    .font(.system(size: 22, weight: .bold))
+                    .foregroundStyle(Tokens.textPrimary)
+                Text(greeting)
+                    .font(.system(size: 15))
+                    .foregroundStyle(Tokens.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 20)
-        .padding(.bottom, 4)
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 28)
+        .padding(.top, 26)
+        .padding(.bottom, 22)
+        .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isHeader)
     }
 
-    /// Spread down the body so the empty state occupies the room a conversation will.
+    /// Jett opens on what is actually true about today, not a stock hello.
+    private var greeting: String {
+        guard let recommendation = model.recommendation else {
+            return "Ask me anything about your training."
+        }
+        switch recommendation.state {
+        case .push:     return "Good day to train. Ask me anything."
+        case .maintain: return "Nothing's off today. What's on your mind?"
+        case .reduce:   return "You're under baseline today. Ask me how to adjust."
+        case .recover:  return "Rough morning. Ask me what's driving it."
+        }
+    }
+
     private var suggestions: some View {
-        VStack(spacing: 0) {
+        VStack(alignment: .leading, spacing: 10) {
             ForEach(Self.starters, id: \.self) { prompt in
-                Spacer(minLength: 12)
                 Button { send(prompt) } label: {
                     HStack(spacing: 12) {
                         Image(systemName: "sparkle")
-                            .font(.system(size: 13))
+                            .font(.system(size: 14))
                             .foregroundStyle(Tokens.accent)
                         Text(prompt)
-                            .font(.system(size: 16))
+                            .font(.system(size: 16, weight: .medium))
                             .foregroundStyle(Tokens.textPrimary)
                             .multilineTextAlignment(.leading)
-                        Spacer(minLength: 0)
+                        Spacer(minLength: 8)
+                        Image(systemName: "arrow.up.right")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(Tokens.textSecondary)
                     }
-                    .padding(.vertical, 6)
-                    .contentShape(Rectangle())
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 15)
+                    .background(Color.primary.opacity(0.05),
+                                in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .strokeBorder(Color.primary.opacity(0.06), lineWidth: 0.5))
+                    .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(PressableStyle())
             }
-            Spacer(minLength: 12)
+            // The room below belongs to the conversation, and dismisses on a tap.
+            Color.clear
+                .contentShape(Rectangle())
+                .onTapGesture { dismiss() }
         }
         .padding(.horizontal, 20)
     }
@@ -163,7 +218,7 @@ struct CoachSheet: View {
                 .focused($composerFocused)
                 .disabled(isStreaming)
                 .padding(.leading, 18)
-                .padding(.vertical, 12)
+                .padding(.vertical, 14)
 
             Button {
                 let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -180,7 +235,8 @@ struct CoachSheet: View {
             .padding(.trailing, 6)
             .accessibilityLabel("Send")
         }
-        .background(Color.primary.opacity(0.06), in: Capsule())
+        .background(Color.primary.opacity(0.05), in: Capsule())
+        .overlay(Capsule().strokeBorder(Color.primary.opacity(0.07), lineWidth: 0.5))
         .padding(.horizontal, 16)
         .padding(.bottom, 14)
         .padding(.top, 6)
@@ -218,6 +274,16 @@ struct CoachSheet: View {
             }
             isStreaming = false
         }
+    }
+}
+
+/// A press should feel like a press.
+struct PressableStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.975 : 1)
+            .opacity(configuration.isPressed ? 0.8 : 1)
+            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
     }
 }
 
