@@ -187,6 +187,9 @@ struct CoachChartCard: View {
                     Text(kind.displayName)
                         .font(.system(size: 13, weight: .medium))
                         .foregroundStyle(Tokens.textSecondary)
+                    InfoButton(kind)
+                        .padding(.horizontal, -9)
+                        .padding(.vertical, -9)
                     Spacer(minLength: 8)
                     if let reading {
                         Text(reading.value, format: .number.precision(.fractionLength(1)))

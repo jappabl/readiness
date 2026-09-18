@@ -16,7 +16,7 @@ struct RehearsalCoachProvider: CoachProvider {
     private let perChunk = Duration.milliseconds(45)
 
     private static let answer = """
-        You're flat today — HRV's the lowest it's been in two weeks.
+        You're flat today. HRV is the lowest it's been in two weeks.
 
         [chart:hrv]
 

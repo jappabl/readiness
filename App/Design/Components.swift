@@ -185,6 +185,8 @@ struct StatCard: View {
     /// When present, the card shows where the reading sits in the user's own range.
     var range: (z: Double, polarity: Double, tint: Color)?
     var status: String?
+    /// The metric this card is showing, when there is one worth explaining.
+    var explains: MetricKind?
 
     enum Trend { case up, down }
 
@@ -194,6 +196,13 @@ struct StatCard: View {
                 Image(systemName: symbol)
                     .font(.system(size: 11))
                 Text(label).font(.system(size: 13))
+                    .foregroundStyle(Tokens.textSecondary)
+                if let explains {
+                    Spacer(minLength: 0)
+                    InfoButton(explains)
+                        .padding(.trailing, -9)
+                        .padding(.vertical, -9)
+                }
             }
             .foregroundStyle(Tokens.textSecondary)
             .lineLimit(1)
@@ -449,6 +458,56 @@ struct Sparkline: View {
             .chartYScale(domain: .automatic(includesZero: false))
             .accessibilityHidden(true)
         }
+    }
+}
+
+/// A quiet "what is this" on a number that needs one.
+///
+/// Deliberately low contrast and small: it should be findable when you want it and
+/// invisible when you do not. A screen where every value shouts for attention has no
+/// hierarchy left.
+struct InfoButton: View {
+    let title: String
+    let explanation: String
+
+    @State private var showing = false
+
+    var body: some View {
+        Button { showing = true } label: {
+            Image(systemName: "info.circle")
+                .font(.system(size: 13))
+                .foregroundStyle(Tokens.textSecondary.opacity(0.45))
+                .frame(width: 30, height: 30)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("What is \(title)?")
+        .popover(isPresented: $showing) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(title)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(Tokens.textPrimary)
+                Text(explanation)
+                    .font(.system(size: 14))
+                    .foregroundStyle(Tokens.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(18)
+            .frame(width: 290)
+            // The host of this button is often a card that clamps itself to one line,
+            // and that clamp reaches into the popover and truncates the explanation.
+            .lineLimit(nil)
+            .multilineTextAlignment(.leading)
+            // A popover, not a sheet: an explanation is an aside, and a sheet makes it
+            // feel like somewhere you have gone.
+            .presentationCompactAdaptation(.popover)
+        }
+    }
+}
+
+extension InfoButton {
+    init(_ kind: MetricKind) {
+        self.init(title: kind.displayName, explanation: kind.explanation)
     }
 }
 

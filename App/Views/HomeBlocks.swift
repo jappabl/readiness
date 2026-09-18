@@ -128,7 +128,7 @@ struct ProteinCard: View {
         switch ratio {
         case ..<Self.band.lowerBound: return "Below the usual range for hard training"
         case Self.band:               return "In the usual range for hard training"
-        default:                      return "Above the usual range — no harm in it"
+        default:                      return "Above the usual range, which is fine"
         }
     }
 

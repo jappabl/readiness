@@ -305,7 +305,8 @@ struct TodayView: View {
                      trendFavourable: reading.isFavourable,
                      range: (z: reading.zScore, polarity: kind.polarity,
                              tint: reading.isFavourable ? Tokens.recoveryHigh : Tokens.strainLow),
-                     status: Copy.position(reading.zScore))
+                     status: Copy.position(reading.zScore),
+                     explains: kind)
         }
     }
 }

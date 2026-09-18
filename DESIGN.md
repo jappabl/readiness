@@ -260,6 +260,13 @@ Every animation checks `accessibilityReduceMotion`.
 - Short. If the screen shows it, do not write it
 - Never grade a number — say where it sits ("Above usual"), not how good it is
 - One medical/privacy disclaimer, in Profile, nowhere else
+- **No em dashes.** They read as machine-written. A comma, a full stop, or a new
+  sentence does the same job without the tell. The one exception is `—` standing alone
+  as the "no value" glyph, which is a symbol rather than punctuation.
+- **Any number that needs explaining carries an `InfoButton`.** Half of these are
+  acronyms a watch started showing people without ever saying what they were. The
+  explanation is plain language, says which direction means what, and never reads like
+  a clinic.
 
 ### Jett
 

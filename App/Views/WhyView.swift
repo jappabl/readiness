@@ -176,9 +176,9 @@ struct WhyView: View {
         default:      word = "Strong"
         }
         switch shift {
-        case 0.05...:     return "\(word) — nudged the call up"
-        case ..<(-0.05):  return "\(word) — nudged the call down"
-        default:          return "\(word) — didn't move the call"
+        case 0.05...:     return "\(word), nudged the call up"
+        case ..<(-0.05):  return "\(word), nudged the call down"
+        default:          return "\(word), didn't move the call"
         }
     }
 
@@ -195,6 +195,8 @@ struct WhyView: View {
                 Text(contribution.kind.displayName)
                     .font(.system(size: 15, weight: .medium))
                     .foregroundStyle(Tokens.textPrimary)
+                InfoButton(contribution.kind)
+                    .padding(.horizontal, -9)
                 Spacer(minLength: 8)
                 if let reading {
                     HStack(alignment: .firstTextBaseline, spacing: 3) {
@@ -261,6 +263,6 @@ struct WhyView: View {
         let value = deviation.formatted(.number.precision(.fractionLength(2)).sign(strategy: .always()))
         let base = "Wrist temperature \(value) °C from baseline"
         guard day.readiness.gateApplied == .elevatedWristTemperature else { return base + "." }
-        return base + " — above the illness threshold, which capped today."
+        return base + ", above the illness threshold, which capped today."
     }
 }

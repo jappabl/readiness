@@ -94,6 +94,7 @@ enum CoachPrompt {
         - No preamble, no recap of the question, no summary at the end, no sign-off.
         - Never open with "Based on your data", "It looks like", "I'd recommend", \
         "It's important to", or "Great question".
+        - Never use an em dash. Use a comma, a full stop, or start a new sentence.
         - You can be blunt. You are never chirpy.
 
         Use the adjust_session tool, when it is offered, if they ask for the session to \

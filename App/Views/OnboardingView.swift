@@ -125,7 +125,7 @@ struct OnboardingView: View {
         OnboardingScaffold(
             progress: progress(.obstacles),
             title: "What gets in the way?",
-            subtitle: "Pick any. Jett keeps these in mind — they're never scored.",
+            subtitle: "Pick any. Jett keeps these in mind, and never scores them.",
             canAdvance: true,
             onBack: { advance(to: .frequency) },
             onSkip: { advance(to: .method) },
@@ -155,7 +155,7 @@ struct OnboardingView: View {
             title: "Measured against you",
             body_: "Most apps compare you to a population average. This one builds a "
                  + "baseline from your own history, so a 48 ms HRV means something "
-                 + "different for you than for anyone else.",
+                 + "different for you than it does for anyone else.",
             onBack: { advance(to: .obstacles) },
             progress: progress(.method),
             action: { advance(to: .units) }

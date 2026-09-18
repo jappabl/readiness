@@ -28,6 +28,41 @@ public enum MetricKind: String, CaseIterable, Sendable, Codable {
         }
     }
 
+    /// What this actually is, for somebody who has never heard of it.
+    ///
+    /// Plain language, no clinical framing, and it always says which direction means
+    /// what. A number nobody understands is decoration, and half of these are acronyms
+    /// a watch started showing people without ever explaining them.
+    public var explanation: String {
+        switch self {
+        case .hrv:
+            return "The variation in time between heartbeats, measured while you sleep. "
+                 + "Higher usually means your nervous system has recovered. It drops "
+                 + "when you are under training load, short on sleep, stressed, or "
+                 + "coming down with something. Normal values differ hugely between "
+                 + "people, which is why this is scored against your own history and "
+                 + "never against anyone else's."
+        case .restingHeartRate:
+            return "Your heart rate at complete rest, taken overnight. It is one of the "
+                 + "steadiest numbers your body produces, so a rise of a few beats is "
+                 + "worth noticing. It tends to go up when you are still recovering "
+                 + "from hard training, under-slept, drinking, or fighting something off."
+        case .sleepDebt:
+            return "How far short of eight hours you fell. It accumulates: three nights "
+                 + "an hour short adds up to the same debt as one very bad night. Lower "
+                 + "is better, and zero means you met the target."
+        case .respiratoryRate:
+            return "Breaths per minute while you sleep. It barely moves night to night, "
+                 + "so even a small rise stands out. It usually goes up before you feel "
+                 + "anything, which is what makes it useful."
+        case .bloodOxygen:
+            return "The share of your red blood cells carrying oxygen, measured "
+                 + "overnight. It normally sits in a narrow band in the high nineties, "
+                 + "so a drop that looks small on paper is a bigger move than it "
+                 + "appears. Higher is better."
+        }
+    }
+
     public var unit: String {
         switch self {
         case .hrv: return "ms"
