@@ -55,7 +55,79 @@ public struct CoachContext: Codable, Equatable, Sendable {
         return (try? encoder.encode(self)).flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
     }
 
-    public var approximateBytes: Int { json.utf8.count }
+    public var approximateBytes: Int { brief.utf8.count }
+
+    /// What is actually sent to the model.
+    ///
+    /// The same facts as `json`, rendered as labelled lines instead of objects. JSON
+    /// spends most of its bytes repeating key names — fourteen days of history cost a
+    /// thousand bytes as objects and a third of that as rows — and every one of those
+    /// bytes is both money and time-to-first-token, because the whole prompt has to be
+    /// read before the first word comes back.
+    ///
+    /// Column headers are kept so nothing has to be inferred from position alone. The
+    /// rendering is deterministic, which is what lets a provider's prefix cache hold
+    /// from one turn to the next.
+    public var brief: String {
+        var lines: [String] = []
+
+        lines.append("date \(today) | state \(state) | composite \(composite) | "
+                     + "confidence \(confidence) | history \(daysOfHistory)d"
+                     + (gate.map { " | gate \($0)" } ?? ""))
+        if let acwr { lines.append("acute:chronic load \(acwr)") }
+        if let goal { lines.append("goal \(goal)") }
+        if let limitations { lines.append("limitations \(limitations)") }
+        if let checkIn {
+            let reported = checkIn.keys.sorted().map { "\($0) \(checkIn[$0] ?? 0)/5" }
+            lines.append("reported this morning: " + reported.joined(separator: ", "))
+        }
+
+        lines.append("")
+        lines.append("metrics (name value baseline z):")
+        for metric in metrics {
+            lines.append("\(metric.name) \(metric.value)\(metric.unit) "
+                         + "base \(metric.baseline) z \(metric.z)")
+        }
+
+        if !recentDays.isEmpty {
+            lines.append("")
+            lines.append("last \(recentDays.count) days (mm-dd state composite volume), "
+                         + "oldest first:")
+            for day in recentDays {
+                lines.append("\(Self.monthDay(day.day)) \(day.state) \(day.composite) "
+                             + "\(day.volume)")
+            }
+        }
+
+        if !program.isEmpty {
+            lines.append("")
+            lines.append("today's session (exercise | muscle | sets x reps @ load | rir):")
+            for exercise in program {
+                lines.append("\(exercise.name) | \(exercise.muscle) | "
+                             + "\(exercise.sets)x\(exercise.reps) @\(exercise.weight) | "
+                             + "rir \(exercise.rir)")
+            }
+        }
+
+        if !proposedAdjustments.isEmpty {
+            lines.append("")
+            lines.append("the engine proposes:")
+            lines.append(contentsOf: proposedAdjustments.map { "- \($0)" })
+        }
+
+        if !uncertainty.isEmpty {
+            lines.append("")
+            lines.append("what this cannot see:")
+            lines.append(contentsOf: uncertainty.map { "- \($0)" })
+        }
+
+        return lines.joined(separator: "\n")
+    }
+
+    /// "2026-09-01" to "09-01". The year is already on the header line.
+    static func monthDay(_ isoDay: String) -> String {
+        isoDay.count == 10 ? String(isoDay.dropFirst(5)) : isoDay
+    }
 }
 
 public enum CoachContextBuilder {

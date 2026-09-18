@@ -13,10 +13,20 @@ struct CoachSheet: View {
     @State private var isStreaming = false
     @State private var errorMessage: String?
     @State private var proposal: CoachToolCall?
+    @State private var toolStep: String?
     @State private var appliedNote: String?
     @FocusState private var composerFocused: Bool
 
-    private let provider = ClaudeCoachProvider()
+    /// With no key configured, a debug build rehearses instead of failing — the UI is
+    /// the thing being worked on far more often than the model is.
+    private var provider: CoachProvider {
+        let live = ClaudeCoachProvider()
+        #if DEBUG
+        return live.isConfigured ? live : RehearsalCoachProvider()
+        #else
+        return live
+        #endif
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -131,9 +141,18 @@ struct CoachSheet: View {
     private var transcript: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: 14) {
                     ForEach(messages) { message in
-                        MessageBubble(message: message).id(message.id)
+                        CoachTurnView(message: message).id(message.id)
+                    }
+                    // A container with nothing in it reads as a failure, so the empty
+                    // reply is a word rather than an empty bubble.
+                    if isStreaming, messages.last?.text.isEmpty != false {
+                        ThinkingPill().id("thinking")
+                    }
+                    if let step = toolStep {
+                        CoachStepRow(label: step, isRunning: proposal == nil)
+                            .transition(.opacity.combined(with: .move(edge: .top)))
                     }
                     if let proposal { proposalCard(proposal) }
                     if let appliedNote {
@@ -157,6 +176,8 @@ struct CoachSheet: View {
                 guard let last = messages.last else { return }
                 withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
             }
+            .animation(.spring(response: 0.34, dampingFraction: 0.86), value: toolStep)
+            .animation(.spring(response: 0.34, dampingFraction: 0.86), value: proposal)
         }
     }
 
@@ -267,6 +288,8 @@ struct CoachSheet: View {
         let reply = CoachMessage(role: .assistant, text: "")
         messages.append(reply)
         isStreaming = true
+        toolStep = nil
+        var hasSpoken = false
 
         Task {
             do {
@@ -274,7 +297,11 @@ struct CoachSheet: View {
                     messages: messages.dropLast().map { $0 },
                     context: coachContext,
                     applyTool: { call in
-                        await MainActor.run { proposal = call }
+                        await MainActor.run {
+                            toolStep = "Adjusting today's session"
+                            proposal = call
+                            Haptics.decided()
+                        }
                         // Jett is told it was proposed, not applied, so it describes the
                         // change as a suggestion rather than a done deal.
                         return "Shown to the user as a suggestion: "
@@ -284,6 +311,12 @@ struct CoachSheet: View {
                 for try await event in events {
                     switch event {
                     case .text(let chunk):
+                        // The tap lands when the answer starts, not when it is asked
+                        // for — that is the moment the wait actually ended.
+                        if !hasSpoken, !chunk.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                            hasSpoken = true
+                            Haptics.replyBegan()
+                        }
                         if let index = messages.firstIndex(where: { $0.id == reply.id }) {
                             messages[index].text += chunk
                         }
@@ -297,6 +330,7 @@ struct CoachSheet: View {
             }
             messages.removeAll { $0.id == reply.id && $0.text.isEmpty }
             isStreaming = false
+            if hasSpoken { Haptics.replyEnded() }
         }
     }
 }
@@ -308,28 +342,6 @@ struct PressableStyle: ButtonStyle {
             .scaleEffect(configuration.isPressed ? 0.975 : 1)
             .opacity(configuration.isPressed ? 0.8 : 1)
             .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
-    }
-}
-
-struct MessageBubble: View {
-    let message: CoachMessage
-
-    var body: some View {
-        HStack {
-            if message.role == .user { Spacer(minLength: 44) }
-            Text(message.text.isEmpty ? "…" : message.text)
-                .font(.system(size: 16))
-                .foregroundStyle(message.role == .user ? Tokens.onAccent : Tokens.textPrimary)
-                .padding(.vertical, 11).padding(.horizontal, 15)
-                .background(message.role == .user
-                            ? AnyShapeStyle(Tokens.accent)
-                            : AnyShapeStyle(Color.primary.opacity(0.06)),
-                            in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-                .fixedSize(horizontal: false, vertical: true)
-            if message.role == .assistant { Spacer(minLength: 44) }
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(message.role == .user ? "You" : "Jett"): \(message.text)")
     }
 }
 

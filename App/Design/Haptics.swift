@@ -20,6 +20,20 @@ enum Haptics {
         UIImpactFeedbackGenerator(style: .soft).impactOccurred()
     }
 
+    /// Jett starting to answer. Deliberately the faintest tap in the vocabulary: it
+    /// fires on every reply, so anything stronger would wear out fast and drown the
+    /// taps that mean something happened.
+    static func replyBegan() {
+        let generator = UIImpactFeedbackGenerator(style: .soft)
+        generator.impactOccurred(intensity: 0.5)
+    }
+
+    /// Jett finished. A selection tick rather than a success notification — the answer
+    /// arriving is not an achievement.
+    static func replyEnded() {
+        UISelectionFeedbackGenerator().selectionChanged()
+    }
+
     /// The rest timer running out.
     static func restOver() {
         UINotificationFeedbackGenerator().notificationOccurred(.warning)

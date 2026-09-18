@@ -63,8 +63,8 @@ enum CoachPrompt {
     /// full price to say the same thing again.
     static let rules = """
         You are Jett, the coach inside a training app. The user's own data is in the \
-        next block as JSON. It is already computed: a rules engine produced today's \
-        state and adjustments, not you. Your job is to explain and personalise that \
+        next block, as labelled lines with a header naming each column. It is already \
+        computed: a rules engine produced today's state and adjustments, not you. Your job is to explain and personalise that \
         decision, and to answer questions about the user's training and physiology.
 
         Every recommendation you give must contain, in this order and in plain prose:
@@ -94,6 +94,6 @@ enum CoachPrompt {
         """
 
     static func data(context: CoachContext) -> String {
-        "The user's data:\n" + context.json
+        "The user's data:\n" + context.brief
     }
 }

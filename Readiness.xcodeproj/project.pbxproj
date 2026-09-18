@@ -10,6 +10,7 @@
 		7559CC8D141A93DBF5685EEB /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6F9973165E2B0FD4A3AAC566 /* Assets.xcassets */; };
 		58FD71D67A497BE6E4037D13 /* ClaudeCoachProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3779549DC90963FFB7EC5B96 /* ClaudeCoachProvider.swift */; };
 		7F4D405B9C01F5887FFDBF05 /* CoachProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBCC3151D19B79D645F78D9A /* CoachProvider.swift */; };
+		A983D7CF1B94423AA4692326 /* RehearsalCoachProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0D7234AE414EFDB27F68E0 /* RehearsalCoachProvider.swift */; };
 		009D4826D7C7474F9942DFB4 /* CoachUsage.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1AB0117C12A40B9AD8AC6A2 /* CoachUsage.swift */; };
 		1F2ABFDB99F5A157202064B1 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = A05C07BD369FE0B4C393E4DD /* Models.swift */; };
 		8EB8022FAEB8B072A5B48D87 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0BCBBC313CD0F4786FBECC8 /* Components.swift */; };
@@ -26,6 +27,7 @@
 		6D7F413CB57A01DC8325196D /* ReadinessApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F660CD12ABB857EA933E24E5 /* ReadinessApp.swift */; };
 		F19EE76808FF24AC9469FBCB /* CheckInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8D59C193BE699D4481BED88 /* CheckInView.swift */; };
 		E85FEC2DEE67CA79D5A50932 /* CoachView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1BE778E19957661A548446F /* CoachView.swift */; };
+		30C0D543841548A2A4E9B213 /* CoachStream.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC5442257B83411083948FF8 /* CoachStream.swift */; };
 		EFF0072F865AE99C3D5AEEC0 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5EA704A18A834AD6B3B10E9 /* ProfileView.swift */; };
 		F7A13A0A58D5EA34A47F332E /* ProgramViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1B13F77AD2D8F94F4953163 /* ProgramViews.swift */; };
 		03F7423240A620AD290DA7E0 /* SessionViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D172633C7AC91EFD03D370B /* SessionViews.swift */; };
@@ -64,6 +66,7 @@
 		6F9973165E2B0FD4A3AAC566 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = App/Assets.xcassets; sourceTree = "<group>"; };
 		3779549DC90963FFB7EC5B96 /* ClaudeCoachProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ClaudeCoachProvider.swift"; sourceTree = "<group>"; };
 		CBCC3151D19B79D645F78D9A /* CoachProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CoachProvider.swift"; sourceTree = "<group>"; };
+		4A0D7234AE414EFDB27F68E0 /* RehearsalCoachProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "RehearsalCoachProvider.swift"; sourceTree = "<group>"; };
 		E1AB0117C12A40B9AD8AC6A2 /* CoachUsage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CoachUsage.swift"; sourceTree = "<group>"; };
 		A05C07BD369FE0B4C393E4DD /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Models.swift"; sourceTree = "<group>"; };
 		F0BCBBC313CD0F4786FBECC8 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Components.swift"; sourceTree = "<group>"; };
@@ -80,6 +83,7 @@
 		F660CD12ABB857EA933E24E5 /* ReadinessApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ReadinessApp.swift"; sourceTree = "<group>"; };
 		A8D59C193BE699D4481BED88 /* CheckInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CheckInView.swift"; sourceTree = "<group>"; };
 		C1BE778E19957661A548446F /* CoachView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CoachView.swift"; sourceTree = "<group>"; };
+		AC5442257B83411083948FF8 /* CoachStream.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CoachStream.swift"; sourceTree = "<group>"; };
 		A5EA704A18A834AD6B3B10E9 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProfileView.swift"; sourceTree = "<group>"; };
 		D1B13F77AD2D8F94F4953163 /* ProgramViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProgramViews.swift"; sourceTree = "<group>"; };
 		5D172633C7AC91EFD03D370B /* SessionViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SessionViews.swift"; sourceTree = "<group>"; };
@@ -162,6 +166,7 @@
 			children = (
 				3779549DC90963FFB7EC5B96 /* ClaudeCoachProvider.swift */,
 				CBCC3151D19B79D645F78D9A /* CoachProvider.swift */,
+				4A0D7234AE414EFDB27F68E0 /* RehearsalCoachProvider.swift */,
 				E1AB0117C12A40B9AD8AC6A2 /* CoachUsage.swift */,
 			);
 			name = "Coach";
@@ -217,6 +222,7 @@
 			children = (
 				A8D59C193BE699D4481BED88 /* CheckInView.swift */,
 				C1BE778E19957661A548446F /* CoachView.swift */,
+				AC5442257B83411083948FF8 /* CoachStream.swift */,
 				A5EA704A18A834AD6B3B10E9 /* ProfileView.swift */,
 				D1B13F77AD2D8F94F4953163 /* ProgramViews.swift */,
 				5D172633C7AC91EFD03D370B /* SessionViews.swift */,
@@ -330,6 +336,7 @@
 			files = (
 				58FD71D67A497BE6E4037D13 /* ClaudeCoachProvider.swift in Sources */,
 				7F4D405B9C01F5887FFDBF05 /* CoachProvider.swift in Sources */,
+				A983D7CF1B94423AA4692326 /* RehearsalCoachProvider.swift in Sources */,
 				009D4826D7C7474F9942DFB4 /* CoachUsage.swift in Sources */,
 				1F2ABFDB99F5A157202064B1 /* Models.swift in Sources */,
 				8EB8022FAEB8B072A5B48D87 /* Components.swift in Sources */,
@@ -346,6 +353,7 @@
 				6D7F413CB57A01DC8325196D /* ReadinessApp.swift in Sources */,
 				F19EE76808FF24AC9469FBCB /* CheckInView.swift in Sources */,
 				E85FEC2DEE67CA79D5A50932 /* CoachView.swift in Sources */,
+				30C0D543841548A2A4E9B213 /* CoachStream.swift in Sources */,
 				EFF0072F865AE99C3D5AEEC0 /* ProfileView.swift in Sources */,
 				F7A13A0A58D5EA34A47F332E /* ProgramViews.swift in Sources */,
 				03F7423240A620AD290DA7E0 /* SessionViews.swift in Sources */,

@@ -151,6 +151,24 @@ Used for Today's rings over the coaching card, and Why's call over the plan. Rea
 it whenever the relationship is *rests on* — a verdict over its consequences, a figure
 over its explanation. Not for two peers, which are two cards with a 12pt gap.
 
+### How an answer arrives
+
+The coach's text is **not a bubble**. A bubble is for something somebody said to you; an
+answer is the content of the screen, so it runs full width in plain prose and only the
+user's own message gets a container. That one choice is most of what separates a chat
+toy from a tool.
+
+While there is nothing to show, there is one quiet shimmering word and no container —
+an empty bubble reads as a failure. A step the coach took is one line, past tense, with
+a tick: what was done, never how the machinery works. Markdown is interpreted inline
+only, because a block parser reflows the whole answer on every token and the paragraph
+jumps around while you are reading it.
+
+Haptics here are the faintest in the vocabulary: a half-intensity tap when the answer
+*starts* — the moment the wait actually ended — and a selection tick when it finishes.
+An answer arriving is not an achievement, and anything stronger would wear out fast and
+drown the taps that mean something happened.
+
 ### The goal-driven home
 
 Today is not one screen. The rings, the coaching line and the health monitor are fixed;

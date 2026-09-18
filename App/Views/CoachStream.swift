@@ -1,0 +1,129 @@
+import SwiftUI
+
+/// How an answer arrives.
+///
+/// The assistant's text is not a bubble. A bubble is for a thing somebody said to you;
+/// a coach's answer is the content of the screen, so it runs full width in plain prose
+/// and only the user's own message gets a container. That single choice is most of what
+/// separates a chat toy from a tool.
+struct CoachTurnView: View {
+    let message: CoachMessage
+
+    var body: some View {
+        switch message.role {
+        case .user:
+            HStack {
+                Spacer(minLength: 44)
+                Text(message.text)
+                    .font(.system(size: 16))
+                    .foregroundStyle(Tokens.onAccent)
+                    .padding(.vertical, 10).padding(.horizontal, 14)
+                    .background(Tokens.accent,
+                                in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("You: \(message.text)")
+
+        case .assistant:
+            Text(Self.formatted(message.text))
+                .font(.system(size: 16))
+                .foregroundStyle(Tokens.textPrimary)
+                .lineSpacing(3.5)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .fixedSize(horizontal: false, vertical: true)
+                .textSelection(.enabled)
+                .accessibilityLabel("Jett: \(message.text)")
+        }
+    }
+
+    /// Inline markdown only, and whitespace preserved.
+    ///
+    /// Block syntax is deliberately not interpreted: half-written text arrives on every
+    /// keystroke of the stream, and a block parser reflows the whole answer each time a
+    /// character lands — the paragraph jumps around while you are reading it.
+    static func formatted(_ text: String) -> AttributedString {
+        (try? AttributedString(
+            markdown: text,
+            options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)))
+            ?? AttributedString(text)
+    }
+}
+
+/// One quiet word while there is nothing to show yet.
+///
+/// Not a spinner and not an empty bubble: a container with nothing in it reads as a
+/// failure. This holds no layout it will not fill, and gives way the moment the first
+/// token lands.
+struct ThinkingPill: View {
+    var label = "Thinking"
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var phase: CGFloat = -1
+
+    var body: some View {
+        Text(label)
+            .font(.system(size: 15, weight: .medium))
+            .foregroundStyle(Tokens.textSecondary.opacity(0.55))
+            .overlay { if !reduceMotion { sweep } }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .onAppear {
+                guard !reduceMotion else { return }
+                withAnimation(.linear(duration: 1.25).repeatForever(autoreverses: false)) {
+                    phase = 1.6
+                }
+            }
+            .accessibilityLabel("Jett is thinking")
+    }
+
+    /// A band of light travelling across the word, masked to the glyphs themselves.
+    private var sweep: some View {
+        GeometryReader { geometry in
+            LinearGradient(
+                colors: [.clear, Tokens.textPrimary.opacity(0.85), .clear],
+                startPoint: .leading, endPoint: .trailing)
+                .frame(width: max(40, geometry.size.width * 0.55))
+                .offset(x: phase * geometry.size.width)
+        }
+        .mask(
+            Text(label)
+                .font(.system(size: 15, weight: .medium))
+                .frame(maxWidth: .infinity, alignment: .leading)
+        )
+        .allowsHitTesting(false)
+    }
+}
+
+/// A step Jett took, shown the way a tool call should be: one line, past tense once it
+/// has happened, and no drama. It says what was done, not how the machinery works.
+struct CoachStepRow: View {
+    let label: String
+    var isRunning = false
+
+    var body: some View {
+        HStack(spacing: 9) {
+            Group {
+                if isRunning {
+                    ProgressView().controlSize(.mini).tint(Tokens.textSecondary)
+                } else {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(Tokens.accent)
+                }
+            }
+            .frame(width: 14, height: 14)
+
+            Text(label)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(Tokens.textSecondary)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 9)
+        .background(Color.primary.opacity(0.04),
+                    in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 11, style: .continuous)
+            .strokeBorder(Color.primary.opacity(0.06), lineWidth: 0.5))
+        .accessibilityElement(children: .combine)
+    }
+}
