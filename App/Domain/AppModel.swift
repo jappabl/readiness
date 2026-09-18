@@ -23,6 +23,10 @@ final class AppModel {
     var seededSampleCount: Int?
     var goal: TrainingGoal?
     var hasProgram = false
+    var onboarding = OnboardingAnswers()
+    /// Separate from `goal`: the goal is stored the moment it is picked, but the flow
+    /// runs on past it to the Health prompt and the baseline reveal.
+    var onboardingFinished = false
 
     private(set) var series: [DailyPhysiology] = []
 
@@ -43,13 +47,20 @@ final class AppModel {
     func attach(_ context: ModelContext) {
         self.context = context
         goal = storedGoal(from: context)
+        // A goal already on disk means onboarding ran in an earlier launch.
+        onboardingFinished = goal != nil
+        if let json = (try? context.fetch(FetchDescriptor<UserProfile>()))?.first?.onboardingJSON,
+           let data = json.data(using: .utf8),
+           let decoded = try? JSONDecoder().decode(OnboardingAnswers.self, from: data) {
+            onboarding = decoded
+        }
         // Nothing is read from Health until the user has been told why. Asking for
         // six months of physiology before saying what the app is for is how a health
         // app gets declined on the first screen.
         if goal == nil { phase = .needsOnboarding }
     }
 
-    var needsOnboarding: Bool { goal == nil }
+    var needsOnboarding: Bool { goal == nil || !onboardingFinished }
 
     // MARK: - Load
 
@@ -108,7 +119,7 @@ final class AppModel {
             goal = storedGoal(from: context)
             // A missing programme is no longer a wall — the home screen asks for one
             // in place, and only for the goals that need it.
-            phase = goal == nil ? .needsOnboarding : .ready
+            phase = needsOnboarding ? .needsOnboarding : .ready
 
         } catch {
             phase = .failed(error.localizedDescription)
@@ -136,6 +147,37 @@ final class AppModel {
     /// everybody — see `HomeComposition`.
     var homeBlocks: [HomeBlock] {
         HomeComposition.blocks(for: goal ?? .getStronger, hasProgram: hasProgram)
+    }
+
+    /// Stores everything onboarding gathered. Called before the Health prompt, so the
+    /// answers survive even if the user declines access or quits on the permission sheet.
+    func completeOnboarding(_ answers: OnboardingAnswers, in context: ModelContext) {
+        let profile = profileRow(in: context)
+        if let goal = answers.goal { profile.goal = goal.rawValue }
+        profile.unitsAreMetric = answers.unitsAreMetric
+        if let encoded = try? JSONEncoder().encode(answers),
+           let json = String(data: encoded, encoding: .utf8) {
+            profile.onboardingJSON = json
+        }
+        try? context.save()
+        onboarding = answers
+        goal = answers.goal
+    }
+
+    /// The flow is over once the user has seen their own baselines, not when the goal
+    /// is stored — otherwise the reveal is cut off by the app appearing behind it.
+    func finishOnboarding() {
+        onboardingFinished = true
+        if goal != nil { phase = .ready }
+    }
+
+    private func profileRow(in context: ModelContext) -> UserProfile {
+        if let existing = (try? context.fetch(FetchDescriptor<UserProfile>()))?.first {
+            return existing
+        }
+        let created = UserProfile()
+        context.insert(created)
+        return created
     }
 
     func setGoal(_ newGoal: TrainingGoal, in context: ModelContext) {

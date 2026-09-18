@@ -236,6 +236,9 @@ final class UserProfile {
     var goal: String
     var limitations: String
     var unitsAreMetric: Bool
+    /// Everything else onboarding collected, as JSON. One column rather than five
+    /// because these are read together, written once, and never queried on.
+    var onboardingJSON: String = ""
 
     init(goal: String = "", limitations: String = "", unitsAreMetric: Bool = false) {
         self.goal = goal

@@ -35,12 +35,14 @@
 		D085794618AE538D4BE3D478 /* WhyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2B0A795BF9B08D14DCEB342 /* WhyView.swift */; };
 		9318152E24EC42CDAF18737D /* HomeBlocks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E03BE02957E4324B76289F1 /* HomeBlocks.swift */; };
 		8E46F3B9504A455389105FC1 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD4022B61E2D4CCA8A0C0DD8 /* OnboardingView.swift */; };
+		E3D33C1C0A6940BBBDFEB0B7 /* OnboardingChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE9C18B0FC5E45118B1CEEBF /* OnboardingChrome.swift */; };
 		57CD27898124823DCEA4C6C9 /* BaselineEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6A79D73CD5C27838C71B31C /* BaselineEngine.swift */; };
 		BDB82120DDB718BC9BA82964 /* CoachContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C35BF053373C3F1604BD3E8 /* CoachContext.swift */; };
 		2668963A7801D51A4F36BC01 /* CoachTools.swift in Sources */ = {isa = PBXBuildFile; fileRef = 005C7AE9F186267BD0DC0210 /* CoachTools.swift */; };
 		9788F82F4037D6919392FD8D /* InsightEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B442940C409958B4371E3044 /* InsightEngine.swift */; };
 		B9D4082452FF35C638BB6CAC /* Metrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCD9613FE7E08C6AFA956056 /* Metrics.swift */; };
 		A90006729218FFE9BEF0D890 /* Percentile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2EF8D6020D810536E232D51A /* Percentile.swift */; };
+		03340C76D5B34BA2BAD69BD1 /* Onboarding.swift in Sources */ = {isa = PBXBuildFile; fileRef = 239658BBF7CB4FC894FF466B /* Onboarding.swift */; };
 		6FED05AB28624023AB0E1FF9 /* HomeComposition.swift in Sources */ = {isa = PBXBuildFile; fileRef = 765DF2FFD1DD410B9A15BEA5 /* HomeComposition.swift */; };
 		1C4F6CA506FB4D84B4240CD0 /* SleepAggregator.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6BAE466196B4430A721D45C /* SleepAggregator.swift */; };
 		ED0B41D2C1E3FFB817C7FA7D /* PlateMath.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4CEE9A79692E9B36FF13658 /* PlateMath.swift */; };
@@ -85,12 +87,14 @@
 		E2B0A795BF9B08D14DCEB342 /* WhyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WhyView.swift"; sourceTree = "<group>"; };
 		5E03BE02957E4324B76289F1 /* HomeBlocks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HomeBlocks.swift"; sourceTree = "<group>"; };
 		BD4022B61E2D4CCA8A0C0DD8 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OnboardingView.swift"; sourceTree = "<group>"; };
+		FE9C18B0FC5E45118B1CEEBF /* OnboardingChrome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OnboardingChrome.swift"; sourceTree = "<group>"; };
 		F6A79D73CD5C27838C71B31C /* BaselineEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BaselineEngine.swift"; sourceTree = "<group>"; };
 		3C35BF053373C3F1604BD3E8 /* CoachContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CoachContext.swift"; sourceTree = "<group>"; };
 		005C7AE9F186267BD0DC0210 /* CoachTools.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CoachTools.swift"; sourceTree = "<group>"; };
 		B442940C409958B4371E3044 /* InsightEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "InsightEngine.swift"; sourceTree = "<group>"; };
 		CCD9613FE7E08C6AFA956056 /* Metrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Metrics.swift"; sourceTree = "<group>"; };
 		2EF8D6020D810536E232D51A /* Percentile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Percentile.swift"; sourceTree = "<group>"; };
+		239658BBF7CB4FC894FF466B /* Onboarding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Onboarding.swift"; sourceTree = "<group>"; };
 		765DF2FFD1DD410B9A15BEA5 /* HomeComposition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HomeComposition.swift"; sourceTree = "<group>"; };
 		F6BAE466196B4430A721D45C /* SleepAggregator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SleepAggregator.swift"; sourceTree = "<group>"; };
 		F4CEE9A79692E9B36FF13658 /* PlateMath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PlateMath.swift"; sourceTree = "<group>"; };
@@ -218,6 +222,7 @@
 				E2B0A795BF9B08D14DCEB342 /* WhyView.swift */,
 				5E03BE02957E4324B76289F1 /* HomeBlocks.swift */,
 				BD4022B61E2D4CCA8A0C0DD8 /* OnboardingView.swift */,
+				FE9C18B0FC5E45118B1CEEBF /* OnboardingChrome.swift */,
 			);
 			name = "Views";
 			path = "App/Views";
@@ -232,6 +237,7 @@
 				B442940C409958B4371E3044 /* InsightEngine.swift */,
 				CCD9613FE7E08C6AFA956056 /* Metrics.swift */,
 				2EF8D6020D810536E232D51A /* Percentile.swift */,
+				239658BBF7CB4FC894FF466B /* Onboarding.swift */,
 				765DF2FFD1DD410B9A15BEA5 /* HomeComposition.swift */,
 				F6BAE466196B4430A721D45C /* SleepAggregator.swift */,
 				F4CEE9A79692E9B36FF13658 /* PlateMath.swift */,
@@ -343,12 +349,14 @@
 				D085794618AE538D4BE3D478 /* WhyView.swift in Sources */,
 				9318152E24EC42CDAF18737D /* HomeBlocks.swift in Sources */,
 				8E46F3B9504A455389105FC1 /* OnboardingView.swift in Sources */,
+				E3D33C1C0A6940BBBDFEB0B7 /* OnboardingChrome.swift in Sources */,
 				57CD27898124823DCEA4C6C9 /* BaselineEngine.swift in Sources */,
 				BDB82120DDB718BC9BA82964 /* CoachContext.swift in Sources */,
 				2668963A7801D51A4F36BC01 /* CoachTools.swift in Sources */,
 				9788F82F4037D6919392FD8D /* InsightEngine.swift in Sources */,
 				B9D4082452FF35C638BB6CAC /* Metrics.swift in Sources */,
 				A90006729218FFE9BEF0D890 /* Percentile.swift in Sources */,
+				03340C76D5B34BA2BAD69BD1 /* Onboarding.swift in Sources */,
 				6FED05AB28624023AB0E1FF9 /* HomeComposition.swift in Sources */,
 				1C4F6CA506FB4D84B4240CD0 /* SleepAggregator.swift in Sources */,
 				ED0B41D2C1E3FFB817C7FA7D /* PlateMath.swift in Sources */,

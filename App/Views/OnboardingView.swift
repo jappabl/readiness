@@ -1,74 +1,250 @@
 import SwiftUI
 import SwiftData
 
-/// Three screens, in the order that earns the right to ask.
+/// The flow, in the order that earns the right to ask.
 ///
-/// What the app does, then what you want out of it, then — and only then — access to
-/// six months of your physiology. Asking for Health on launch, before saying anything,
-/// is how a health app gets declined on its first screen and never recovers.
+/// What the app does, then what you want from it, then how you train, then what gets in
+/// the way — and only then access to six months of your physiology. Asking Health on
+/// launch, before saying anything, is how a health app gets declined on its first
+/// screen and never recovers.
+///
+/// It ends on the user's own baselines rather than a promise. Every other app in this
+/// category closes onboarding with a projection; this one closes with six months of
+/// measurements it just read, which is the actual product.
 struct OnboardingView: View {
     @Environment(AppModel.self) private var model
     @Environment(\.modelContext) private var context
 
-    @State private var step = 0
-    @State private var chosen: TrainingGoal?
+    private enum Step: Int, CaseIterable {
+        case welcome, goal, frequency, obstacles, method, units, health, reading, baselines
+    }
+
+    @State private var step: Step = .welcome
+    @State private var answers = OnboardingAnswers()
     @State private var connecting = false
 
     var body: some View {
-        ZStack {
-            Tokens.canvas.ignoresSafeArea()
-            VStack(spacing: 0) {
-                switch step {
-                case 0:  welcome
-                case 1:  goalPicker
-                default: healthAccess
-                }
+        Group {
+            switch step {
+            case .welcome:   welcome
+            case .goal:      goalStep
+            case .frequency: frequencyStep
+            case .obstacles: obstaclesStep
+            case .method:    methodStep
+            case .units:     unitsStep
+            case .health:    healthStep
+            case .reading:   readingStep
+            case .baselines: baselinesStep
             }
         }
-        .animation(.spring(response: 0.4, dampingFraction: 0.85), value: step)
+        .animation(.spring(response: 0.38, dampingFraction: 0.88), value: step)
     }
 
-    // MARK: - 1. What this is
+    /// Questions only — the welcome and the reveal are not steps you are "through".
+    private func progress(_ current: Step) -> Double {
+        let questions: [Step] = [.goal, .frequency, .obstacles, .method, .units, .health]
+        guard let index = questions.firstIndex(of: current) else { return 1 }
+        return Double(index + 1) / Double(questions.count)
+    }
+
+    private func advance(to next: Step) {
+        Haptics.light()
+        step = next
+    }
+
+    // MARK: - Welcome
 
     private var welcome: some View {
         VStack(spacing: 0) {
             Spacer()
-            JettOrb(size: 76)
+            JettOrb(size: 84)
             Text("Readiness")
-                .font(.system(size: 32, weight: .bold))
+                .font(.system(size: 34, weight: .bold))
                 .foregroundStyle(Tokens.textPrimary)
-                .padding(.top, 22)
+                .padding(.top, 24)
             Text("See what's happening in your body,\nand know what to do about it today.")
                 .font(.system(size: 16))
                 .foregroundStyle(Tokens.textSecondary)
                 .multilineTextAlignment(.center)
-                .padding(.top, 8)
-
+                .padding(.top, 10)
             Spacer()
-
-            VStack(spacing: 18) {
-                point("bed.double", "Your night, read properly",
-                      "Stages, not just hours.")
-                point("waveform.path.ecg", "Scored against you",
-                      "Your own baseline, never a population average.")
-                point("figure.strengthtraining.traditional", "One clear call",
-                      "What to do today, and why.")
-            }
-            .padding(.horizontal, 30)
-
-            Spacer()
-            PrimaryButton(label: "Get started") { step = 1 }
+            PrimaryButton(label: "Get started") { advance(to: .goal) }
                 .padding(.horizontal, Tokens.screenMargin)
-                .padding(.bottom, 16)
+                .padding(.bottom, 14)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Tokens.canvas.ignoresSafeArea())
+    }
+
+    // MARK: - Questions
+
+    private var goalStep: some View {
+        OnboardingScaffold(
+            progress: progress(.goal),
+            title: "What are you here for?",
+            subtitle: "This decides what you see first. You can change it later.",
+            canAdvance: answers.goal != nil,
+            onBack: { advance(to: .welcome) },
+            action: { advance(to: .frequency) }
+        ) {
+            VStack(spacing: 10) {
+                ForEach(TrainingGoal.allCases, id: \.self) { goal in
+                    ChoiceRow(title: goal.title, detail: goal.promise, symbol: goal.symbol,
+                              isSelected: answers.goal == goal) {
+                        Haptics.decided()
+                        answers.goal = goal
+                    }
+                }
+            }
         }
     }
 
-    private func point(_ symbol: String, _ title: String, _ detail: String) -> some View {
+    private var frequencyStep: some View {
+        OnboardingScaffold(
+            progress: progress(.frequency),
+            title: "How many days a week do you train?",
+            subtitle: "So a hard week isn't mistaken for a bad one.",
+            canAdvance: answers.frequency != nil,
+            onBack: { advance(to: .goal) },
+            action: { advance(to: .obstacles) }
+        ) {
+            VStack(spacing: 10) {
+                ForEach(TrainingFrequency.allCases, id: \.self) { frequency in
+                    ChoiceRow(title: frequency.title, detail: frequency.detail,
+                              symbol: frequency.symbol,
+                              isSelected: answers.frequency == frequency) {
+                        Haptics.decided()
+                        answers.frequency = frequency
+                    }
+                }
+            }
+        }
+    }
+
+    private var obstaclesStep: some View {
+        OnboardingScaffold(
+            progress: progress(.obstacles),
+            title: "What gets in the way?",
+            subtitle: "Pick any. Jett keeps these in mind — they're never scored.",
+            canAdvance: true,
+            onBack: { advance(to: .frequency) },
+            onSkip: { advance(to: .method) },
+            action: { advance(to: .method) }
+        ) {
+            VStack(spacing: 10) {
+                ForEach(Obstacle.allCases, id: \.self) { obstacle in
+                    ChoiceRow(title: obstacle.title, symbol: obstacle.symbol,
+                              isSelected: answers.obstacles.contains(obstacle),
+                              allowsMultiple: true) {
+                        Haptics.light()
+                        if answers.obstacles.contains(obstacle) {
+                            answers.obstacles.remove(obstacle)
+                        } else {
+                            answers.obstacles.insert(obstacle)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /// The differentiator, stated plainly. No invented statistic — every other app in
+    /// this category puts a fabricated retention number here, and we do not have one.
+    private var methodStep: some View {
+        OnboardingStatement(
+            title: "Measured against you",
+            body_: "Most apps compare you to a population average. This one builds a "
+                 + "baseline from your own history, so a 48 ms HRV means something "
+                 + "different for you than for anyone else.",
+            onBack: { advance(to: .obstacles) },
+            progress: progress(.method),
+            action: { advance(to: .units) }
+        ) {
+            baselineIllustration
+        }
+    }
+
+    private var baselineIllustration: some View {
+        VStack(spacing: 14) {
+            ForEach(Array(Self.illustrationRows.enumerated()), id: \.offset) { _, row in
+                HStack(spacing: 12) {
+                    Text(row.label)
+                        .font(.system(size: 13))
+                        .foregroundStyle(Tokens.textSecondary)
+                        .frame(width: 108, alignment: .leading)
+                    RangeBar(z: row.z, polarity: 1, tint: row.tint)
+                }
+            }
+        }
+        .padding(18)
+        .background(Tokens.surface, in: RoundedRectangle(cornerRadius: Tokens.cardRadius,
+                                                         style: .continuous))
+        .shadow(color: .black.opacity(0.05), radius: 10, x: 0, y: 2)
+        .accessibilityHidden(true)
+    }
+
+    private static let illustrationRows: [(label: String, z: Double, tint: Color)] = [
+        ("Your HRV", 1.4, Tokens.recoveryHigh),
+        ("Your sleep", -0.4, Tokens.sleepLow),
+        ("Your resting HR", 0.8, Tokens.strainLow),
+    ]
+
+    private var unitsStep: some View {
+        OnboardingScaffold(
+            progress: progress(.units),
+            title: "Pounds or kilos?",
+            subtitle: "Used for loads on the bar and for your weight.",
+            canAdvance: true,
+            onBack: { advance(to: .method) },
+            action: { advance(to: .health) }
+        ) {
+            VStack(spacing: 10) {
+                ChoiceRow(title: "Pounds", detail: "lb · 2.5 lb plates",
+                          symbol: "scalemass", isSelected: !answers.unitsAreMetric) {
+                    Haptics.decided()
+                    answers.unitsAreMetric = false
+                }
+                ChoiceRow(title: "Kilos", detail: "kg · 1.25 kg plates",
+                          symbol: "scalemass.fill", isSelected: answers.unitsAreMetric) {
+                    Haptics.decided()
+                    answers.unitsAreMetric = true
+                }
+            }
+        }
+    }
+
+    // MARK: - Health
+
+    private var healthStep: some View {
+        OnboardingScaffold(
+            progress: progress(.health),
+            title: "Connect Health",
+            subtitle: "Read on this device and kept on it. Nothing is uploaded.",
+            canAdvance: !connecting,
+            actionTitle: connecting ? "Connecting…" : "Connect Health",
+            onBack: { advance(to: .units) },
+            action: connect
+        ) {
+            VStack(spacing: 16) {
+                healthPoint("moon.zzz", "Sleep and overnight vitals",
+                            "The night is most of the signal.")
+                healthPoint("heart", "Heart rate and variability",
+                            "Compared only against your own history.")
+                healthPoint("flame", "Activity and training",
+                            "So a hard week is not read as a bad one.")
+                healthPoint("lock", "Nothing leaves the phone",
+                            "No account, no upload, no third parties.")
+            }
+            .padding(.top, 4)
+        }
+    }
+
+    private func healthPoint(_ symbol: String, _ title: String, _ detail: String) -> some View {
         HStack(alignment: .top, spacing: 14) {
             Image(systemName: symbol)
                 .font(.system(size: 16, weight: .medium))
                 .foregroundStyle(Tokens.jettTint)
-                .frame(width: 34, height: 34)
+                .frame(width: 36, height: 36)
                 .background(Tokens.jettTint.opacity(0.12), in: Circle())
             VStack(alignment: .leading, spacing: 2) {
                 Text(title).font(.system(size: 15, weight: .semibold))
@@ -81,123 +257,104 @@ struct OnboardingView: View {
         }
     }
 
-    // MARK: - 2. What you want
-
-    private var goalPicker: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            header("What are you here for?",
-                   "It decides what you see first. You can change it later.")
-
-            VStack(spacing: Tokens.cardGap) {
-                ForEach(TrainingGoal.allCases, id: \.self) { goal in
-                    Button {
-                        Haptics.decided()
-                        chosen = goal
-                    } label: {
-                        goalRow(goal)
-                    }
-                    .buttonStyle(PressableStyle())
-                }
-            }
-            .padding(.horizontal, Tokens.screenMargin)
-
-            Spacer()
-
-            PrimaryButton(label: "Continue", enabled: chosen != nil) { step = 2 }
-                .padding(.horizontal, Tokens.screenMargin)
-                .padding(.bottom, 16)
-        }
-    }
-
-    private func goalRow(_ goal: TrainingGoal) -> some View {
-        let selected = chosen == goal
-        return HStack(spacing: 14) {
-            Image(systemName: goal.symbol)
-                .font(.system(size: 16, weight: .medium))
-                .foregroundStyle(selected ? Tokens.onAccent : Tokens.textSecondary)
-                .frame(width: 40, height: 40)
-                .background(selected ? Tokens.accent : Tokens.surfaceSunken, in: Circle())
-            VStack(alignment: .leading, spacing: 3) {
-                Text(goal.title)
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(Tokens.textPrimary)
-                Text(goal.promise)
-                    .font(.system(size: 13))
-                    .foregroundStyle(Tokens.textSecondary)
-                    .multilineTextAlignment(.leading)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            Spacer(minLength: 0)
-        }
-        .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Tokens.surface, in: RoundedRectangle(cornerRadius: Tokens.cardRadius,
-                                                         style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: Tokens.cardRadius, style: .continuous)
-            .strokeBorder(selected ? Tokens.accent : .clear, lineWidth: 2))
-        .shadow(color: .black.opacity(0.05), radius: 10, x: 0, y: 2)
-        .shadow(color: .black.opacity(0.03), radius: 2, x: 0, y: 1)
-    }
-
-    // MARK: - 3. Why it needs Health
-
-    private var healthAccess: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            header("Connect Health",
-                   "Everything is read on this device and stays on it. Nothing is uploaded.")
-
-            VStack(spacing: 18) {
-                point("moon.zzz", "Sleep and overnight vitals",
-                      "The night is most of the signal.")
-                point("heart", "Heart rate and variability",
-                      "Compared only against your own history.")
-                point("flame", "Activity and training",
-                      "So a hard week is not read as a bad one.")
-            }
-            .padding(.horizontal, 30)
-
-            Spacer()
-
-            VStack(spacing: 10) {
-                PrimaryButton(label: connecting ? "Connecting…" : "Connect Health",
-                              enabled: !connecting) {
-                    connect()
-                }
-                Text("Readiness needs at least a couple of nights before it can say anything.")
-                    .font(.system(size: 12))
-                    .foregroundStyle(Tokens.textTertiary)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .padding(.horizontal, Tokens.screenMargin)
-            .padding(.bottom, 16)
-        }
-    }
-
     private func connect() {
-        guard let goal = chosen else { return }
         connecting = true
-        model.setGoal(goal, in: context)
+        model.completeOnboarding(answers, in: context)
+        advance(to: .reading)
         Task {
             await model.refresh()
             model.startBackgroundDelivery()
             connecting = false
+            Haptics.committed()
+            advance(to: .baselines)
         }
     }
 
-    private func header(_ title: String, _ subtitle: String) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(title)
-                .font(.system(size: 28, weight: .bold))
-                .foregroundStyle(Tokens.textPrimary)
-            Text(subtitle)
-                .font(.system(size: 15))
-                .foregroundStyle(Tokens.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
+    // MARK: - The reveal
+
+    private var readingStep: some View {
+        VStack(spacing: 22) {
+            Spacer()
+            JettOrb(size: 76, isThinking: true)
+            VStack(spacing: 8) {
+                Text("Reading your history")
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundStyle(Tokens.textPrimary)
+                Text("Building a baseline from everything already on this phone.")
+                    .font(.system(size: 15))
+                    .foregroundStyle(Tokens.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 32)
+            }
+            Spacer()
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, Tokens.screenMargin)
-        .padding(.top, 28)
-        .padding(.bottom, 24)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Tokens.canvas.ignoresSafeArea())
+    }
+
+    /// Real numbers, read from the device a second ago. The entire pitch of the app is
+    /// that it uses your own history — so the last thing onboarding does is show it.
+    private var baselinesStep: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 30))
+                            .foregroundStyle(Tokens.accent)
+                        Text(headline)
+                            .font(.system(size: 27, weight: .bold))
+                            .foregroundStyle(Tokens.textPrimary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Text(subhead)
+                            .font(.system(size: 15))
+                            .foregroundStyle(Tokens.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(.top, 20)
+
+                    if let day = model.day, !day.readings.isEmpty {
+                        ListCard {
+                            ForEach(Array(day.readings.enumerated()), id: \.element.kind) { index, reading in
+                                if index > 0 {
+                                    Divider().overlay(Tokens.hairline).padding(.leading, 14)
+                                }
+                                FieldRow(label: reading.kind.displayName) {
+                                    Text(reading.baseline.formatted(.number.precision(.fractionLength(1)))
+                                         + " " + reading.kind.unit)
+                                        .monospacedDigit()
+                                }
+                            }
+                        }
+                    }
+                }
+                .padding(.horizontal, Tokens.screenMargin)
+                .padding(.bottom, 24)
+            }
+            PrimaryButton(label: "Start") { model.finishOnboarding() }
+                .padding(.horizontal, Tokens.screenMargin)
+                .padding(.bottom, 12)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .background(Tokens.canvas.ignoresSafeArea())
+    }
+
+    private var headline: String {
+        guard let day = model.day else { return "You're set up" }
+        return "\(Copy.count(day.daysOfHistory, "day")) of your history, read"
+    }
+
+    private var subhead: String {
+        guard let day = model.day else {
+            return "No history on this phone yet. Wear your watch tonight and Readiness "
+                 + "will have something to say tomorrow."
+        }
+        switch day.readiness.confidence {
+        case .low:
+            return "Enough to start, not enough to be sure. These baselines sharpen every night."
+        default:
+            return "These are your baselines. Every number in the app is measured against them."
+        }
     }
 }
