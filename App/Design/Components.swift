@@ -3,59 +3,72 @@ import Charts
 
 // MARK: - Signal identity
 
-/// Each signal gets its own hue and its own sky. Distinct enough to recognise at a
-/// glance, and shared across the card, the ring and the detail screen so the three
-/// read as one object rather than three.
 enum Signal: String, CaseIterable, Identifiable {
-    case readiness, sleep, load
+    /// Declared in the order they sit across the top of Today.
+    case strain, recovery, sleep
     var id: String { rawValue }
 
     var title: String {
         switch self {
-        case .readiness: return "Readiness"
+        case .strain: return "Strain"
+        case .recovery: return "Recovery"
         case .sleep: return "Sleep"
-        case .load: return "Load"
         }
     }
 
-    var symbol: String {
+    /// The small word under the figure inside a hero ring.
+    var heroWord: String {
         switch self {
-        case .readiness: return "waveform.path.ecg"
-        case .sleep: return "moon.stars"
-        case .load: return "flame"
+        case .strain: return "Strain"
+        case .recovery: return "Recovered"
+        case .sleep: return "Sleep"
         }
     }
 
     var ring: [Color] {
         switch self {
-        case .readiness: return [Tokens.readinessLow, Tokens.readinessHigh]
-        case .sleep:     return [Tokens.sleepLow, Tokens.sleepHigh]
-        case .load:      return [Tokens.loadLow, Tokens.loadHigh]
+        case .strain:   return [Tokens.strainLow, Tokens.strainHigh]
+        case .recovery: return [Tokens.recoveryLow, Tokens.recoveryHigh]
+        case .sleep:    return [Tokens.sleepLow, Tokens.sleepHigh]
         }
     }
 
-    /// The soft sky behind a detail screen.
+    /// The figure's own colour inside the hero ring.
+    var figure: Color {
+        switch self {
+        case .strain: return Tokens.strainLow
+        case .recovery: return Tokens.recoveryHigh
+        case .sleep: return Tokens.sleepLow
+        }
+    }
+
     var sky: [Color] {
         switch self {
-        case .readiness: return [Tokens.skyReadinessTop, Tokens.skyReadinessBottom]
-        case .sleep:     return [Tokens.skySleepTop, Tokens.skySleepBottom]
-        case .load:      return [Tokens.skyLoadTop, Tokens.skyLoadBottom]
+        case .strain:   return [Tokens.skyStrainTop, Tokens.skyStrainMid, Tokens.skyStrainBottom]
+        case .recovery: return [Tokens.skyRecoveryTop, Tokens.skyRecoveryMid, Tokens.skyRecoveryBottom]
+        case .sleep:    return [Tokens.skySleepTop, Tokens.skySleepMid, Tokens.skySleepBottom]
         }
     }
+
+    /// Strain draws its unfilled remainder as hatching rather than a plain track.
+    var hatchesRemainder: Bool { self == .strain }
 }
 
-/// A soft vertical wash, fading into the canvas so the page still feels like one surface.
+/// The soft photographic wash behind a detail screen, fading into the canvas.
 struct SkyBackground: View {
     let signal: Signal
 
     var body: some View {
-        ZStack {
+        ZStack(alignment: .top) {
             Tokens.canvas
-            LinearGradient(colors: signal.sky + [Tokens.canvas],
-                           startPoint: .top, endPoint: .bottom)
-                .frame(maxHeight: 420)
-                .frame(maxHeight: .infinity, alignment: .top)
-                .blur(radius: 24)
+            LinearGradient(stops: [
+                .init(color: signal.sky[0], location: 0.00),
+                .init(color: signal.sky[1], location: 0.42),
+                .init(color: signal.sky[2], location: 0.72),
+                .init(color: Tokens.canvas, location: 1.00),
+            ], startPoint: .top, endPoint: .bottom)
+            .frame(height: 460)
+            .blur(radius: 18)
         }
         .ignoresSafeArea()
     }
@@ -63,29 +76,20 @@ struct SkyBackground: View {
 
 // MARK: - Ring
 
-/// A progress arc. The number in the middle is a percentile against the user's own
-/// history — a real quantity — not an invented score out of a hundred.
+/// The ring. A gradient arc on a light track, rounded caps, and — for strain — a
+/// hatched remainder rather than a plain one.
 struct RingGauge: View {
     let signal: Signal
-    /// nil means there is not enough history to say — which is different from zero.
+    /// nil means not enough history to say, which is not the same as zero.
     let percent: Int?
-    var caption: String?
-    var lineWidth: CGFloat = 10
-    var showsTitle = true
+    var lineWidth: CGFloat = 11
+    var figureSize: CGFloat = 22
+    var showsHeroWord = false
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var animated = false
 
-    /// A genuinely terrible day still draws a visible nub. An empty ring reads as
-    /// "broken", not as "bottom of your range".
-    private static let minimumVisibleArc = 0.018
-
-    /// `+` binds tighter than `??`, so this is spelled out rather than inlined.
-    private var accessibilityText: String {
-        let head = percent.map { "\(signal.title), \($0) percent" }
-            ?? "\(signal.title), not enough history yet"
-        return head + (caption.map { ", \($0)" } ?? "")
-    }
+    private static let minimumVisibleArc = 0.02
 
     private var fraction: Double {
         guard let percent else { return 0 }
@@ -93,98 +97,243 @@ struct RingGauge: View {
     }
 
     var body: some View {
-        VStack(spacing: 6) {
-            ZStack {
+        ZStack {
+            Circle()
+                .stroke(Tokens.ringTrack, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+
+            if signal.hatchesRemainder, percent != nil {
                 Circle()
-                    .stroke(Tokens.ringTrack, style: StrokeStyle(lineWidth: lineWidth,
-                                                                 lineCap: .round))
-                Circle()
-                    .trim(from: 0, to: animated ? fraction : 0)
-                    .stroke(
-                        AngularGradient(colors: signal.ring + [signal.ring[0]],
-                                        center: .center,
-                                        startAngle: .degrees(0), endAngle: .degrees(360)),
-                        style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+                    .trim(from: fraction, to: 1)
+                    .stroke(signal.ring[1].opacity(0.55),
+                            style: StrokeStyle(lineWidth: lineWidth, lineCap: .butt,
+                                               dash: [1.6, 3.4]))
                     .rotationEffect(.degrees(-90))
+            }
 
-                VStack(spacing: 0) {
-                    Text(percent.map(String.init) ?? "—")
-                        .font(.system(size: lineWidth * 3.0, weight: .semibold))
-                        .monospacedDigit()
-                        .foregroundStyle(Tokens.textPrimary)
-                        .minimumScaleFactor(0.5)
-                        .lineLimit(1)
-                    if let caption {
-                        Text(caption)
-                            .font(.system(size: max(9, lineWidth * 0.95)))
-                            .foregroundStyle(Tokens.textSecondary)
-                            .lineLimit(1)
-                    }
+            Circle()
+                .trim(from: 0, to: animated ? fraction : 0)
+                .stroke(AngularGradient(colors: signal.ring, center: .center,
+                                        startAngle: .degrees(-4), endAngle: .degrees(320)),
+                        style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+
+            VStack(spacing: -1) {
+                Text(percent.map { "\($0)" } ?? "—")
+                    .font(.system(size: figureSize, weight: .semibold))
+                    .monospacedDigit()
+                    .foregroundStyle(showsHeroWord ? signal.figure : Tokens.textPrimary)
+                + Text(percent == nil ? "" : "%")
+                    .font(.system(size: figureSize * 0.62, weight: .semibold))
+                    .foregroundStyle(showsHeroWord ? signal.figure : Tokens.textPrimary)
+
+                if showsHeroWord {
+                    Text(signal.heroWord)
+                        .font(.system(size: figureSize * 0.34))
+                        .foregroundStyle(Tokens.textSecondary)
                 }
-                .padding(lineWidth * 1.6)
             }
-            .aspectRatio(1, contentMode: .fit)
-
-            if showsTitle {
-                Text(signal.title)
-                    .font(.footnote)
-                    .foregroundStyle(Tokens.textSecondary)
-            }
+            .minimumScaleFactor(0.5)
+            .lineLimit(1)
+            .padding(lineWidth * 1.9)
         }
+        .aspectRatio(1, contentMode: .fit)
         .onAppear {
             guard !animated else { return }
             if reduceMotion { animated = true }
-            else { withAnimation(.easeOut(duration: 0.7).delay(0.05)) { animated = true } }
+            else { withAnimation(.easeOut(duration: 0.8).delay(0.05)) { animated = true } }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(accessibilityText)
+        .accessibilityLabel(percent.map { "\(signal.title), \($0) percent" }
+                            ?? "\(signal.title), not enough history yet")
     }
 }
 
-// MARK: - Stat chip
+/// The hero ring on a detail screen, seated on a raised white disc.
+struct HeroRing: View {
+    let signal: Signal
+    let percent: Int?
 
-/// The small labelled figures under a hero ring. Icon, label, value — one idea each.
-struct StatChip: View {
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(Tokens.surface)
+                .shadow(color: .black.opacity(0.10), radius: 18, x: 0, y: 6)
+            RingGauge(signal: signal, percent: percent, lineWidth: 17,
+                      figureSize: 40, showsHeroWord: true)
+                .padding(11)
+        }
+        .frame(width: 196, height: 196)
+    }
+}
+
+// MARK: - Cards
+
+/// Small icon and label, then a large value with its unit — the Bevel stat card.
+struct StatCard: View {
     let symbol: String
     let label: String
     let value: String
-    var tint: Color = Tokens.textSecondary
+    var unit: String?
+    var trend: Trend?
+
+    enum Trend { case up, down }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 5) {
                 Image(systemName: symbol)
-                    .font(.caption2)
-                    .foregroundStyle(tint)
-                Text(label)
-                    .font(.caption)
-                    .foregroundStyle(Tokens.textSecondary)
-                    .lineLimit(1)
+                    .font(.system(size: 11))
+                Text(label).font(.system(size: 13))
             }
-            Text(value)
-                .font(.system(.title3, weight: .semibold))
-                .monospacedDigit()
-                .foregroundStyle(Tokens.textPrimary)
-                .minimumScaleFactor(0.6)
-                .lineLimit(1)
+            .foregroundStyle(Tokens.textSecondary)
+            .lineLimit(1)
+
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                Text(value)
+                    .font(.system(size: 26, weight: .semibold))
+                    .monospacedDigit()
+                    .foregroundStyle(Tokens.textPrimary)
+                if let unit {
+                    Text(unit).font(.system(size: 14)).foregroundStyle(Tokens.textSecondary)
+                }
+                Spacer(minLength: 0)
+                if let trend {
+                    Image(systemName: trend == .up ? "arrowtriangle.up.fill"
+                                                   : "arrowtriangle.down.fill")
+                        .font(.system(size: 9))
+                        .foregroundStyle(trend == .up ? Tokens.positive : Tokens.negative)
+                }
+            }
+            .minimumScaleFactor(0.6)
+            .lineLimit(1)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.vertical, 12)
-        .padding(.horizontal, 14)
-        .background(Tokens.surface, in: RoundedRectangle(cornerRadius: 12))
+        .bevelCard(padding: 14)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(label), \(value)")
+        .accessibilityLabel("\(label), \(value) \(unit ?? "")")
     }
 }
 
-/// A trend line, not decoration. No axes, no grid — the shape is the point.
+/// COACHING label over a short paragraph. The only prose on the screen.
+struct CoachCard: View {
+    let message: String
+    var accessory: (label: String, symbol: String)?
+    var action: (() -> Void)?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Coaching").microLabel()
+                Text(message)
+                    .font(.system(size: 15))
+                    .foregroundStyle(Tokens.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(14)
+
+            if let accessory {
+                Divider().overlay(Tokens.hairline)
+                Button { action?() } label: {
+                    HStack(spacing: 7) {
+                        Image(systemName: accessory.symbol).font(.system(size: 13))
+                        Text(accessory.label).font(.system(size: 15))
+                        Spacer()
+                        Image(systemName: "arrow.right").font(.system(size: 13))
+                    }
+                    .foregroundStyle(Tokens.textPrimary)
+                    .padding(14)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Tokens.surface, in: RoundedRectangle(cornerRadius: Tokens.cardRadius,
+                                                         style: .continuous))
+        .shadow(color: .black.opacity(0.05), radius: 10, x: 0, y: 2)
+    }
+}
+
+/// A row in a Timeline list: badged icon, title, timestamp, chevron.
+struct TimelineRow: View {
+    let symbol: String
+    let badge: String?
+    let title: String
+    let subtitle: String
+    var tint: Color = Tokens.sleepLow
+
+    var body: some View {
+        HStack(spacing: 12) {
+            ZStack(alignment: .bottomLeading) {
+                RoundedRectangle(cornerRadius: 9, style: .continuous)
+                    .fill(tint.opacity(0.15))
+                    .frame(width: 38, height: 38)
+                    .overlay(Image(systemName: symbol).font(.system(size: 16)).foregroundStyle(tint))
+                if let badge {
+                    Text(badge)
+                        .font(.system(size: 9, weight: .semibold))
+                        .monospacedDigit()
+                        .foregroundStyle(Tokens.onAccent)
+                        .padding(.horizontal, 4).padding(.vertical, 1)
+                        .background(tint, in: Capsule())
+                        .offset(x: -3, y: 4)
+                }
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title).font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(Tokens.textPrimary)
+                Text(subtitle).font(.system(size: 13)).foregroundStyle(Tokens.textSecondary)
+            }
+            Spacer()
+            Image(systemName: "chevron.right").font(.system(size: 13))
+                .foregroundStyle(Tokens.textSecondary)
+        }
+        .bevelCard(padding: 12)
+        .accessibilityElement(children: .combine)
+    }
+}
+
+/// The segmented energy meter from the reference — discrete ticks, filled to a share.
+struct SegmentedMeter: View {
+    let fraction: Double
+    let symbol: String
+    var tint: Color = Tokens.accent
+    private let segments = 34
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: symbol).font(.system(size: 14)).foregroundStyle(tint)
+            GeometryReader { geometry in
+                let filled = Int((Double(segments) * max(0, min(1, fraction))).rounded())
+                HStack(spacing: 2) {
+                    ForEach(0..<segments, id: \.self) { index in
+                        RoundedRectangle(cornerRadius: 1)
+                            .fill(index < filled ? tint : Tokens.ringTrack)
+                            .frame(width: max(1.5, geometry.size.width / Double(segments) - 2))
+                    }
+                }
+                .frame(height: 18)
+            }
+            .frame(height: 18)
+            Text("\(Int((fraction * 100).rounded()))%")
+                .font(.system(size: 15, weight: .medium))
+                .monospacedDigit()
+                .foregroundStyle(Tokens.textPrimary)
+        }
+        .bevelCard(padding: 14)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(Int((fraction * 100).rounded())) percent")
+    }
+}
+
+/// A trend line with no axes — the shape is the point.
 struct Sparkline: View {
     let values: [Double]
     var tint: Color = Tokens.accent
 
     var body: some View {
         if values.count < 2 {
-            Text("Not enough history yet").qualifier()
+            Text("Not enough history yet")
+                .font(.system(size: 13)).foregroundStyle(Tokens.textSecondary)
         } else {
             Chart(Array(values.enumerated()), id: \.offset) { index, value in
                 LineMark(x: .value("Day", index), y: .value("Value", value))
@@ -196,36 +345,5 @@ struct Sparkline: View {
             .chartYScale(domain: .automatic(includesZero: false))
             .accessibilityHidden(true)
         }
-    }
-}
-
-/// The callout that carries what to actually do. Deliberately the loudest block on
-/// any screen it appears on.
-struct CoachingBlock: View {
-    let title: String
-    let message: String
-    var footnote: String?
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(title)
-                .font(.caption.weight(.semibold))
-                .textCase(.uppercase)
-                .tracking(0.8)
-                .foregroundStyle(Tokens.textSecondary)
-            Text(message)
-                .font(.subheadline)
-                .foregroundStyle(Tokens.textPrimary)
-                .fixedSize(horizontal: false, vertical: true)
-            if let footnote {
-                Text(footnote)
-                    .font(.footnote)
-                    .foregroundStyle(Tokens.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
-        .background(Tokens.surface, in: RoundedRectangle(cornerRadius: Tokens.cardRadius))
     }
 }

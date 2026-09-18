@@ -34,7 +34,7 @@ struct ReadinessApp: App {
 struct RootView: View {
     var body: some View {
         TabView {
-            NavigationStack { TodayView().navigationTitle("Today") }
+            NavigationStack { TodayView() }
                 .tabItem { Label("Today", systemImage: "sun.max") }
             NavigationStack { TrainView() }
                 .tabItem { Label("Train", systemImage: "figure.strengthtraining.traditional") }

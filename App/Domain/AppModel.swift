@@ -192,7 +192,7 @@ final class AppModel {
 
     /// Where today sits among this user's own days. Floored at 1 so the worst morning
     /// still reads as a measurement rather than a missing one.
-    var readinessPercent: Int? {
+    var recoveryPercent: Int? {
         guard let composite = day?.readiness.composite else { return nil }
         return max(1, Percentile.percent(fromZ: composite))
     }
@@ -207,7 +207,7 @@ final class AppModel {
     static let minimumSessionsForLoad = 3
 
     /// This week's training volume against a typical week for this user.
-    func loadPercent(context: ModelContext) -> Int? {
+    func strainPercent(context: ModelContext) -> Int? {
         let calendar = Calendar.current
         guard let cutoff = calendar.date(byAdding: .day, value: -StrainEngine.chronicDays,
                                          to: Date()) else { return nil }

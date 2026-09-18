@@ -31,7 +31,7 @@ struct TrendsView: View {
     private var readinessTrend: some View {
         let history = model.compositeHistory(days: 30)
         return VStack(alignment: .leading, spacing: 10) {
-            Text("Readiness, last 30 days").sectionHeader()
+            Text("Recovery, last 30 days").sectionHeader()
             if history.count < 2 {
                 Text("Not enough history yet.").font(.subheadline)
                     .foregroundStyle(Tokens.textSecondary).card()

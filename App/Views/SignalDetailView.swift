@@ -2,208 +2,233 @@ import SwiftUI
 import SwiftData
 import Charts
 
-/// One signal, in full. Hero figure, the measurements behind it, what it means for
-/// today, and how it has moved.
+/// One signal in full: sky, hero ring, two figures, a short coaching note, timeline.
 struct SignalDetailView: View {
     let signal: Signal
 
     @Environment(AppModel.self) private var model
     @Environment(\.modelContext) private var context
+    @Environment(\.dismiss) private var dismiss
     @Query private var sessions: [WorkoutSession]
+
+    @State private var showingWhy = false
 
     var body: some View {
         ZStack {
             SkyBackground(signal: signal)
             ScrollView {
-                VStack(spacing: 18) {
-                    hero
-                    HStack(spacing: 10) { chips }
-                    CoachingBlock(title: "What it means",
-                                  message: coaching,
-                                  footnote: footnote)
-                    trend
+                VStack(spacing: 16) {
+                    HeroRing(signal: signal, percent: percent)
+                        .padding(.top, 8)
+                        .padding(.bottom, 4)
+                    HStack(spacing: Tokens.cardGap) { figures }
+                    CoachCard(message: coaching,
+                              accessory: signal == .recovery
+                                ? (label: "View insights", symbol: "sparkles") : nil,
+                              action: { showingWhy = true })
+                    timeline
+                    trends
                 }
                 .padding(.horizontal, Tokens.screenMargin)
-                .padding(.top, 4)
-                .padding(.bottom, 92)
+                .padding(.bottom, 96)
             }
         }
-        .navigationTitle(signal.title)
         .navigationBarTitleDisplayMode(.inline)
-    }
-
-    // MARK: - Hero
-
-    private var hero: some View {
-        VStack(spacing: 8) {
-            RingGauge(signal: signal, percent: percent, caption: heroCaption,
-                      lineWidth: 16, showsTitle: false)
-                .frame(maxWidth: 210)
-                .padding(.top, 8)
-            Text(heroLine)
-                .font(.subheadline)
-                .foregroundStyle(Tokens.textSecondary)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                VStack(spacing: 1) {
+                    Text(signal.title)
+                        .font(.system(size: 17, weight: .bold))
+                        .foregroundStyle(Tokens.textPrimary)
+                    HStack(spacing: 4) {
+                        Text(Date(), format: .dateTime.month(.wide).day())
+                        Image(systemName: "chevron.down").font(.system(size: 9, weight: .semibold))
+                    }
+                    .font(.system(size: 12))
+                    .foregroundStyle(Tokens.textSecondary)
+                }
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                Button { showingWhy = true } label: {
+                    Image(systemName: "info.circle").font(.system(size: 16))
+                }
+                .tint(Tokens.textPrimary)
+                .accessibilityLabel("How this is calculated")
+            }
         }
-        .frame(maxWidth: .infinity)
+        .sheet(isPresented: $showingWhy) {
+            if let day = model.day, let rec = model.recommendation {
+                WhyView(day: day, recommendation: rec)
+            }
+        }
     }
 
     private var percent: Int? {
         switch signal {
-        case .readiness: return model.readinessPercent
-        case .sleep: return model.sleepPercent
-        case .load: return model.loadPercent(context: context)
+        case .recovery: return model.recoveryPercent
+        case .sleep:    return model.sleepPercent
+        case .strain:   return model.strainPercent(context: context)
         }
     }
 
-    private var heroCaption: String {
-        switch signal {
-        case .readiness: return "percentile"
-        case .sleep: return "of need"
-        case .load: return "of usual"
-        }
-    }
-
-    private var heroLine: String {
-        switch signal {
-        case .readiness:
-            let composite = model.day?.readiness.composite ?? 0
-            let sd = composite.formatted(.number.precision(.fractionLength(2))
-                .sign(strategy: .always()))
-            guard let percent else { return "\(sd) SD from your baseline. Still calibrating." }
-            return "\(sd) SD from your own baseline — better than \(percent)% of your days."
-        case .sleep:
-            guard let hours = model.latestSleepHours else { return "No sleep recorded last night." }
-            // Reworded to sidestep a/an, since the target is configurable.
-            return "You slept \(hours.formatted(.number.precision(.fractionLength(1)))) h of the "
-                 + "\(Int(DayAssembler.sleepNeedHours)) h you need."
-        case .load:
-            return percent == nil
-                ? "Log a few more sessions and this will compare your week against a typical one."
-                : "This week's training volume against a typical week for you."
-        }
-    }
-
-    // MARK: - Chips
+    // MARK: - The two figures
 
     @ViewBuilder
-    private var chips: some View {
+    private var figures: some View {
         switch signal {
-        case .readiness:
-            StatChip(symbol: "waveform.path.ecg", label: "Resting HRV",
-                     value: value(.hrv, unit: "ms"), tint: Tokens.readinessLow)
-            StatChip(symbol: "heart", label: "Resting HR",
-                     value: value(.restingHeartRate, unit: "bpm"), tint: Tokens.readinessLow)
+        case .recovery:
+            metricCard(.hrv, symbol: "waveform.path.ecg", label: "Resting HRV")
+            metricCard(.restingHeartRate, symbol: "heart", label: "Resting HR")
 
         case .sleep:
-            StatChip(symbol: "bed.double", label: "Duration",
+            StatCard(symbol: "bed.double", label: "Duration",
                      value: model.latestSleepHours.map {
-                         $0.formatted(.number.precision(.fractionLength(1))) + " h" } ?? "—",
-                     tint: Tokens.sleepLow)
-            StatChip(symbol: "hourglass", label: "Debt",
+                         $0.formatted(.number.precision(.fractionLength(1))) } ?? "—",
+                     unit: "h")
+            StatCard(symbol: "hourglass", label: "Debt",
                      value: model.reading(.sleepDebt).map {
-                         $0.value.formatted(.number.precision(.fractionLength(1))) + " h" } ?? "—",
-                     tint: Tokens.sleepLow)
+                         $0.value.formatted(.number.precision(.fractionLength(1))) } ?? "—",
+                     unit: "h")
 
-        case .load:
-            StatChip(symbol: "scalemass", label: "Volume, 7d",
-                     value: formattedVolume, tint: Tokens.loadLow)
-            StatChip(symbol: "chart.line.uptrend.xyaxis", label: "Acute : chronic",
+        case .strain:
+            StatCard(symbol: "scalemass", label: "Volume, 7d",
+                     value: weeklyVolume > 0 ? formattedVolume : "—",
+                     unit: weeklyVolume > 0 ? "lb" : nil)
+            StatCard(symbol: "chart.line.uptrend.xyaxis", label: "Acute : chronic",
                      value: model.acwr.map {
-                         $0.formatted(.number.precision(.fractionLength(2))) } ?? "—",
-                     tint: Tokens.loadLow)
+                         $0.formatted(.number.precision(.fractionLength(2))) } ?? "—")
         }
     }
 
-    private func value(_ kind: MetricKind, unit: String) -> String {
-        guard let reading = model.reading(kind) else { return "—" }
-        return reading.value.formatted(.number.precision(.fractionLength(1))) + " " + unit
+    @ViewBuilder
+    private func metricCard(_ kind: MetricKind, symbol: String, label: String) -> some View {
+        if let reading = model.reading(kind) {
+            StatCard(symbol: symbol, label: label,
+                     value: reading.value.formatted(.number.precision(.fractionLength(1))),
+                     unit: reading.kind.unit,
+                     trend: reading.zScore * kind.polarity >= 0 ? .up : .down)
+        } else {
+            StatCard(symbol: symbol, label: label, value: "—")
+        }
     }
 
     private var weeklyVolume: Double {
-        let daily = model.recentVolume(days: StrainEngine.chronicDays, context: context)
-        return daily.suffix(StrainEngine.acuteDays).reduce(0, +)
+        model.recentVolume(days: StrainEngine.chronicDays, context: context)
+            .suffix(StrainEngine.acuteDays).reduce(0, +)
     }
 
     private var formattedVolume: String {
-        guard weeklyVolume > 0 else { return "—" }
-        return weeklyVolume >= 10_000
-            ? (weeklyVolume / 1000).formatted(.number.precision(.fractionLength(1))) + "k lb"
-            : weeklyVolume.formatted(.number.precision(.fractionLength(0))) + " lb"
+        weeklyVolume >= 10_000
+            ? (weeklyVolume / 1000).formatted(.number.precision(.fractionLength(1))) + "k"
+            : weeklyVolume.formatted(.number.precision(.fractionLength(0)))
     }
 
-    // MARK: - Coaching
+    // MARK: - Coaching, kept short
 
     private var coaching: String {
         switch signal {
-        case .readiness:
-            guard let contributions = model.day?.readiness.contributions, !contributions.isEmpty,
-                  let worst = contributions.min(by: { $0.points < $1.points })
-            else { return "Not enough history to say yet." }
-            return "\(Copy.describe(worst)) is the biggest thing holding today back. "
-                 + (model.recommendation.map { Copy.call(for: $0, gate: model.day?.readiness.gateApplied) } ?? "")
+        case .recovery:
+            guard let reading = model.reading(.hrv) else { return "Still building your baseline." }
+            let value = reading.value.formatted(.number.precision(.fractionLength(1)))
+            let baseline = reading.baseline.formatted(.number.precision(.fractionLength(1)))
+            let direction = reading.zScore < 0 ? "below" : "above"
+            return "Your resting HRV (\(value) ms) is \(direction) its average of \(baseline) ms."
 
         case .sleep:
-            guard let hours = model.latestSleepHours else {
-                return "No sleep was recorded last night, so it isn't voting on today's call."
-            }
+            guard let hours = model.latestSleepHours else { return "No sleep recorded last night." }
             let gap = DayAssembler.sleepNeedHours - hours
             return gap > 0.25
-                ? "You were \(gap.formatted(.number.precision(.fractionLength(1)))) h short "
-                  + "last night. Sleep debt is one of the five inputs behind today's call."
-                : "You met your target last night, which is helping today's number."
+                ? "You were \(gap.formatted(.number.precision(.fractionLength(1)))) h short of your "
+                  + "\(Int(DayAssembler.sleepNeedHours)) h target."
+                : "You met your \(Int(DayAssembler.sleepNeedHours)) h target last night."
 
-        case .load:
+        case .strain:
             guard let acwr = model.acwr else {
-                return "Log a few sessions and this will start comparing your week against your month."
+                return "Log a few more sessions and this will compare your week against your month."
             }
             return acwr > ReadinessEngine.acwrGate
-                ? "Your last seven days are running well above your four-week average. "
-                  + "That spike caps how far the app will let today's session climb."
-                : "Your recent load is in the steady range against your four-week average."
+                ? "Your last seven days are running above your four-week average."
+                : "Your recent load is steady against your four-week average."
         }
     }
 
-    private var footnote: String? {
-        switch signal {
-        case .readiness:
-            guard let day = model.day else { return nil }
-            return "Model \(day.readiness.modelVersion) · \(day.daysOfHistory) days of history "
-                 + "· confidence \(day.readiness.confidence.rawValue)"
-        case .sleep, .load:
-            return nil
-        }
-    }
+    // MARK: - Timeline
 
-    // MARK: - Trend
-
-    private var trend: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Last 14 days").sectionHeader()
-            Group {
-                switch signal {
-                case .readiness:
-                    Sparkline(values: model.compositeHistory(), tint: Tokens.readinessLow)
-                        .frame(height: 110)
-                case .sleep:
-                    Sparkline(values: model.sleepHoursSeries(), tint: Tokens.sleepLow)
-                        .frame(height: 110)
-                case .load:
-                    let volumes = model.recentVolume(days: 14, context: context)
-                    if volumes.allSatisfy({ $0 == 0 }) {
-                        Text("Log a session and this fills in.").qualifier()
-                    } else {
-                        Chart(Array(volumes.enumerated()), id: \.offset) { index, value in
-                            BarMark(x: .value("Day", index), y: .value("Volume", value))
-                                .foregroundStyle(Tokens.loadLow.opacity(0.8))
-                        }
-                        .chartXAxis(.hidden)
-                        .frame(height: 110)
+    private var timeline: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Timeline").sectionHeading()
+            switch signal {
+            case .sleep, .recovery:
+                if let hours = model.latestSleepHours {
+                    TimelineRow(symbol: "moon.stars.fill",
+                                badge: model.sleepPercent.map(String.init),
+                                title: "Primary sleep",
+                                subtitle: "\(hours.formatted(.number.precision(.fractionLength(1)))) h recorded",
+                                tint: Tokens.sleepLow)
+                } else {
+                    emptyTimeline("No sleep recorded")
+                }
+            case .strain:
+                if todaysSessions.isEmpty {
+                    emptyTimeline("No activities")
+                } else {
+                    ForEach(todaysSessions) { session in
+                        TimelineRow(symbol: "figure.strengthtraining.traditional",
+                                    badge: nil,
+                                    title: session.templateName,
+                                    subtitle: "\(Int(session.load.volumeLoad)) lb volume",
+                                    tint: Tokens.strainLow)
                     }
                 }
             }
-            .card()
+        }
+    }
+
+    private var todaysSessions: [WorkoutSession] {
+        sessions.filter { Calendar.current.isDateInToday($0.date) }
+    }
+
+    private func emptyTimeline(_ message: String) -> some View {
+        VStack(spacing: 4) {
+            Text(message).font(.system(size: 15, weight: .medium))
+                .foregroundStyle(Tokens.textPrimary)
+            Text("Nothing recorded for this period.")
+                .font(.system(size: 13)).foregroundStyle(Tokens.textSecondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 26)
+    }
+
+    // MARK: - Trends
+
+    private var trends: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Trends").sectionHeading()
+            Group {
+                switch signal {
+                case .recovery:
+                    Sparkline(values: model.compositeHistory(), tint: Tokens.recoveryHigh)
+                        .frame(height: 96)
+                case .sleep:
+                    Sparkline(values: model.sleepHoursSeries(), tint: Tokens.sleepLow)
+                        .frame(height: 96)
+                case .strain:
+                    let volumes = model.recentVolume(days: 14, context: context)
+                    if volumes.allSatisfy({ $0 == 0 }) {
+                        Text("Log a session and this fills in.")
+                            .font(.system(size: 13)).foregroundStyle(Tokens.textSecondary)
+                            .frame(height: 96)
+                    } else {
+                        Chart(Array(volumes.enumerated()), id: \.offset) { index, value in
+                            BarMark(x: .value("Day", index), y: .value("Volume", value))
+                                .foregroundStyle(Tokens.strainLow.opacity(0.85))
+                        }
+                        .chartXAxis(.hidden)
+                        .frame(height: 96)
+                    }
+                }
+            }
+            .bevelCard(padding: 14)
         }
     }
 }
