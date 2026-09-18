@@ -1,0 +1,57 @@
+import Foundation
+
+/// Strength work is real physiological load, and duration or average heart rate does not
+/// capture it. These are the features the recommendation layer actually consumes.
+public struct SessionLoad: Equatable, Sendable {
+    public let volumeLoad: Double
+    public let hardSetsByMuscle: [MuscleGroup: Int]
+    public let sessionRPE: Double
+    public let closeToFailureShare: Double
+}
+
+public enum StrainEngine {
+    /// A set within 3 reps of failure is the one that drives adaptation and fatigue.
+    public static let hardSetRIRThreshold = 3
+
+    public static func sessionLoad(sets: [LiftSet], sessionRPE: Double) -> SessionLoad {
+        let working = sets.filter { !$0.isWarmup }
+        let volume = working.reduce(0.0) { $0 + $1.load * Double($1.reps) }
+
+        let hard = working.filter { $0.rir <= hardSetRIRThreshold }
+        var byMuscle: [MuscleGroup: Int] = [:]
+        for set in hard { byMuscle[set.muscleGroup, default: 0] += 1 }
+
+        let share = working.isEmpty ? 0 : Double(hard.count) / Double(working.count)
+
+        return SessionLoad(volumeLoad: volume, hardSetsByMuscle: byMuscle,
+                           sessionRPE: sessionRPE, closeToFailureShare: share)
+    }
+
+    public static let acuteDays = 7
+    public static let chronicDays = 28
+
+    /// Acute (7 day) against chronic (28 day) load. Above ~1.5 is a spike.
+    public static func acwr(daily: [Double]) -> Double? {
+        guard daily.count >= chronicDays else { return nil }
+        let acute = daily.suffix(acuteDays)
+        let chronic = daily.suffix(chronicDays)
+        let chronicMean = chronic.reduce(0, +) / Double(chronic.count)
+        guard chronicMean > 0 else { return nil }
+        let acuteMean = acute.reduce(0, +) / Double(acute.count)
+        return acuteMean / chronicMean
+    }
+
+    /// Scales novelty so that 2.5x the recent norm reads as a full jump.
+    static let noveltyFullScaleRatio = 1.5
+
+    /// How unlike the recent norm today's session was. 0 is routine, 1 is a big jump.
+    /// An easier day is not novel load — backing off is not a stressor.
+    public static func novelty(todayVolume: Double, recentVolumes: [Double]) -> Double {
+        guard !recentVolumes.isEmpty else { return 0 }
+        let baseline = recentVolumes.reduce(0, +) / Double(recentVolumes.count)
+        guard baseline > 0 else { return 0 }
+        let ratio = todayVolume / baseline
+        guard ratio > 1 else { return 0 }
+        return min(1.0, (ratio - 1) / noveltyFullScaleRatio)
+    }
+}
