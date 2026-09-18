@@ -46,11 +46,15 @@ struct PlannedSessionCard: View {
             if isOverridden {
                 AccessoryRow(symbol: "arrow.uturn.backward",
                              label: "Use Jett's adjustment",
-                             tint: Tokens.textSecondary) { model.record(.accepted) }
+                             tint: Tokens.textSecondary) {
+                    Haptics.decided()
+                    model.record(.accepted)
+                }
             } else {
                 AccessoryRow(symbol: allDeferred ? "calendar.badge.checkmark" : "arrow.uturn.backward",
                              label: allDeferred ? "Move back to today" : "Keep my original plan",
                              tint: Tokens.textPrimary) {
+                    Haptics.decided()
                     model.coachAdjustment = nil
                     model.record(.rejected)
                 }
@@ -178,9 +182,11 @@ struct AdjustSessionView: View {
                             PlannedSessionCard(template: template, recommendation: rec)
 
                             PrimaryButton(label: "Use the adjusted session") {
+                                Haptics.committed()
                                 model.record(.accepted); dismiss()
                             }
                             Button {
+                                Haptics.decided()
                                 model.record(.rejected); dismiss()
                             } label: {
                                 Text("Keep my original plan")

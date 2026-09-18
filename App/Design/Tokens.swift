@@ -22,12 +22,19 @@ enum Tokens {
 
     // Rings
     static let ringTrack     = dynamic(light: 0xEAEAEE, dark: 0x2C2C31)
-    static let strainLow     = dynamic(light: 0xF2B233, dark: 0xF6C455)
-    static let strainHigh    = dynamic(light: 0xF7CE5B, dark: 0xFAD97E)
-    static let recoveryLow   = dynamic(light: 0xC9D93A, dark: 0xD4E356)
-    static let recoveryHigh  = dynamic(light: 0x3BB254, dark: 0x5BD173)
-    static let sleepLow      = dynamic(light: 0x6C7BD9, dark: 0x8590E5)
-    static let sleepHigh     = dynamic(light: 0x9AA3EA, dark: 0xADB4F2)
+    // Each ring runs light at the start of its arc to deep at the tip, so the end of
+    // the drawn line is always the most saturated part of it.
+    static let strainHigh    = dynamic(light: 0xFAD98A, dark: 0xFBE0A0)
+    static let strainLow     = dynamic(light: 0xF0AE28, dark: 0xF5C045)
+    static let strainDeep    = dynamic(light: 0xCE7A17, dark: 0xE09433)
+
+    static let recoveryLow   = dynamic(light: 0xD6E356, dark: 0xDFE96E)
+    static let recoveryHigh  = dynamic(light: 0x5FC22E, dark: 0x74D344)
+    static let recoveryDeep  = dynamic(light: 0x2A9440, dark: 0x3FAF57)
+
+    static let sleepHigh     = dynamic(light: 0xA9B6F7, dark: 0xB8C2FA)
+    static let sleepLow      = dynamic(light: 0x6472DA, dark: 0x8290E8)
+    static let sleepDeep     = dynamic(light: 0x3F45A8, dark: 0x5A62C4)
 
     // Meaning
     static let accent        = dynamic(light: 0x2FA84A, dark: 0x54C96E)

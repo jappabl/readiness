@@ -25,20 +25,21 @@ enum Signal: String, CaseIterable, Identifiable {
         }
     }
 
+    /// Light at the arc's start, deepest at its tip.
     var ring: [Color] {
         switch self {
-        case .strain:   return [Tokens.strainLow, Tokens.strainHigh]
-        case .recovery: return [Tokens.recoveryLow, Tokens.recoveryHigh]
-        case .sleep:    return [Tokens.sleepLow, Tokens.sleepHigh]
+        case .strain:   return [Tokens.strainHigh, Tokens.strainLow, Tokens.strainDeep]
+        case .recovery: return [Tokens.recoveryLow, Tokens.recoveryHigh, Tokens.recoveryDeep]
+        case .sleep:    return [Tokens.sleepHigh, Tokens.sleepLow, Tokens.sleepDeep]
         }
     }
 
     /// The figure's own colour inside the hero ring.
     var figure: Color {
         switch self {
-        case .strain: return Tokens.strainLow
-        case .recovery: return Tokens.recoveryHigh
-        case .sleep: return Tokens.sleepLow
+        case .strain: return Tokens.strainDeep
+        case .recovery: return Tokens.recoveryDeep
+        case .sleep: return Tokens.sleepDeep
         }
     }
 
@@ -113,7 +114,10 @@ struct RingGauge: View {
             Circle()
                 .trim(from: 0, to: animated ? fraction : 0)
                 .stroke(AngularGradient(colors: signal.ring, center: .center,
-                                        startAngle: .degrees(-4), endAngle: .degrees(320)),
+                                        startAngle: .degrees(0),
+                                        // Compress the ramp into the drawn arc, so a
+                                        // short ring still reaches its deepest colour.
+                                        endAngle: .degrees(360 * max(0.12, fraction))),
                         style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
                 .rotationEffect(.degrees(-90))
 

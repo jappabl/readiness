@@ -12,6 +12,7 @@
 		7F4D405B9C01F5887FFDBF05 /* CoachProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBCC3151D19B79D645F78D9A /* CoachProvider.swift */; };
 		1F2ABFDB99F5A157202064B1 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = A05C07BD369FE0B4C393E4DD /* Models.swift */; };
 		8EB8022FAEB8B072A5B48D87 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0BCBBC313CD0F4786FBECC8 /* Components.swift */; };
+		EE03F8BEDCD6A9A537C094A1 /* Haptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = D05CEB565B3FE57087B3DF2F /* Haptics.swift */; };
 		8B34409B561B864F27FC08B8 /* Tokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DC92FB9E866D08DA7B20B63 /* Tokens.swift */; };
 		D5DD1FF9090A37E50C8620A7 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8D4A3BC6412D0F227E7426E /* AppModel.swift */; };
 		3637D17E12D76F9EAA126693 /* Copy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 727B333776AC76D5EAD1EBBA /* Copy.swift */; };
@@ -42,6 +43,7 @@
 		6F01DF9CFABBDDEC10A42440 /* ReadinessEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = D38B16F137B828E985434ED7 /* ReadinessEngine.swift */; };
 		7C3380F055337EA303C536B7 /* RecommendationEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD58B08A5DA45A979AEB8E31 /* RecommendationEngine.swift */; };
 		51ED31F44E6B48A325A251C7 /* SessionPlanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77311ADBF1851EC9BE0A1B98 /* SessionPlanner.swift */; };
+		5B3B248146C139959F77B91B /* SpokenSetParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08F8A3D6CEA4393252D67072 /* SpokenSetParser.swift */; };
 		A343E7F972FC8BA6774F7F35 /* StrainEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA4B7944599E6BF427A4842E /* StrainEngine.swift */; };
 		9DB49FB00EA20A4C94A59D67 /* Training.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8E4DCF35AF6C72C1EB7D54F /* Training.swift */; };
 /* End PBXBuildFile section */
@@ -55,6 +57,7 @@
 		CBCC3151D19B79D645F78D9A /* CoachProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CoachProvider.swift"; sourceTree = "<group>"; };
 		A05C07BD369FE0B4C393E4DD /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Models.swift"; sourceTree = "<group>"; };
 		F0BCBBC313CD0F4786FBECC8 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Components.swift"; sourceTree = "<group>"; };
+		D05CEB565B3FE57087B3DF2F /* Haptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Haptics.swift"; sourceTree = "<group>"; };
 		0DC92FB9E866D08DA7B20B63 /* Tokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Tokens.swift"; sourceTree = "<group>"; };
 		A8D4A3BC6412D0F227E7426E /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppModel.swift"; sourceTree = "<group>"; };
 		727B333776AC76D5EAD1EBBA /* Copy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Copy.swift"; sourceTree = "<group>"; };
@@ -85,6 +88,7 @@
 		D38B16F137B828E985434ED7 /* ReadinessEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ReadinessEngine.swift"; sourceTree = "<group>"; };
 		AD58B08A5DA45A979AEB8E31 /* RecommendationEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "RecommendationEngine.swift"; sourceTree = "<group>"; };
 		77311ADBF1851EC9BE0A1B98 /* SessionPlanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SessionPlanner.swift"; sourceTree = "<group>"; };
+		08F8A3D6CEA4393252D67072 /* SpokenSetParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SpokenSetParser.swift"; sourceTree = "<group>"; };
 		AA4B7944599E6BF427A4842E /* StrainEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StrainEngine.swift"; sourceTree = "<group>"; };
 		C8E4DCF35AF6C72C1EB7D54F /* Training.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Training.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -158,6 +162,7 @@
 			isa = PBXGroup;
 			children = (
 				F0BCBBC313CD0F4786FBECC8 /* Components.swift */,
+				D05CEB565B3FE57087B3DF2F /* Haptics.swift */,
 				0DC92FB9E866D08DA7B20B63 /* Tokens.swift */,
 			);
 			name = "Design";
@@ -219,6 +224,7 @@
 				D38B16F137B828E985434ED7 /* ReadinessEngine.swift */,
 				AD58B08A5DA45A979AEB8E31 /* RecommendationEngine.swift */,
 				77311ADBF1851EC9BE0A1B98 /* SessionPlanner.swift */,
+				08F8A3D6CEA4393252D67072 /* SpokenSetParser.swift */,
 				AA4B7944599E6BF427A4842E /* StrainEngine.swift */,
 				C8E4DCF35AF6C72C1EB7D54F /* Training.swift */,
 			);
@@ -299,6 +305,7 @@
 				7F4D405B9C01F5887FFDBF05 /* CoachProvider.swift in Sources */,
 				1F2ABFDB99F5A157202064B1 /* Models.swift in Sources */,
 				8EB8022FAEB8B072A5B48D87 /* Components.swift in Sources */,
+				EE03F8BEDCD6A9A537C094A1 /* Haptics.swift in Sources */,
 				8B34409B561B864F27FC08B8 /* Tokens.swift in Sources */,
 				D5DD1FF9090A37E50C8620A7 /* AppModel.swift in Sources */,
 				3637D17E12D76F9EAA126693 /* Copy.swift in Sources */,
@@ -329,6 +336,7 @@
 				6F01DF9CFABBDDEC10A42440 /* ReadinessEngine.swift in Sources */,
 				7C3380F055337EA303C536B7 /* RecommendationEngine.swift in Sources */,
 				51ED31F44E6B48A325A251C7 /* SessionPlanner.swift in Sources */,
+				5B3B248146C139959F77B91B /* SpokenSetParser.swift in Sources */,
 				A343E7F972FC8BA6774F7F35 /* StrainEngine.swift in Sources */,
 				9DB49FB00EA20A4C94A59D67 /* Training.swift in Sources */,
 			);

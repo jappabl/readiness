@@ -87,8 +87,10 @@ struct TodayView: View {
 
     // MARK: - Rings and coaching, one card
 
+    /// Two surfaces, not one card with a rule through it: the rings sit on top of the
+    /// coaching card, their rounded bottom edge and shadow doing the separating.
     private var summaryCard: some View {
-        VStack(spacing: 0) {
+        VStack(spacing: -18) {
             HStack(spacing: 0) {
                 ringCell(.strain, percent: model.strainPercent(context: context))
                 cellDivider
@@ -96,9 +98,12 @@ struct TodayView: View {
                 cellDivider
                 ringCell(.sleep, percent: model.sleepPercent)
             }
-            .padding(.vertical, 14)
-
-            Divider().overlay(Tokens.hairline)
+            .padding(.vertical, 15)
+            .frame(maxWidth: .infinity)
+            .background(Tokens.surface,
+                        in: RoundedRectangle(cornerRadius: Tokens.cardRadius, style: .continuous))
+            .shadow(color: .black.opacity(0.07), radius: 8, x: 0, y: 4)
+            .zIndex(1)
 
             if let rec = model.recommendation, let day = model.day {
                 Button { showingWhy = true } label: {
@@ -117,17 +122,20 @@ struct TodayView: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 16)
-                    .padding(.vertical, 13)
+                    // Extra head room so the copy clears the card resting on top of it.
+                    .padding(.top, 31)
+                    .padding(.bottom, 14)
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(PressableStyle())
                 .accessibilityHint("Shows how this was calculated")
+                .frame(maxWidth: .infinity)
+                .background(Tokens.surface,
+                            in: RoundedRectangle(cornerRadius: Tokens.cardRadius,
+                                                 style: .continuous))
+                .shadow(color: .black.opacity(0.05), radius: 10, x: 0, y: 2)
             }
         }
-        .frame(maxWidth: .infinity)
-        .background(Tokens.surface, in: RoundedRectangle(cornerRadius: Tokens.cardRadius,
-                                                         style: .continuous))
-        .shadow(color: .black.opacity(0.05), radius: 10, x: 0, y: 2)
     }
 
     private var cellDivider: some View {

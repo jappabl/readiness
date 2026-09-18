@@ -29,6 +29,7 @@ struct CheckInView: View {
                         PrimaryButton(label: "Save check-in") {
                             let checkIn = CheckIn(soreness: soreness, energy: energy,
                                                   stress: stress, mood: mood)
+                            Haptics.committed()
                             dismiss()
                             Task { await model.saveCheckIn(checkIn) }
                         }

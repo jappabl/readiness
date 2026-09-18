@@ -270,6 +270,7 @@ struct LiveWorkoutView: View {
         set.session = session
         session.sets.append(set)
         try? context.save()
+        Haptics.committed()
         startRest(seconds: exercise.restSeconds)
         if setsLogged >= exercise.targetSets, exerciseIndex < exercises.count - 1 {
             exerciseIndex += 1
@@ -281,7 +282,12 @@ struct LiveWorkoutView: View {
         restRemaining = seconds
         restTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { timer in
             Task { @MainActor in
-                if restRemaining > 0 { restRemaining -= 1 } else { timer.invalidate() }
+                if restRemaining > 0 {
+                    restRemaining -= 1
+                    if restRemaining == 0 { Haptics.restOver() }
+                } else {
+                    timer.invalidate()
+                }
             }
         }
     }
@@ -328,6 +334,7 @@ struct FinishSessionView: View {
                         .bevelCard()
 
                         PrimaryButton(label: "Save session", tint: Tokens.strainLow) {
+                            Haptics.committed()
                             session.sessionRPE = rpe
                             session.isComplete = true
                             session.finishedAt = Date()

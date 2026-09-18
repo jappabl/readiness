@@ -33,7 +33,7 @@ struct CoachLayer: View {
     }
 
     private var button: some View {
-        Button { isOpen = true } label: {
+        Button { Haptics.light(); isOpen = true } label: {
             Image("LogoMark")
                 .renderingMode(.template)
                 .resizable()
@@ -241,6 +241,7 @@ struct CoachSheet: View {
 
             HStack(spacing: 8) {
                 Button {
+                    Haptics.committed()
                     model.coachAdjustment = call.adjustment
                     model.record(.modified)
                     appliedNote = "Applied to today's session"
