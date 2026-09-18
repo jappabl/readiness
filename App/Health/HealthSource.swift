@@ -58,6 +58,20 @@ struct DailyPhysiology: Sendable, Equatable {
     var mindfulMinutes: Double?
 }
 
+extension DailyPhysiology {
+    /// The scored metrics, by kind, so a chart can be drawn for whichever one the coach
+    /// points at without a switch at every call site.
+    func value(for kind: MetricKind) -> Double? {
+        switch kind {
+        case .hrv:              return hrvSDNN
+        case .restingHeartRate: return restingHeartRate
+        case .respiratoryRate:  return respiratoryRate
+        case .bloodOxygen:      return bloodOxygenPercent
+        case .sleepDebt:        return sleepHours.map { DayAssembler.sleepNeedHours - $0 }
+        }
+    }
+}
+
 enum HealthSourceError: LocalizedError {
     case unavailable
     case denied

@@ -28,21 +28,15 @@ struct CoachTurnView: View {
         case .assistant:
             // The first line is the answer and is set as one: bigger, heavier, and on
             // its own. Everything after it is the detail you read only if you want it.
-            let answer = CoachAnswer.split(message.text)
-            VStack(alignment: .leading, spacing: 9) {
-                if !answer.lead.isEmpty {
-                    Text(Self.formatted(answer.lead))
-                        .font(.system(size: 19, weight: .semibold))
-                        .foregroundStyle(Tokens.textPrimary)
-                        .lineSpacing(2)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                if !answer.body.isEmpty {
-                    Text(Self.formatted(answer.body))
-                        .font(.system(size: 15))
-                        .foregroundStyle(Tokens.textSecondary)
-                        .lineSpacing(3)
-                        .fixedSize(horizontal: false, vertical: true)
+            let segments = CoachSegments.parse(message.text)
+            VStack(alignment: .leading, spacing: 11) {
+                ForEach(Array(segments.enumerated()), id: \.offset) { index, segment in
+                    switch segment {
+                    case .text(let prose):
+                        prosePart(prose, isFirst: index == 0)
+                    case .chart(let kind):
+                        CoachChartCard(kind: kind)
+                    }
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -50,6 +44,30 @@ struct CoachTurnView: View {
             .accessibilityElement(children: .combine)
             .accessibilityLabel("Jett: \(message.text)")
         }
+    }
+
+    /// The opening run of prose carries the answer, so its first sentence is set as a
+    /// headline. Everything after it is detail.
+    @ViewBuilder
+    private func prosePart(_ prose: String, isFirst: Bool) -> some View {
+        let answer = isFirst ? CoachAnswer.split(prose) : (lead: "", body: prose)
+        VStack(alignment: .leading, spacing: 9) {
+            if !answer.lead.isEmpty {
+                Text(Self.formatted(answer.lead))
+                    .font(.system(size: 19, weight: .semibold))
+                    .foregroundStyle(Tokens.textPrimary)
+                    .lineSpacing(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            if !answer.body.isEmpty {
+                Text(Self.formatted(answer.body))
+                    .font(.system(size: 15))
+                    .foregroundStyle(Tokens.textSecondary)
+                    .lineSpacing(3)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     /// Inline markdown only, and whitespace preserved.
@@ -140,5 +158,70 @@ struct CoachStepRow: View {
         .overlay(RoundedRectangle(cornerRadius: 11, style: .continuous)
             .strokeBorder(Color.primary.opacity(0.06), lineWidth: 0.5))
         .accessibilityElement(children: .combine)
+    }
+}
+
+/// A chart Jett asked for, drawn from history already on the device.
+///
+/// Nothing about this crossed the wire. The model named a metric in six tokens; every
+/// number here was already in the app. That makes a chart *cheaper* than the sentence
+/// it replaces, not more expensive — describing a two-week trend in prose costs three
+/// or four times as many tokens as pointing at it.
+struct CoachChartCard: View {
+    let kind: MetricKind
+
+    @Environment(AppModel.self) private var model
+
+    private var values: [Double] {
+        model.series.suffix(28).compactMap { $0.value(for: kind) }
+    }
+
+    private var reading: MetricReading? {
+        model.day?.readings.first { $0.kind == kind }
+    }
+
+    var body: some View {
+        if values.count >= 2 {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text(kind.displayName)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(Tokens.textSecondary)
+                    Spacer(minLength: 8)
+                    if let reading {
+                        Text(reading.value, format: .number.precision(.fractionLength(1)))
+                            .font(.system(size: 17, weight: .semibold)).monospacedDigit()
+                            .foregroundStyle(Tokens.textPrimary)
+                        Text(kind.unit)
+                            .font(.system(size: 12))
+                            .foregroundStyle(Tokens.textSecondary)
+                    }
+                }
+
+                Sparkline(values: values, tint: tint)
+                    .frame(height: 44)
+
+                if let reading {
+                    Text("\(values.count) days · baseline "
+                         + reading.baseline.formatted(.number.precision(.fractionLength(1)))
+                         + " \(kind.unit)")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Tokens.textTertiary)
+                }
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Tokens.surface.opacity(0.7),
+                        in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(Color.primary.opacity(0.06), lineWidth: 0.5))
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("\(kind.displayName) over the last \(values.count) days")
+        }
+    }
+
+    private var tint: Color {
+        guard let reading else { return Tokens.textSecondary }
+        return reading.isFavourable ? Tokens.recoveryHigh : Tokens.strainLow
     }
 }

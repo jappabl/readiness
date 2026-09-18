@@ -18,8 +18,9 @@ struct RehearsalCoachProvider: CoachProvider {
     private static let answer = """
         You're flat today — HRV's the lowest it's been in two weeks.
 
-        14.2 ms against your 53.4 baseline, and resting heart rate's up to 70. Tuesday \
-        is still on you.
+        [chart:hrv]
+
+        14.2 ms against your 53.4 baseline. Tuesday is still on you.
 
         Take 15% off the bar and stop at 4 RIR. You'll still get the work in.
         """

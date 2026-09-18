@@ -45,6 +45,7 @@
 		9788F82F4037D6919392FD8D /* InsightEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B442940C409958B4371E3044 /* InsightEngine.swift */; };
 		B9D4082452FF35C638BB6CAC /* Metrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCD9613FE7E08C6AFA956056 /* Metrics.swift */; };
 		A90006729218FFE9BEF0D890 /* Percentile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2EF8D6020D810536E232D51A /* Percentile.swift */; };
+		A649253F09D9460196E0FCDF /* CoachSegments.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFB6097ADC3E4ABBB1EDB905 /* CoachSegments.swift */; };
 		30B915DB9F5846B0B986099F /* CoachAnswer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7C873BD22BE4E43A743AABB /* CoachAnswer.swift */; };
 		0A675C7B69414B43AB8BD494 /* CoachRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6586C8628D44B985A05027 /* CoachRequest.swift */; };
 		03340C76D5B34BA2BAD69BD1 /* Onboarding.swift in Sources */ = {isa = PBXBuildFile; fileRef = 239658BBF7CB4FC894FF466B /* Onboarding.swift */; };
@@ -102,6 +103,7 @@
 		B442940C409958B4371E3044 /* InsightEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "InsightEngine.swift"; sourceTree = "<group>"; };
 		CCD9613FE7E08C6AFA956056 /* Metrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Metrics.swift"; sourceTree = "<group>"; };
 		2EF8D6020D810536E232D51A /* Percentile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Percentile.swift"; sourceTree = "<group>"; };
+		AFB6097ADC3E4ABBB1EDB905 /* CoachSegments.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CoachSegments.swift"; sourceTree = "<group>"; };
 		A7C873BD22BE4E43A743AABB /* CoachAnswer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CoachAnswer.swift"; sourceTree = "<group>"; };
 		4D6586C8628D44B985A05027 /* CoachRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CoachRequest.swift"; sourceTree = "<group>"; };
 		239658BBF7CB4FC894FF466B /* Onboarding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Onboarding.swift"; sourceTree = "<group>"; };
@@ -250,6 +252,7 @@
 				B442940C409958B4371E3044 /* InsightEngine.swift */,
 				CCD9613FE7E08C6AFA956056 /* Metrics.swift */,
 				2EF8D6020D810536E232D51A /* Percentile.swift */,
+				AFB6097ADC3E4ABBB1EDB905 /* CoachSegments.swift */,
 				A7C873BD22BE4E43A743AABB /* CoachAnswer.swift */,
 				4D6586C8628D44B985A05027 /* CoachRequest.swift */,
 				239658BBF7CB4FC894FF466B /* Onboarding.swift */,
@@ -374,6 +377,7 @@
 				9788F82F4037D6919392FD8D /* InsightEngine.swift in Sources */,
 				B9D4082452FF35C638BB6CAC /* Metrics.swift in Sources */,
 				A90006729218FFE9BEF0D890 /* Percentile.swift in Sources */,
+				A649253F09D9460196E0FCDF /* CoachSegments.swift in Sources */,
 				30B915DB9F5846B0B986099F /* CoachAnswer.swift in Sources */,
 				0A675C7B69414B43AB8BD494 /* CoachRequest.swift in Sources */,
 				03340C76D5B34BA2BAD69BD1 /* Onboarding.swift in Sources */,
