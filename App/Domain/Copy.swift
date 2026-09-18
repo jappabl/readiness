@@ -10,6 +10,16 @@ enum Copy {
     }
 
 
+    /// Where a reading sits in the user's own range. Not a grade — the app has no
+    /// basis for calling a number "excellent".
+    static func position(_ alignedZ: Double) -> String {
+        switch alignedZ {
+        case 1...:      return "Above usual"
+        case ..<(-1):   return "Below usual"
+        default:        return "Usual"
+        }
+    }
+
     static func headline(for state: TrainingState) -> String {
         switch state {
         case .push: return "Push"

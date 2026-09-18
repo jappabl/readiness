@@ -95,7 +95,7 @@ extension View {
 
     /// Bold dark section heading between cards.
     func sectionHeading() -> some View {
-        self.font(.system(size: 20, weight: .bold))
+        self.font(.system(size: 18, weight: .bold))
             .foregroundStyle(Tokens.textPrimary)
     }
 }

@@ -38,8 +38,11 @@ struct TodayView: View {
         }
         .padding(.horizontal, Tokens.screenMargin)
         .padding(.top, 6)
-        .padding(.bottom, 12)
+        .padding(.bottom, 11)
         .background(Tokens.canvas)
+        .overlay(alignment: .bottom) {
+            Rectangle().fill(Tokens.hairline).frame(height: 0.5)
+        }
     }
 
     @ViewBuilder
@@ -62,6 +65,7 @@ struct TodayView: View {
             VStack(alignment: .leading, spacing: 24) {
                 summaryCard
                 session
+                energy
                 healthMonitor
             }
             .padding(.horizontal, Tokens.screenMargin)
@@ -130,10 +134,10 @@ struct TodayView: View {
             SignalDetailView(signal: signal)
         } label: {
             VStack(spacing: 9) {
-                RingGauge(signal: signal, percent: percent, lineWidth: 7.5, figureSize: 20)
-                    .frame(width: 70, height: 70)
+                RingGauge(signal: signal, percent: percent, lineWidth: 9, figureSize: 23)
+                    .frame(width: 78, height: 78)
                 Text(signal.title)
-                    .font(.system(size: 14))
+                    .font(.system(size: 13))
                     .foregroundStyle(Tokens.textSecondary)
             }
             .frame(maxWidth: .infinity)
@@ -168,6 +172,21 @@ struct TodayView: View {
         }
     }
 
+    // MARK: - Energy
+
+    /// The reference's segmented meter, driven by the only energy figure we hold:
+    /// what the user reported this morning. No check-in, no meter.
+    @ViewBuilder
+    private var energy: some View {
+        if let checkIn = model.todayCheckIn {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Energy").sectionHeading()
+                SegmentedMeter(fraction: Double(checkIn.energy) / 5.0,
+                               symbol: "bolt.fill", tint: Tokens.recoveryHigh)
+            }
+        }
+    }
+
     // MARK: - Health monitor
 
     private var healthMonitor: some View {
@@ -187,10 +206,14 @@ struct TodayView: View {
     @ViewBuilder
     private func statCard(_ kind: MetricKind, symbol: String, label: String) -> some View {
         if let reading = model.reading(kind) {
+            let aligned = reading.zScore * kind.polarity
             StatCard(symbol: symbol, label: label,
                      value: reading.value.formatted(.number.precision(.fractionLength(1))),
                      unit: reading.kind.unit,
-                     trend: reading.zScore * kind.polarity >= 0 ? .up : .down)
+                     trend: aligned >= 0 ? .up : .down,
+                     range: (z: reading.zScore, polarity: kind.polarity,
+                             tint: aligned >= 0 ? Tokens.recoveryHigh : Tokens.strainLow),
+                     status: Copy.position(aligned))
         }
     }
 }

@@ -175,6 +175,9 @@ struct StatCard: View {
     let value: String
     var unit: String?
     var trend: Trend?
+    /// When present, the card shows where the reading sits in the user's own range.
+    var range: (z: Double, polarity: Double, tint: Color)?
+    var status: String?
 
     enum Trend { case up, down }
 
@@ -206,10 +209,19 @@ struct StatCard: View {
             }
             .minimumScaleFactor(0.6)
             .lineLimit(1)
+
+            if let range {
+                RangeBar(z: range.z, polarity: range.polarity, tint: range.tint)
+                    .padding(.top, 1)
+            }
+            if let status {
+                Text(status).font(.system(size: 12)).foregroundStyle(Tokens.textSecondary)
+                    .lineLimit(1).minimumScaleFactor(0.7)
+            }
         }
         .bevelCard(padding: 14)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(label), \(value) \(unit ?? "")")
+        .accessibilityLabel("\(label), \(value) \(unit ?? "")" + (status.map { ", \($0)" } ?? ""))
     }
 }
 
@@ -322,6 +334,41 @@ struct SegmentedMeter: View {
         .bevelCard(padding: 14)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(Int((fraction * 100).rounded())) percent")
+    }
+}
+
+/// Where today's reading sits inside this user's own range. The dot is the z-score
+/// mapped onto ±3 SD, polarity-adjusted so the left end always means "worse" whether
+/// the metric is one you want high or low.
+struct RangeBar: View {
+    let z: Double
+    let polarity: Double
+    var tint: Color = Tokens.accent
+
+    private var position: Double {
+        let aligned = max(-3, min(3, z * polarity))
+        return (aligned + 3) / 6
+    }
+
+    var body: some View {
+        GeometryReader { geometry in
+            let width = geometry.size.width
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(LinearGradient(
+                        colors: [Tokens.ringTrack, tint.opacity(0.35), Tokens.ringTrack],
+                        startPoint: .leading, endPoint: .trailing))
+                    .frame(height: 4)
+                Circle()
+                    .fill(tint)
+                    .frame(width: 9, height: 9)
+                    .overlay(Circle().stroke(Tokens.surface, lineWidth: 2))
+                    .offset(x: (width - 9) * position)
+            }
+            .frame(height: 10)
+        }
+        .frame(height: 10)
+        .accessibilityHidden(true)
     }
 }
 
