@@ -89,14 +89,13 @@ public enum RecommendationEngine {
     static func uncertainty(for input: RecommendationInput) -> [String] {
         var notes: [String] = []
         if input.readiness.confidence == .low {
-            notes.append("Fewer than \(ReadinessEngine.minimumConfidentDays) days of baseline, "
-                         + "so treat this as provisional.")
+            notes.append("Baseline under \(ReadinessEngine.minimumConfidentDays) days.")
         }
         if input.checkIn == nil {
-            notes.append("No morning check-in today, so this reads your physiology only.")
+            notes.append("No check-in today.")
         }
         if input.acwr == nil {
-            notes.append("Not enough training history yet to judge how today's load compares.")
+            notes.append("Not enough training history.")
         }
         return notes
     }

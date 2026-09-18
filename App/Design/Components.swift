@@ -368,6 +368,7 @@ struct ListCard<Content: View>: View {
 struct PrimaryButton: View {
     let label: String
     var symbol: String?
+    var tint: Color = Tokens.accent
     var enabled = true
     let action: () -> Void
 
@@ -379,10 +380,9 @@ struct PrimaryButton: View {
             }
             .foregroundStyle(Tokens.onAccent)
             .frame(maxWidth: .infinity, minHeight: 50)
-            .background(enabled ? Tokens.accent : Tokens.ringTrack,
+            .background(enabled ? tint : Tokens.ringTrack,
                         in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-            .shadow(color: enabled ? Tokens.accent.opacity(0.28) : .clear,
-                    radius: 10, x: 0, y: 4)
+            .shadow(color: enabled ? tint.opacity(0.26) : .clear, radius: 10, x: 0, y: 4)
         }
         .buttonStyle(.plain)
         .disabled(!enabled)

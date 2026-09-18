@@ -20,11 +20,10 @@ struct SignalDetailView: View {
                 VStack(spacing: 16) {
                     HeroRing(signal: signal, percent: percent)
                         .padding(.top, 8)
-                        .padding(.bottom, 4)
+                        .padding(.bottom, 6)
                     HStack(spacing: Tokens.cardGap) { figures }
                     CoachCard(message: coaching,
-                              accessory: signal == .recovery
-                                ? (label: "View insights", symbol: "sparkles") : nil,
+                              accessory: (label: "View insights", symbol: "sparkles"),
                               action: { showingWhy = true })
                     timeline
                     trends
@@ -143,12 +142,10 @@ struct SignalDetailView: View {
                 : "You met your \(Int(DayAssembler.sleepNeedHours)) h target last night."
 
         case .strain:
-            guard let acwr = model.acwr else {
-                return "Log a few more sessions and this will compare your week against your month."
-            }
+            guard let acwr = model.acwr else { return "Needs more sessions." }
             return acwr > ReadinessEngine.acwrGate
-                ? "Your last seven days are running above your four-week average."
-                : "Your recent load is steady against your four-week average."
+                ? "This week is above your four-week average."
+                : "Steady against your four-week average."
         }
     }
 
@@ -189,14 +186,10 @@ struct SignalDetailView: View {
     }
 
     private func emptyTimeline(_ message: String) -> some View {
-        VStack(spacing: 4) {
-            Text(message).font(.system(size: 15, weight: .medium))
-                .foregroundStyle(Tokens.textPrimary)
-            Text("Nothing recorded for this period.")
-                .font(.system(size: 13)).foregroundStyle(Tokens.textSecondary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 26)
+        Text(message)
+            .font(.system(size: 15)).foregroundStyle(Tokens.textSecondary)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 24)
     }
 
     // MARK: - Trends
@@ -215,7 +208,7 @@ struct SignalDetailView: View {
                 case .strain:
                     let volumes = model.recentVolume(days: 14, context: context)
                     if volumes.allSatisfy({ $0 == 0 }) {
-                        Text("Log a session and this fills in.")
+                        Text("No sessions yet")
                             .font(.system(size: 13)).foregroundStyle(Tokens.textSecondary)
                             .frame(height: 96)
                     } else {

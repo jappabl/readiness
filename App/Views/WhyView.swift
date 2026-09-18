@@ -71,9 +71,6 @@ struct WhyView: View {
                 .foregroundStyle(Tokens.textPrimary)
                 .padding(.horizontal, 14).padding(.vertical, 12)
             }
-            Text("Contributions sum to the composite exactly. You can check the arithmetic.")
-                .font(.system(size: 13)).foregroundStyle(Tokens.textSecondary)
-                .padding(.horizontal, 2)
         }
     }
 
@@ -154,8 +151,6 @@ struct WhyView: View {
             }
             Text("Model \(recommendation.modelVersion) · \(Copy.count(day.daysOfHistory, "day")) · "
                  + "confidence \(recommendation.confidence.rawValue)")
-                .font(.system(size: 12)).foregroundStyle(Tokens.textTertiary)
-            Text("Training guidance, not medical advice.")
                 .font(.system(size: 12)).foregroundStyle(Tokens.textTertiary)
         }
         .padding(.horizontal, 2)

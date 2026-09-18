@@ -22,17 +22,13 @@ enum Copy {
     /// One actionable sentence. "Take it easy" is not an answer.
     static func call(for recommendation: Recommendation, gate: ReadinessGate?) -> String {
         if gate == .elevatedWristTemperature {
-            return "Your temperature is up overnight. Skip the session or keep it very easy."
+            return "Temperature is up. Skip it or keep it easy."
         }
         switch recommendation.state {
-        case .push:
-            return "You're ahead of your baseline. Train as planned and take the top set if it moves well."
-        case .maintain:
-            return "Nothing is off. Run the session you already planned."
-        case .reduce:
-            return "You're under your baseline. Keep the session, cut the volume, and leave reps in reserve."
-        case .recover:
-            return "Your body is well under baseline. Move, but don't train hard today."
+        case .push:     return "Ahead of baseline. Train as planned."
+        case .maintain: return "Run the session as planned."
+        case .reduce:   return "Under baseline. Cut volume, keep reps in reserve."
+        case .recover:  return "Well under baseline. Move, don't train hard."
         }
     }
 
@@ -72,6 +68,6 @@ enum Copy {
 
     static func confidenceNote(_ confidence: ReadinessConfidence, days: Int) -> String? {
         guard confidence == .low else { return nil }
-        return "Still learning your baseline — \(count(days, "day")) in. Treat this as provisional."
+        return "Calibrating · \(count(days, "day"))"
     }
 }

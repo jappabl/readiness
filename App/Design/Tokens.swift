@@ -25,12 +25,12 @@ enum Tokens {
     static let strainLow     = dynamic(light: 0xF2B233, dark: 0xF6C455)
     static let strainHigh    = dynamic(light: 0xF7CE5B, dark: 0xFAD97E)
     static let recoveryLow   = dynamic(light: 0xC9D93A, dark: 0xD4E356)
-    static let recoveryHigh  = dynamic(light: 0x3FBF3F, dark: 0x5BD45B)
+    static let recoveryHigh  = dynamic(light: 0x3BB254, dark: 0x5BD173)
     static let sleepLow      = dynamic(light: 0x6C7BD9, dark: 0x8590E5)
     static let sleepHigh     = dynamic(light: 0x9AA3EA, dark: 0xADB4F2)
 
     // Meaning
-    static let accent        = dynamic(light: 0x3FBF3F, dark: 0x5BD45B)
+    static let accent        = dynamic(light: 0x2FA84A, dark: 0x54C96E)
     static let onAccent      = dynamic(light: 0xFFFFFF, dark: 0x0E0E10)
     static let positive      = dynamic(light: 0x34A853, dark: 0x5BD45B)
     static let negative      = dynamic(light: 0xE9573F, dark: 0xF07A64)
@@ -38,15 +38,15 @@ enum Tokens {
     // Skies behind the detail screens
     static let skyStrainTop      = dynamic(light: 0xCFE0EE, dark: 0x1B2430)
     static let skyStrainMid      = dynamic(light: 0xF6D3B0, dark: 0x2E2418)
-    static let skyStrainBottom   = dynamic(light: 0xFBEFE4, dark: 0x1A1613)
+    static let skyStrainBottom   = dynamic(light: 0xF4F1EE, dark: 0x191714)
 
     static let skyRecoveryTop    = dynamic(light: 0xB6D8EF, dark: 0x15222E)
     static let skyRecoveryMid    = dynamic(light: 0xD8EAF2, dark: 0x16262B)
-    static let skyRecoveryBottom = dynamic(light: 0xE8F2E4, dark: 0x141D18)
+    static let skyRecoveryBottom = dynamic(light: 0xEDF1F3, dark: 0x14181B)
 
     static let skySleepTop       = dynamic(light: 0xB3BCE8, dark: 0x171A2C)
     static let skySleepMid       = dynamic(light: 0xD8DDF4, dark: 0x1A1E33)
-    static let skySleepBottom    = dynamic(light: 0xEDEFF8, dark: 0x14161F)
+    static let skySleepBottom    = dynamic(light: 0xEFF0F5, dark: 0x15161C)
 
     static let cardRadius: CGFloat = 18
     static let screenMargin: CGFloat = 16

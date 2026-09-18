@@ -43,9 +43,9 @@ struct TrendsView: View {
 
     private var recovery: some View {
         let history = model.compositeHistory(days: 30)
-        return section("Recovery", footnote: "Zero is your own baseline.") {
+        return section("Recovery", footnote: "Zero is your baseline.") {
             if history.count < 2 {
-                Text("Not enough history yet.")
+                Text("Not enough history")
                     .font(.system(size: 15)).foregroundStyle(Tokens.textSecondary)
             } else {
                 Chart(Array(history.enumerated()), id: \.offset) { index, value in
@@ -71,12 +71,11 @@ struct TrendsView: View {
         let volumes = model.recentVolume(days: 28, context: context)
         return section("Training volume",
                        footnote: model.acwr.map {
-                           "Acute against chronic: "
-                           + $0.formatted(.number.precision(.fractionLength(2)))
-                           + ($0 > ReadinessEngine.acwrGate ? " — climbing fast." : " — steady.")
+                           "Acute : chronic " + $0.formatted(.number.precision(.fractionLength(2)))
+                           + ($0 > ReadinessEngine.acwrGate ? " · climbing" : " · steady")
                        }) {
             if volumes.allSatisfy({ $0 == 0 }) {
-                Text("Log a session and this fills in.")
+                Text("No sessions yet")
                     .font(.system(size: 15)).foregroundStyle(Tokens.textSecondary)
             } else {
                 Chart(Array(volumes.enumerated()), id: \.offset) { index, value in
@@ -93,7 +92,7 @@ struct TrendsView: View {
     private var sleepAgainstVolume: some View {
         section("Sleep against volume", footnote: model.recentInsight) {
             if points.count < 3 {
-                Text("A few more logged sessions and this becomes readable.")
+                Text("Needs more sessions")
                     .font(.system(size: 15)).foregroundStyle(Tokens.textSecondary)
             } else {
                 Chart(points, id: \.date) { point in
@@ -121,7 +120,7 @@ struct TrendsView: View {
         return VStack(alignment: .leading, spacing: 12) {
             Text("Your responses").sectionHeading()
             if answered.isEmpty {
-                Text("When you accept or override a call, it lands here.")
+                Text("Nothing answered yet")
                     .font(.system(size: 15)).foregroundStyle(Tokens.textSecondary)
                     .bevelCard()
             } else {

@@ -46,7 +46,7 @@ struct TrainView: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Program").sectionHeading()
             if templates.isEmpty {
-                Text("No templates yet.")
+                Text("No templates yet")
                     .font(.system(size: 15)).foregroundStyle(Tokens.textSecondary)
                     .bevelCard()
             }
@@ -92,7 +92,7 @@ struct TrainView: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("History").sectionHeading()
             if sessions.isEmpty {
-                Text("Completed sessions show up here.")
+                Text("No sessions yet")
                     .font(.system(size: 15)).foregroundStyle(Tokens.textSecondary)
                     .bevelCard()
             }
@@ -160,8 +160,7 @@ struct LiveWorkoutView: View {
             ZStack {
                 SkyBackground(signal: .strain)
                 if let current { working(current) } else {
-                    ContentUnavailableView("Nothing to log", systemImage: "dumbbell",
-                                           description: Text("This template has no exercises."))
+                    ContentUnavailableView("No exercises", systemImage: "dumbbell")
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
@@ -219,7 +218,7 @@ struct LiveWorkoutView: View {
                     .accessibilityLabel("Resting, \(restRemaining) seconds remaining")
             }
 
-            PrimaryButton(label: "Log set") { logSet(exercise) }
+            PrimaryButton(label: "Log set", tint: Tokens.strainLow) { logSet(exercise) }
 
             HStack(spacing: 10) {
                 secondary("Missed reps") { logSet(exercise, repsDelta: -2) }
@@ -321,14 +320,14 @@ struct FinishSessionView: View {
                                     .font(.system(size: 34, weight: .semibold)).monospacedDigit()
                                     .foregroundStyle(Tokens.strainLow)
                                 Spacer()
-                                Text("How hard it felt, 1 to 10")
+                                Text("1 to 10")
                                     .font(.system(size: 13)).foregroundStyle(Tokens.textSecondary)
                             }
                             Slider(value: $rpe, in: 1...10, step: 1).tint(Tokens.strainLow)
                         }
                         .bevelCard()
 
-                        PrimaryButton(label: "Save session") {
+                        PrimaryButton(label: "Save session", tint: Tokens.strainLow) {
                             session.sessionRPE = rpe
                             session.isComplete = true
                             session.finishedAt = Date()

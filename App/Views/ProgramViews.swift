@@ -10,11 +10,7 @@ struct ProgramSetupView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                Text("Set up your program").sectionHeading()
-                Text("Start from a common split, then edit anything. Your health data is "
-                     + "already being read — this is the only thing the app needs from you.")
-                    .font(.system(size: 15)).foregroundStyle(Tokens.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                Text("Pick a split").sectionHeading()
 
                 ForEach(Starter.all, id: \.name) { starter in
                     Button {
@@ -45,9 +41,6 @@ struct ProgramSetupView: View {
                     .buttonStyle(.plain)
                 }
 
-                Text("Training guidance, not medical advice. Your health data stays on this device.")
-                    .font(.system(size: 12)).foregroundStyle(Tokens.textTertiary)
-                    .padding(.top, 4).padding(.horizontal, 2)
             }
             .padding(.horizontal, Tokens.screenMargin)
             .padding(.vertical, 12)

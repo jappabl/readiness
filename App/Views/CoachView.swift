@@ -56,13 +56,7 @@ struct CoachView: View {
 
     private var opener: some View {
         VStack(alignment: .leading, spacing: 14) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Ask about your training").sectionHeading()
-                Text("The coach sees today's measurements, your baselines, your program and "
-                     + "your recent sessions. Nothing else, and it won't guess.")
-                    .font(.system(size: 14)).foregroundStyle(Tokens.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
+            Text("Ask about your training").sectionHeading()
             ListCard {
                 ForEach(Array(Self.starters.enumerated()), id: \.element) { index, prompt in
                     if index > 0 { Divider().overlay(Tokens.hairline).padding(.leading, 14) }

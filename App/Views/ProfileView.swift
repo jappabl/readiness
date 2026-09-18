@@ -69,8 +69,6 @@ struct ProfileView: View {
                 }
                 .padding(14)
             }
-            footnote("The coach is told about these. It is not a clinician and will not "
-                     + "treat or diagnose anything.")
         }
     }
 
@@ -113,8 +111,6 @@ struct ProfileView: View {
                 Divider().overlay(Tokens.hairline).padding(.leading, 14)
                 FieldRow(label: "Model") { Text(ReadinessEngine.modelVersion).monospacedDigit() }
             }
-            footnote("Every weight is visible because none of them is proven. They come from "
-                     + "published effect sizes, not from your data — yet.")
         }
     }
 
@@ -140,8 +136,6 @@ struct ProfileView: View {
                     keySaved = true
                 }
             }
-            footnote("Stored in the device Keychain. Only derived summaries are sent — never "
-                     + "your raw health records.")
         }
     }
 
@@ -151,11 +145,8 @@ struct ProfileView: View {
             ListCard {
                 FieldRow(label: "Apple Health") { Text("Read-only") }
             }
-            footnote("Your health data never leaves this device and is never used for "
-                     + "advertising. This app gives training guidance, not medical advice. It "
-                     + "does not diagnose, and it cannot see anything your watch does not "
-                     + "measure. If something feels wrong, talk to a clinician rather than "
-                     + "this app.")
+            footnote("Training guidance, not medical advice. Health data stays on this "
+                     + "device and is never used for advertising.")
         }
     }
 }

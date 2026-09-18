@@ -85,7 +85,7 @@ struct AdjustSessionView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                SkyBackground(signal: .strain)
+                SkyBackground(signal: .recovery)
                 ScrollView {
                     VStack(alignment: .leading, spacing: 16) {
                         if let template = model.plannedToday(templates: templates),
@@ -110,14 +110,8 @@ struct AdjustSessionView: View {
                             }
                             .buttonStyle(.plain)
 
-                            Text("Your original session is never overwritten. Either way, the app "
-                                 + "records what you chose so it can check itself later.")
-                                .font(.system(size: 13)).foregroundStyle(Tokens.textSecondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                                .padding(.horizontal, 2)
                         } else {
-                            ContentUnavailableView("No session planned", systemImage: "calendar",
-                                description: Text("Add a workout template in Train first."))
+                            ContentUnavailableView("No session planned", systemImage: "calendar")
                         }
                     }
                     .padding(.horizontal, Tokens.screenMargin)

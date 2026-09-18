@@ -26,12 +26,6 @@ struct CheckInView: View {
                         scale("Mood", value: $mood, low: "Low", high: "Good",
                               symbol: "face.smiling")
 
-                        Text("This nudges today's call, but it cannot override what your "
-                             + "overnight measurements say.")
-                            .font(.system(size: 13)).foregroundStyle(Tokens.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .padding(.horizontal, 2)
-
                         PrimaryButton(label: "Save check-in") {
                             let checkIn = CheckIn(soreness: soreness, energy: energy,
                                                   stress: stress, mood: mood)
