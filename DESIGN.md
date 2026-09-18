@@ -129,7 +129,7 @@ a rule through it.
 | `TimelineRow` | Badged icon, title, subtitle, chevron |
 | `PressableStyle` | 0.975 scale + 0.8 opacity on press |
 | `FloatingTabBar` | Five slots on a floating white surface, inset 12 from the edges, radius 24 |
-| `JettOrb` | The coach. A lit ring: an angular sweep on a thin band, over a wider blurred copy of itself for glow |
+| `JettFace` | The coach. His portrait, circle-cropped, with a hairline edge |
 
 **Buttons inside cards are accessory rows, not filled buttons.** Filled buttons are
 reserved for the one primary action on a screen.
@@ -203,12 +203,15 @@ The coach sits in the middle slot of the tab bar, not floating over the content.
 the one control in the app with **no brand colour and no signal hue on it at all**: a
 green logo in a circle reads as a widget somebody bolted on.
 
-It is a **ring**, because everything in this app is rings — the mark is built from the
-grammar already here rather than an imported shape. Thin and see-through, it sits among
-outline glyphs without bullying them the way a filled mark does; a solid bead in that
-row reads as a blob. Most of the effect is the glow: the band alone looks like a
-sticker. The sweep is a deliberate non-spectrum that matches no signal, so the coach
-never reads as a reading.
+He is a **face**, and he is the only slot in the bar with no word under it. Everything
+either side is an outline glyph with a label; this is a person, and the asymmetry is the
+point — you do not need telling twice what it is, and the missing label is what makes
+the slot read as somebody rather than as a destination.
+
+He was a ring for a while, and the ring was wrong. It was clean and it said nothing: the
+app is already full of rings, so one more reads as a gauge rather than a person. A face
+is the only element here somebody could feel they are talking to, which is the entire
+job of a coach.
 
 ---
 

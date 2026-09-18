@@ -79,7 +79,7 @@ struct CoachSheet: View {
 
     private var title: some View {
         VStack(spacing: 10) {
-            JettOrb(size: 62, isThinking: isStreaming)
+            JettFace(size: 62)
 
             VStack(spacing: 4) {
                 Text("Coach Jett")

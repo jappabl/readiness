@@ -60,7 +60,7 @@ struct PaywallView: View {
 
     private var heading: some View {
         HStack(spacing: 11) {
-            JettOrb(size: 34)
+            JettFace(size: 34)
             Text("Coach Jett")
                 .font(.system(size: 30, weight: .bold))
                 .foregroundStyle(Tokens.textPrimary)

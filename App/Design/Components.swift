@@ -622,70 +622,26 @@ extension InfoButton {
 
 // MARK: - The bar
 
-/// The ask, as a ring of light.
+/// Jett, as a face.
 ///
-/// Built from the app's own grammar rather than an imported shape: everything here is
-/// rings, so the coach is one too — thin, lit, and see-through, which lets it sit among
-/// outline glyphs without bullying them the way a filled mark does. The sweep is a
-/// deliberate non-spectrum; it belongs to no signal, so it never reads as a reading.
-///
-/// It turns while Jett is thinking. That is the whole personality: a mascot would have
-/// to act, and this only has to move.
-struct JettOrb: View {
-    var size: CGFloat = 30
-    var isThinking = false
-
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var spin: Double = 0
-
-    private var sweep: AngularGradient {
-        AngularGradient(stops: [
-            .init(color: Color(red: 0.45, green: 0.36, blue: 0.96), location: 0.00),
-            .init(color: Color(red: 0.24, green: 0.60, blue: 0.99), location: 0.28),
-            .init(color: Color(red: 0.28, green: 0.86, blue: 0.87), location: 0.50),
-            .init(color: Color(red: 0.99, green: 0.79, blue: 0.43), location: 0.75),
-            .init(color: Color(red: 0.45, green: 0.36, blue: 0.96), location: 1.00),
-        ], center: .center, angle: .degrees(-100))
-    }
+/// He was a ring for a while, and the ring was wrong. It was clean and it said nothing:
+/// this app is already made of rings, so one more reads as a gauge rather than as a
+/// person. A face is the only element here somebody could feel they are talking to,
+/// which is the entire job of a coach.
+struct JettFace: View {
+    var size: CGFloat = 38
 
     var body: some View {
-        ZStack {
-            Group {
-                // The glow is most of the effect: without it the ring reads as a sticker.
-                Circle()
-                    .strokeBorder(sweep, lineWidth: size * 0.30)
-                    .blur(radius: size * 0.17)
-                    .opacity(isThinking ? 0.8 : 0.55)
-
-                Circle()
-                    .strokeBorder(sweep, lineWidth: size * 0.19)
-            }
-            .rotationEffect(.degrees(spin))
-
-            // The highlight stays put while the sweep turns under it — light does not
-            // travel with the object it is falling on.
-            Circle()
-                .strokeBorder(LinearGradient(colors: [.white.opacity(0.7), .clear],
-                                             startPoint: .top, endPoint: .center),
-                              lineWidth: size * 0.06)
-                .blur(radius: size * 0.022)
-        }
-        .frame(width: size, height: size)
-        .animation(.easeOut(duration: 0.3), value: isThinking)
-        .onAppear { if isThinking { startSpinning() } }
-        .onChange(of: isThinking) { _, thinking in
-            if thinking { startSpinning() } else { withAnimation(.easeOut(duration: 0.4)) { spin = 0 } }
-        }
-    }
-
-    private func startSpinning() {
-        guard !reduceMotion else { return }
-        spin = 0
-        withAnimation(.linear(duration: 2.6).repeatForever(autoreverses: false)) {
-            spin = 360
-        }
+        Image("JettFace")
+            .resizable()
+            .scaledToFill()
+            .frame(width: size, height: size)
+            .clipShape(Circle())
+            .overlay(Circle().strokeBorder(Color.primary.opacity(0.08), lineWidth: 0.5))
+            .accessibilityHidden(true)
     }
 }
+
 
 /// Five slots on a floating surface, the middle one being the coach.
 ///
@@ -730,18 +686,16 @@ struct FloatingTabBar: View {
         .accessibilityAddTraits(selection == tag ? [.isSelected, .isButton] : .isButton)
     }
 
+    /// The one slot with a face in it and no word under it.
+    ///
+    /// Everything either side is an outline glyph with a label; this is a person. The
+    /// asymmetry is the point: you do not need telling twice what it is, and the missing
+    /// label is what makes the slot read as somebody rather than as a destination.
     private var ask: some View {
         Button { Haptics.light(); onAsk() } label: {
-            VStack(spacing: 3) {
-                JettOrb(size: 28).frame(height: 22)
-                // The name is the affordance — the ring says "something lives here",
-                // the word says what. It carries the weight of a selected tab because
-                // the coach is always available, never merely current.
-                Text("Jett").font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(Tokens.textPrimary)
-            }
-            .frame(maxWidth: .infinity)
-            .contentShape(Rectangle())
+            JettFace(size: 38)
+                .frame(maxWidth: .infinity)
+                .contentShape(Rectangle())
         }
         .buttonStyle(PressableStyle())
         .accessibilityLabel("Ask Coach Jett")
