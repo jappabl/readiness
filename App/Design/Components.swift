@@ -476,3 +476,30 @@ struct Sparkline: View {
         }
     }
 }
+
+/// Reports whether the user looks like they are reading (scrolling down) or deciding
+/// (scrolling up, or resting near the top). Used to retract the coach button while it
+/// would otherwise be in the way.
+struct ScrollIntent: ViewModifier {
+    let onChange: (Bool) -> Void
+
+    /// Enough movement to be a deliberate scroll rather than a rubber-band pixel.
+    private let threshold: CGFloat = 6
+    /// Within this of the top, the button always shows.
+    private let topZone: CGFloat = 40
+
+    func body(content: Content) -> some View {
+        if #available(iOS 18.0, *) {
+            content.onScrollGeometryChange(for: CGFloat.self) { geometry in
+                geometry.contentOffset.y
+            } action: { old, new in
+                let delta = new - old
+                guard abs(delta) > threshold else { return }
+                // contentOffset grows going down the page.
+                onChange(delta < 0 || new < topZone)
+            }
+        } else {
+            content
+        }
+    }
+}

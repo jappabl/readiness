@@ -24,6 +24,9 @@ final class AppModel {
 
     private var series: [DailyPhysiology] = []
 
+    /// Retracts while the user is reading, returns when they stop or scroll back.
+    var coachEntryExpanded = true
+
     private let healthKit = HealthKitSource()
     private var context: ModelContext?
 

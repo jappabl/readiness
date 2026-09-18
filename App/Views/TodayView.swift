@@ -77,8 +77,11 @@ struct TodayView: View {
             }
             .padding(.horizontal, Tokens.screenMargin)
             .padding(.top, 2)
-            .padding(.bottom, 168)
+            .padding(.bottom, 130)
         }
+        .modifier(ScrollIntent { expanded in
+            if model.coachEntryExpanded != expanded { model.coachEntryExpanded = expanded }
+        })
     }
 
     // MARK: - Rings and coaching, one card
