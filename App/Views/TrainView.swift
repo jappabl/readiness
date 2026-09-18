@@ -13,16 +13,17 @@ struct TrainView: View {
         ZStack {
             Tokens.canvas.ignoresSafeArea()
             ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    programSection
-                    historySection
+                VStack(alignment: .leading, spacing: 24) {
+                    program
+                    history
                 }
                 .padding(.horizontal, Tokens.screenMargin)
-                .padding(.vertical, 8)
-                .padding(.bottom, 88)
+                .padding(.top, 4)
+                .padding(.bottom, 96)
             }
         }
         .navigationTitle("Train")
+        .toolbarBackground(Tokens.canvas, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
@@ -30,88 +31,99 @@ struct TrainView: View {
                     context.insert(template)
                     try? context.save()
                     editingTemplate = template
-                } label: { Label("New template", systemImage: "plus") }
+                } label: { Image(systemName: "plus").font(.system(size: 16, weight: .semibold)) }
+                .tint(Tokens.textPrimary)
+                .accessibilityLabel("New template")
             }
         }
         .fullScreenCover(item: $liveSession) { LiveWorkoutView(session: $0) }
         .sheet(item: $editingTemplate) { TemplateEditorView(template: $0) }
     }
 
-    private var programSection: some View {
-        VStack(alignment: .leading, spacing: Tokens.cardGap) {
-            Text("Program").sectionHeader()
+    // MARK: - Program
+
+    private var program: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Program").sectionHeading()
             if templates.isEmpty {
-                Text("No templates yet. Add one to start training.")
-                    .font(.subheadline).foregroundStyle(Tokens.textSecondary).card()
+                Text("No templates yet.")
+                    .font(.system(size: 15)).foregroundStyle(Tokens.textSecondary)
+                    .bevelCard()
             }
             ForEach(templates) { template in
-                VStack(alignment: .leading, spacing: 10) {
+                ListCard {
                     HStack {
                         Text(template.name)
-                            .font(.body.weight(.semibold)).foregroundStyle(Tokens.textPrimary)
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundStyle(Tokens.textPrimary)
                         Spacer()
                         Button("Edit") { editingTemplate = template }
-                            .font(.footnote).tint(Tokens.accent)
+                            .font(.system(size: 14)).tint(Tokens.accent)
                     }
+                    .padding(.horizontal, 14).padding(.top, 14).padding(.bottom, 10)
+
                     ForEach(template.orderedExercises) { exercise in
-                        HStack {
-                            Text(exercise.name).font(.subheadline)
-                                .foregroundStyle(Tokens.textSecondary)
-                            Spacer()
-                            Text("\(exercise.targetSets)×\(exercise.targetReps) @ \(Int(exercise.workingWeight)) lb")
-                                .font(.subheadline).monospacedDigit()
-                                .foregroundStyle(Tokens.textSecondary)
+                        Divider().overlay(Tokens.hairline).padding(.leading, 14)
+                        FieldRow(label: exercise.name) {
+                            Text("\(exercise.targetSets)×\(exercise.targetReps) · \(Int(exercise.workingWeight)) lb")
+                                .monospacedDigit()
                         }
                     }
-                    Button {
+
+                    Divider().overlay(Tokens.hairline)
+                    AccessoryRow(symbol: "play.fill", label: "Start session",
+                                 tint: template.exercises.isEmpty
+                                     ? Tokens.textSecondary : Tokens.accent) {
+                        guard !template.exercises.isEmpty else { return }
                         let session = WorkoutSession(date: Calendar.current.startOfDay(for: Date()),
                                                      templateName: template.name)
                         context.insert(session)
                         try? context.save()
                         liveSession = session
-                    } label: {
-                        Text("Start session")
-                            .font(.body.weight(.semibold))
-                            .foregroundStyle(Tokens.onAccent)
-                            .frame(maxWidth: .infinity, minHeight: 44)
                     }
-                    .buttonStyle(.borderedProminent).tint(Tokens.accent)
-                    .disabled(template.exercises.isEmpty)
                 }
-                .card()
             }
         }
     }
 
-    private var historySection: some View {
-        VStack(alignment: .leading, spacing: Tokens.cardGap) {
-            Text("History").sectionHeader()
+    // MARK: - History
+
+    private var history: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("History").sectionHeading()
             if sessions.isEmpty {
                 Text("Completed sessions show up here.")
-                    .font(.subheadline).foregroundStyle(Tokens.textSecondary).card()
+                    .font(.system(size: 15)).foregroundStyle(Tokens.textSecondary)
+                    .bevelCard()
             }
             ForEach(sessions.prefix(20)) { session in
                 let load = session.load
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack {
-                        Text(session.date, format: .dateTime.month(.abbreviated).day())
-                            .font(.subheadline.weight(.semibold))
+                HStack(spacing: 12) {
+                    RoundedRectangle(cornerRadius: 9, style: .continuous)
+                        .fill(Tokens.strainLow.opacity(0.15))
+                        .frame(width: 38, height: 38)
+                        .overlay(Image(systemName: "figure.strengthtraining.traditional")
+                            .font(.system(size: 15)).foregroundStyle(Tokens.strainLow))
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(session.templateName)
+                            .font(.system(size: 15, weight: .medium))
                             .foregroundStyle(Tokens.textPrimary)
-                        Spacer()
-                        Text(session.templateName).font(.footnote)
+                        Text("\(Int(load.volumeLoad)) lb · "
+                             + Copy.count(load.hardSetsByMuscle.values.reduce(0, +), "hard set"))
+                            .font(.system(size: 13)).monospacedDigit()
                             .foregroundStyle(Tokens.textSecondary)
                     }
-                    Text("\(Int(load.volumeLoad)) lb volume · "
-                         + "\(load.hardSetsByMuscle.values.reduce(0, +)) hard sets"
-                         + (session.sessionRPE > 0
-                            ? " · sRPE \(session.sessionRPE.formatted(.number.precision(.fractionLength(0))))"
-                            : ""))
-                        .qualifier()
-                    if !session.isComplete {
-                        Text("In progress").font(.caption).foregroundStyle(Tokens.accent)
+                    Spacer()
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text(session.date, format: .dateTime.month(.abbreviated).day())
+                            .font(.system(size: 13)).foregroundStyle(Tokens.textSecondary)
+                        if !session.isComplete {
+                            Text("In progress").font(.system(size: 11))
+                                .foregroundStyle(Tokens.accent)
+                        }
                     }
                 }
-                .card()
+                .bevelCard(padding: 12)
             }
         }
     }
@@ -119,7 +131,6 @@ struct TrainView: View {
 
 // MARK: - Live workout
 
-/// Fast enough to replace a dedicated logger: the common case is one tap per set.
 struct LiveWorkoutView: View {
     @Bindable var session: WorkoutSession
 
@@ -147,22 +158,25 @@ struct LiveWorkoutView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Tokens.canvas.ignoresSafeArea()
-                if let current {
-                    workingView(current)
-                } else {
+                SkyBackground(signal: .strain)
+                if let current { working(current) } else {
                     ContentUnavailableView("Nothing to log", systemImage: "dumbbell",
                                            description: Text("This template has no exercises."))
                 }
             }
-            .navigationTitle(session.templateName)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text(session.templateName)
+                        .font(.system(size: 17, weight: .bold))
+                        .foregroundStyle(Tokens.textPrimary)
+                }
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Close") { stopTimer(); dismiss() }
+                    Button("Close") { stopTimer(); dismiss() }.tint(Tokens.textPrimary)
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Finish") { showingFinish = true }.font(.body.weight(.semibold))
+                    Button("Finish") { showingFinish = true }
+                        .font(.system(size: 16, weight: .semibold)).tint(Tokens.accent)
                 }
             }
             .sheet(isPresented: $showingFinish) {
@@ -171,80 +185,75 @@ struct LiveWorkoutView: View {
         }
     }
 
-    /// Only what is needed for the set in front of you.
-    private func workingView(_ exercise: TemplateExercise) -> some View {
-        VStack(spacing: 18) {
-            VStack(spacing: 4) {
+    private func working(_ exercise: TemplateExercise) -> some View {
+        VStack(spacing: 16) {
+            VStack(spacing: 3) {
                 Text(exercise.name)
-                    .font(.system(.title2, weight: .semibold))
+                    .font(.system(size: 24, weight: .bold))
                     .foregroundStyle(Tokens.textPrimary)
                 Text("Set \(setsLogged + 1) of \(exercise.targetSets)")
-                    .qualifier()
+                    .font(.system(size: 14)).foregroundStyle(Tokens.textSecondary)
             }
-            .padding(.top, 12)
+            .padding(.top, 10)
 
-            VStack(spacing: 2) {
-                Text("\(Int(lastLoad(for: exercise)))")
-                    .font(.system(size: 64, weight: .semibold))
-                    .monospacedDigit()
-                    .foregroundStyle(Tokens.accent)
-                    .minimumScaleFactor(0.5).lineLimit(1)
-                Text("lb × \(lastReps(for: exercise)) reps").qualifier()
+            ZStack {
+                Circle().fill(Tokens.surface)
+                    .shadow(color: .black.opacity(0.10), radius: 18, x: 0, y: 6)
+                VStack(spacing: -2) {
+                    Text("\(Int(lastLoad(for: exercise)))")
+                        .font(.system(size: 58, weight: .semibold))
+                        .monospacedDigit()
+                        .foregroundStyle(Tokens.strainLow)
+                        .minimumScaleFactor(0.5).lineLimit(1)
+                    Text("lb × \(lastReps(for: exercise))")
+                        .font(.system(size: 14)).foregroundStyle(Tokens.textSecondary)
+                }
+                .padding(28)
             }
+            .frame(width: 190, height: 190)
 
             if restRemaining > 0 {
                 Text("Rest \(restRemaining)s")
-                    .font(.body.weight(.semibold).monospacedDigit())
-                    .foregroundStyle(Tokens.accent)
+                    .font(.system(size: 15, weight: .semibold).monospacedDigit())
+                    .foregroundStyle(Tokens.strainLow)
                     .accessibilityLabel("Resting, \(restRemaining) seconds remaining")
             }
 
-            Button {
-                logSet(exercise)
-            } label: {
-                Text("Log set")
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(Tokens.onAccent)
-                    .frame(maxWidth: .infinity, minHeight: 56)
-            }
-            .buttonStyle(.borderedProminent).tint(Tokens.accent)
+            PrimaryButton(label: "Log set") { logSet(exercise) }
 
             HStack(spacing: 10) {
-                Button("Missed reps") { logSet(exercise, repsDelta: -2) }
-                    .buttonStyle(.bordered).tint(Tokens.accent)
-                    .frame(maxWidth: .infinity, minHeight: 44)
-                Button("Next exercise") {
+                secondary("Missed reps") { logSet(exercise, repsDelta: -2) }
+                secondary("Next exercise") {
                     exerciseIndex = min(exerciseIndex + 1, max(0, exercises.count - 1))
                 }
-                .buttonStyle(.bordered).tint(Tokens.accent)
-                .frame(maxWidth: .infinity, minHeight: 44)
                 .disabled(exerciseIndex >= exercises.count - 1)
             }
 
-            loggedSoFar
-
-            Spacer()
+            if !session.orderedSets.isEmpty {
+                ListCard {
+                    ForEach(Array(session.orderedSets.suffix(4).enumerated()), id: \.element.id) { index, set in
+                        if index > 0 { Divider().overlay(Tokens.hairline).padding(.leading, 14) }
+                        FieldRow(label: set.exerciseName) {
+                            Text("\(Int(set.load)) × \(set.reps) · RIR \(set.rir)").monospacedDigit()
+                        }
+                    }
+                }
+            }
+            Spacer(minLength: 0)
         }
         .padding(.horizontal, Tokens.screenMargin)
     }
 
-    private var loggedSoFar: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            if !session.orderedSets.isEmpty {
-                Text("Logged").sectionHeader()
-                ForEach(session.orderedSets.suffix(4)) { set in
-                    HStack {
-                        Text(set.exerciseName).font(.footnote)
-                            .foregroundStyle(Tokens.textSecondary)
-                        Spacer()
-                        Text("\(Int(set.load)) × \(set.reps) · RIR \(set.rir)")
-                            .font(.footnote).monospacedDigit()
-                            .foregroundStyle(Tokens.textSecondary)
-                    }
-                }
-            }
+    private func secondary(_ label: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(label)
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(Tokens.textPrimary)
+                .frame(maxWidth: .infinity, minHeight: 46)
+                .background(Tokens.surface, in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+                .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 2)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .buttonStyle(.plain)
     }
 
     private func lastLoad(for exercise: TemplateExercise) -> Double {
@@ -255,17 +264,14 @@ struct LiveWorkoutView: View {
     }
 
     private func logSet(_ exercise: TemplateExercise, repsDelta: Int = 0) {
-        let set = LoggedSet(exerciseName: exercise.name,
-                            muscleGroup: exercise.muscleGroup,
+        let set = LoggedSet(exerciseName: exercise.name, muscleGroup: exercise.muscleGroup,
                             load: lastLoad(for: exercise),
                             reps: max(0, lastReps(for: exercise) + repsDelta),
-                            rir: exercise.targetRIR,
-                            order: session.sets.count)
+                            rir: exercise.targetRIR, order: session.sets.count)
         set.session = session
         session.sets.append(set)
         try? context.save()
         startRest(seconds: exercise.restSeconds)
-
         if setsLogged >= exercise.targetSets, exerciseIndex < exercises.count - 1 {
             exerciseIndex += 1
         }
@@ -282,9 +288,7 @@ struct LiveWorkoutView: View {
     }
 
     private func stopTimer() {
-        restTimer?.invalidate()
-        restTimer = nil
-        restRemaining = 0
+        restTimer?.invalidate(); restTimer = nil; restRemaining = 0
     }
 }
 
@@ -298,42 +302,49 @@ struct FinishSessionView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section {
-                    VStack(alignment: .leading) {
-                        HStack {
-                            Text("Session RPE")
-                            Spacer()
-                            Text(rpe.formatted(.number.precision(.fractionLength(0))))
-                                .monospacedDigit().foregroundStyle(Tokens.textSecondary)
+            ZStack {
+                Tokens.canvas.ignoresSafeArea()
+                ScrollView {
+                    VStack(spacing: 16) {
+                        let load = session.load
+                        HStack(spacing: Tokens.cardGap) {
+                            StatCard(symbol: "scalemass", label: "Volume",
+                                     value: "\(Int(load.volumeLoad))", unit: "lb")
+                            StatCard(symbol: "flame", label: "Hard sets",
+                                     value: "\(load.hardSetsByMuscle.values.reduce(0, +))")
                         }
-                        Slider(value: $rpe, in: 1...10, step: 1).tint(Tokens.accent)
+
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("Session RPE").microLabel()
+                            HStack {
+                                Text(rpe.formatted(.number.precision(.fractionLength(0))))
+                                    .font(.system(size: 34, weight: .semibold)).monospacedDigit()
+                                    .foregroundStyle(Tokens.strainLow)
+                                Spacer()
+                                Text("How hard it felt, 1 to 10")
+                                    .font(.system(size: 13)).foregroundStyle(Tokens.textSecondary)
+                            }
+                            Slider(value: $rpe, in: 1...10, step: 1).tint(Tokens.strainLow)
+                        }
+                        .bevelCard()
+
+                        PrimaryButton(label: "Save session") {
+                            session.sessionRPE = rpe
+                            session.isComplete = true
+                            session.finishedAt = Date()
+                            try? context.save()
+                            dismiss(); onDone()
+                        }
                     }
-                } footer: {
-                    Text("How hard the whole session felt, 1 to 10. This feeds tomorrow's load calculation.")
-                }
-                Section {
-                    let load = session.load
-                    LabeledContent("Volume", value: "\(Int(load.volumeLoad)) lb")
-                    LabeledContent("Hard sets", value: "\(load.hardSetsByMuscle.values.reduce(0, +))")
-                    LabeledContent("Near failure",
-                                   value: load.closeToFailureShare.formatted(.percent.precision(.fractionLength(0))))
+                    .padding(.horizontal, Tokens.screenMargin)
+                    .padding(.vertical, 12)
                 }
             }
             .navigationTitle("Finish session")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Back") { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
-                        session.sessionRPE = rpe
-                        session.isComplete = true
-                        session.finishedAt = Date()
-                        try? context.save()
-                        dismiss()
-                        onDone()
-                    }
-                    .font(.body.weight(.semibold))
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Back") { dismiss() }.tint(Tokens.textPrimary)
                 }
             }
         }

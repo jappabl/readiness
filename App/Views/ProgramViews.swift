@@ -10,34 +10,44 @@ struct ProgramSetupView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                Text("Set up your program")
-                    .font(.system(.title2, weight: .semibold))
-                    .foregroundStyle(Tokens.textPrimary)
+                Text("Set up your program").sectionHeading()
                 Text("Start from a common split, then edit anything. Your health data is "
                      + "already being read — this is the only thing the app needs from you.")
-                    .font(.body).foregroundStyle(Tokens.textSecondary)
+                    .font(.system(size: 15)).foregroundStyle(Tokens.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
 
                 ForEach(Starter.all, id: \.name) { starter in
                     Button {
                         install(starter)
                     } label: {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text(starter.name)
-                                .font(.body.weight(.semibold))
-                                .foregroundStyle(Tokens.textPrimary)
-                            Text(starter.exercises.map(\.0).joined(separator: " · "))
-                                .qualifier().multilineTextAlignment(.leading)
+                        HStack(spacing: 12) {
+                            RoundedRectangle(cornerRadius: 9, style: .continuous)
+                                .fill(Tokens.recoveryHigh.opacity(0.15))
+                                .frame(width: 38, height: 38)
+                                .overlay(Image(systemName: "figure.strengthtraining.traditional")
+                                    .font(.system(size: 15))
+                                    .foregroundStyle(Tokens.recoveryHigh))
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(starter.name)
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundStyle(Tokens.textPrimary)
+                                Text(starter.exercises.map(\.0).joined(separator: " · "))
+                                    .font(.system(size: 13))
+                                    .foregroundStyle(Tokens.textSecondary)
+                                    .multilineTextAlignment(.leading)
+                            }
+                            Spacer(minLength: 0)
+                            Image(systemName: "arrow.right")
+                                .font(.system(size: 13)).foregroundStyle(Tokens.textSecondary)
                         }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .card()
+                        .bevelCard(padding: 12)
                     }
                     .buttonStyle(.plain)
                 }
 
                 Text("Training guidance, not medical advice. Your health data stays on this device.")
-                    .font(.caption).foregroundStyle(Tokens.textTertiary)
-                    .padding(.top, 4)
+                    .font(.system(size: 12)).foregroundStyle(Tokens.textTertiary)
+                    .padding(.top, 4).padding(.horizontal, 2)
             }
             .padding(.horizontal, Tokens.screenMargin)
             .padding(.vertical, 12)

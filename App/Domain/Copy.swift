@@ -4,6 +4,12 @@ import Foundation
 /// voice is one thing rather than scattered through views.
 enum Copy {
 
+    /// "1 hard set" / "2 hard sets". Cheap, and it stops the same bug recurring.
+    static func count(_ n: Int, _ singular: String, plural: String? = nil) -> String {
+        "\(n) " + (n == 1 ? singular : (plural ?? singular + "s"))
+    }
+
+
     static func headline(for state: TrainingState) -> String {
         switch state {
         case .push: return "Push"
@@ -66,6 +72,6 @@ enum Copy {
 
     static func confidenceNote(_ confidence: ReadinessConfidence, days: Int) -> String? {
         guard confidence == .low else { return nil }
-        return "Still learning your baseline — \(days) days in. Treat this as provisional."
+        return "Still learning your baseline — \(count(days, "day")) in. Treat this as provisional."
     }
 }

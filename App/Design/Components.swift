@@ -325,6 +325,88 @@ struct SegmentedMeter: View {
     }
 }
 
+/// Icon, label, chevron. The reference's one interactive idiom — it never uses a
+/// filled button inside a card.
+struct AccessoryRow: View {
+    let symbol: String
+    let label: String
+    var tint: Color = Tokens.textPrimary
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: symbol).font(.system(size: 13))
+                Text(label).font(.system(size: 15))
+                Spacer()
+                Image(systemName: "arrow.right").font(.system(size: 13))
+            }
+            .foregroundStyle(tint)
+            .padding(14)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+/// A card whose children are separated by hairlines rather than gaps — used wherever
+/// the reference groups rows inside one surface.
+struct ListCard<Content: View>: View {
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        VStack(spacing: 0) { content }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Tokens.surface, in: RoundedRectangle(cornerRadius: Tokens.cardRadius,
+                                                             style: .continuous))
+            .shadow(color: .black.opacity(0.05), radius: 10, x: 0, y: 2)
+            .shadow(color: .black.opacity(0.03), radius: 2, x: 0, y: 1)
+    }
+}
+
+/// The full-width action. Used sparingly — the reference prefers accessory rows.
+struct PrimaryButton: View {
+    let label: String
+    var symbol: String?
+    var enabled = true
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 7) {
+                if let symbol { Image(systemName: symbol).font(.system(size: 14, weight: .semibold)) }
+                Text(label).font(.system(size: 16, weight: .semibold))
+            }
+            .foregroundStyle(Tokens.onAccent)
+            .frame(maxWidth: .infinity, minHeight: 50)
+            .background(enabled ? Tokens.accent : Tokens.ringTrack,
+                        in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .shadow(color: enabled ? Tokens.accent.opacity(0.28) : .clear,
+                    radius: 10, x: 0, y: 4)
+        }
+        .buttonStyle(.plain)
+        .disabled(!enabled)
+    }
+}
+
+/// Key/value row inside a ListCard.
+struct FieldRow<Trailing: View>: View {
+    let label: String
+    @ViewBuilder var trailing: Trailing
+
+    var body: some View {
+        HStack {
+            Text(label).font(.system(size: 15)).foregroundStyle(Tokens.textPrimary)
+            Spacer(minLength: 12)
+            trailing
+                .font(.system(size: 15))
+                .foregroundStyle(Tokens.textSecondary)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+    }
+}
+
 /// A trend line with no axes — the shape is the point.
 struct Sparkline: View {
     let values: [Double]

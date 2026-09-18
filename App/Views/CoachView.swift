@@ -21,7 +21,7 @@ struct CoachView: View {
             }
         }
         .navigationTitle("Coach")
-        .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(Tokens.canvas, for: .navigationBar)
     }
 
     private var transcript: some View {
@@ -33,11 +33,15 @@ struct CoachView: View {
                         MessageBubble(message: message).id(message.id)
                     }
                     if let errorMessage {
-                        Text(errorMessage)
-                            .font(.subheadline)
-                            .foregroundStyle(Tokens.negative)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .card()
+                        HStack(alignment: .firstTextBaseline, spacing: 9) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .font(.system(size: 13)).foregroundStyle(Tokens.negative)
+                            Text(errorMessage)
+                                .font(.system(size: 14))
+                                .foregroundStyle(Tokens.textPrimary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .bevelCard(padding: 13)
                     }
                 }
                 .padding(.horizontal, Tokens.screenMargin)
@@ -51,26 +55,31 @@ struct CoachView: View {
     }
 
     private var opener: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Ask about your training")
-                .font(.system(.title3, weight: .semibold))
-                .foregroundStyle(Tokens.textPrimary)
-            Text("The coach can see today's measurements, your baselines, your program and "
-                 + "your recent sessions. It can't see anything else, and it won't guess.")
-                .font(.subheadline).foregroundStyle(Tokens.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            VStack(alignment: .leading, spacing: 8) {
-                ForEach(Self.starters, id: \.self) { prompt in
+        VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Ask about your training").sectionHeading()
+                Text("The coach sees today's measurements, your baselines, your program and "
+                     + "your recent sessions. Nothing else, and it won't guess.")
+                    .font(.system(size: 14)).foregroundStyle(Tokens.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            ListCard {
+                ForEach(Array(Self.starters.enumerated()), id: \.element) { index, prompt in
+                    if index > 0 { Divider().overlay(Tokens.hairline).padding(.leading, 14) }
                     Button { send(prompt) } label: {
-                        Text(prompt)
-                            .font(.subheadline)
-                            .foregroundStyle(Tokens.accent)
-                            .multilineTextAlignment(.leading)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.vertical, 10).padding(.horizontal, 12)
-                            .background(Tokens.surface,
-                                        in: RoundedRectangle(cornerRadius: 10))
+                        HStack(spacing: 10) {
+                            Image(systemName: "sparkles").font(.system(size: 13))
+                                .foregroundStyle(Tokens.accent)
+                            Text(prompt)
+                                .font(.system(size: 15))
+                                .foregroundStyle(Tokens.textPrimary)
+                                .multilineTextAlignment(.leading)
+                            Spacer(minLength: 0)
+                            Image(systemName: "arrow.right").font(.system(size: 12))
+                                .foregroundStyle(Tokens.textSecondary)
+                        }
+                        .padding(.horizontal, 14).padding(.vertical, 13)
+                        .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                 }
@@ -79,7 +88,7 @@ struct CoachView: View {
     }
 
     static let starters = [
-        "Why is my readiness down today?",
+        "Why is my recovery down today?",
         "Can I still train legs?",
         "What changed this week?",
     ]
@@ -89,10 +98,12 @@ struct CoachView: View {
             Divider().overlay(Tokens.hairline)
             HStack(alignment: .bottom, spacing: 8) {
                 TextField("Ask about your health or training", text: $draft, axis: .vertical)
+                    .font(.system(size: 15))
                     .lineLimit(1...5)
                     .textFieldStyle(.plain)
-                    .padding(.vertical, 10).padding(.horizontal, 12)
-                    .background(Tokens.surface, in: RoundedRectangle(cornerRadius: 20))
+                    .padding(.vertical, 12).padding(.horizontal, 15)
+                    .background(Tokens.surface, in: Capsule())
+                    .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 2)
                     .disabled(isStreaming)
 
                 Button {
@@ -101,19 +112,24 @@ struct CoachView: View {
                     send(text)
                 } label: {
                     Image(systemName: "arrow.up")
-                        .font(.body.weight(.semibold))
+                        .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(Tokens.onAccent)
                         .frame(width: 44, height: 44)
-                        .background(Tokens.accent, in: Circle())
+                        .background(canSend ? Tokens.accent : Tokens.ringTrack, in: Circle())
+                        .shadow(color: canSend ? Tokens.accent.opacity(0.3) : .clear,
+                                radius: 8, x: 0, y: 3)
                 }
-                .disabled(isStreaming
-                          || draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .disabled(!canSend)
                 .accessibilityLabel("Send")
             }
             .padding(.horizontal, Tokens.screenMargin)
             .padding(.bottom, 8)
         }
         .background(Tokens.canvas)
+    }
+
+    private var canSend: Bool {
+        !isStreaming && !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     private func send(_ text: String) {
@@ -154,11 +170,13 @@ struct MessageBubble: View {
         HStack {
             if message.role == .user { Spacer(minLength: 40) }
             Text(message.text.isEmpty ? "…" : message.text)
-                .font(.body)
+                .font(.system(size: 15))
                 .foregroundStyle(message.role == .user ? Tokens.onAccent : Tokens.textPrimary)
-                .padding(.vertical, 10).padding(.horizontal, 14)
+                .padding(.vertical, 11).padding(.horizontal, 15)
                 .background(message.role == .user ? Tokens.accent : Tokens.surface,
-                            in: RoundedRectangle(cornerRadius: 16))
+                            in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .shadow(color: .black.opacity(message.role == .user ? 0 : 0.05),
+                        radius: 8, x: 0, y: 2)
                 .fixedSize(horizontal: false, vertical: true)
             if message.role == .assistant { Spacer(minLength: 40) }
         }

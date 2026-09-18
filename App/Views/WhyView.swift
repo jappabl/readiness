@@ -1,7 +1,6 @@
 import SwiftUI
 
-/// The evidence behind today's call. Exists for the morning the app disagrees with how
-/// the user feels — with no explanation they conclude it is broken and leave.
+/// The evidence behind today's call, for the morning the app disagrees with how you feel.
 struct WhyView: View {
     let day: AssembledDay
     let recommendation: Recommendation
@@ -13,69 +12,69 @@ struct WhyView: View {
             ZStack {
                 Tokens.canvas.ignoresSafeArea()
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 20) {
+                    VStack(alignment: .leading, spacing: 24) {
                         call
                         inputs
-                        actions
+                        proposals
                         uncertainty
                         provenance
                     }
                     .padding(.horizontal, Tokens.screenMargin)
-                    .padding(.vertical, 8)
+                    .padding(.top, 4)
+                    .padding(.bottom, 32)
                 }
             }
             .navigationTitle("Why")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(Tokens.canvas, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
+                        .font(.system(size: 16, weight: .semibold)).tint(Tokens.accent)
                 }
             }
         }
     }
 
     private var call: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 6) {
             Text(Copy.headline(for: recommendation.state))
-                .font(.system(.title2, weight: .semibold))
+                .font(.system(size: 26, weight: .bold))
                 .foregroundStyle(Tokens.accent)
             Text(Copy.call(for: recommendation, gate: day.readiness.gateApplied))
-                .font(.body)
+                .font(.system(size: 15))
                 .foregroundStyle(Tokens.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .card()
-    }
-
-    private var inputs: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("What went into it").sectionHeader()
-            VStack(spacing: 0) {
-                ForEach(sorted, id: \.kind) { contribution in
-                    row(for: contribution)
-                    if contribution.kind != sorted.last?.kind {
-                        Divider().overlay(Tokens.hairline)
-                    }
-                }
-            }
-            .card()
-
-            HStack {
-                Text("Total").font(.subheadline.weight(.semibold))
-                Spacer()
-                Text(day.readiness.composite, format: .number.precision(.fractionLength(3)))
-                    .font(.subheadline.weight(.semibold)).monospacedDigit()
-            }
-            .foregroundStyle(Tokens.textPrimary)
-            .padding(.horizontal, 4)
-
-            Text("Contributions sum to the composite exactly. You can check the arithmetic.")
-                .qualifier().padding(.horizontal, 4)
-        }
+        .bevelCard()
     }
 
     private var sorted: [InputContribution] {
         day.readiness.contributions.sorted { $0.points < $1.points }
+    }
+
+    private var inputs: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("What went into it").sectionHeading()
+            ListCard {
+                ForEach(Array(sorted.enumerated()), id: \.element.kind) { index, contribution in
+                    if index > 0 { Divider().overlay(Tokens.hairline).padding(.leading, 14) }
+                    row(for: contribution)
+                }
+                Divider().overlay(Tokens.hairline)
+                HStack {
+                    Text("Total").font(.system(size: 15, weight: .semibold))
+                    Spacer()
+                    Text(day.readiness.composite, format: .number.precision(.fractionLength(3)))
+                        .font(.system(size: 15, weight: .semibold)).monospacedDigit()
+                }
+                .foregroundStyle(Tokens.textPrimary)
+                .padding(.horizontal, 14).padding(.vertical, 12)
+            }
+            Text("Contributions sum to the composite exactly. You can check the arithmetic.")
+                .font(.system(size: 13)).foregroundStyle(Tokens.textSecondary)
+                .padding(.horizontal, 2)
+        }
     }
 
     private func row(for contribution: InputContribution) -> some View {
@@ -83,17 +82,19 @@ struct WhyView: View {
         return VStack(alignment: .leading, spacing: 3) {
             HStack(alignment: .firstTextBaseline) {
                 Text(contribution.kind.displayName)
-                    .font(.body).foregroundStyle(Tokens.textPrimary)
+                    .font(.system(size: 15)).foregroundStyle(Tokens.textPrimary)
                 Spacer()
                 Text(contribution.points, format: .number.precision(.fractionLength(3)))
-                    .font(.body).monospacedDigit().foregroundStyle(Tokens.textPrimary)
+                    .font(.system(size: 15)).monospacedDigit()
+                    .foregroundStyle(contribution.points < 0 ? Tokens.negative : Tokens.positive)
             }
             if let reading {
-                Text(detail(reading, contribution)).qualifier()
+                Text(detail(reading, contribution))
+                    .font(.system(size: 13)).foregroundStyle(Tokens.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .padding(.vertical, 8)
+        .padding(.horizontal, 14).padding(.vertical, 11)
         .accessibilityElement(children: .combine)
     }
 
@@ -105,53 +106,59 @@ struct WhyView: View {
         return "\(value) \(reading.kind.unit) · baseline \(baseline) · z \(z) · weight \(weight)"
     }
 
-    private var actions: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("What it proposes").sectionHeader()
-            VStack(alignment: .leading, spacing: 6) {
-                ForEach(recommendation.adjustments, id: \.self) { adjustment in
-                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+    private var proposals: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("What it proposes").sectionHeading()
+            ListCard {
+                ForEach(Array(recommendation.adjustments.enumerated()), id: \.element) { index, adjustment in
+                    if index > 0 { Divider().overlay(Tokens.hairline).padding(.leading, 14) }
+                    HStack(alignment: .firstTextBaseline, spacing: 10) {
                         Image(systemName: "arrow.turn.down.right")
-                            .font(.footnote).foregroundStyle(Tokens.textTertiary)
+                            .font(.system(size: 12)).foregroundStyle(Tokens.accent)
                         Text(Copy.describe(adjustment))
-                            .font(.body).foregroundStyle(Tokens.textPrimary)
+                            .font(.system(size: 15)).foregroundStyle(Tokens.textPrimary)
                             .fixedSize(horizontal: false, vertical: true)
+                        Spacer(minLength: 0)
                     }
+                    .padding(.horizontal, 14).padding(.vertical, 12)
                 }
             }
-            .card()
         }
     }
 
     @ViewBuilder
     private var uncertainty: some View {
         if !recommendation.uncertainty.isEmpty {
-            VStack(alignment: .leading, spacing: 10) {
-                Text("What this can't see").sectionHeader()
-                VStack(alignment: .leading, spacing: 6) {
-                    ForEach(recommendation.uncertainty, id: \.self) { note in
-                        Text(note).font(.subheadline).foregroundStyle(Tokens.textSecondary)
+            VStack(alignment: .leading, spacing: 12) {
+                Text("What this can't see").sectionHeading()
+                ListCard {
+                    ForEach(Array(recommendation.uncertainty.enumerated()), id: \.element) { index, note in
+                        if index > 0 { Divider().overlay(Tokens.hairline).padding(.leading, 14) }
+                        Text(note)
+                            .font(.system(size: 15)).foregroundStyle(Tokens.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 14).padding(.vertical, 12)
                     }
                 }
-                .card()
             }
         }
     }
 
     private var provenance: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 5) {
             if let deviation = day.wristTemperatureDeviationC {
-                Text(temperatureLine(deviation)).qualifier()
+                Text(temperatureLine(deviation))
+                    .font(.system(size: 13)).foregroundStyle(Tokens.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            Text("Model \(recommendation.modelVersion) · \(day.daysOfHistory) days of history "
-                 + "· confidence \(recommendation.confidence.rawValue)")
-                .font(.caption).foregroundStyle(Tokens.textTertiary)
+            Text("Model \(recommendation.modelVersion) · \(Copy.count(day.daysOfHistory, "day")) · "
+                 + "confidence \(recommendation.confidence.rawValue)")
+                .font(.system(size: 12)).foregroundStyle(Tokens.textTertiary)
             Text("Training guidance, not medical advice.")
-                .font(.caption).foregroundStyle(Tokens.textTertiary)
+                .font(.system(size: 12)).foregroundStyle(Tokens.textTertiary)
         }
-        .padding(.horizontal, 4)
+        .padding(.horizontal, 2)
     }
 
     private func temperatureLine(_ deviation: Double) -> String {

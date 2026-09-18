@@ -18,93 +18,144 @@ struct ProfileView: View {
     }
 
     var body: some View {
-        Form {
-            Section("Goal") {
-                TextField("What are you training for?", text: Binding(
-                    get: { profile.goal }, set: { profile.goal = $0; try? context.save() }),
-                    axis: .vertical)
-                .lineLimit(1...3)
-            }
-
-            Section {
-                TextField("Injuries or limitations the coach should respect", text: Binding(
-                    get: { profile.limitations }, set: { profile.limitations = $0; try? context.save() }),
-                    axis: .vertical)
-                .lineLimit(1...4)
-            } header: {
-                Text("Limitations")
-            } footer: {
-                Text("The coach is told about these. It is not a clinician and will not "
-                     + "treat or diagnose anything.")
-            }
-
-            Section("Baselines") {
-                if let day = model.day {
-                    LabeledContent("History", value: "\(day.daysOfHistory) days")
-                    LabeledContent("Confidence", value: day.readiness.confidence.rawValue.capitalized)
-                    ForEach(day.readings, id: \.kind) { reading in
-                        LabeledContent(reading.kind.displayName,
-                                       value: reading.baseline.formatted(.number.precision(.fractionLength(1)))
-                                       + " " + reading.kind.unit)
-                    }
-                } else {
-                    Text("Still reading your history.").foregroundStyle(Tokens.textSecondary)
+        ZStack {
+            Tokens.canvas.ignoresSafeArea()
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+                    about
+                    baselines
+                    weights
+                    coach
+                    privacy
                 }
-            }
-
-            Section {
-                ForEach(MetricKind.allCases, id: \.self) { kind in
-                    LabeledContent(kind.displayName,
-                                   value: (ReadinessEngine.weights[kind] ?? 0)
-                                        .formatted(.number.precision(.fractionLength(2))))
-                }
-                LabeledContent("Model", value: ReadinessEngine.modelVersion)
-            } header: {
-                Text("How today's call is weighted")
-            } footer: {
-                Text("Every weight is visible because none of them is proven. They come from "
-                     + "published effect sizes, not from your data — yet.")
-            }
-
-            Section {
-                SecureField("Anthropic API key", text: $apiKey)
-                    .textContentType(.password)
-                    .autocorrectionDisabled()
-                    .textInputAutocapitalization(.never)
-                Button("Save key") {
-                    Keychain.setAPIKey(apiKey.trimmingCharacters(in: .whitespacesAndNewlines))
-                    keySaved = true
-                }
-                .tint(Tokens.accent)
-                .disabled(apiKey.isEmpty)
-                if keySaved {
-                    Label("Saved to the Keychain", systemImage: "checkmark.circle")
-                        .font(.footnote).foregroundStyle(Tokens.textSecondary)
-                }
-            } header: {
-                Text("Coach")
-            } footer: {
-                Text("The coach needs your own Anthropic API key. It is stored in the "
-                     + "device Keychain. Only derived summaries are sent — never your raw "
-                     + "health records.")
-            }
-
-            Section {
-                Text("Apple Health, read-only")
-                Text("Your health data never leaves this device and is never used for advertising.")
-                    .font(.footnote).foregroundStyle(Tokens.textSecondary)
-            } header: {
-                Text("Data sources")
-            }
-
-            Section {
-                Text("This app gives training guidance. It is not medical advice, it does not "
-                     + "diagnose, and it cannot see anything your watch does not measure. "
-                     + "If something feels wrong, talk to a clinician rather than this app.")
-                    .font(.footnote).foregroundStyle(Tokens.textSecondary)
+                .padding(.horizontal, Tokens.screenMargin)
+                .padding(.top, 4)
+                .padding(.bottom, 96)
             }
         }
         .navigationTitle("Profile")
+        .toolbarBackground(Tokens.canvas, for: .navigationBar)
         .onAppear { apiKey = Keychain.apiKey ?? "" }
+    }
+
+    private func heading(_ title: String) -> some View {
+        Text(title).sectionHeading()
+    }
+
+    private func footnote(_ text: String) -> some View {
+        Text(text).font(.system(size: 13)).foregroundStyle(Tokens.textSecondary)
+            .fixedSize(horizontal: false, vertical: true).padding(.horizontal, 2)
+    }
+
+    private var about: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            heading("You")
+            ListCard {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Goal").microLabel()
+                    TextField("What are you training for?", text: Binding(
+                        get: { profile.goal },
+                        set: { profile.goal = $0; try? context.save() }), axis: .vertical)
+                        .font(.system(size: 15)).lineLimit(1...3)
+                }
+                .padding(14)
+                Divider().overlay(Tokens.hairline)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Limitations").microLabel()
+                    TextField("Injuries the coach should respect", text: Binding(
+                        get: { profile.limitations },
+                        set: { profile.limitations = $0; try? context.save() }), axis: .vertical)
+                        .font(.system(size: 15)).lineLimit(1...4)
+                }
+                .padding(14)
+            }
+            footnote("The coach is told about these. It is not a clinician and will not "
+                     + "treat or diagnose anything.")
+        }
+    }
+
+    private var baselines: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            heading("Baselines")
+            if let day = model.day {
+                ListCard {
+                    FieldRow(label: "History") { Text(Copy.count(day.daysOfHistory, "day")).monospacedDigit() }
+                    Divider().overlay(Tokens.hairline).padding(.leading, 14)
+                    FieldRow(label: "Confidence") {
+                        Text(day.readiness.confidence.rawValue.capitalized)
+                    }
+                    ForEach(day.readings, id: \.kind) { reading in
+                        Divider().overlay(Tokens.hairline).padding(.leading, 14)
+                        FieldRow(label: reading.kind.displayName) {
+                            Text(reading.baseline.formatted(.number.precision(.fractionLength(1)))
+                                 + " " + reading.kind.unit).monospacedDigit()
+                        }
+                    }
+                }
+            } else {
+                Text("Still reading your history.")
+                    .font(.system(size: 15)).foregroundStyle(Tokens.textSecondary).bevelCard()
+            }
+        }
+    }
+
+    private var weights: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            heading("How today is weighted")
+            ListCard {
+                ForEach(Array(MetricKind.allCases.enumerated()), id: \.element) { index, kind in
+                    if index > 0 { Divider().overlay(Tokens.hairline).padding(.leading, 14) }
+                    FieldRow(label: kind.displayName) {
+                        Text((ReadinessEngine.weights[kind] ?? 0)
+                            .formatted(.number.precision(.fractionLength(2)))).monospacedDigit()
+                    }
+                }
+                Divider().overlay(Tokens.hairline).padding(.leading, 14)
+                FieldRow(label: "Model") { Text(ReadinessEngine.modelVersion).monospacedDigit() }
+            }
+            footnote("Every weight is visible because none of them is proven. They come from "
+                     + "published effect sizes, not from your data — yet.")
+        }
+    }
+
+    private var coach: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            heading("Coach")
+            ListCard {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Anthropic API key").microLabel()
+                    SecureField("sk-ant-…", text: $apiKey)
+                        .font(.system(size: 15))
+                        .textContentType(.password)
+                        .autocorrectionDisabled()
+                        .textInputAutocapitalization(.never)
+                }
+                .padding(14)
+                Divider().overlay(Tokens.hairline)
+                AccessoryRow(symbol: keySaved ? "checkmark.circle.fill" : "key",
+                             label: keySaved ? "Saved to Keychain" : "Save key",
+                             tint: apiKey.isEmpty ? Tokens.textSecondary : Tokens.accent) {
+                    guard !apiKey.isEmpty else { return }
+                    Keychain.setAPIKey(apiKey.trimmingCharacters(in: .whitespacesAndNewlines))
+                    keySaved = true
+                }
+            }
+            footnote("Stored in the device Keychain. Only derived summaries are sent — never "
+                     + "your raw health records.")
+        }
+    }
+
+    private var privacy: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            heading("Data")
+            ListCard {
+                FieldRow(label: "Apple Health") { Text("Read-only") }
+            }
+            footnote("Your health data never leaves this device and is never used for "
+                     + "advertising. This app gives training guidance, not medical advice. It "
+                     + "does not diagnose, and it cannot see anything your watch does not "
+                     + "measure. If something feels wrong, talk to a clinician rather than "
+                     + "this app.")
+        }
     }
 }
