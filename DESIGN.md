@@ -129,7 +129,7 @@ a rule through it.
 | `TimelineRow` | Badged icon, title, subtitle, chevron |
 | `PressableStyle` | 0.975 scale + 0.8 opacity on press |
 | `FloatingTabBar` | Five slots on a floating white surface, inset 12 from the edges, radius 24 |
-| `JettOrb` | The coach. A soap film: pale radial body, iridescent rim, one high specular |
+| `JettOrb` | The coach. A polished bead: radial body lit from upper left, bounce light on the shaded edge, a soft specular with a hard core |
 
 **Buttons inside cards are accessory rows, not filled buttons.** Filled buttons are
 reserved for the one primary action on a screen.
@@ -154,10 +154,14 @@ over its explanation. Not for two peers, which are two cards with a 12pt gap.
 ### The coach
 
 The coach sits in the middle slot of the tab bar, not floating over the content. It is
-the one control in the app with **no brand colour on it at all**: a green logo in a
-circle reads as a widget somebody bolted on. Iridescence lives on the rim, a single
-high specular sells the sphere, and the whole thing is a little larger than the icons
-beside it.
+the one control in the app with **no brand colour and no signal hue on it at all**: a
+green logo in a circle reads as a widget somebody bolted on.
+
+It is a **solid**, not a film — a worry stone you press rather than a bubble you would
+pop. What sells it is craft, not ornament: bounce light gathering along the shaded edge
+is what separates a sphere from a disc with a gradient on it, and the specular needs a
+hard core inside its soft pool or it reads as paint. It sits a little larger than the
+icons beside it, and it is the highest-contrast object in the bar.
 
 ---
 

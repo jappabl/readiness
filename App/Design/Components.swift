@@ -454,52 +454,49 @@ struct Sparkline: View {
 
 // MARK: - The bar
 
-/// The ask, as a bubble rather than a button.
+/// The ask, as a polished bead.
 ///
-/// This is the one control in the app with no brand colour on it. A green logo in a
-/// circle reads as a widget somebody bolted on; a soap film reads as the surface of
-/// the thing itself. The rim carries the iridescence, the specular sells the sphere.
+/// Deliberately a solid, not a film — the metaphor is a worry stone you press rather
+/// than a bubble you would pop. No signal hue and no brand green: this is the one
+/// object in the bar whose job is to be the most present thing there, and it does that
+/// with contrast and craft instead of colour.
 struct JettOrb: View {
-    var size: CGFloat = 28
+    var size: CGFloat = 30
 
     var body: some View {
         ZStack {
+            // The body, lit from the upper left.
             Circle()
                 .fill(RadialGradient(
-                    colors: [.white, Color(red: 0.93, green: 0.94, blue: 0.99)],
-                    center: UnitPoint(x: 0.36, y: 0.30),
-                    startRadius: size * 0.04,
-                    endRadius: size * 0.80))
+                    colors: [Tokens.orbLit, Tokens.orbShade],
+                    center: UnitPoint(x: 0.32, y: 0.26),
+                    startRadius: 0,
+                    endRadius: size * 0.94))
 
-            // Iridescence gathers at the rim, the way it does on a real film.
+            // Bounce light gathering along the shaded edge. This is what separates a
+            // sphere from a flat disc with a gradient on it.
             Circle()
-                .strokeBorder(AngularGradient(stops: [
-                    .init(color: Color(red: 0.60, green: 0.72, blue: 1.00), location: 0.00),
-                    .init(color: Color(red: 1.00, green: 0.80, blue: 0.64), location: 0.20),
-                    .init(color: Color(red: 0.66, green: 0.96, blue: 0.86), location: 0.44),
-                    .init(color: Color(red: 0.78, green: 0.70, blue: 1.00), location: 0.68),
-                    .init(color: Color(red: 1.00, green: 0.82, blue: 0.78), location: 0.86),
-                    .init(color: Color(red: 0.60, green: 0.72, blue: 1.00), location: 1.00),
-                ], center: .center), lineWidth: size * 0.20)
-                .blur(radius: size * 0.045)
+                .strokeBorder(
+                    LinearGradient(colors: [.clear, Tokens.orbRim.opacity(0.15), Tokens.orbRim],
+                                   startPoint: .topLeading, endPoint: .bottomTrailing),
+                    lineWidth: size * 0.10)
+                .blur(radius: size * 0.055)
 
-            // The small high specular is what makes it read as a sphere rather than a disc.
-            Ellipse()
-                .fill(.white.opacity(0.95))
-                .frame(width: size * 0.30, height: size * 0.19)
-                .offset(x: -size * 0.13, y: -size * 0.25)
-                .blur(radius: size * 0.045)
-
-            // Bounce light opposite it, much fainter.
+            // The specular: a soft pool with a small hard core inside it. One blurred
+            // blob reads as paint; the hard core is what reads as polish.
             Ellipse()
                 .fill(.white.opacity(0.45))
-                .frame(width: size * 0.21, height: size * 0.12)
-                .offset(x: size * 0.15, y: size * 0.23)
-                .blur(radius: size * 0.06)
+                .frame(width: size * 0.38, height: size * 0.28)
+                .offset(x: -size * 0.14, y: -size * 0.21)
+                .blur(radius: size * 0.10)
+            Ellipse()
+                .fill(.white.opacity(0.92))
+                .frame(width: size * 0.16, height: size * 0.11)
+                .offset(x: -size * 0.16, y: -size * 0.24)
+                .blur(radius: size * 0.022)
         }
         .frame(width: size, height: size)
-        .shadow(color: Color(red: 0.42, green: 0.42, blue: 0.60).opacity(0.30),
-                radius: size * 0.20, y: size * 0.07)
+        .shadow(color: .black.opacity(0.30), radius: size * 0.16, y: size * 0.08)
     }
 }
 

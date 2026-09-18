@@ -42,6 +42,13 @@ enum Tokens {
     static let positive      = dynamic(light: 0x34A853, dark: 0x5BD45B)
     static let negative      = dynamic(light: 0xE9573F, dark: 0xF07A64)
 
+    // The coach. A polished bead: ink on a light interface, pearl on a dark one. It
+    // carries no signal hue and no brand green — its job is to be the most present
+    // object in the bar, and it does that with contrast rather than colour.
+    static let orbLit   = dynamic(light: 0x585866, dark: 0xF6F6FA)
+    static let orbShade = dynamic(light: 0x0B0B0F, dark: 0x9A9AAB)
+    static let orbRim   = dynamic(light: 0x9BA2C2, dark: 0x4E4E5C)
+
     // Skies behind the detail screens
     static let skyStrainTop      = dynamic(light: 0xCFE0EE, dark: 0x1B2430)
     static let skyStrainMid      = dynamic(light: 0xF6D3B0, dark: 0x2E2418)
