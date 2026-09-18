@@ -61,6 +61,9 @@ final class AppModel {
 
             let fetched = try await healthKit.dailySeries(days: Self.historyDays)
             let usable = fetched.filter { $0.hrvSDNN != nil || $0.restingHeartRate != nil }
+            #if DEBUG
+            HealthStreamAudit.report(fetched)
+            #endif
 
             guard let assembled = DayAssembler.assemble(series: usable), usable.count >= 2 else {
                 phase = .failed("No health history yet. Wear your watch overnight and come back.")

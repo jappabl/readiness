@@ -18,6 +18,7 @@
 		3637D17E12D76F9EAA126693 /* Copy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 727B333776AC76D5EAD1EBBA /* Copy.swift */; };
 		1D66984FFF3FD202CDD45688 /* DayAssembler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 280764FE330CD4284D76C605 /* DayAssembler.swift */; };
 		65B64C69A26B4F12EE1C2003 /* HealthKitSeeder.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8F6F491CA9428062B10D636 /* HealthKitSeeder.swift */; };
+		15EA23205B5447AFAAC9E71C /* HealthStreamAudit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89CA015584F44816B2EB92D5 /* HealthStreamAudit.swift */; };
 		C8884E880B7820BFF41427E3 /* HealthKitSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 753507278CFE7E6B21BC827F /* HealthKitSource.swift */; };
 		76B91F16BD8B4AA5CEAFB66B /* HealthSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = D25081B67A2C1083FAD523BB /* HealthSource.swift */; };
 		323AD8BA4EB588AB8F06619D /* SyntheticPhysiology.swift in Sources */ = {isa = PBXBuildFile; fileRef = E92AF1AFE05E67FD53B9D815 /* SyntheticPhysiology.swift */; };
@@ -38,6 +39,7 @@
 		9788F82F4037D6919392FD8D /* InsightEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B442940C409958B4371E3044 /* InsightEngine.swift */; };
 		B9D4082452FF35C638BB6CAC /* Metrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCD9613FE7E08C6AFA956056 /* Metrics.swift */; };
 		A90006729218FFE9BEF0D890 /* Percentile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2EF8D6020D810536E232D51A /* Percentile.swift */; };
+		1C4F6CA506FB4D84B4240CD0 /* SleepAggregator.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6BAE466196B4430A721D45C /* SleepAggregator.swift */; };
 		ED0B41D2C1E3FFB817C7FA7D /* PlateMath.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4CEE9A79692E9B36FF13658 /* PlateMath.swift */; };
 		080720883F4434252A843FBB /* PrescriptionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = D43DBF1295840B24695D5D1D /* PrescriptionEngine.swift */; };
 		6F01DF9CFABBDDEC10A42440 /* ReadinessEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = D38B16F137B828E985434ED7 /* ReadinessEngine.swift */; };
@@ -63,6 +65,7 @@
 		727B333776AC76D5EAD1EBBA /* Copy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Copy.swift"; sourceTree = "<group>"; };
 		280764FE330CD4284D76C605 /* DayAssembler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DayAssembler.swift"; sourceTree = "<group>"; };
 		F8F6F491CA9428062B10D636 /* HealthKitSeeder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HealthKitSeeder.swift"; sourceTree = "<group>"; };
+		89CA015584F44816B2EB92D5 /* HealthStreamAudit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HealthStreamAudit.swift"; sourceTree = "<group>"; };
 		753507278CFE7E6B21BC827F /* HealthKitSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HealthKitSource.swift"; sourceTree = "<group>"; };
 		D25081B67A2C1083FAD523BB /* HealthSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HealthSource.swift"; sourceTree = "<group>"; };
 		E92AF1AFE05E67FD53B9D815 /* SyntheticPhysiology.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SyntheticPhysiology.swift"; sourceTree = "<group>"; };
@@ -83,6 +86,7 @@
 		B442940C409958B4371E3044 /* InsightEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "InsightEngine.swift"; sourceTree = "<group>"; };
 		CCD9613FE7E08C6AFA956056 /* Metrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Metrics.swift"; sourceTree = "<group>"; };
 		2EF8D6020D810536E232D51A /* Percentile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Percentile.swift"; sourceTree = "<group>"; };
+		F6BAE466196B4430A721D45C /* SleepAggregator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SleepAggregator.swift"; sourceTree = "<group>"; };
 		F4CEE9A79692E9B36FF13658 /* PlateMath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PlateMath.swift"; sourceTree = "<group>"; };
 		D43DBF1295840B24695D5D1D /* PrescriptionEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PrescriptionEngine.swift"; sourceTree = "<group>"; };
 		D38B16F137B828E985434ED7 /* ReadinessEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ReadinessEngine.swift"; sourceTree = "<group>"; };
@@ -184,6 +188,7 @@
 			isa = PBXGroup;
 			children = (
 				F8F6F491CA9428062B10D636 /* HealthKitSeeder.swift */,
+				89CA015584F44816B2EB92D5 /* HealthStreamAudit.swift */,
 				753507278CFE7E6B21BC827F /* HealthKitSource.swift */,
 				D25081B67A2C1083FAD523BB /* HealthSource.swift */,
 				E92AF1AFE05E67FD53B9D815 /* SyntheticPhysiology.swift */,
@@ -219,6 +224,7 @@
 				B442940C409958B4371E3044 /* InsightEngine.swift */,
 				CCD9613FE7E08C6AFA956056 /* Metrics.swift */,
 				2EF8D6020D810536E232D51A /* Percentile.swift */,
+				F6BAE466196B4430A721D45C /* SleepAggregator.swift */,
 				F4CEE9A79692E9B36FF13658 /* PlateMath.swift */,
 				D43DBF1295840B24695D5D1D /* PrescriptionEngine.swift */,
 				D38B16F137B828E985434ED7 /* ReadinessEngine.swift */,
@@ -311,6 +317,7 @@
 				3637D17E12D76F9EAA126693 /* Copy.swift in Sources */,
 				1D66984FFF3FD202CDD45688 /* DayAssembler.swift in Sources */,
 				65B64C69A26B4F12EE1C2003 /* HealthKitSeeder.swift in Sources */,
+				15EA23205B5447AFAAC9E71C /* HealthStreamAudit.swift in Sources */,
 				C8884E880B7820BFF41427E3 /* HealthKitSource.swift in Sources */,
 				76B91F16BD8B4AA5CEAFB66B /* HealthSource.swift in Sources */,
 				323AD8BA4EB588AB8F06619D /* SyntheticPhysiology.swift in Sources */,
@@ -331,6 +338,7 @@
 				9788F82F4037D6919392FD8D /* InsightEngine.swift in Sources */,
 				B9D4082452FF35C638BB6CAC /* Metrics.swift in Sources */,
 				A90006729218FFE9BEF0D890 /* Percentile.swift in Sources */,
+				1C4F6CA506FB4D84B4240CD0 /* SleepAggregator.swift in Sources */,
 				ED0B41D2C1E3FFB817C7FA7D /* PlateMath.swift in Sources */,
 				080720883F4434252A843FBB /* PrescriptionEngine.swift in Sources */,
 				6F01DF9CFABBDDEC10A42440 /* ReadinessEngine.swift in Sources */,
