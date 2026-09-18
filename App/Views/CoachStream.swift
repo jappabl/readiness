@@ -183,41 +183,33 @@ struct CoachChartCard: View {
         model.day?.readings.first { $0.kind == kind }
     }
 
-    /// Tracks the drawing head, so the figure counts along with the line instead of
-    /// sitting there already knowing the answer.
-    @State private var headValue: Double?
-
     var body: some View {
         if values.count >= 2 {
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text(kind.displayName)
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(Tokens.textSecondary)
-                    InfoButton(kind)
-                        .padding(.horizontal, -9)
-                        .padding(.vertical, -9)
-                    Spacer(minLength: 8)
-                    if let shown = headValue ?? reading?.value {
-                        Text(shown, format: .number.precision(.fractionLength(1)))
+            VStack(alignment: .leading, spacing: 7) {
+                DrawingLine(values: values, tint: tint, lineHeight: compact ? 30 : 44) { head in
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        Text(kind.displayName)
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(Tokens.textSecondary)
+                        InfoButton(kind)
+                            .padding(.horizontal, -9)
+                            .padding(.vertical, -9)
+                        Spacer(minLength: 8)
+                        Text(head, format: .number.precision(.fractionLength(1)))
                             .font(.system(size: 17, weight: .semibold)).monospacedDigit()
                             .foregroundStyle(Tokens.textPrimary)
-                            .contentTransition(.numericText())
                         Text(kind.unit)
                             .font(.system(size: 12))
                             .foregroundStyle(Tokens.textSecondary)
                     }
                 }
 
-                DrawingLine(values: values, tint: tint) { headValue = $0 }
-                    .frame(height: compact ? 30 : 44)
-
-                if let reading, !compact {
-                    Text("\(values.count) days · baseline "
-                         + reading.baseline.formatted(.number.precision(.fractionLength(1)))
-                         + " \(kind.unit)")
-                        .font(.system(size: 12))
-                        .foregroundStyle(Tokens.textTertiary)
+                // A line on its own is a shape. This is the sentence that makes it a
+                // reason, and it is read off the data rather than written by the model.
+                if let reading {
+                    Text(MetricNarration.brief(reading: reading, series: values))
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(Tokens.textSecondary)
                 }
             }
             .padding(compact ? 11 : 14)

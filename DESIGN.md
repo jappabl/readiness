@@ -301,6 +301,13 @@ listing them; a single metric on its own rarely makes the case. None when one nu
 already says it. Stacked charts use the compact card, because three full-height ones
 push the point off the screen.
 
+**Every chart says what it means.** A line on its own is a shape, and three stacked is
+three shapes. Each carries one short line read off the data — "Lowest in 28 days",
+"Sitting where it usually does" — derived rather than written by the model, so it can
+never claim something the numbers do not show. Being at the edge of your own range beats
+naming a direction, because it is the more useful fact and you can check it against the
+picture.
+
 Lines draw themselves and the figure counts along with the head, so the value shown is
 always the value under the dot. The path is built point by point rather than trimmed,
 since trimming walks arc length and the number drifts out of step on steep sections.

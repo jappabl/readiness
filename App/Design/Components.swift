@@ -467,12 +467,15 @@ struct Sparkline: View {
 /// length and the number would drift out of step with the tip on steep sections. Here
 /// the head position and the number come from the same fraction, so the figure is
 /// always exactly the value under the dot.
-struct DrawingLine: View {
+struct DrawingLine<Header: View>: View {
     let values: [Double]
     var tint: Color = Tokens.accent
     var duration: Double = 1.7
-    /// Called every frame with the value under the head, for a figure that counts along.
-    var onHead: ((Double) -> Void)?
+    var lineHeight: CGFloat = 44
+    /// Rendered inside the same timeline as the line, and handed the value under the
+    /// head. It has to live in here: writing that value out to a `@State` every frame
+    /// makes SwiftUI complain about updating more than once per frame, and it did.
+    @ViewBuilder var header: (Double) -> Header
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var started = Date()
@@ -481,33 +484,30 @@ struct DrawingLine: View {
     var body: some View {
         TimelineView(.animation(paused: finished || reduceMotion)) { context in
             let fraction = reduceMotion ? 1 : eased(rawFraction(at: context.date))
-            Canvas { canvas, size in
-                guard values.count >= 2 else { return }
-                let rect = CGRect(origin: .zero, size: size).insetBy(dx: 2, dy: 4)
-                canvas.stroke(path(in: rect, upTo: fraction),
-                              with: .color(tint),
-                              style: StrokeStyle(lineWidth: 2, lineCap: .round,
-                                                 lineJoin: .round))
-                if fraction > 0, fraction < 1, let head = headPoint(in: rect, at: fraction) {
-                    let dot = CGRect(x: head.x - 3, y: head.y - 3, width: 6, height: 6)
-                    canvas.fill(Path(ellipseIn: dot), with: .color(tint))
+            VStack(alignment: .leading, spacing: 8) {
+                header(value(at: fraction))
+                Canvas { canvas, size in
+                    guard values.count >= 2 else { return }
+                    let rect = CGRect(origin: .zero, size: size).insetBy(dx: 2, dy: 4)
+                    canvas.stroke(path(in: rect, upTo: fraction),
+                                  with: .color(tint),
+                                  style: StrokeStyle(lineWidth: 2, lineCap: .round,
+                                                     lineJoin: .round))
+                    if fraction > 0, fraction < 1,
+                       let head = headPoint(in: rect, at: fraction) {
+                        let dot = CGRect(x: head.x - 3, y: head.y - 3, width: 6, height: 6)
+                        canvas.fill(Path(ellipseIn: dot), with: .color(tint))
+                    }
                 }
-            }
-            .onChange(of: fraction) { _, new in
-                onHead?(value(at: new))
+                .frame(height: lineHeight)
             }
         }
-        .onAppear {
-            started = Date()
-            onHead?(reduceMotion ? (values.last ?? 0) : (values.first ?? 0))
-        }
+        .onAppear { started = Date() }
         .task {
             guard !reduceMotion else { finished = true; return }
             try? await Task.sleep(for: .seconds(duration))
             finished = true
-            onHead?(values.last ?? 0)
         }
-        .accessibilityHidden(true)
     }
 
     private func rawFraction(at date: Date) -> Double {

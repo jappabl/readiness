@@ -15,12 +15,13 @@ struct RehearsalCoachProvider: CoachProvider {
     private let firstTokenDelay = Duration.milliseconds(900)
     private let perChunk = Duration.milliseconds(45)
 
+    /// Deliberately states no measurement. The chart below it is drawn from real
+    /// history, and a canned line claiming "lowest in two weeks" sits directly above a
+    /// chart that may say otherwise. Same rule as the paywall demo.
     private static let answer = """
-        You're flat today. HRV is the lowest it's been in two weeks.
+        You're flat today. Here's what moved.
 
         [chart:hrv]
-
-        14.2 ms against your 53.4 baseline. Tuesday is still on you.
 
         Take 15% off the bar and stop at 4 RIR. You'll still get the work in.
         """
