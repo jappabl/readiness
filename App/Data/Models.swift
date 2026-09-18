@@ -231,6 +231,8 @@ final class RecommendationRow {
 /// User-stated context the agent is allowed to rely on.
 @Model
 final class UserProfile {
+    /// The `TrainingGoal` raw value. Deliberately the existing free-text field rather
+    /// than a new column: it was never read, and reusing it avoids a store migration.
     var goal: String
     var limitations: String
     var unitsAreMetric: Bool

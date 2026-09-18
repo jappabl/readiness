@@ -23,6 +23,7 @@ struct ReadinessApp: App {
                 .environment(model)
                 .task {
                     model.attach(container.mainContext)
+                    guard !model.needsOnboarding else { return }
                     await model.refresh()
                     model.startBackgroundDelivery()
                 }
@@ -32,10 +33,21 @@ struct ReadinessApp: App {
 }
 
 struct RootView: View {
+    @Environment(AppModel.self) private var model
     @State private var tab = 0
     @State private var askingJett = false
 
     var body: some View {
+        // Onboarding is not a tab. It replaces the app until it is done, because a tab
+        // bar offers four destinations to someone who has not said what they want yet.
+        if model.needsOnboarding {
+            OnboardingView()
+        } else {
+            main
+        }
+    }
+
+    private var main: some View {
         TabView(selection: $tab) {
             NavigationStack { TodayView() }.hidingSystemTabBar().tag(0)
             NavigationStack { TrainView() }.hidingSystemTabBar().tag(1)

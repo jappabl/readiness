@@ -9,7 +9,7 @@ final class AppModel {
 
     enum Phase {
         case loading
-        case needsProgram
+        case needsOnboarding
         case ready
         case failed(String)
     }
@@ -21,8 +21,10 @@ final class AppModel {
     var acwr: Double?
     var recentInsight: String?
     var seededSampleCount: Int?
+    var goal: TrainingGoal?
+    var hasProgram = false
 
-    private var series: [DailyPhysiology] = []
+    private(set) var series: [DailyPhysiology] = []
 
     /// Retracts while the user is reading, returns when they stop or scroll back.
 
@@ -38,7 +40,16 @@ final class AppModel {
 
     static let historyDays = 180
 
-    func attach(_ context: ModelContext) { self.context = context }
+    func attach(_ context: ModelContext) {
+        self.context = context
+        goal = storedGoal(from: context)
+        // Nothing is read from Health until the user has been told why. Asking for
+        // six months of physiology before saying what the app is for is how a health
+        // app gets declined on the first screen.
+        if goal == nil { phase = .needsOnboarding }
+    }
+
+    var needsOnboarding: Bool { goal == nil }
 
     // MARK: - Load
 
@@ -93,7 +104,11 @@ final class AppModel {
             todayResponse = fetchTodayResponse(from: context)
             recentInsight = computeInsight(from: context)
 
-            phase = templates.isEmpty ? .needsProgram : .ready
+            hasProgram = !templates.isEmpty
+            goal = storedGoal(from: context)
+            // A missing programme is no longer a wall — the home screen asks for one
+            // in place, and only for the goals that need it.
+            phase = goal == nil ? .needsOnboarding : .ready
 
         } catch {
             phase = .failed(error.localizedDescription)
@@ -110,6 +125,32 @@ final class AppModel {
 
     /// v1 has no calendar: the plan for today is the first template in the program.
     /// Scheduling is a later problem and does not change what the agent can say now.
+    // MARK: - Goal
+
+    private func storedGoal(from context: ModelContext) -> TrainingGoal? {
+        let profile = (try? context.fetch(FetchDescriptor<UserProfile>()))?.first
+        return profile.flatMap { TrainingGoal(rawValue: $0.goal) }
+    }
+
+    /// What today's screen is made of. The barbell angle is not the front page for
+    /// everybody — see `HomeComposition`.
+    var homeBlocks: [HomeBlock] {
+        HomeComposition.blocks(for: goal ?? .getStronger, hasProgram: hasProgram)
+    }
+
+    func setGoal(_ newGoal: TrainingGoal, in context: ModelContext) {
+        let profile = (try? context.fetch(FetchDescriptor<UserProfile>()))?.first
+            ?? {
+                let created = UserProfile()
+                context.insert(created)
+                return created
+            }()
+        profile.goal = newGoal.rawValue
+        try? context.save()
+        goal = newGoal
+        phase = .ready
+    }
+
     func plannedToday(templates: [WorkoutTemplate]) -> WorkoutTemplate? {
         templates.sorted { $0.order < $1.order }.first
     }

@@ -6,6 +6,7 @@ struct TodayView: View {
     @Environment(\.modelContext) private var context
 
     @State private var showingCheckIn = false
+    @State private var pickingProgram = false
     @State private var showingAdjust = false
     @State private var showingWhy = false
 
@@ -17,6 +18,9 @@ struct TodayView: View {
         .toolbar(.hidden, for: .navigationBar)
         .safeAreaInset(edge: .top, spacing: 0) { header }
         .sheet(isPresented: $showingCheckIn) { CheckInView() }
+        .sheet(isPresented: $pickingProgram) {
+            NavigationStack { ProgramSetupView() }
+        }
         .sheet(isPresented: $showingAdjust) { AdjustSessionView() }
         .sheet(isPresented: $showingWhy) {
             if let day = model.day, let rec = model.recommendation {
@@ -56,8 +60,10 @@ struct TodayView: View {
         switch model.phase {
         case .loading:
             ProgressView().controlSize(.large).tint(Tokens.accent)
-        case .needsProgram:
-            ProgramSetupView()
+        case .needsOnboarding:
+            // RootView shows onboarding over the whole app; this is only ever a frame
+            // in between.
+            Color.clear
         case .failed(let message):
             ContentUnavailableView("Nothing to read yet", systemImage: "heart.text.square",
                                    description: Text(message))
@@ -71,8 +77,11 @@ struct TodayView: View {
             VStack(alignment: .leading, spacing: 24) {
                 summaryCard
                 checkInPrompt
-                session
-                healthMonitor
+                // The screen below the fold is composed from the goal, not fixed:
+                // someone here to sleep better does not open on a back squat.
+                ForEach(model.homeBlocks, id: \.self) { block in
+                    view(for: block)
+                }
                 insight
             }
             .padding(.horizontal, Tokens.screenMargin)
@@ -105,7 +114,8 @@ struct TodayView: View {
                 Button { showingWhy = true } label: {
                     VStack(alignment: .leading, spacing: 5) {
                         Text("Coaching").microLabel()
-                        Text(Copy.call(for: rec, gate: day.readiness.gateApplied))
+                        Text(Copy.call(for: rec, gate: day.readiness.gateApplied,
+                                       hasSession: model.hasProgram))
                             .font(.system(size: 15))
                             .foregroundStyle(Tokens.textPrimary)
                             .lineSpacing(2)
@@ -226,6 +236,45 @@ struct TodayView: View {
                     .foregroundStyle(Tokens.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
                     .bevelCard()
+            }
+        }
+    }
+
+    // MARK: - Goal-driven blocks
+
+    @ViewBuilder
+    private func view(for block: HomeBlock) -> some View {
+        let today = model.series.last
+        switch block {
+        case .session:
+            session
+        case .programPrompt:
+            programPrompt
+        case .energyBalance:
+            EnergyBalanceCard(intake: today?.dietaryEnergyKcal,
+                              active: today?.activeEnergyKcal,
+                              basal: today?.basalEnergyKcal)
+        case .protein:
+            ProteinCard(grams: today?.proteinGrams, bodyMassKg: today?.bodyMassKg)
+        case .weightTrend:
+            WeightTrendCard(series: model.series.compactMap(\.bodyMassKg))
+        case .sleepQuality:
+            SleepQualityCard(night: today?.sleep)
+        case .movement:
+            MovementCard(steps: today?.steps,
+                         distanceKm: today?.distanceKm,
+                         exerciseMinutes: today?.exerciseMinutes,
+                         daylightMinutes: today?.timeInDaylightMinutes)
+        case .healthMonitor:
+            healthMonitor
+        }
+    }
+
+    private var programPrompt: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Training").sectionHeading()
+            AccessoryRow(symbol: "square.stack.3d.up", label: "Pick a split") {
+                pickingProgram = true
             }
         }
     }

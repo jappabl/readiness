@@ -151,6 +151,22 @@ Used for Today's rings over the coaching card, and Why's call over the plan. Rea
 it whenever the relationship is *rests on* — a verdict over its consequences, a figure
 over its explanation. Not for two peers, which are two cards with a 12pt gap.
 
+### The goal-driven home
+
+Today is not one screen. The rings, the coaching line and the health monitor are fixed;
+everything between them is composed from the user's goal — see `HomeComposition`, which
+is where the rule lives and where it is tested.
+
+The rule: **the barbell angle is not the front page for everybody.** Someone who came
+here to sleep better opens on their sleep and reaches their programme further down, if
+they have one at all. A goal never promises a block the data cannot fill, and a block
+with nothing behind it says what is missing rather than showing a confident zero.
+
+Two consequences that are easy to miss: a lifting goal with no programme installed gets
+*asked* rather than shown an empty screen, and copy that mentions "the session" has to
+know whether there is one. Telling somebody with no programme to run the session as
+planned names a thing that does not exist.
+
 ### The coach
 
 The coach sits in the middle slot of the tab bar, not floating over the content. It is

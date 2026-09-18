@@ -51,12 +51,33 @@ struct ProfileView: View {
         VStack(alignment: .leading, spacing: 12) {
             heading("You")
             ListCard {
-                VStack(alignment: .leading, spacing: 6) {
+                // Not free text: this field decides what the home screen is made of,
+                // so it has to stay one of the goals the composition knows about.
+                VStack(alignment: .leading, spacing: 8) {
                     Text("Goal").microLabel()
-                    TextField("What are you training for?", text: Binding(
-                        get: { profile.goal },
-                        set: { profile.goal = $0; try? context.save() }), axis: .vertical)
-                        .font(.system(size: 15)).lineLimit(1...3)
+                    Menu {
+                        Picker("Goal", selection: Binding(
+                            get: { model.goal ?? .getStronger },
+                            set: { model.setGoal($0, in: context) })) {
+                            ForEach(TrainingGoal.allCases, id: \.self) { goal in
+                                Label(goal.title, systemImage: goal.symbol).tag(goal)
+                            }
+                        }
+                    } label: {
+                        HStack(spacing: 8) {
+                            Text((model.goal ?? .getStronger).title)
+                                .font(.system(size: 15))
+                                .foregroundStyle(Tokens.textPrimary)
+                            Spacer(minLength: 0)
+                            Image(systemName: "chevron.up.chevron.down")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(Tokens.textSecondary)
+                        }
+                    }
+                    Text((model.goal ?? .getStronger).promise)
+                        .font(.system(size: 13))
+                        .foregroundStyle(Tokens.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 .padding(14)
                 Divider().overlay(Tokens.hairline)

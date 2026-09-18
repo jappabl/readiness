@@ -31,15 +31,30 @@ enum Copy {
     }
 
     /// One actionable sentence. "Take it easy" is not an answer.
-    static func call(for recommendation: Recommendation, gate: ReadinessGate?) -> String {
+    ///
+    /// `hasSession` is not decoration: telling somebody with no programme to "run the
+    /// session as planned" names a thing that does not exist, and the goals that skip
+    /// training entirely are exactly the ones most likely to hit this.
+    static func call(for recommendation: Recommendation, gate: ReadinessGate?,
+                     hasSession: Bool = true) -> String {
         if gate == .elevatedWristTemperature {
-            return "Temperature is up. Skip it or keep it easy."
+            return hasSession
+                ? "Temperature is up. Skip it or keep it easy."
+                : "Temperature is up. Take it easy today."
         }
         switch recommendation.state {
-        case .push:     return "Ahead of baseline. Train as planned."
-        case .maintain: return "Run the session as planned."
-        case .reduce:   return "Under baseline. Cut volume, keep reps in reserve."
-        case .recover:  return "Well under baseline. Move, don't train hard."
+        case .push:
+            return hasSession ? "Ahead of baseline. Train as planned."
+                              : "Ahead of baseline. Good day to move."
+        case .maintain:
+            return hasSession ? "Run the session as planned."
+                              : "Nothing's off today."
+        case .reduce:
+            return hasSession ? "Under baseline. Cut volume, keep reps in reserve."
+                              : "Under baseline. Keep it gentle today."
+        case .recover:
+            return hasSession ? "Well under baseline. Move, don't train hard."
+                              : "Well under baseline. Rest today."
         }
     }
 
