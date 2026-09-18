@@ -77,7 +77,7 @@ struct TodayView: View {
             }
             .padding(.horizontal, Tokens.screenMargin)
             .padding(.top, 2)
-            .padding(.bottom, 96)
+            .padding(.bottom, 168)
         }
     }
 

@@ -35,7 +35,8 @@ Keychain. Everything else works without it.
 | `App/Domain` | Composes the engines, owns app state, holds all user-facing copy. |
 | `App/Data` | SwiftData models. |
 | `App/Coach` | Provider protocol and the Claude implementation. |
-| `App/Views` | Today, Train, Coach, Trends, Profile. |
+| `Brand` | Logo source and derived marks. |
+| `App/Views` | Today, Train, Trends, Profile, plus the coach layer. |
 
 The engines are a Swift package so they test in milliseconds. The app target compiles the
 same sources directly, so there is no cross-module linkage to maintain.

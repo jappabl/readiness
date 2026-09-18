@@ -32,19 +32,25 @@ struct ReadinessApp: App {
 }
 
 struct RootView: View {
+    @State private var tab = 0
+
     var body: some View {
-        TabView {
-            NavigationStack { TodayView() }
-                .tabItem { Label("Today", systemImage: "sun.max") }
-            NavigationStack { TrainView() }
-                .tabItem { Label("Train", systemImage: "figure.strengthtraining.traditional") }
-            NavigationStack { CoachView() }
-                .tabItem { Label("Coach", systemImage: "bubble.left.and.text.bubble.right") }
-            NavigationStack { TrendsView() }
-                .tabItem { Label("Trends", systemImage: "chart.xyaxis.line") }
-            NavigationStack { ProfileView() }
-                .tabItem { Label("Profile", systemImage: "person") }
+        ZStack(alignment: .bottom) {
+            TabView(selection: $tab) {
+                NavigationStack { TodayView() }
+                    .tabItem { Label("Today", systemImage: "sun.max") }.tag(0)
+                NavigationStack { TrainView() }
+                    .tabItem { Label("Train", systemImage: "figure.strengthtraining.traditional") }.tag(1)
+                NavigationStack { TrendsView() }
+                    .tabItem { Label("Trends", systemImage: "chart.xyaxis.line") }.tag(2)
+                NavigationStack { ProfileView() }
+                    .tabItem { Label("Profile", systemImage: "person") }.tag(3)
+            }
+            .tint(Tokens.accent)
+
+            // The coach lives over Today rather than beside it, so it can blur the
+            // app behind it — including the tab bar.
+            if tab == 0 { CoachLayer() }
         }
-        .tint(Tokens.accent)
     }
 }

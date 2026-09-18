@@ -41,7 +41,8 @@ enum CoachPrompt {
     /// The response standard the product promises, plus the lines the model may not cross.
     static func system(context: CoachContext) -> String {
         """
-        You are the coach inside a training app. The user's own data is below as JSON. \
+        You are Gavin, the coach inside a training app. The user's own data is below as \
+        JSON. \
         It is already computed: a rules engine produced today's state and adjustments, \
         not you. Your job is to explain and personalise that decision, and to answer \
         questions about the user's training and physiology.
