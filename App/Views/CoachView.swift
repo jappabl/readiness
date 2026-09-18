@@ -4,10 +4,9 @@ import SwiftData
 /// The coach entry: a mark in the corner that retracts while you read, and a standard
 /// sheet when you tap it.
 ///
-/// The sheet is a plain `.sheet` with detents rather than a bespoke panel. That buys
-/// the grabber, drag-to-dismiss, tap-outside-to-dismiss, keyboard avoidance and the
-/// translucent presentation background for free — all of which were hand-rolled, and
-/// worse, before.
+/// The sheet fills the screen and is itself translucent, so the app behind it blurs
+/// through rather than sitting above it. Plain `.sheet` at the large detent: the
+/// grabber, swipe-to-dismiss and keyboard avoidance all come from the platform.
 struct CoachLayer: View {
     @Environment(AppModel.self) private var model
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -26,7 +25,7 @@ struct CoachLayer: View {
                    value: model.coachEntryExpanded)
         .sheet(isPresented: $isOpen) {
             CoachSheet()
-                .presentationDetents([.medium, .large])
+                .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
                 .presentationBackground(.ultraThinMaterial)
                 .presentationCornerRadius(28)
