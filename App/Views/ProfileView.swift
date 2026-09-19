@@ -134,7 +134,7 @@ struct ProfileView: View {
             footnote(store.isSubscribed
                      ? "Unlimited answers. There is a burst limit to stop runaway usage, "
                        + "which a conversation never reaches."
-                     : "Everything Readiness measures is free. Jett is the part with a "
+                     : "Everything the app measures is free. Jett is the part with a "
                        + "cost every time you ask.")
         }
     }
@@ -248,7 +248,8 @@ struct ProfileView: View {
 
     private var gymFootnote: String {
         if gym.needsSettings {
-            return "iOS is holding location back. Settings, Readiness, Location, Always "
+            return "iOS is holding location back. Settings, Coach Jett, Location, "
+                 + "Always "
                  + "turns this on."
         }
         if gym.knownGyms.isEmpty {

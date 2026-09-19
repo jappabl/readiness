@@ -1,4 +1,4 @@
-# Readiness
+# Coach Jett
 
 A health dashboard that understands lifting, with an evidence-grounded coach on top.
 Reads overnight physiology from HealthKit, turns it into a training decision — Push,

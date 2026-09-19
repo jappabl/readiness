@@ -58,7 +58,7 @@ struct OnboardingView: View {
         VStack(spacing: 0) {
             Spacer()
             JettRive(size: 84)
-            Text("Readiness")
+            Text("Coach Jett")
                 .font(.system(size: 34, weight: .bold))
                 .foregroundStyle(Tokens.textPrimary)
                 .padding(.top, 24)
@@ -295,8 +295,8 @@ struct OnboardingView: View {
 
     private var subhead: String {
         guard let day = model.day else {
-            return "No history on this phone yet. Wear your watch tonight and Readiness "
-                 + "will have something to say tomorrow."
+            return "No history on this phone yet. Wear your watch tonight and I'll "
+                 + "have something to say tomorrow."
         }
         switch day.readiness.confidence {
         case .low:

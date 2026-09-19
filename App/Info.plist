@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Readiness</string>
+	<string>Coach Jett</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -23,13 +23,13 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSHealthShareUsageDescription</key>
-	<string>Readiness reads your overnight heart rate variability, resting heart rate, sleep, respiratory rate, blood oxygen and wrist temperature to work out today's training loads. This data never leaves your device.</string>
+	<string>Coach Jett reads your overnight heart rate variability, resting heart rate, sleep, respiratory rate, blood oxygen and wrist temperature to work out today's training loads. This data never leaves your device.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>Used only in development builds, to write sample history into the simulator so the app can be tested without a watch.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Readiness notices when you have been at your gym for a few minutes so Jett can offer to take the session down while you rest. Your location is only ever compared against gyms you have named yourself, and never leaves this device.</string>
+	<string>Coach Jett notices when you have been at your gym for a few minutes so Jett can offer to take the session down while you rest. Your location is only ever compared against gyms you have named yourself, and never leaves this device.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Readiness notices when you have been at your gym for a few minutes so Jett can offer to take the session down while you rest. Your location is only ever compared against gyms you have named yourself, and never leaves this device.</string>
+	<string>Coach Jett notices when you have been at your gym for a few minutes so Jett can offer to take the session down while you rest. Your location is only ever compared against gyms you have named yourself, and never leaves this device.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

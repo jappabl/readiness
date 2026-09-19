@@ -6,9 +6,13 @@ rather than inventing parallel ones.
 
 ## The app
 
-**Readiness** — a training and recovery app. It reads Apple Health, builds a personal
+**Coach Jett** — a training and recovery app. It reads Apple Health, builds a personal
 baseline from the user's own history, and tells them what to do today. The coach persona
-is **Jett**: a face, a voice, and a chat tab. Repo root contains `Readiness.xcodeproj`,
+is **Jett**, who the app is named after: a face, a voice, and a chat tab. The product was
+renamed from "Readiness" to "Coach Jett"; the Xcode project, target, scheme and bundle id
+were deliberately left alone, so paths still read `Readiness.xcodeproj` and the domain
+type `ReadinessEngine` still computes a readiness score. Do not rename any of them. Repo
+root contains `Readiness.xcodeproj`,
 an app target under `App/`, and a Swift package `Core/` (`ReadinessCore`) holding pure,
 unit-tested logic.
 
@@ -358,7 +362,7 @@ single shot.
 - Do not invent a second chat component. If `CoachTurnView` needs a change to serve both
   places, change it, and keep the coach tab working.
 - Do not give the assistant's text a bubble.
-- Do not add a progress bar, a skip-all button, or a "welcome to Readiness" splash.
+- Do not add a progress bar, a skip-all button, or a "welcome to Coach Jett" splash.
 - Do not use em dashes in any user-facing string.
 - Do not fabricate numbers in the reveal. If the data is not there, say so.
 - Do not leave `OnboardingChrome.swift` in place "just in case" if nothing references it.

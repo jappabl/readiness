@@ -410,3 +410,22 @@ cutting.
 **A picture must not contradict the sentence under it.** The baseline scatter is centred
 and scaled after it is generated rather than trusted raw, because the first version's
 sample sat off-centre and the cloud fell below the band that was meant to describe it.
+
+## The name
+
+The product is **Coach Jett**. It was **Readiness**, and that word is still the name of
+the thing the app computes: `ReadinessEngine` returns a `ReadinessResult`, the score on
+the home screen is a readiness score, and none of that gets renamed. Product name and
+domain vocabulary are separate, and collapsing them would cost us the only word that
+accurately describes what the number is.
+
+What stayed behind the rename, on purpose: the bundle id `com.readiness.barbell`, the
+Xcode project, target and scheme, and the `ReadinessCore` package. All four are invisible
+to users, and the bundle id in particular is load-bearing — changing it orphans every
+existing install's HealthKit authorisation, its UserDefaults and its local store, and
+breaks the scheme's StoreKit configuration reference.
+
+**The icon is Jett's face on his own purple**, not on the brand green. Green means "an
+action you take" everywhere else in the app, and an icon is not an action. It is the same
+artwork as the face in the tab bar, so the thing you tap on the home screen and the thing
+that talks to you inside are recognisably one character.
