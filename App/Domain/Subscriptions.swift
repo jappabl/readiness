@@ -13,10 +13,10 @@ import os
 @MainActor
 final class Subscriptions {
 
-    private static let log = Logger(subsystem: "com.readiness.barbell", category: "store")
+    private static let log = Logger(subsystem: "com.coachjett.app", category: "store")
 
-    static let monthlyID = "com.readiness.barbell.pro.monthly"
-    static let yearlyID = "com.readiness.barbell.pro.yearly"
+    static let monthlyID = "com.coachjett.app.pro.monthly"
+    static let yearlyID = "com.coachjett.app.pro.yearly"
     static let productIDs = [yearlyID, monthlyID]
 
     private(set) var products: [Product] = []

@@ -419,11 +419,15 @@ the home screen is a readiness score, and none of that gets renamed. Product nam
 domain vocabulary are separate, and collapsing them would cost us the only word that
 accurately describes what the number is.
 
-What stayed behind the rename, on purpose: the bundle id `com.readiness.barbell`, the
-Xcode project, target and scheme, and the `ReadinessCore` package. All four are invisible
-to users, and the bundle id in particular is load-bearing — changing it orphans every
-existing install's HealthKit authorisation, its UserDefaults and its local store, and
-breaks the scheme's StoreKit configuration reference.
+The bundle id moved with the name, to `com.coachjett.app`, and that was only cheap
+because nothing had shipped. A bundle id is the identity every stored thing hangs off:
+HealthKit authorisation, UserDefaults, the local store, the keychain, the StoreKit
+product ids. Changing it after a release orphans all of them on every existing install.
+Before the first release it costs one rebuild. There is no third option, so it happens
+now or never.
+
+What stayed behind, on purpose: the Xcode project, target and scheme, the
+`ReadinessCore` package, and the file names. All invisible to users, all pure churn.
 
 **The icon is Jett's face on his own purple**, not on the brand green. Green means "an
 action you take" everywhere else in the app, and an icon is not an action. It is the same

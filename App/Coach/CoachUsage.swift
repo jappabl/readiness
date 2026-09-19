@@ -8,7 +8,7 @@ import os
 /// is doing its job: on a follow-up question in the same conversation, almost the whole
 /// prefix should be a cache read.
 struct CoachUsage {
-    private static let log = Logger(subsystem: "com.readiness.barbell", category: "coach")
+    private static let log = Logger(subsystem: "com.coachjett.app", category: "coach")
 
     var input = 0
     var output = 0

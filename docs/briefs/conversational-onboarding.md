@@ -344,10 +344,10 @@ so the picture contradicted the sentence under it.
 
 Run a fresh install and walk the whole thread on the simulator:
 ```
-xcrun simctl uninstall booted com.readiness.barbell
-xcrun simctl privacy booted reset health com.readiness.barbell
+xcrun simctl uninstall booted com.coachjett.app
+xcrun simctl privacy booted reset health com.coachjett.app
 xcrun simctl install booted <path to Readiness.app>
-xcrun simctl launch booted com.readiness.barbell
+xcrun simctl launch booted com.coachjett.app
 xcrun simctl io booted screenshot /tmp/shot.png
 ```
 Screenshot every state: each question, the multi-select with two picked, the permission

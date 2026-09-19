@@ -211,7 +211,7 @@ struct ClaudeCoachProvider: CoachProvider {
 /// The key is the user's own credential and belongs in the Keychain, not in UserDefaults
 /// and not in the source.
 enum Keychain {
-    private static let service = "com.readiness.barbell.anthropic"
+    private static let service = "com.coachjett.app.anthropic"
     private static let account = "api-key"
 
     static var apiKey: String? {

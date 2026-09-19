@@ -16,7 +16,7 @@ import os
 @MainActor
 final class GymPresence: NSObject {
 
-    private static let log = Logger(subsystem: "com.readiness.barbell", category: "gym")
+    private static let log = Logger(subsystem: "com.coachjett.app", category: "gym")
 
     private let manager = CLLocationManager()
     private var workoutsDuring: (@Sendable (Date, Date) async -> Bool)?
