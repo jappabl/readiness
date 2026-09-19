@@ -161,7 +161,8 @@ struct ChoiceRow: View {
 /// so the flow does not read as a form.
 struct OnboardingStatement<Illustration: View>: View {
     let title: String
-    let body_: String
+    /// Optional, because an illustration that works does not need a paragraph under it.
+    var body_: String?
     var onBack: (() -> Void)?
     let progress: Double
     let action: () -> Void
@@ -197,10 +198,12 @@ struct OnboardingStatement<Illustration: View>: View {
                     .font(.system(size: 27, weight: .bold))
                     .foregroundStyle(Tokens.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
-                Text(body_)
-                    .font(.system(size: 15))
-                    .foregroundStyle(Tokens.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                if let body_ {
+                    Text(body_)
+                        .font(.system(size: 15))
+                        .foregroundStyle(Tokens.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, Tokens.screenMargin)

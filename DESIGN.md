@@ -386,3 +386,27 @@ iOS has granted so far, so it never flicks back while a dialog is still up.
 **A switch row is tappable across its whole width.** A bare `Toggle` outside a `List`
 only responds on the switch itself, which is a 50pt target hard against the right edge.
 Wrap the row in a button and let the switch be the indicator.
+
+## Motion that replaces words
+
+**An illustration that needs a caption is not finished.** The Health screen carried
+four labels and four captions; it now carries one picture that names its own three
+sources, and the captions and the chips both went with it. If a label is there to say
+what the drawing means, fix the drawing.
+
+**Drawn here, not imported.** Onboarding's motion is Canvas and TimelineView against the
+same tokens as everything else, so it inherits dark mode, Dynamic Type and Reduce Motion
+and no colour is ever a hex value transcribed twice. Rive earns its place for Jett, who
+is a character with moods; a chart that moves is not a character.
+
+**Tune motion per colour scheme.** A translucent wash of the accent green looks calm over
+the light canvas and radioactive over the dark one. The same alpha is not the same
+picture, so the band is dimmer at night and the outlines are brighter.
+
+**Most of a loop is its settled state.** The finished frame is the one carrying the
+meaning, so arrival is quick and the hold is long. Loops close by fading, never by
+cutting.
+
+**A picture must not contradict the sentence under it.** The baseline scatter is centred
+and scaled after it is generated rather than trusted raw, because the first version's
+sample sat off-centre and the cloud fell below the band that was meant to describe it.

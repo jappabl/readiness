@@ -153,41 +153,14 @@ struct OnboardingView: View {
     private var methodStep: some View {
         OnboardingStatement(
             title: "Measured against you",
-            body_: "Most apps compare you to a population average. This one builds a "
-                 + "baseline from your own history, so a 48 ms HRV means something "
-                 + "different for you than it does for anyone else.",
+            body_: "Your normal, built from your own nights.",
             onBack: { advance(to: .obstacles) },
             progress: progress(.method),
             action: { advance(to: .units) }
         ) {
-            baselineIllustration
+            BaselineArt()
         }
     }
-
-    private var baselineIllustration: some View {
-        VStack(spacing: 14) {
-            ForEach(Array(Self.illustrationRows.enumerated()), id: \.offset) { _, row in
-                HStack(spacing: 12) {
-                    Text(row.label)
-                        .font(.system(size: 13))
-                        .foregroundStyle(Tokens.textSecondary)
-                        .frame(width: 108, alignment: .leading)
-                    RangeBar(z: row.z, polarity: 1, tint: row.tint)
-                }
-            }
-        }
-        .padding(18)
-        .background(Tokens.surface, in: RoundedRectangle(cornerRadius: Tokens.cardRadius,
-                                                         style: .continuous))
-        .shadow(color: .black.opacity(0.05), radius: 10, x: 0, y: 2)
-        .accessibilityHidden(true)
-    }
-
-    private static let illustrationRows: [(label: String, z: Double, tint: Color)] = [
-        ("Your HRV", 1.4, Tokens.recoveryHigh),
-        ("Your sleep", -0.4, Tokens.sleepLow),
-        ("Your resting HR", 0.8, Tokens.strainLow),
-    ]
 
     private var unitsStep: some View {
         OnboardingScaffold(
@@ -225,35 +198,10 @@ struct OnboardingView: View {
             onBack: { advance(to: .units) },
             action: connect
         ) {
-            VStack(spacing: 16) {
-                healthPoint("moon.zzz", "Sleep and overnight vitals",
-                            "The night is most of the signal.")
-                healthPoint("heart", "Heart rate and variability",
-                            "Compared only against your own history.")
-                healthPoint("flame", "Activity and training",
-                            "So a hard week is not read as a bad one.")
-                healthPoint("lock", "Nothing leaves the phone",
-                            "No account, no upload, no third parties.")
-            }
-            .padding(.top, 4)
-        }
-    }
-
-    private func healthPoint(_ symbol: String, _ title: String, _ detail: String) -> some View {
-        HStack(alignment: .top, spacing: 14) {
-            Image(systemName: symbol)
-                .font(.system(size: 16, weight: .medium))
-                .foregroundStyle(Tokens.jettTint)
-                .frame(width: 36, height: 36)
-                .background(Tokens.jettTint.opacity(0.12), in: Circle())
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Tokens.textPrimary)
-                Text(detail).font(.system(size: 14))
-                    .foregroundStyle(Tokens.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            Spacer(minLength: 0)
+            // No chips under it: the picture names its own three sources, and a
+            // caption that repeats the illustration is the thing to cut first.
+            PrivateArt()
+                .padding(.top, 2)
         }
     }
 
@@ -281,20 +229,12 @@ struct OnboardingView: View {
     // MARK: - The reveal
 
     private var readingStep: some View {
-        VStack(spacing: 22) {
+        VStack(spacing: 26) {
             Spacer()
-            JettRive(size: 76, isThinking: true)
-            VStack(spacing: 8) {
-                Text("Reading your history")
-                    .font(.system(size: 24, weight: .bold))
-                    .foregroundStyle(Tokens.textPrimary)
-                Text("Building a baseline from everything already on this phone.")
-                    .font(.system(size: 15))
-                    .foregroundStyle(Tokens.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.horizontal, 32)
-            }
+            ReadingArt()
+            Text("Reading your history")
+                .font(.system(size: 24, weight: .bold))
+                .foregroundStyle(Tokens.textPrimary)
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
