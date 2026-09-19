@@ -1,0 +1,385 @@
+import SwiftUI
+import PhotosUI
+import AVFoundation
+
+struct WeightLogView: View {
+    @Environment(AppModel.self) private var model
+    @Environment(\.dismiss) private var dismiss
+    @State private var whole = 150
+    @State private var decimal = 0
+    @State private var metric = false
+    @State private var health = true
+    @State private var busy = false
+    @State private var error: String?
+    let onSaved: (String) -> Void
+    private var kilograms: Double { BodyMass.kilograms(display: Double(whole) + Double(decimal) / 10, metric: metric) }
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 22) {
+                Text("Where are you today?").font(.title2.weight(.semibold)).padding(.top, 24)
+                HStack(alignment: .firstTextBaseline, spacing: 5) {
+                    Text(Double(whole) + Double(decimal) / 10, format: .number.precision(.fractionLength(1)))
+                        .font(.system(size: 56, weight: .semibold, design: .rounded)).monospacedDigit()
+                    Text(metric ? "kg" : "lb").font(.title3).foregroundStyle(.secondary)
+                }.accessibilityLabel("Weight \(whole) point \(decimal) \(metric ? "kilograms" : "pounds")")
+                HStack(spacing: 0) {
+                    Picker("Weight", selection: $whole) {
+                        ForEach(metric ? 15...500 : 34...1102, id: \.self) { Text("\($0)").tag($0) }
+                    }.pickerStyle(.wheel)
+                    Text(".").font(.title.bold())
+                    Picker("Tenths", selection: $decimal) {
+                        ForEach(0...9, id: \.self) { Text("\($0)").tag($0) }
+                    }.pickerStyle(.wheel).frame(width: 85)
+                }.frame(height: 160).clipped()
+                Picker("Units", selection: Binding(get: { metric }, set: { new in
+                    let kg = kilograms
+                    metric = new
+                    set(BodyMass.display(kilograms: kg, metric: new))
+                })) {
+                    Text("Pounds").tag(false); Text("Kilos").tag(true)
+                }.pickerStyle(.segmented)
+                Toggle("Save to Apple Health", isOn: $health)
+                Text("Adds a new weight measurement. Your earlier readings stay intact.")
+                    .font(.footnote).foregroundStyle(.secondary).frame(maxWidth: .infinity, alignment: .leading)
+                if let error { Text(error).font(.footnote).foregroundStyle(.red) }
+                Button { save() } label: {
+                    HStack { Spacer(); if busy { ProgressView().tint(.white) } else { Text("Save weight") }; Spacer() }.padding(.vertical, 9)
+                }.buttonStyle(.borderedProminent).disabled(busy || !BodyMass.isValid(kilograms: kilograms))
+                Spacer(minLength: 0)
+            }.padding(.horizontal, 24)
+                .navigationTitle("Log weight").navigationBarTitleDisplayMode(.inline)
+                .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() }.disabled(busy) } }
+                .interactiveDismissDisabled(busy)
+                .onAppear { metric = model.onboarding.unitsAreMetric; set(BodyMass.display(kilograms: model.latestWeight?.kilograms ?? 70, metric: metric)) }
+        }.tint(Tokens.accent)
+    }
+    private func set(_ value: Double) {
+        let tenths = Int((value * 10).rounded()); whole = tenths / 10; decimal = tenths % 10
+    }
+    private func save() {
+        busy = true; error = nil
+        Task {
+            do { let message = try await model.logWeight(kilograms: kilograms, toHealth: health); onSaved(message); dismiss() }
+            catch { self.error = error.localizedDescription; busy = false }
+        }
+    }
+}
+
+struct MealLogView: View {
+    @Environment(AppModel.self) private var model
+    @Environment(\.dismiss) private var dismiss
+    @State private var camera = false
+    @State private var photo: UIImage?
+    @State private var selectedPhoto: PhotosPickerItem?
+    @State private var name = ""
+    @State private var calories = ""
+    @State private var protein = ""
+    @State private var carbs = ""
+    @State private var fat = ""
+    @State private var note = ""
+    @State private var health = false
+    @State private var busy = false
+    @State private var estimating = false
+    @State private var message: String?
+    @State private var showConsent = false
+    @State private var started = false
+    @State private var estimateTask: Task<Void, Never>?
+    @State private var estimateRevision = UUID()
+    @State private var photoLoadTask: Task<Void, Never>?
+    @State private var loadingPhoto = false
+    let onSaved: (String) -> Void
+
+    private func number(_ text: String) -> Double? {
+        FoodNumber.parse(text, decimalSeparator: Locale.current.decimalSeparator ?? ".")
+    }
+    private var nutrition: MealNutrition? {
+        guard let kcal = number(calories), let p = number(protein), let c = number(carbs), let f = number(fat) else { return nil }
+        let values = MealNutrition(calories: kcal, protein: p, carbs: c, fat: f)
+        return values.isValid ? values : nil
+    }
+    var body: some View {
+        NavigationStack {
+            mealForm.navigationTitle("").navigationBarTitleDisplayMode(.inline)
+                .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { cancelEstimate(); photoLoadTask?.cancel(); dismiss() }.disabled(busy) } }
+                .interactiveDismissDisabled(busy)
+                .fullScreenCover(isPresented: $camera) { MealCamera { image in usePhoto(image); camera = false } onCancel: { camera = false } }
+                .confirmationDialog("Estimate with DeepSeek?", isPresented: $showConsent, titleVisibility: .visible) {
+                    Button("Send photo and estimate") {
+                        UserDefaults.standard.set(true, forKey: Self.consentKey)
+                        estimate()
+                    }
+                    Button("Cancel", role: .cancel) {}
+                } message: { Text("Your meal photo and portion notes are sent to DeepSeek to be read. No Health history is sent, and you check the numbers before anything is logged. Asked once.") }
+                .onAppear { if !started { started = true; openCamera() } }
+                .onChange(of: selectedPhoto) { _, item in
+                    guard let item else { return }
+                    cancelEstimate()
+                    photoLoadTask?.cancel()
+                    loadingPhoto = true
+                    photoLoadTask = Task {
+                        let data = try? await item.loadTransferable(type: Data.self)
+                        guard !Task.isCancelled, selectedPhoto == item else { return }
+                        loadingPhoto = false
+                        if let data, let image = UIImage(data: data) { usePhoto(image) }
+                        else { message = "Couldn't open that photo. Try another or enter the meal." }
+                    }
+                }
+                .onDisappear { cancelEstimate(); photoLoadTask?.cancel(); loadingPhoto = false }
+        }.tint(Tokens.accent)
+    }
+    /// A camera product, not a data-entry form.
+    ///
+    /// The photo is the screen. Everything read off it is laid over the bottom of it as
+    /// one number you could read across a room, three macros beside it, and a name you
+    /// can type into. Every figure is a text field wearing the same type as the label it
+    /// replaced, so correcting the estimate is tapping the thing that is wrong rather
+    /// than finding its row in a form.
+    private var mealForm: some View {
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    hero
+                    if let message {
+                        Text(message)
+                            .font(.system(size: 13))
+                            .foregroundStyle(Tokens.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    readout.disabled(estimating || busy || loadingPhoto)
+                    notes.disabled(estimating || busy || loadingPhoto)
+                    Toggle("Save to Apple Health", isOn: $health)
+                        .font(.system(size: 14))
+                        .foregroundStyle(Tokens.textSecondary)
+                        .tint(Tokens.accent)
+                }
+                .padding(.horizontal, Tokens.screenMargin)
+                .padding(.bottom, 28)
+            }
+            .scrollDismissesKeyboard(.interactively)
+            logButton
+        }
+        .background(Tokens.canvas.ignoresSafeArea())
+    }
+
+    /// The photo, or the two ways to get one. Sized like a picture rather than like a
+    /// row in a list, because it is the evidence for every number under it.
+    private var hero: some View {
+        ZStack(alignment: .bottom) {
+            if let photo {
+                Image(uiImage: photo)
+                    .resizable().scaledToFill()
+                    .frame(height: 300).frame(maxWidth: .infinity)
+                    .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+            } else {
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .fill(Tokens.surfaceSunken)
+                    .frame(height: 300)
+                    .overlay {
+                        VStack(spacing: 6) {
+                            Image(systemName: "camera.fill")
+                                .font(.system(size: 26))
+                                .foregroundStyle(Tokens.textSecondary)
+                            Text("Photograph the meal")
+                                .font(.system(size: 15))
+                                .foregroundStyle(Tokens.textSecondary)
+                        }
+                    }
+            }
+
+            // While it is thinking, the coach says so over the picture. A spinner in a
+            // list row belongs to a form; this belongs to Jett.
+            if estimating || loadingPhoto {
+                ThinkingPill(label: estimating ? "Reading the photo" : "Opening photo")
+                    .padding(.bottom, 14)
+            } else {
+                HStack(spacing: 8) {
+                    heroButton(photo == nil ? "Camera" : "Retake", "camera") { openCamera() }
+                    PhotosPicker(selection: $selectedPhoto, matching: .images) {
+                        heroLabel("Library", "photo")
+                    }
+                }
+                .padding(.bottom, 14)
+            }
+        }
+    }
+
+    private func heroButton(_ title: String, _ symbol: String,
+                            action: @escaping () -> Void) -> some View {
+        Button(action: action) { heroLabel(title, symbol) }.buttonStyle(.plain)
+    }
+
+    private func heroLabel(_ title: String, _ symbol: String) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: symbol).font(.system(size: 12, weight: .semibold))
+            Text(title).font(.system(size: 14, weight: .medium))
+        }
+        .foregroundStyle(Tokens.textPrimary)
+        .padding(.horizontal, 14).padding(.vertical, 9)
+        .background(.regularMaterial, in: Capsule())
+    }
+
+    /// Name, one big number, three macros. Each of them editable where it stands.
+    private var readout: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            TextField("", text: $name, prompt: Text("Name this meal")
+                .font(.system(size: 17))
+                .foregroundColor(Tokens.textSecondary))
+                .font(.system(size: 24, weight: .semibold))
+                .foregroundStyle(Tokens.textPrimary)
+                .textInputAutocapitalization(.sentences)
+
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                TextField("0", text: $calories)
+                    .font(.system(size: 52, weight: .bold))
+                    .monospacedDigit()
+                    .keyboardType(.decimalPad)
+                    .fixedSize()
+                    .accessibilityLabel("Calories")
+                Text("kcal")
+                    .font(.system(size: 17, weight: .medium))
+                    .foregroundStyle(Tokens.textSecondary)
+            }
+
+            HStack(spacing: 8) {
+                macroPill("Protein", $protein, Tokens.recoveryHigh)
+                macroPill("Carbs", $carbs, Tokens.strainLow)
+                macroPill("Fat", $fat, Tokens.sleepLow)
+            }
+        }
+    }
+
+    private func macroPill(_ label: String, _ text: Binding<String>, _ tint: Color) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(label)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(tint)
+                .textCase(.uppercase)
+            HStack(alignment: .firstTextBaseline, spacing: 2) {
+                TextField("0", text: text)
+                    .font(.system(size: 19, weight: .semibold))
+                    .monospacedDigit()
+                    .keyboardType(.decimalPad)
+                    .frame(minWidth: 26)
+                    .accessibilityLabel(label)
+                Text("g").font(.system(size: 13)).foregroundStyle(Tokens.textSecondary)
+            }
+        }
+        .padding(.horizontal, 13).padding(.vertical, 10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Tokens.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
+    private var notes: some View {
+        TextField("Portion notes, sauces, anything hidden", text: $note, axis: .vertical)
+            .font(.system(size: 15))
+            .lineLimit(1...3)
+            .padding(.horizontal, 14).padding(.vertical, 12)
+            .background(Tokens.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
+    private var logButton: some View {
+        VStack(spacing: 0) {
+            Button { save() } label: {
+                HStack(spacing: 8) {
+                    if busy { ProgressView().tint(Tokens.onAccent) }
+                    Text(busy ? "Saving" : "Log meal")
+                        .font(.system(size: 17, weight: .semibold))
+                }
+                .foregroundStyle(Tokens.onAccent)
+                .frame(maxWidth: .infinity, minHeight: 52)
+                .background(canSave ? Tokens.accent : Color.primary.opacity(0.14),
+                            in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            }
+            .buttonStyle(.plain)
+            .disabled(!canSave)
+            .padding(.horizontal, Tokens.screenMargin)
+            .padding(.top, 10)
+            .padding(.bottom, 8)
+        }
+        .background(.regularMaterial)
+    }
+
+    private var canSave: Bool {
+        !busy && !estimating && !loadingPhoto && nutrition != nil
+            && !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+    private func openCamera() {
+        guard UIImagePickerController.isSourceTypeAvailable(.camera) else { message = "Camera isn't available here. Choose a photo or enter a meal."; return }
+        if AVCaptureDevice.authorizationStatus(for: .video) == .denied || AVCaptureDevice.authorizationStatus(for: .video) == .restricted {
+            message = "Camera access is off. Enable Camera in Settings for Jett, choose a photo, or enter a meal."; return
+        }
+        camera = true
+    }
+    private func cancelEstimate() {
+        estimateTask?.cancel()
+        estimateTask = nil
+        estimateRevision = UUID()
+        estimating = false
+    }
+    /// Asked once, then remembered. A photo does leave the device, so the question is
+    /// owed; asking it again every single meal is not consent, it is a toll booth.
+    private static let consentKey = "meal.photoEstimateConsent"
+    private var hasConsented: Bool { UserDefaults.standard.bool(forKey: Self.consentKey) }
+
+    private func usePhoto(_ image: UIImage) {
+        cancelEstimate()
+        photo = image
+        name = ""; calories = ""; protein = ""; carbs = ""; fat = ""; note = ""
+        message = nil
+        // The shutter is the instruction. Nobody photographs their lunch and then wants
+        // to be asked whether they meant it.
+        if hasConsented { estimate() } else { showConsent = true }
+    }
+    private func estimate() {
+        guard let photo, !estimating, !loadingPhoto else { return }
+        let revision = UUID()
+        estimateRevision = revision
+        let portionNote = note
+        estimating = true; message = nil
+        estimateTask = Task {
+            defer { if estimateRevision == revision { estimating = false } }
+            do {
+                let result = try await MealPhotoEstimator.estimate(image: photo, note: portionNote)
+                try Task.checkCancellation()
+                guard estimateRevision == revision else { return }
+                name = result.name
+                calories = result.calories.formatted(.number.grouping(.never).precision(.fractionLength(0)))
+                protein = result.protein.formatted(.number.grouping(.never).precision(.fractionLength(0)))
+                carbs = result.carbs.formatted(.number.grouping(.never).precision(.fractionLength(0)))
+                fat = result.fat.formatted(.number.grouping(.never).precision(.fractionLength(0)))
+                // The numbers are already on screen and editable. Saying so would be
+                // describing the interface to somebody looking at it.
+                message = nil
+            } catch is CancellationError {} catch {
+                if estimateRevision == revision && !Task.isCancelled { message = error.localizedDescription }
+            }
+        }
+    }
+    private func save() {
+        guard let nutrition else { return }
+        busy = true
+        Task {
+            do { let result = try await model.logMeal(name: name, nutrition: nutrition, toHealth: health); onSaved(result); dismiss() }
+            catch { message = error.localizedDescription; busy = false }
+        }
+    }
+}
+
+private struct MealCamera: UIViewControllerRepresentable {
+    let onPhoto: (UIImage) -> Void
+    let onCancel: () -> Void
+    func makeCoordinator() -> Coordinator { Coordinator(self) }
+    func makeUIViewController(context: Context) -> UIImagePickerController {
+        let picker = UIImagePickerController(); picker.sourceType = .camera
+        picker.delegate = context.coordinator; return picker
+    }
+    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+    final class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+        let parent: MealCamera
+        init(_ parent: MealCamera) { self.parent = parent }
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) { parent.onCancel() }
+        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
+            if let image = info[.originalImage] as? UIImage { parent.onPhoto(image) } else { parent.onCancel() }
+        }
+    }
+}
