@@ -1,0 +1,35 @@
+name = "coachjett-proxy"
+main = "src/index.ts"
+compatibility_date = "2026-09-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Secrets are never committed. Set them with:
+#   wrangler secret put ANTHROPIC_API_KEY
+#   wrangler secret put DEEPSEEK_API_KEY
+#   wrangler secret put DEV_SHARED_SECRET     # simulator bypass only
+
+[vars]
+# Which provider answers each surface. Changing these is a deploy, not an App Review,
+# which is most of why this server exists.
+COACH_PROVIDER = "anthropic"
+COACH_MODEL = "claude-sonnet-5"
+MEAL_PROVIDER = "deepseek"
+MEAL_MODEL = "deepseek-flash"
+# App Attest stays off until the project has a real DEVELOPMENT_TEAM, because the
+# attestation payload is validated against <teamID>.<bundleID>.
+REQUIRE_ATTESTATION = "false"
+APPLE_TEAM_ID = ""
+BUNDLE_ID = "com.coachjett.app"
+
+[[durable_objects.bindings]]
+name = "BUCKET"
+class_name = "RateBucket"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["RateBucket"]
+
+[[kv_namespaces]]
+binding = "USAGE"
+# Create with: wrangler kv namespace create USAGE, then paste the id here.
+id = "local_usage"  # placeholder; local dev only

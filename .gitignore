@@ -7,3 +7,6 @@ xcuserdata/
 # Vendored binary framework: run Scripts/fetch-rive.sh
 Frameworks/RiveRuntime.xcframework/
 Readiness.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/
+server/node_modules/
+server/.wrangler/
+server/.dev.vars
