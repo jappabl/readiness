@@ -257,13 +257,21 @@ struct OnboardingView: View {
         }
     }
 
+    /// The read is usually faster than a frame, which made the screen that explains it
+    /// flash past like a glitch. Held just long enough to be read as a step rather than
+    /// a stutter, and no longer than somebody would wait without wondering.
+    private static let readingDwell: Duration = .milliseconds(1300)
+
     private func connect() {
         connecting = true
         model.completeOnboarding(answers, in: context)
         advance(to: .reading)
         Task {
+            let began = ContinuousClock.now
             await model.refresh()
             model.startBackgroundDelivery()
+            let remaining = Self.readingDwell - began.duration(to: .now)
+            if remaining > .zero { try? await Task.sleep(for: remaining) }
             connecting = false
             Haptics.committed()
             advance(to: .baselines)
