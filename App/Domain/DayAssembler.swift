@@ -34,8 +34,11 @@ enum DayAssembler {
     static let debtNights = 28
 
     private static func debtReading(_ series: [DailyPhysiology]) -> MetricReading? {
-        let all = series.compactMap(\.sleepHours)
-        guard all.count >= 2 else { return nil }
+        // Dense by calendar night: an unrecorded night fades the balance rather than
+        // freezing it, so the nights that passed have to be here.
+        let all = series.map(\.sleepHours)
+        let recorded = all.compactMap { $0 }
+        guard recorded.count >= 2 else { return nil }
         let debt = SleepDebt.of(nights: Array(all.suffix(debtNights)))
         return MetricReading(kind: .sleepDebt,
                              value: debt.hours,
@@ -45,7 +48,7 @@ enum DayAssembler {
                              // How much history stands behind it, not how far the
                              // balance looks back — those were only ever the same
                              // number by coincidence, and the window has moved.
-                             sampleCount: all.count)
+                             sampleCount: recorded.count)
     }
 
     static func assemble(series: [DailyPhysiology], acwr: Double? = nil) -> AssembledDay? {

@@ -523,7 +523,7 @@ final class AppModel {
         // from that day's future: a day 45 of a record whose nights 40-49 were the bad
         // ones showed a flat zero under a row correctly reading 7 hours behind.
         out[.sleepDebt] = SleepDebt.history(nights: series.filter { $0.date <= cutoff }
-                                                          .compactMap(\.sleepHours),
+                                                          .map(\.sleepHours),
                                             points: days)
         for kind in MetricKind.allCases {
             let values = recent.compactMap { day -> Double? in
@@ -618,12 +618,14 @@ final class AppModel {
     var sleepDebt: SleepDebt { sleepDebt(on: Date()) }
 
     func sleepDebt(on date: Date) -> SleepDebt {
-        let nights = sleepNights(upTo: date)
+        let nights = nightlySleep(upTo: date)
         // One night cannot have a change since the night before it. `SleepDebt.of`
         // accumulates an empty list for `previous`, so a first-day user at six hours saw
         // "1.0 h behind, up 1.0 h since yesterday" against a yesterday with nothing in it.
         // `DayAssembler.debtReading` has always guarded this; the card did not.
-        guard nights.count >= 2 else { return SleepDebt(hours: 0, change: 0, nights: 0) }
+        guard nights.compactMap({ $0 }).count >= 2 else {
+            return SleepDebt(hours: 0, change: 0, nights: 0)
+        }
         return SleepDebt.of(nights: nights)
     }
 
@@ -633,6 +635,18 @@ final class AppModel {
     /// card the whole series including last night — so they learned different needs and
     /// contradicted each other on the same screen: "your need was 7.0 hours" above a
     /// card saying twelve hours behind.
+    /// One entry per calendar night, nil where nothing was recorded. The balance fades per
+    /// night that *passed*, so the nights that passed have to be in the list.
+    private func nightlySleep(upTo date: Date, days: Int = 28) -> [Double?] {
+        let cutoff = Self.endOfDay(date)
+        return Array(series.filter { $0.date <= cutoff }.map(\.sleepHours).suffix(days))
+    }
+
+    /// The nights that were actually slept, for the need.
+    ///
+    /// A night count rather than a calendar window, deliberately and unlike the balance:
+    /// the need is a percentile of this sleeper's own distribution, so what it wants is a
+    /// sample, and a sparse wearer's twenty-eight calendar days would be a smaller one.
     private func sleepNights(upTo date: Date, days: Int = 28) -> [Double] {
         let cutoff = Self.endOfDay(date)
         return Array(series.filter { $0.date <= cutoff }.compactMap(\.sleepHours).suffix(days))

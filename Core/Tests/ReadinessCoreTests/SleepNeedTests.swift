@@ -627,3 +627,43 @@ struct SleepDebtResolutionTests {
         #expect(SleepDebt.of(nights: Array(repeating: 7.5, count: 20)).hours < 0.01)
     }
 }
+
+/// The balance has to fade per night that *passed*, not per night that was recorded.
+///
+/// `accumulate` applied the decay once per array entry, and the array had already had its
+/// unrecorded nights compacted out — so taking the watch off froze the balance instead of
+/// letting it fade, and the sentence on screen ("each night fades as it recedes rather
+/// than dropping out on a fixed day") was false for exactly the people most likely to
+/// read it.
+@Suite("A night nobody recorded still passes")
+struct SleepDebtCalendarTests {
+
+    private func nights(_ hours: Double, _ count: Int) -> [Double?] {
+        Array(repeating: Double?.some(hours), count: count)
+    }
+
+    private var badWeek: [Double?] { nights(7.5, 20) + nights(4.0, 7) }
+
+    @Test("an unrecorded night still fades the balance", arguments: [3, 5, 7, 14])
+    func unrecordedNightsStillDecay(gap: Int) {
+        let frozen = SleepDebt.of(nights: badWeek).hours
+        let afterGap = SleepDebt.of(nights: badWeek + Array(repeating: nil, count: gap)).hours
+        #expect(afterGap < frozen * 0.9,
+                "\(gap) unrecorded nights left it at \(afterGap) of \(frozen)")
+    }
+
+    /// But an unrecorded night is not a good night: not wearing the watch cannot pay the
+    /// balance down faster than actually sleeping would.
+    @Test("a missing night is not a night of credit")
+    func missingIsNotCredit() {
+        let unrecorded = SleepDebt.of(nights: badWeek + Array(repeating: nil, count: 5)).hours
+        let slept = SleepDebt.of(nights: badWeek + nights(9.5, 5)).hours
+        #expect(slept < unrecorded, "sleeping nine hours paid less than not recording")
+    }
+
+    /// And a record with nothing in it is not a record of anything.
+    @Test("nothing recorded owes nothing")
+    func emptyOwesNothing() {
+        #expect(SleepDebt.of(nights: Array(repeating: nil, count: 30)).hours == 0)
+    }
+}

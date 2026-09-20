@@ -260,18 +260,33 @@ public struct SleepDebt: Sendable, Equatable {
     /// but not unbounded, because a fortnight of holiday is not a licence.
     public static let maximumCreditHours = 3.0
 
-    /// `nights` is hours slept, oldest first.
-    public static func of(nights: [Double]) -> SleepDebt {
-        let clean = nights.filter { $0.isFinite && $0 >= 0 }
+    /// `nights` is hours slept, one entry per calendar night, oldest first, nil on a
+    /// night nothing was recorded.
+    ///
+    /// The nils matter. The decay used to be applied once per array entry, and the array
+    /// arrived with its unrecorded nights already compacted out — so taking the watch off
+    /// *froze* the balance rather than letting it fade, and a week away left somebody
+    /// carrying a balance a fortnight of ordinary sleep should have cleared. Worth about
+    /// fourteen points of recovery ring after a fortnight's gap, and it made the sentence
+    /// on screen ("each night fades as it recedes") false for exactly the people most
+    /// likely to be reading it.
+    ///
+    /// A night nobody recorded fades what is owed and contributes nothing of its own —
+    /// not wearing the watch is neither a good night nor a bad one.
+    public static func of(nights: [Double?]) -> SleepDebt {
+        let clean: [Double?] = nights.map { night in
+            guard let night, night.isFinite, night >= 0 else { return nil }
+            return night
+        }
         // One reference for both balances, and the same fourteen-night window ending a
         // night apart. Re-learning it between the two made the arrow disagree with the
         // number above it on 66 days out of 70, and point the wrong way on 27.
-        let against = reference(for: clean)
+        let against = reference(for: clean.compactMap { $0 })
         let balance = accumulate(clean, against: against)
         let previous = accumulate(Array(clean.dropLast()), against: against)
         return SleepDebt(hours: Swift.max(0, balance),
                          change: Swift.max(0, balance) - Swift.max(0, previous),
-                         nights: clean.count)
+                         nights: clean.compactMap { $0 }.count)
     }
 
     /// The balance as it ran, one point per night, ending with today's.
@@ -285,10 +300,13 @@ public struct SleepDebt: Sendable, Equatable {
     ///
     /// One reference, taken from the same nights the row reads, so a rise on this line
     /// means less sleep and never a reference that moved underneath it.
-    public static func history(nights: [Double], points: Int) -> [Double] {
-        let clean = nights.filter { $0.isFinite && $0 >= 0 }
-        guard !clean.isEmpty, points > 0 else { return [] }
-        let against = reference(for: Array(clean.suffix(points)))
+    public static func history(nights: [Double?], points: Int) -> [Double] {
+        let clean: [Double?] = nights.map { night in
+            guard let night, night.isFinite, night >= 0 else { return nil }
+            return night
+        }
+        guard clean.contains(where: { $0 != nil }), points > 0 else { return [] }
+        let against = reference(for: clean.suffix(points).compactMap { $0 })
         // The same span the row accumulates over, so the line ends exactly where the
         // number says. With decay the starting point barely matters after a fortnight,
         // but "barely" is not "exactly", and these two have disagreed before.
@@ -298,10 +316,16 @@ public struct SleepDebt: Sendable, Equatable {
         return Array(balances.suffix(points))
     }
 
-    private static func accumulate(_ nights: [Double], against reference: Double) -> Double {
+    private static func accumulate(_ nights: [Double?], against reference: Double) -> Double {
         guard !nights.isEmpty else { return 0 }
         var debt = 0.0
         for slept in nights {
+            // A night that passed unrecorded still passed: it fades what is owed and adds
+            // nothing of its own.
+            guard let slept else {
+                debt *= retention
+                continue
+            }
             debt = Swift.min(maximumHours,
                              Swift.max(-maximumCreditHours,
                                        debt * retention + (reference - slept)))
