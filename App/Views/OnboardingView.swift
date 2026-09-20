@@ -41,7 +41,13 @@ struct OnboardingView: View {
                                 .transition(reduceMotion ? .opacity :
                                     .offset(x: turn.isUser ? 12 : 0, y: 10).combined(with: .opacity))
                         }
-                        if settled { responses }
+                        if settled {
+                            responses
+                                // The choices arrive as their own beat rather than
+                                // snapping in the instant the sentence lands.
+                                .transition(reduceMotion ? .opacity :
+                                    .offset(y: 8).combined(with: .opacity))
+                        }
                         if flow.step == .reading { reading }
                         Color.clear.frame(height: 1).id("latest")
                     }
@@ -119,6 +125,10 @@ struct OnboardingView: View {
                     }
                     Haptics.replyEnded()
                 }
+                // Settled: the sentence has landed and the choices are now on screen.
+                // A separate, lighter tap from the one that marks a turn arriving, so
+                // "Jett said something" and "it's your move" do not feel the same.
+                if flow.step != .reading && !reduceMotion { Haptics.light() }
             } catch { return }
         }
     }
@@ -167,7 +177,8 @@ struct OnboardingView: View {
     private func answerWithReceipt(_ message: CoachMessage, turnID: Int, editable: Bool,
                                    reservesReactionSpace: Bool = false) -> some View {
         VStack(alignment: .trailing, spacing: 4) {
-            CoachTurnView(message: message, reservesReactionSpace: reservesReactionSpace)
+            CoachTurnView(message: message, reservesReactionSpace: reservesReactionSpace,
+                          revealsWords: message.role == .assistant)
             if receiptAnswerID == turnID {
                 HStack(spacing: 5) {
                     Text(deliveryStatus)

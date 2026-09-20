@@ -30,6 +30,7 @@
 		3847AA30AB8B469E81244BA6 /* JettRive.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75C97A7B460546DC971F8390 /* JettRive.swift */; };
 		E7724AD2681E446B9260669B /* OnboardingArt.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFD5C176B063417C9E31F066 /* OnboardingArt.swift */; };
 		08BC2C2260F6488DA1191880 /* BaselineReveal.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD53D5156C694E33A13228A0 /* BaselineReveal.swift */; };
+		38CF6E29E78F4FC28A76D3CF /* RevealingText.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA24F1A41A22424084F0157C /* RevealingText.swift */; };
 		EE03F8BEDCD6A9A537C094A1 /* Haptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = D05CEB565B3FE57087B3DF2F /* Haptics.swift */; };
 		8B34409B561B864F27FC08B8 /* Tokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DC92FB9E866D08DA7B20B63 /* Tokens.swift */; };
 		D5DD1FF9090A37E50C8620A7 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8D4A3BC6412D0F227E7426E /* AppModel.swift */; };
@@ -117,6 +118,7 @@
 		75C97A7B460546DC971F8390 /* JettRive.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "JettRive.swift"; sourceTree = "<group>"; };
 		EFD5C176B063417C9E31F066 /* OnboardingArt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OnboardingArt.swift"; sourceTree = "<group>"; };
 		FD53D5156C694E33A13228A0 /* BaselineReveal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BaselineReveal.swift"; sourceTree = "<group>"; };
+		CA24F1A41A22424084F0157C /* RevealingText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "RevealingText.swift"; sourceTree = "<group>"; };
 		0F4B1A7BEA4E4BB28065BC11 /* Jett.riv */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Jett.riv"; path = "App/Jett.riv"; sourceTree = SOURCE_ROOT; };
 		D05CEB565B3FE57087B3DF2F /* Haptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Haptics.swift"; sourceTree = "<group>"; };
 		0DC92FB9E866D08DA7B20B63 /* Tokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Tokens.swift"; sourceTree = "<group>"; };
@@ -282,6 +284,7 @@
 				75C97A7B460546DC971F8390 /* JettRive.swift */,
 				EFD5C176B063417C9E31F066 /* OnboardingArt.swift */,
 				FD53D5156C694E33A13228A0 /* BaselineReveal.swift */,
+				CA24F1A41A22424084F0157C /* RevealingText.swift */,
 				D05CEB565B3FE57087B3DF2F /* Haptics.swift */,
 				0DC92FB9E866D08DA7B20B63 /* Tokens.swift */,
 			);
@@ -472,6 +475,7 @@
 				3847AA30AB8B469E81244BA6 /* JettRive.swift in Sources */,
 				E7724AD2681E446B9260669B /* OnboardingArt.swift in Sources */,
 				08BC2C2260F6488DA1191880 /* BaselineReveal.swift in Sources */,
+				38CF6E29E78F4FC28A76D3CF /* RevealingText.swift in Sources */,
 				EE03F8BEDCD6A9A537C094A1 /* Haptics.swift in Sources */,
 				8B34409B561B864F27FC08B8 /* Tokens.swift in Sources */,
 				D5DD1FF9090A37E50C8620A7 /* AppModel.swift in Sources */,

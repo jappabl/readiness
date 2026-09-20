@@ -4,6 +4,9 @@ import SwiftUI
 struct CoachTurnView: View {
     let message: CoachMessage
     var reservesReactionSpace = false
+    /// Onboarding only. The live coach already streams its text in token by token, and
+    /// revealing words on top of that would animate the same arrival twice.
+    var revealsWords = false
     private var outgoing: Bool { message.role == .user }
     private var spokenLabel: String {
         let speaker = outgoing ? "You" : "Jett"
@@ -46,7 +49,11 @@ struct CoachTurnView: View {
                 ForEach(Array(CoachSegments.parse(message.text).enumerated()), id: \.offset) { _, segment in
                     switch segment {
                     case .text(let text):
-                        Text(text).font(.body).foregroundStyle(Tokens.textPrimary)
+                        if revealsWords {
+                            RevealingText(text: text).font(.body)
+                        } else {
+                            Text(text).font(.body).foregroundStyle(Tokens.textPrimary)
+                        }
                     case .chart(let kind):
                         CoachChartCard(kind: kind)
                     }
