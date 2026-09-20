@@ -262,7 +262,8 @@ const CHECKS = {
     const tells = [
       // "Your body is fighting something" is how people talk about getting ill, and was
       // being caught here. Only the manufactured ones belong on this list.
-      /your body('s| is) (voting|talking|telling you|waving|screaming|asking|begging)/,
+      // "a body asking for a lighter day" slipped past a pattern that required "your".
+      /\b(your|a|the) body('s| is)? ?(voting|talking|telling you|waving|screaming|asking|begging)/,
       /(legs|body) (are|is) cooked/,
       /the (data|numbers) (are|is) (screaming|shouting|telling|talking)/,
       /waving a (red )?flag/,
@@ -493,12 +494,25 @@ for (const result of results) {
   }
 }
 
+// Sameness is a property of the whole run, not of any single answer: every reply can be
+// individually good and the set still read like a form.
+const answered = results.filter((r) => r.text.trim().length > 0)
+const shape = {
+  chart: answered.filter((r) => /\[chart:/.test(r.text)).length,
+  number: answered.filter((r) => /\d/.test(r.text)).length,
+  oneLine: answered.filter((r) => r.text.trim().split(/\n+/).filter(Boolean).length === 1).length,
+}
+
 const offPeak = money(totals, PRICES.offPeak)
 const peak = money(totals, PRICES.peak)
 const billedInput = totals.cached + totals.input
 const cacheRate = billedInput > 0 ? (totals.cached / billedInput) * 100 : 0
 
 console.log(`\n${results.length - failed}/${results.length} cases clean`)
+console.log(`\nshape    ${shape.chart}/${answered.length} drew a chart, `
+  + `${shape.number}/${answered.length} quoted a number, `
+  + `${shape.oneLine}/${answered.length} were a single line`)
+console.log(`         (all three at or near the total is the form-filling tell)`)
 console.log(`\ntokens   ${totals.input} input, ${totals.cached} cached, ${totals.output} output`)
 console.log(`cache    ${cacheRate.toFixed(1)}% of input read from cache`)
 console.log(`cost     $${offPeak.toFixed(5)} off-peak, $${peak.toFixed(5)} peak`)
