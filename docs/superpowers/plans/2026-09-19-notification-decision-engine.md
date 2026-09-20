@@ -115,7 +115,7 @@ Expected: PASS, 3 tests.
 
 - [ ] **Step 5: Register the file in the app target**
 
-`Readiness.xcodeproj/project.pbxproj` needs four edits. Generate two fresh 24-character uppercase-hex IDs that do not already appear in the file (check with `grep -c`). Call them `BUILDID` and `FILEID`.
+`Readiness.xcodeproj/project.pbxproj` needs four edits. Generate two fresh 24-character uppercase-hex IDs that do not already appear in the file. Grep the file **as it stands right now**, not as the plan shows it — earlier tasks have already added IDs of their own: `grep -c '<candidate>' Readiness.xcodeproj/project.pbxproj` must print `0` for both before you use them. Call them `BUILDID` and `FILEID`.
 
 1. In the `PBXBuildFile` section (near line 74, beside the `BurstLimiter.swift` entry):
    `		BUILDID /* NotificationMoment.swift in Sources */ = {isa = PBXBuildFile; fileRef = FILEID /* NotificationMoment.swift */; };`
@@ -527,7 +527,10 @@ struct MorningVerdictTests {
         score(kind, value: value, magnitude: 0.4)
     }
 
-    private let ordinaryHistory = Array(repeating: 78.0, count: 21)
+    /// Above every "ordinary" fixture below (80, 88) and below the 96 the exceptional
+    /// tests use. A history beneath the ordinary values would make every silent morning
+    /// a personal best.
+    private let ordinaryHistory = Array(repeating: 94.0, count: 21)
 
     @Test("a night that pulled the score well down speaks")
     func badNightSpeaks() {
@@ -599,7 +602,7 @@ struct MorningVerdictTests {
         #expect(MorningVerdict.sentence(
             recovery: score(.recovery, value: 82, magnitude: 8),
             sleep: score(.sleep, value: 96, magnitude: 6),
-            recentSleepScores: Array(repeating: 78.0, count: 5)) == nil)
+            recentSleepScores: Array(repeating: 94.0, count: 5)) == nil)
     }
 
     @Test("a best claims only the weeks it actually beat")
@@ -607,7 +610,7 @@ struct MorningVerdictTests {
         let sentence = MorningVerdict.sentence(
             recovery: score(.recovery, value: 82, magnitude: 8),
             sleep: score(.sleep, value: 96, magnitude: 6),
-            recentSleepScores: Array(repeating: 78.0, count: 14))
+            recentSleepScores: Array(repeating: 94.0, count: 14))
         #expect(sentence == "Your best night in two weeks.")
     }
 
@@ -951,7 +954,9 @@ struct NotificationDecisionTests {
         now: Date? = nil,
         recovery: SignalScore? = nil,
         sleep: SignalScore? = nil,
-        recentSleepScores: [Double] = Array(repeating: 78.0, count: 21),
+        // Above the default sleep fixture (80), so an ordinary morning is not silently
+        // a personal best and the silence tests below test what they claim to.
+        recentSleepScores: [Double] = Array(repeating: 94.0, count: 21),
         tonightsNeed: SleepNeed? = nil,
         usualBedtime: Date? = nil,
         insight: String? = nil,
