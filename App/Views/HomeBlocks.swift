@@ -20,7 +20,12 @@ struct NutritionCard: View {
             }
             VStack(alignment: .leading, spacing: 18) {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text(calories.map { $0.formatted(.number.precision(.fractionLength(0))) } ?? "—")
+                    // Zero, not a dash. The app's rule everywhere else is that a missing
+                    // measurement must never render as a confident zero — but nutrition
+                    // is not measured, it is logged, and an empty log is a log of
+                    // nothing. Nought calories is the true answer, and a dash makes the
+                    // user wonder whether the app failed to read something.
+                    Text((calories ?? 0).formatted(.number.precision(.fractionLength(0))))
                         .font(.system(size: 32, weight: .semibold)).monospacedDigit()
                     Text("kcal logged").font(.subheadline).foregroundStyle(.secondary)
                     Spacer()
@@ -37,7 +42,7 @@ struct NutritionCard: View {
     private func macro(_ name: String, _ value: Double?) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(name).font(.caption).foregroundStyle(.secondary)
-            Text(value.map { "\($0.formatted(.number.precision(.fractionLength(0)))) g" } ?? "—")
+            Text("\((value ?? 0).formatted(.number.precision(.fractionLength(0)))) g")
                 .font(.headline).monospacedDigit()
         }.frame(maxWidth: .infinity, alignment: .leading).padding(.leading, name == "Protein" ? 0 : 16)
     }
