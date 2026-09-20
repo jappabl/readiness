@@ -287,6 +287,65 @@ struct NotificationDecisionTests {
         #expect(second == nil)
     }
 
+    // IMPORTANT 3: the bedtime target's once-per-day guard, mirroring `onePerDay`.
+    @Test("the bedtime target goes out once a day, however often the app refreshes")
+    func bedtimeOnePerDay() {
+        let bedtime = morning.addingTimeInterval(14 * 3600)
+        var record = NotificationRecord()
+        record.lastBedtimeTarget = bedtime.addingTimeInterval(-80 * 60)
+        let outcome = NotificationDecision.next(input(
+            now: bedtime.addingTimeInterval(-20 * 60),
+            tonightsNeed: SleepNeed(hours: 8.9, baseline: 8.0, debt: 0.2,
+                                    strainAdjustment: 0.7, napCredit: 0),
+            usualBedtime: bedtime,
+            record: record))
+        #expect(outcome == nil)
+    }
+
+    // IMPORTANT 3: mirrors `repeatsAcrossDays` — an unusual night the following evening
+    // still gets its own message.
+    @Test("the bedtime target fires again the next evening if it's unusual again")
+    func bedtimeRepeatsNextDay() {
+        let bedtime = morning.addingTimeInterval(14 * 3600)
+        var record = NotificationRecord()
+        record.lastBedtimeTarget = bedtime.addingTimeInterval(-30 * 60)
+        let nextBedtime = bedtime.addingTimeInterval(24 * 3600)
+        let outcome = NotificationDecision.next(input(
+            now: nextBedtime.addingTimeInterval(-30 * 60),
+            tonightsNeed: SleepNeed(hours: 8.9, baseline: 8.0, debt: 0.2,
+                                    strainAdjustment: 0.7, napCredit: 0),
+            usualBedtime: nextBedtime,
+            record: record))
+        #expect(outcome?.moment == .bedtimeTarget)
+    }
+
+    // IMPORTANT 3: pins `record.lastBedtimeTarget = input.now` itself, round-tripping
+    // through real `next(_:)` calls. Without it the guard above can never see a same-day
+    // match, so the engine would re-fire on every refresh inside the 90-minute window —
+    // draining all three coins in an hour and a half.
+    @Test("the bedtime target's own send is what blocks its next refresh")
+    func bedtimeWriteIsWhatBlocksIt() {
+        let bedtime = morning.addingTimeInterval(14 * 3600)
+        let need = SleepNeed(hours: 8.9, baseline: 8.0, debt: 0.2,
+                             strainAdjustment: 0.7, napCredit: 0)
+        let first = NotificationDecision.next(input(
+            now: bedtime.addingTimeInterval(-80 * 60),
+            tonightsNeed: need, usualBedtime: bedtime))
+        #expect(first?.moment == .bedtimeTarget)
+
+        let second = NotificationDecision.next(input(
+            now: bedtime.addingTimeInterval(-20 * 60),
+            tonightsNeed: need, usualBedtime: bedtime,
+            record: first!.record))
+        #expect(second == nil)
+    }
+
+    // MINOR 9: `!insight.isEmpty` was unguarded by any test.
+    @Test("an empty insight is not news")
+    func emptyInsightIsSilent() {
+        #expect(NotificationDecision.next(input(insight: "")) == nil)
+    }
+
     // IMPORTANT 4: the gate's body used to be `ReadinessGate.elevatedWristTemperature
     // .explanation` — an in-app paragraph of about 245 characters that exceeds
     // lock-screen truncation and never states the instruction this notification IS.
