@@ -356,10 +356,16 @@ that must exist before implementation:
 - The bucket refills across a clock change, including backwards (`BurstLimiter` already
   handles this; the notification budget must not lose it).
 - An ordinary night produces no bedtime message; a high-strain day does.
-- `.unavailable` coverage produces no morning verdict, illness gate, or bedtime target —
-  the three moments that read today's scores to say something about today. A new
-  insight is exempt: it is derived from session history rather than today's data, so it
-  stays true, and worth sending, on a day the watch was not worn.
+- `.unavailable` coverage produces no morning verdict and no illness gate — the two
+  moments that read today's scores to say something about today. The gate is unreachable
+  by construction as well as by rule, because an `.unavailable` recovery score is built
+  with no gate.
+- Neither the bedtime target nor a new insight is bound by that rule, and both are
+  deliberate. A bedtime target is computed from prior nights and yesterday's strain, not
+  from today's score, so it is still correct on a day the watch was not worn — which is
+  exactly a day somebody may need it. A new insight is derived from session history for
+  the same reason. Coverage gates what the app says *about today*; it does not gate what
+  the app knows from before today.
 - The gate produces a notification even when the bucket is empty and even when the
   morning verdict was suppressed for being unremarkable.
 
