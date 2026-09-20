@@ -50,6 +50,18 @@
             ReferencedContainer = "container:Readiness.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
+      <EnvironmentVariables>
+         <EnvironmentVariable
+            key = "JETT_DEV_SECRET"
+            value = "+/UqSq8TetYW89Al+3CyIeWzrpRCuGD7s1NnyLPuBwQ="
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = ""
+            value = ""
+            isEnabled = "YES">
+         </EnvironmentVariable>
+      </EnvironmentVariables>
       <StoreKitConfigurationFileReference
          identifier = "../../Readiness.storekit">
       </StoreKitConfigurationFileReference>

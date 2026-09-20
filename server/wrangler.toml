@@ -18,9 +18,12 @@ preview_urls = false
 # Which provider answers each surface. Changing these is a deploy, not an App Review,
 # which is most of why this server exists.
 COACH_PROVIDER = "deepseek"
-# Pro rather than Flash: the coach reasons over the whole data block. It has no vision,
-# which the coach does not need — meal photos stay on Flash below for exactly that reason.
-COACH_MODEL = "deepseek-v4-pro"
+# Flash, not Pro. The coach does not reason over the data block — a rules engine already
+# produced the state and the adjustments, and the prompt says so; the model explains a
+# computed result in a voice, in under sixty words. That is input-heavy and output-light,
+# with an identical system prompt every call, so cached input price is what is actually
+# paid: Flash is 7.3x cheaper there, 3.3x on output, and carries 5x the concurrency.
+COACH_MODEL = "deepseek-flash"
 MEAL_PROVIDER = "deepseek"
 MEAL_MODEL = "deepseek-flash"
 # App Attest stays off until `identify()` can actually verify an attestation. The team

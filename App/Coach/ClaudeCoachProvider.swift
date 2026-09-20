@@ -7,7 +7,7 @@ struct ClaudeCoachProvider: CoachProvider {
     /// Jett explains a decision the rules engine already made and occasionally calls one
     /// small tool. That is not frontier reasoning, and Opus costs a multiple of Sonnet
     /// per token for it. Flip this one constant back if the writing ever feels thin.
-    static let model = "deepseek-v4-pro"
+    static let model = "deepseek-flash"
     /// DeepSeek's Anthropic-compatible base, which is why the wire format below and the
     /// `anthropic-version` header are unchanged: the protocol is Anthropic's, the provider
     /// is not. The meal estimator has spoken to this same base all along.
