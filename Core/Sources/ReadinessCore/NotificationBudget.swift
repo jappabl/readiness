@@ -46,8 +46,11 @@ public enum NotificationBudget {
         var tokens = state.tokens
 
         if let updated = state.updated {
-            // Device clocks move, including backwards. Treating a negative interval as
-            // elapsed time would let anyone refill the bucket by changing the date.
+            // Device clocks move, including backwards. A forward jump refills the
+            // bucket with or without this clamp, so that is not what it guards against.
+            // Without it, a backwards correction would drive tokens deeply negative, and
+            // a user with a full bucket who crosses one would be locked out of every
+            // message until real time caught back up to the clock's old reading.
             let elapsed = max(0, now.timeIntervalSince(updated))
             tokens = min(Double(capacity), tokens + elapsed / refillInterval)
         }
