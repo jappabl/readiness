@@ -49,31 +49,30 @@ enum DayAssembler {
     }
 
     static func assemble(series: [DailyPhysiology], acwr: Double? = nil) -> AssembledDay? {
-        guard let today = series.last else { return nil }
+        guard let today = series.last, today.hasReadinessData else { return nil }
 
         var readings: [MetricReading] = []
         var trendReadings: [MetricReading] = []
 
+        /// `values` is one entry per calendar day, oldest first, nil on a day this metric
+        /// recorded nothing.
+        ///
+        /// Handed through with its gaps intact. It used to be compacted first — twice, in
+        /// two branches — and then sliced, so "the last sixty days" and "the last seven
+        /// days" were counts of *readings*. For four nights of wear a week the seven-day
+        /// HRV trend spanned twelve calendar days and after a trip seventeen, which is up
+        /// to eighteen points of recovery ring, on a dip that had already recovered.
         func add(_ kind: MetricKind, _ values: [Double?]) {
-            // A metric only votes on days it actually recorded.
-            let present = values.compactMap { $0 }
-            guard present.count == values.count, values.count >= 2 else {
-                // Fall back to the days that do exist, so one missing night does not
-                // silence a whole metric.
-                let compacted = values.compactMap { $0 }
-                guard compacted.count >= 2, values.last.flatMap({ $0 }) != nil,
-                      let r = BaselineEngine.reading(kind: kind, series: compacted),
-                      let full = BaselineEngine.evaluate(series: compacted) else { return }
-                readings.append(r)
-                trendReadings.append(MetricReading(kind: kind, value: r.value, baseline: r.baseline,
-                                                   zScore: full.trendZScore, sampleCount: r.sampleCount))
-                return
-            }
-            guard let r = BaselineEngine.reading(kind: kind, series: present),
-                  let full = BaselineEngine.evaluate(series: present) else { return }
-            readings.append(r)
-            trendReadings.append(MetricReading(kind: kind, value: r.value, baseline: r.baseline,
-                                               zScore: full.trendZScore, sampleCount: r.sampleCount))
+            // Today itself has to have recorded, or there is nothing to place.
+            guard let today = values.last ?? nil, today.isFinite,
+                  let result = BaselineEngine.evaluate(daily: values) else { return }
+            readings.append(MetricReading(
+                kind: kind, value: today, baseline: result.mean, zScore: result.zScore,
+                scoringZ: kind.scoresOnTrend ? result.trendZScore : result.zScore,
+                sampleCount: result.sampleCount))
+            trendReadings.append(MetricReading(
+                kind: kind, value: today, baseline: result.mean,
+                zScore: result.trendZScore, sampleCount: result.sampleCount))
         }
 
         add(.hrv, series.map(\.hrvSDNN))
@@ -95,7 +94,9 @@ enum DayAssembler {
             wristDeviation = current - result.mean
         }
 
-        let daysOfHistory = series.count
+        // Days that recorded something, not calendar days — the series is dense now, and
+        // this number is what the coach is told and what confidence is judged against.
+        let daysOfHistory = series.filter(\.hasReadinessData).count
 
         let trendResult = ReadinessEngine.evaluate(
             ReadinessInput(readings: trendReadings, daysOfHistory: daysOfHistory))

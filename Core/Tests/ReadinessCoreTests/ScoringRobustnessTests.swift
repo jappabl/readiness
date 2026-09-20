@@ -49,7 +49,7 @@ struct ScoringRobustnessTests {
     @Test("what is displayed is still today, never the smoothed figure")
     func displayStaysHonest() {
         let series = baseline() + [20.0]
-        let reading = BaselineEngine.reading(kind: .hrv, series: series)!
+        let reading = BaselineEngine.reading(kind: .hrv, daily: series.map { $0 })!
 
         #expect(reading.value == 20.0, "the card must show the night that happened")
         #expect(reading.zScore == BaselineEngine.evaluate(series: series)!.zScore,
@@ -60,7 +60,7 @@ struct ScoringRobustnessTests {
     @Test("a metric that is not smoothed scores exactly what it displays")
     func unsmoothedMetricsAgree() {
         let series = baseline(mean: 52, spread: 3) + [70.0]
-        let reading = BaselineEngine.reading(kind: .restingHeartRate, series: series)!
+        let reading = BaselineEngine.reading(kind: .restingHeartRate, daily: series.map { $0 })!
         #expect(reading.scoringZ == reading.zScore)
     }
 

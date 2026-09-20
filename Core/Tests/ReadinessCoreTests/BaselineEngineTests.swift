@@ -74,7 +74,7 @@ struct BaselineEngineTests {
     @Test("the reading it builds carries value, baseline and sample count together")
     func buildsAReading() {
         let prior = Array(repeating: [40.0, 60.0], count: 15).flatMap { $0 }
-        let reading = BaselineEngine.reading(kind: .hrv, series: prior + [60.0])
+        let reading = BaselineEngine.reading(kind: .hrv, daily: (prior + [60.0]).map { $0 })
         #expect(reading?.kind == .hrv)
         #expect(reading?.value == 60.0)
         #expect(abs((reading?.baseline ?? 0) - 50.0) < 1e-9)

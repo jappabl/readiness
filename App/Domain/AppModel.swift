@@ -205,7 +205,9 @@ final class AppModel {
             mergeLocalLogs()
             todayCheckIn = fetchTodayCheckIn(from: context)
             acwr = computeACWR(from: context)
-            let usable = healthSeries.filter(\.hasReadinessData)
+            // Dense by calendar day. Filtering the empty days out is what turned
+              // "the last sixty days" into "the last sixty readings".
+              let usable = healthSeries
             if let assembled = DayAssembler.assemble(series: usable, acwr: acwr) {
                 day = assembled
                 recommendation = RecommendationEngine.recommend(
@@ -257,7 +259,11 @@ final class AppModel {
             // Authorization completion alone does not prove read access. Only fresh
             // records or characteristics can produce the connection celebration.
             onHealthRead?(hasOnboardingHealthData || healthProfile.sanitized() != HealthProfile())
-            let usable = fetched.filter(\.hasReadinessData)
+            // Dense by calendar day, gaps included: the baseline and trend windows are
+            // calendar windows now, and compacting the empty days out is what turned "the
+            // last seven days" into "the last seven readings".
+            let usable = fetched
+            let recorded = fetched.filter(\.hasReadinessData)
             #if DEBUG
             HealthStreamAudit.report(fetched)
             #endif
@@ -269,8 +275,9 @@ final class AppModel {
             mergeLocalLogs()
             todayCheckIn = fetchTodayCheckIn(from: context)
             acwr = computeACWR(from: context)
-            guard let latest = usable.last, Calendar.current.isDateInToday(latest.date),
-                  let assembled = DayAssembler.assemble(series: usable, acwr: acwr), usable.count >= 2,
+            guard let latest = recorded.last, Calendar.current.isDateInToday(latest.date),
+                  let assembled = DayAssembler.assemble(series: usable, acwr: acwr),
+                  recorded.count >= 2,
                   !assembled.readings.isEmpty else {
                 day = nil
                 recommendation = nil
@@ -553,7 +560,7 @@ final class AppModel {
         // spike capped every past day in the calendar at 66 and hung a contributor row
         // on each of them about a spike that had not happened yet.
         let ratio = context.flatMap { computeACWR(from: $0, on: date) }
-        guard let assembled = DayAssembler.assemble(series: upToDate.filter(\.hasReadinessData),
+        guard let assembled = DayAssembler.assemble(series: upToDate,
                                                     acwr: ratio),
               calendar.isDate(assembled.date, inSameDayAs: date) else {
             return SignalScore(kind: .recovery, value: nil, band: nil, contributors: [],
@@ -760,8 +767,9 @@ final class AppModel {
     /// reading, the exact thing `StrainInput.restingHeartRate` documents must not happen.
     private func restingBaseline(upTo date: Date) -> Double? {
         let cutoff = Self.endOfDay(date)
-        let values = series.filter { $0.date <= cutoff }.compactMap(\.restingHeartRate)
-        return BaselineEngine.evaluate(series: values)?.mean
+        // Dense by calendar day, so "sixty days" is sixty days here too.
+        let values = series.filter { $0.date <= cutoff }.map(\.restingHeartRate)
+        return BaselineEngine.evaluate(daily: values)?.mean
     }
 
     private func hardSets(on date: Date, context: ModelContext?) -> Int {
