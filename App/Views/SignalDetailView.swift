@@ -22,6 +22,13 @@ struct SignalDetailView: View {
                              stages: SleepStages(score: score))
                         .padding(.top, 8)
                         .padding(.bottom, 6)
+                    // The ring draws the night's shape; without these it withholds the
+                    // numbers that shape is made of.
+                    if let stages = SleepStages(score: score) {
+                        SleepStageKey(stages: stages, columns: 2)
+                            .padding(.horizontal, 6)
+                            .padding(.bottom, 4)
+                    }
                     HStack(spacing: Tokens.cardGap) { figures }
                     CoachCard(message: coaching,
                               accessory: (label: "View insights", symbol: "sparkles"),

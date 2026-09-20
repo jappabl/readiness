@@ -648,24 +648,46 @@ struct SleepStageRing: View {
 }
 
 /// What each colour in the ring is. The one place a word earns its keep on this screen.
+///
+/// A ring shows the shape of a night and withholds its numbers, which is half an answer.
+/// Beside a small ring the key stacks; under a big one it sits in two columns.
 struct SleepStageKey: View {
     let stages: SleepStages
+    var columns: Int = 1
+
+    private var shown: [(id: String, title: String, hours: Double, colour: Color)] {
+        stages.parts.filter { $0.hours > 0.01 }
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            ForEach(stages.parts.filter { $0.hours > 0.01 }, id: \.id) { part in
-                HStack(spacing: 6) {
-                    Circle().fill(part.colour).frame(width: 7, height: 7)
-                    Text(part.title)
-                        .font(.system(size: 12))
-                        .foregroundStyle(Tokens.textSecondary)
-                    Text(part.hours.formatted(.number.precision(.fractionLength(0...1))) + " h")
-                        .font(.system(size: 12, weight: .medium))
-                        .monospacedDigit()
-                        .foregroundStyle(Tokens.textPrimary)
+        Group {
+            if columns > 1 {
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10,
+                                                             alignment: .leading),
+                                         count: columns),
+                          alignment: .leading, spacing: 8) {
+                    ForEach(shown, id: \.id) { entry($0) }
+                }
+            } else {
+                VStack(alignment: .leading, spacing: 4) {
+                    ForEach(shown, id: \.id) { entry($0) }
                 }
             }
         }
         .accessibilityHidden(true)
+    }
+
+    private func entry(_ part: (id: String, title: String, hours: Double, colour: Color)) -> some View {
+        HStack(spacing: 6) {
+            Circle().fill(part.colour).frame(width: 7, height: 7)
+            Text(part.title)
+                .font(.system(size: 13))
+                .foregroundStyle(Tokens.textSecondary)
+            Text(part.hours.formatted(.number.precision(.fractionLength(0...1))) + " h")
+                .font(.system(size: 13, weight: .semibold))
+                .monospacedDigit()
+                .foregroundStyle(Tokens.textPrimary)
+            Spacer(minLength: 0)
+        }
     }
 }

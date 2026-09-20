@@ -55,7 +55,9 @@ struct RootView: View {
         // QA: the home cards on their own, so a styling change can be looked at without
         // a seeded database and a walk through onboarding. Reached only by launch
         // argument, and the simulator's tap injection wedges often enough to need it.
-        if let signal = Self.insightsHarness {
+        if let signal = Self.detailHarness {
+            NavigationStack { SignalDetailView(signal: signal) }
+        } else if let signal = Self.insightsHarness {
             InsightsView(score: SampleScores.score(for: signal))
         } else if Self.cardGallery {
             CardGallery()
@@ -73,6 +75,19 @@ struct RootView: View {
         ProcessInfo.processInfo.arguments.contains("--card-gallery")
         #else
         false
+        #endif
+    }()
+
+    /// `--signal sleep|recovery|strain`, for the detail screen behind a ring. Pairs with
+    /// `--demo-today`, which supplies the physiology it reads.
+    private static let detailHarness: Signal? = {
+        #if DEBUG
+        let arguments = ProcessInfo.processInfo.arguments
+        guard let index = arguments.firstIndex(of: "--signal"),
+              index + 1 < arguments.count else { return nil }
+        return Signal(rawValue: arguments[index + 1])
+        #else
+        return nil
         #endif
     }()
 
