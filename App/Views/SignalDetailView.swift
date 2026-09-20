@@ -99,7 +99,7 @@ struct SignalDetailView: View {
                      value: model.latestSleepHours.map {
                          $0.formatted(.number.precision(.fractionLength(1))) } ?? "—",
                      unit: "h")
-            StatCard(symbol: "target", label: "Your need",
+            StatCard(symbol: "target", label: "What you need",
                      value: score.contributor(SleepScore.durationContributorID)?.comparison
                          .map { $0.formatted(.number.precision(.fractionLength(0...1))) } ?? "—",
                      unit: "h")

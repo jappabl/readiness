@@ -547,6 +547,7 @@ final class AppModel {
             breakdown: current?.sleep,
             durationHours: current?.sleepHours,
             history: past.compactMap(\.sleep),
+            priorNights: past.compactMap(\.sleepHours),
             // Yesterday's load is what tonight has to recover from, not today's, which
             // has not happened yet when the score is read in the morning.
             strain: strainScore(on: calendar.date(byAdding: .day, value: -1, to: today) ?? today,

@@ -414,3 +414,68 @@ struct SleepCoverageFairnessTests {
         #expect(value > 95, "an utterly ordinary night scored \(value)")
     }
 }
+
+@Suite("A need learned from your own nights")
+struct LearnedSleepNeedTests {
+
+    /// Eight hours is a population average, and it was the only number in the app
+    /// applied to a person rather than learned from them.
+    @Test("too little history falls back to the population figure")
+    func needsHistory() {
+        #expect(SleepNeed.baseline(from: Array(repeating: 7.2, count: 5))
+                == SleepNeed.baselineHours)
+        #expect(SleepNeed.baseline(from: []) == SleepNeed.baselineHours)
+    }
+
+    /// The trap the estimator has to avoid: scoring somebody against their own median
+    /// hands a chronically under-slept person full marks for staying under-slept.
+    @Test("a genuinely short sleeper is not marked down for it")
+    func shortSleeper() {
+        let nights = Array(repeating: 7.2, count: 30)
+        let need = SleepNeed.baseline(from: nights)
+        #expect(need < SleepNeed.baselineHours)
+        #expect(need >= SleepNeed.learnedFloorHours)
+    }
+
+    @Test("a long sleeper is held to their own longer need")
+    func longSleeper() {
+        #expect(SleepNeed.baseline(from: Array(repeating: 9.1, count: 30)) > 9)
+    }
+
+    /// Somebody restricted on weekdays and free at weekends has told us what they take
+    /// when nothing stops them, and it is the weekend number.
+    @Test("the estimate follows the unrestricted nights, not the average one")
+    func weekendsCount() {
+        let weeks = (0..<5).flatMap { _ in [6.0, 6.0, 6.0, 6.0, 6.0, 9.4, 9.4] }
+        let need = SleepNeed.baseline(from: weeks)
+        #expect(need > 8.5, "learned \(need) from a week of six-hour nights and long weekends")
+    }
+
+    /// The one case the estimate cannot be trusted. If even their long nights are short
+    /// there is no unrestricted night anywhere in the record, so the number would measure
+    /// how constrained they are rather than what they need — and lowering the bar for the
+    /// person furthest from clearing it is the wrong direction to be wrong in.
+    @Test("no relief anywhere falls back rather than ratifying the deprivation")
+    func chronicallyRestricted() {
+        let nights = Array(repeating: 5.8, count: 40)
+        #expect(SleepNeed.baseline(from: nights) == SleepNeed.baselineHours)
+    }
+
+    @Test("the estimate is bounded at both ends")
+    func bounded() {
+        #expect(SleepNeed.baseline(from: Array(repeating: 12.0, count: 30))
+                == SleepNeed.learnedCeilingHours)
+        #expect(SleepNeed.baseline(from: Array(repeating: 2.0, count: 30))
+                == SleepNeed.baselineHours)
+    }
+
+    /// Debt is owed against what you need, not against a figure from a table.
+    @Test("the debt uses the same learned need")
+    func debtFollowsTheNeed() {
+        let longSleeper = Array(repeating: 9.2, count: 20) + [8.0]
+        #expect(SleepDebt.of(nights: longSleeper).hours > 0,
+                "eight hours is a shortfall for somebody who needs nine")
+        let shortSleeper = Array(repeating: 7.2, count: 20) + [8.0]
+        #expect(SleepDebt.of(nights: shortSleeper).hours == 0)
+    }
+}

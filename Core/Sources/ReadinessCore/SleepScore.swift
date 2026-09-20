@@ -25,8 +25,59 @@ public struct SleepNeed: Sendable, Equatable {
     public let strainAdjustment: Double
     public let napCredit: Double
 
-    /// The nightly requirement before anything else applies.
+    /// The nightly requirement when nothing better is known.
+    ///
+    /// A population average, and the only number in the app applied to a person rather
+    /// than learned from them — every other thing measured here is scored against the
+    /// user's own history. `baseline(from:)` replaces it as soon as there is enough to
+    /// learn from.
     public static let baselineHours = 8.0
+
+    /// Nights needed before a personal need can be estimated at all.
+    public static let learningNights = 14
+
+    /// Where in the person's own distribution their need sits.
+    ///
+    /// Not the median — that is the trap. A chronically under-slept person's median is
+    /// their deprivation, and scoring them against it would hand them 100 for sleeping
+    /// six hours and call the job done. The upper part of the distribution is what they
+    /// take when nothing stops them, which is the closest thing to unrestricted sleep
+    /// that can be observed without asking.
+    ///
+    /// But not the far tail either, and that is a real objection: a need at the 80th
+    /// percentile means four nights in five fall short by construction, which reads as
+    /// "you always need more sleep" to somebody who is sleeping perfectly well.
+    ///
+    /// 0.75 is the lowest value that still works, and the reason is the shape of an
+    /// ordinary week. Five restricted weekdays and two free weekends put the
+    /// unrestricted nights in the top two sevenths — above the 71st percentile — so
+    /// anything lower collapses into the weekday cluster and learns the deprivation
+    /// instead. Measured on that pattern: 0.50 gives a need of 6.5 h, 0.65 gives 7.2 h,
+    /// and 0.75 gives 8.8 h, which is the weekend. The cost to somebody under no
+    /// restriction at all is about four points on a typical night.
+    public static let needPercentile = 0.75
+
+    public static let learnedFloorHours = 7.0
+    public static let learnedCeilingHours = 9.5
+
+    /// What this person's own nights say they need.
+    ///
+    /// Falls back to the population figure in the one case the estimate cannot be
+    /// trusted: when even their long nights are below the floor, there is no evidence of
+    /// an unrestricted night anywhere in the record, so the number would be a measure of
+    /// how constrained they are rather than of what they need. Leaving them on the
+    /// population average is the harsher answer and the honest one — the alternative
+    /// quietly lowers the bar for exactly the person who is furthest from clearing it.
+    public static func baseline(from nights: [Double]) -> Double {
+        let usable = nights.filter { $0.isFinite && $0 > 0 }.sorted()
+        guard usable.count >= learningNights else { return baselineHours }
+        let position = needPercentile * Double(usable.count - 1)
+        let lower = Int(position)
+        let upper = Swift.min(lower + 1, usable.count - 1)
+        let estimate = usable[lower] + (usable[upper] - usable[lower]) * (position - Double(lower))
+        guard estimate >= learnedFloorHours else { return baselineHours }
+        return Swift.min(estimate, learnedCeilingHours)
+    }
 
     /// Strain below this costs nothing extra. Half the scale.
     public static let strainThreshold = 50.0
@@ -41,14 +92,17 @@ public struct SleepNeed: Sendable, Equatable {
     /// Yesterday's load is a property of the night that had to repair it, not a running
     /// balance, so it stays. It is capped at three quarters of an hour, which is small
     /// enough that it cannot park anybody on a band edge.
-    public static func of(strain: Double? = nil, napHours: Double? = nil) -> SleepNeed {
+    public static func of(baseline: Double = baselineHours,
+                          strain: Double? = nil, napHours: Double? = nil) -> SleepNeed {
+        let baseline = baseline.isFinite
+            ? Swift.min(Swift.max(baseline, minimumHours), maximumHours) : baselineHours
         let adjustment = strain.map {
             Swift.max(0, ($0 - strainThreshold) / (StrainScore.scaleMax - strainThreshold))
                 * strainExtraHours
         } ?? 0
         let nap = Swift.min(Swift.max(0, napHours ?? 0), maximumNapCreditHours)
-        return SleepNeed(hours: clamp(baselineHours + adjustment - nap),
-                         baseline: baselineHours,
+        return SleepNeed(hours: clamp(baseline + adjustment - nap),
+                         baseline: baseline,
                          strainAdjustment: adjustment, napCredit: nap)
     }
 
@@ -79,17 +133,22 @@ public struct SleepDebt: Sendable, Equatable {
     public static let maximumHours = 12.0
 
     /// `nights` is hours slept, oldest first, ending with last night.
+    /// `nights` is hours slept, oldest first. The need is learned from the same record,
+    /// so the balance is what this person is down against their own requirement rather
+    /// than against a figure from a table.
     public static func of(nights: [Double]) -> SleepDebt {
-        let usable = nights.filter { $0.isFinite && $0 >= 0 }.suffix(window)
-        let balance = accumulate(Array(usable))
-        let previous = accumulate(Array(usable.dropLast()))
+        let clean = nights.filter { $0.isFinite && $0 >= 0 }
+        let need = SleepNeed.baseline(from: clean)
+        let usable = clean.suffix(window)
+        let balance = accumulate(Array(usable), need: need)
+        let previous = accumulate(Array(usable.dropLast()), need: need)
         return SleepDebt(hours: balance, change: balance - previous, nights: usable.count)
     }
 
-    private static func accumulate(_ nights: [Double]) -> Double {
+    private static func accumulate(_ nights: [Double], need: Double) -> Double {
         var debt = 0.0
         for slept in nights {
-            debt = Swift.min(maximumHours, Swift.max(0, debt + (SleepNeed.baselineHours - slept)))
+            debt = Swift.min(maximumHours, Swift.max(0, debt + (need - slept)))
         }
         return debt
     }
@@ -100,6 +159,8 @@ public struct SleepInput: Sendable {
     public let durationHours: Double?
     /// Trailing nights, for judging tonight's structure against this sleeper's own.
     public let history: [SleepBreakdown]
+    /// Hours slept on the nights behind this one, for learning what this person needs.
+    public let priorNights: [Double]
     /// Yesterday's strain, 0...100.
     public let strain: Double?
     public let napHours: Double?
@@ -109,13 +170,14 @@ public struct SleepInput: Sendable {
     public let calendar: Calendar
 
     public init(breakdown: SleepBreakdown?, durationHours: Double?,
-                history: [SleepBreakdown] = [],
+                history: [SleepBreakdown] = [], priorNights: [Double] = [],
                 strain: Double? = nil, napHours: Double? = nil,
                 sleepingHeartRate: Double? = nil, daytimeHeartRate: Double? = nil,
                 calendar: Calendar = .current) {
         self.breakdown = breakdown
         self.durationHours = durationHours
         self.history = history
+        self.priorNights = priorNights
         self.strain = strain
         self.napHours = napHours
         self.sleepingHeartRate = sleepingHeartRate
@@ -180,7 +242,8 @@ public enum SleepScore {
                                neutral: perfect, modelVersion: modelVersion)
         }
 
-        let need = SleepNeed.of(strain: input.strain, napHours: input.napHours)
+        let need = SleepNeed.of(baseline: SleepNeed.baseline(from: input.priorNights),
+                                strain: input.strain, napHours: input.napHours)
         let performance = Swift.min(1, hours / need.hours)
 
         // A component nobody measured counts as an ordinary one, never as a perfect one.
@@ -453,8 +516,11 @@ public enum SleepScore {
     }
 
     private static func needExplanation(_ need: SleepNeed) -> String {
+        let learned = abs(need.baseline - SleepNeed.baselineHours) > 0.05
         var parts = ["Your need last night was \(format(need.hours)) hours: "
-                     + "\(format(need.baseline)) as a baseline"]
+                     + "\(format(need.baseline)) "
+                     + (learned ? "from what your own longest nights take"
+                                : "as a starting point until your own nights say otherwise")]
         if need.strainAdjustment > 0 {
             parts.append("plus \(format(need.strainAdjustment)) for how hard yesterday was")
         }

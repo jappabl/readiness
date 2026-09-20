@@ -16,15 +16,6 @@ enum Signal: String, CaseIterable, Identifiable {
         }
     }
 
-    /// The small word under the figure inside a hero ring.
-    var heroWord: String {
-        switch self {
-        case .strain: return "Strain"
-        case .recovery: return "Recovered"
-        case .sleep: return "Sleep"
-        }
-    }
-
     /// Light at the arc's start, deepest at its tip.
     var ring: [Color] {
         switch self {
@@ -50,15 +41,6 @@ enum Signal: String, CaseIterable, Identifiable {
         case 67...: return [Tokens.recoveryLow, Tokens.recoveryHigh, Tokens.recoveryDeep]
         case 34..<67: return [Tokens.strainHigh, Tokens.strainLow, Tokens.strainDeep]
         default: return [Tokens.alertSoft, Tokens.alert, Tokens.alertDeep]
-        }
-    }
-
-    /// The figure's own colour inside the hero ring.
-    var figure: Color {
-        switch self {
-        case .strain: return Tokens.strainDeep
-        case .recovery: return Tokens.recoveryDeep
-        case .sleep: return Tokens.sleepDeep
         }
     }
 
@@ -107,7 +89,6 @@ struct RingGauge: View {
     var target: Double?
     var lineWidth: CGFloat = 11
     var figureSize: CGFloat = 22
-    var showsHeroWord = false
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var animated = false
@@ -155,25 +136,17 @@ struct RingGauge: View {
                         style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
                 .rotationEffect(.degrees(-90))
 
-            VStack(spacing: -1) {
-                Text(percent.map { "\($0)" } ?? "—")
-                    .font(.system(size: figureSize, weight: .semibold))
-                    .monospacedDigit()
-                    .foregroundStyle(showsHeroWord ? signal.figure : Tokens.textPrimary)
-                // No percent sign. It is a score, not a proportion of anything.
-                + Text("")
-                    .font(.system(size: figureSize * 0.62, weight: .semibold))
-                    .foregroundStyle(showsHeroWord ? signal.figure : Tokens.textPrimary)
-
-                if showsHeroWord {
-                    Text(signal.heroWord)
-                        .font(.system(size: figureSize * 0.34))
-                        .foregroundStyle(Tokens.textSecondary)
-                }
-            }
-            .minimumScaleFactor(0.5)
-            .lineLimit(1)
-            .padding(lineWidth * 1.9)
+            // The number and nothing else. The word under it repeated the ring's own
+            // colour and the screen's own title, and it was a fixed word rather than a
+            // verdict — "Recovered" sat under a recovery of 15, in green, because the
+            // figure colour was the signal's identity rather than the day's news.
+            Text(percent.map { "\($0)" } ?? "—")
+                .font(.system(size: figureSize, weight: .semibold))
+                .monospacedDigit()
+                .foregroundStyle(Tokens.textPrimary)
+                .minimumScaleFactor(0.5)
+                .lineLimit(1)
+                .padding(lineWidth * 1.9)
         }
         .aspectRatio(1, contentMode: .fit)
         .onAppear {
@@ -209,7 +182,7 @@ struct HeroRing: View {
                     .padding(11)
             } else {
                 RingGauge(signal: signal, percent: percent, target: target,
-                          lineWidth: 17, figureSize: 40, showsHeroWord: true)
+                          lineWidth: 17, figureSize: 40)
                     .padding(11)
             }
         }
