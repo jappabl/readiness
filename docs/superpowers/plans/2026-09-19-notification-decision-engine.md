@@ -1263,7 +1263,7 @@ Expected: PASS, 13 tests.
 - [ ] **Step 5: Run the whole suite to confirm nothing regressed**
 
 Run: `swift test`
-Expected: PASS. This plan adds 46 tests (3 + 5 + 6 + 11 + 8 + 13). The suite was 455 before it, so expect 501. If the pre-existing count differs, the number that matters is that **no previously passing test fails**.
+Expected: PASS. As planned this adds 46 tests (3 + 5 + 6 + 11 + 8 + 13); as executed it added 50 (3 + 5 + 6 + 13 + 9 + 14) — see "Amendments during execution". The suite was 455 before it, so expect 505. If the pre-existing count differs, the number that matters is that **no previously passing test fails**.
 
 - [ ] **Step 6: Register the file in the app target**
 
@@ -1282,6 +1282,34 @@ git commit -m "The whole rule, in one pure function"
 ```
 
 ---
+
+## Amendments during execution
+
+Four tests were added beyond this plan's text, each because mutation-tracing showed a
+test here could not fail if the line it guarded were deleted. Recorded so the plan
+matches what shipped rather than what was predicted.
+
+| Task | Test added | The gap it closed |
+|---|---|---|
+| 4 | `bestIgnoresHistoryOlderThanTheWindow` | No fixture exceeded `bestWindow`, so `Array(recent.suffix(bestWindow))` never truncated. Deleting `.suffix`, or swapping it for `.prefix`, changed no test's outcome — yet in production it is the only thing stopping "your best night in three weeks" comparing today against months-old nights. |
+| 4 | `worseRecoveryWins` | Nothing exercised recovery being the worse of two simultaneously-qualifying bad signals, so a `worstNews` that always returned the `sleep` parameter passed the whole suite. |
+| 5 | `exactlyAtTheWindowEdge` | None of the three window fixtures sat on the inclusive upper bound, so `isDue`'s `<=` regressing to `<` turned nothing red. |
+| 6 | `morningOutranksBedtimeWhenBothEligible` | `morningThenBedtime`, whose stated purpose was to pin the priority order, excluded the losing moment for an order-independent reason in both of its calls — so swapping `morningVerdict` and `bedtimeTarget` inside `next(_:)` was caught by nothing. |
+
+Two further tests were strengthened rather than added: Task 2's `clockGoingBackwardsEarnsNothing`
+(started from an empty bucket, where guarded and unguarded arithmetic agree) and Task 3's
+`insightIsTextual` (left every sibling date field nil, so a wrong-field read returned false
+anyway). Task 4's `score` helper gained a `title` parameter for the same class of reason —
+`SignalScore.summary` renders only the leading contributor, so two fixtures sharing a title
+produced an identical sentence and `.min` versus `.max` was undetectable.
+
+One finding was investigated and dismissed: `skippedMomentsAreFree` cannot catch `spend` being
+called before a helper's eligibility guards. `Input`, `NotificationRecord` and
+`NotificationBudget.State` are value types, and `next(_:)` never threads a running record between
+its four helpers — each re-reads `input.record` — so a spend on a path that returns nil is a
+discarded local copy that reaches neither a caller nor a sibling helper. The property the test
+was written to guard is one the `Optional<Outcome>` interface makes structurally unfalsifiable.
+No production change was made.
 
 ## What this plan deliberately leaves out
 
