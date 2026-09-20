@@ -6,6 +6,8 @@ struct ReadinessApp: App {
     @State private var model = AppModel()
     @State private var store = Subscriptions()
     @State private var gym = GymPresence()
+    @State private var appearance = Appearance()
+    @Environment(\.scenePhase) private var scenePhase
 
     private let container = Store.container
 
@@ -15,6 +17,14 @@ struct ReadinessApp: App {
                 .environment(model)
                 .environment(store)
                 .environment(gym)
+                .environment(appearance)
+                // Light by default, warm dark at night, or whatever they chose. The
+                // system setting is deliberately not followed: iOS cannot tell us
+                // whether it was chosen or inherited, so the preference is ours.
+                .preferredColorScheme(appearance.isDark ? .dark : .light)
+                .onChange(of: scenePhase) { _, phase in
+                    if phase == .active { appearance.refresh() }
+                }
                 .task { await store.load() }
                 .task {
                     #if DEBUG
@@ -81,5 +91,47 @@ struct RootView: View {
 private extension View {
     func hidingSystemTabBar() -> some View {
         toolbar(.hidden, for: .tabBar)
+    }
+}
+
+/// Holds the chosen appearance and re-evaluates it when the clock crosses the boundary,
+/// so a session left open overnight does not sit in yesterday's scheme.
+@Observable
+@MainActor
+final class Appearance {
+    private static let key = "appearance.preference.v1"
+
+    var preference: AppearancePreference {
+        didSet {
+            UserDefaults.standard.set(preference.rawValue, forKey: Self.key)
+            refresh()
+        }
+    }
+
+    private(set) var isDark: Bool
+    private var timer: Task<Void, Never>?
+
+    init() {
+        let stored = UserDefaults.standard.string(forKey: Self.key)
+        let preference = stored.flatMap(AppearancePreference.init(rawValue:)) ?? .automatic
+        self.preference = preference
+        self.isDark = preference.wantsDark(at: Date())
+        refresh()
+    }
+
+    /// Called on foreground too: an app backgrounded at dusk and opened at midnight has
+    /// missed its own boundary.
+    func refresh() {
+        isDark = preference.wantsDark(at: Date())
+        timer?.cancel()
+        guard preference == .automatic,
+              let next = Nightfall.nextChange(after: Date()) else { return }
+        let seconds = next.timeIntervalSinceNow
+        guard seconds > 0 else { return }
+        timer = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(seconds))
+            guard !Task.isCancelled else { return }
+            self?.refresh()
+        }
     }
 }

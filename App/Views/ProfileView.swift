@@ -5,6 +5,7 @@ struct ProfileView: View {
     @Environment(AppModel.self) private var model
     @Environment(Subscriptions.self) private var store
     @Environment(GymPresence.self) private var gym
+    @Environment(Appearance.self) private var appearance
     @Environment(\.openURL) private var openURL
     @Environment(\.modelContext) private var context
     @Query private var profiles: [UserProfile]
@@ -32,6 +33,7 @@ struct ProfileView: View {
                     baselines
                     weights
                     coach
+                    look
                     atTheGym
                     privacy
                 }
@@ -265,6 +267,45 @@ struct ProfileView: View {
         }
         return "Learned: " + gym.knownGyms.map(\.name).joined(separator: ", ")
              + ". Nothing about where you go leaves this device."
+    }
+
+    /// Light by default because a coach should not look like a terminal, dark at night
+    /// because this gets opened in a dark bedroom. Anyone who disagrees says so once.
+    private var look: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            heading("Look")
+            ListCard {
+                ForEach(Array(AppearancePreference.allCases.enumerated()), id: \.element) { index, option in
+                    if index > 0 { Divider().overlay(Tokens.hairline).padding(.leading, 14) }
+                    Button {
+                        Haptics.decided()
+                        appearance.preference = option
+                    } label: {
+                        HStack(spacing: 10) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(option.title)
+                                    .font(.system(size: 15))
+                                    .foregroundStyle(Tokens.textPrimary)
+                                if let detail = option.detail {
+                                    Text(detail)
+                                        .font(.system(size: 13))
+                                        .foregroundStyle(Tokens.textSecondary)
+                                }
+                            }
+                            Spacer(minLength: 8)
+                            if appearance.preference == option {
+                                Image(systemName: "checkmark")
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundStyle(Tokens.accent)
+                            }
+                        }
+                        .padding(.horizontal, 14).padding(.vertical, 12)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
     }
 
     private var privacy: some View {

@@ -3,6 +3,10 @@ import SwiftUI
 /// Palette and metrics traced from the reference screenshots.
 enum Tokens {
 
+    // The dark scheme is a warm charcoal rather than a cold near-black. Both are dark;
+    // only one of them looks like a terminal. The app is light by default and comes
+    // here at night, so this is the palette somebody sees half asleep.
+
     private static func dynamic(light: UInt32, dark: UInt32) -> Color {
         Color(uiColor: UIColor { traits in
             UIColor(rgb: traits.userInterfaceStyle == .dark ? dark : light)
@@ -10,8 +14,10 @@ enum Tokens {
     }
 
     // Native conversation surfaces follow Messages in both appearances.
-    static let messageCanvas = Color(uiColor: .systemBackground)
-    static let messageIncoming = Color(uiColor: .secondarySystemBackground)
+    // Our canvas, not the system's. systemBackground is pure black in dark, which
+    // left the whole conversation cold while every other screen was warm.
+    static let messageCanvas = canvas
+    static let messageIncoming = dynamic(light: 0xECECEF, dark: 0x262119)
     // Messages blue adjusted slightly for white body-text contrast.
     /// What you said, in Jett's colour rather than iMessage's. Also gains a dark
     /// variant it did not have: the old value was the same in both schemes and glared
@@ -20,18 +26,18 @@ enum Tokens {
     static let messageOnOutgoing = Color.white
 
     // Surfaces
-    static let canvas        = dynamic(light: 0xF1F1F4, dark: 0x0E0E10)
-    static let surface       = dynamic(light: 0xFFFFFF, dark: 0x1C1C1F)
-    static let surfaceSunken  = dynamic(light: 0xF7F7F9, dark: 0x17171A)
+    static let canvas        = dynamic(light: 0xF1F1F4, dark: 0x16130F)
+    static let surface       = dynamic(light: 0xFFFFFF, dark: 0x211D18)
+    static let surfaceSunken  = dynamic(light: 0xF7F7F9, dark: 0x1B1814)
 
     // Type
-    static let textPrimary   = dynamic(light: 0x1C1C1E, dark: 0xF2F2F5)
-    static let textSecondary = dynamic(light: 0x86868B, dark: 0x98989E)
-    static let textTertiary  = dynamic(light: 0x6E6E73, dark: 0x8A8A90)
-    static let hairline      = dynamic(light: 0xE8E8EC, dark: 0x2A2A2E)
+    static let textPrimary   = dynamic(light: 0x1C1C1E, dark: 0xF4F0EA)
+    static let textSecondary = dynamic(light: 0x86868B, dark: 0x9C948A)
+    static let textTertiary  = dynamic(light: 0x6E6E73, dark: 0x8C847A)
+    static let hairline      = dynamic(light: 0xE8E8EC, dark: 0x302A23)
 
     // Rings
-    static let ringTrack     = dynamic(light: 0xEAEAEE, dark: 0x2C2C31)
+    static let ringTrack     = dynamic(light: 0xEAEAEE, dark: 0x322C25)
     // Each ring runs light at the start of its arc to deep at the tip, so the end of
     // the drawn line is always the most saturated part of it.
     static let strainHigh    = dynamic(light: 0xFAD98A, dark: 0xFBE0A0)
@@ -54,7 +60,7 @@ enum Tokens {
     /// instead, which suits it, and the brand took blue, which is calmer under a face
     /// that is meant to coach rather than impress. Nothing else in the app is blue now.
     static let accent        = dynamic(light: 0x0A7AFF, dark: 0x4C9CFF)
-    static let onAccent      = dynamic(light: 0xFFFFFF, dark: 0x0E0E10)
+    static let onAccent      = dynamic(light: 0xFFFFFF, dark: 0x16130F)
 
     /// The thing you tap.
     ///
@@ -63,8 +69,8 @@ enum Tokens {
     /// what lets the accent stay saturated without a full-width button shouting: purple
     /// then appears only where it means something, and is the only colour on the screen
     /// when it does.
-    static let action        = dynamic(light: 0x1C1C1E, dark: 0xF2F2F5)
-    static let onAction      = dynamic(light: 0xFFFFFF, dark: 0x0E0E10)
+    static let action        = dynamic(light: 0x1C1C1E, dark: 0xF4F0EA)
+    static let onAction      = dynamic(light: 0xFFFFFF, dark: 0x16130F)
     static let positive      = dynamic(light: 0x34A853, dark: 0x5BD45B)
     static let negative      = dynamic(light: 0xE9573F, dark: 0xF07A64)
 

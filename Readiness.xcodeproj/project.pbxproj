@@ -71,6 +71,7 @@
 		9D93635E6446433A997C4F2D /* BurstLimiter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18C11DE58B6F4C719E3E018F /* BurstLimiter.swift */; };
 		3FD94C8E64C14DE69AD81372 /* Paywall.swift in Sources */ = {isa = PBXBuildFile; fileRef = F45D316905EB425A9AB06DAB /* Paywall.swift */; };
 		DC0F2F7CE79C418F889C57D4 /* BaselineSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 863E215B852B4F9F8410D01E /* BaselineSummary.swift */; };
+		899CD7A8715247D1A8D04ED0 /* Nightfall.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01090C070D7645A9BCFAE0A0 /* Nightfall.swift */; };
 		A649253F09D9460196E0FCDF /* CoachSegments.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFB6097ADC3E4ABBB1EDB905 /* CoachSegments.swift */; };
 		30B915DB9F5846B0B986099F /* CoachAnswer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7C873BD22BE4E43A743AABB /* CoachAnswer.swift */; };
 		0A675C7B69414B43AB8BD494 /* CoachRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6586C8628D44B985A05027 /* CoachRequest.swift */; };
@@ -159,6 +160,7 @@
 		BCEE1D3EF7944F4BB5157CB5 /* Readiness.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = "Readiness.storekit"; sourceTree = SOURCE_ROOT; };
 		F45D316905EB425A9AB06DAB /* Paywall.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Paywall.swift"; sourceTree = "<group>"; };
 		863E215B852B4F9F8410D01E /* BaselineSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BaselineSummary.swift"; sourceTree = "<group>"; };
+		01090C070D7645A9BCFAE0A0 /* Nightfall.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Nightfall.swift"; sourceTree = "<group>"; };
 		AFB6097ADC3E4ABBB1EDB905 /* CoachSegments.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CoachSegments.swift"; sourceTree = "<group>"; };
 		A7C873BD22BE4E43A743AABB /* CoachAnswer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CoachAnswer.swift"; sourceTree = "<group>"; };
 		4D6586C8628D44B985A05027 /* CoachRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CoachRequest.swift"; sourceTree = "<group>"; };
@@ -357,6 +359,7 @@
 				18C11DE58B6F4C719E3E018F /* BurstLimiter.swift */,
 				F45D316905EB425A9AB06DAB /* Paywall.swift */,
 				863E215B852B4F9F8410D01E /* BaselineSummary.swift */,
+				01090C070D7645A9BCFAE0A0 /* Nightfall.swift */,
 				AFB6097ADC3E4ABBB1EDB905 /* CoachSegments.swift */,
 				A7C873BD22BE4E43A743AABB /* CoachAnswer.swift */,
 				4D6586C8628D44B985A05027 /* CoachRequest.swift */,
@@ -514,6 +517,7 @@
 				9D93635E6446433A997C4F2D /* BurstLimiter.swift in Sources */,
 				3FD94C8E64C14DE69AD81372 /* Paywall.swift in Sources */,
 				DC0F2F7CE79C418F889C57D4 /* BaselineSummary.swift in Sources */,
+				899CD7A8715247D1A8D04ED0 /* Nightfall.swift in Sources */,
 				A649253F09D9460196E0FCDF /* CoachSegments.swift in Sources */,
 				30B915DB9F5846B0B986099F /* CoachAnswer.swift in Sources */,
 				0A675C7B69414B43AB8BD494 /* CoachRequest.swift in Sources */,
