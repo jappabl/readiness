@@ -216,4 +216,86 @@ struct NotificationDecisionTests {
             usualBedtime: bedtime))
         #expect(outcome?.moment == .morningVerdict)
     }
+
+    // MARK: - Review findings
+
+    /// A gate score, with the magnitude fixed low enough that `MorningVerdict.sentence`
+    /// never fires on its own — so tests below can prove what blocks the *gate itself*
+    /// without a fallback to the verdict muddying the result.
+    private func gateScore(magnitude: Double = -3) -> SignalScore {
+        score(.recovery, value: 60, magnitude: magnitude, gate: .elevatedWristTemperature)
+    }
+
+    // CRITICAL 1: `illnessGate` stamped `lastIllnessGate` but not `lastMorningVerdict`.
+    // HealthKit background delivery runs hourly, so the very next refresh that same
+    // morning found the gate blocked by its own day guard and fell through to
+    // `morningVerdict`, which fired as a strictly weaker restatement of the same fact.
+    @Test("a gate morning does not also fire the verdict on the next refresh")
+    func gateAlsoStampsTheVerdict() {
+        let recovery = score(.recovery, value: 8, magnitude: -30,
+                             gate: .elevatedWristTemperature)
+        let first = NotificationDecision.next(input(recovery: recovery))
+        #expect(first?.moment == .illnessGate)
+
+        let second = NotificationDecision.next(input(
+            now: morning.addingTimeInterval(3600),
+            recovery: recovery,
+            record: first!.record))
+        #expect(second == nil)
+    }
+
+    // IMPORTANT 2: the illness gate's once-per-day guard, mirroring `onePerDay`. Uses a
+    // low magnitude so a deleted guard is caught by the gate firing again — not by a
+    // `morningVerdict` fallback, which would also fire and mask the real signal.
+    @Test("the gate goes out once a day, however often the app refreshes")
+    func gateOnePerDay() {
+        var record = NotificationRecord()
+        record.lastIllnessGate = morning
+        let outcome = NotificationDecision.next(input(
+            now: morning.addingTimeInterval(4 * 3600),
+            recovery: gateScore(),
+            record: record))
+        #expect(outcome == nil)
+    }
+
+    // IMPORTANT 2: mirrors `repeatsAcrossDays` — the guard must not block forever.
+    @Test("the gate fires again the next day if the illness persists")
+    func gateRepeatsAcrossDays() {
+        var record = NotificationRecord()
+        record.lastIllnessGate = morning
+        let outcome = NotificationDecision.next(input(
+            now: morning.addingTimeInterval(24 * 3600),
+            recovery: gateScore(),
+            record: record))
+        #expect(outcome?.moment == .illnessGate)
+    }
+
+    // IMPORTANT 2: pins `record.lastIllnessGate = input.now` itself, round-tripping
+    // through real `next(_:)` calls rather than a hand-set record — deleting all
+    // review-noted lines here, that write is the one still isolated: the gate's own
+    // guard is exercised by `gateOnePerDay` above, and the low magnitude keeps
+    // `morningVerdict` silent so only the gate's repeat behavior is on trial.
+    @Test("the gate's own send is what blocks its next refresh")
+    func gateWriteIsWhatBlocksIt() {
+        let first = NotificationDecision.next(input(recovery: gateScore()))
+        #expect(first?.moment == .illnessGate)
+
+        let second = NotificationDecision.next(input(
+            now: morning.addingTimeInterval(4 * 3600),
+            recovery: gateScore(),
+            record: first!.record))
+        #expect(second == nil)
+    }
+
+    // IMPORTANT 4: the gate's body used to be `ReadinessGate.elevatedWristTemperature
+    // .explanation` — an in-app paragraph of about 245 characters that exceeds
+    // lock-screen truncation and never states the instruction this notification IS.
+    @Test("the gate's body is a short instruction, not the in-app paragraph")
+    func gateBodyIsLockScreenSafe() {
+        let outcome = NotificationDecision.next(
+            input(recovery: score(.recovery, value: 8, magnitude: -30,
+                                  gate: .elevatedWristTemperature)))
+        #expect(outcome?.body == "Your temperature was up overnight. Don't train hard today.")
+        #expect((outcome?.body.count ?? .max) < 110)
+    }
 }

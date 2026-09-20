@@ -56,6 +56,14 @@ public enum NotificationDecision {
         return newInsight(input)
     }
 
+    /// The gate's own words, written for a lock screen rather than borrowed from
+    /// `ReadinessGate.elevatedWristTemperature.explanation`. That string runs to about
+    /// 245 characters, was written for a scrollable in-app row, references "here" (which
+    /// does not exist on a lock screen), and never states the instruction this
+    /// notification IS: don't train hard today.
+    private static let illnessGateBody =
+        "Your temperature was up overnight. Don't train hard today."
+
     private static func illnessGate(_ input: Input) -> Outcome? {
         guard input.recovery.gate == .elevatedWristTemperature,
               !input.record.alreadySentToday(.illnessGate, now: input.now,
@@ -63,9 +71,10 @@ public enum NotificationDecision {
         else { return nil }
         var record = input.record
         record.lastIllnessGate = input.now
-        return Outcome(moment: .illnessGate,
-                       body: ReadinessGate.elevatedWristTemperature.explanation,
-                       record: record)
+        // The gate IS this morning's verdict. Without this the verdict fires on the very
+        // next refresh, restating the same fact in weaker words.
+        record.lastMorningVerdict = input.now
+        return Outcome(moment: .illnessGate, body: Self.illnessGateBody, record: record)
     }
 
     private static func morningVerdict(_ input: Input) -> Outcome? {
