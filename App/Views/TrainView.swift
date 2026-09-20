@@ -155,6 +155,11 @@ struct LiveWorkoutView: View {
     @State private var reps = 8
     @State private var rir = 2
     @State private var saveError = false
+    @State private var dictation = Dictation()
+    /// What speaking produced, held until the user commits it. Nothing is written to
+    /// the day off a transcript alone — a misheard set is worse than a typed one.
+    @State private var heard: SpokenSetResolver.Resolution?
+    @State private var heardNothing: String?
 
     private var metric: Bool { profiles.first?.unitsAreMetric ?? model.onboarding.unitsAreMetric }
     private var unit: String { metric ? "kg" : "lb" }
@@ -197,7 +202,7 @@ struct LiveWorkoutView: View {
             .tint(Tokens.accent)
             .onAppear(perform: prepareSet)
             .onChange(of: exerciseIndex) { _, _ in prepareSet() }
-            .onDisappear(perform: stopTimer)
+            .onDisappear { stopTimer(); dictation.stop() }
             .sheet(isPresented: $showingFinish) {
                 FinishSessionView(session: session) { stopTimer(); dismiss() }
             }
@@ -240,7 +245,16 @@ struct LiveWorkoutView: View {
                 }
                 .frame(minHeight: 44)
             }
-            PrimaryButton(label: "Log set", tint: Tokens.strainLow, enabled: enteredLoad != nil) { logSet(exercise) }
+            dictationStrip(exercise)
+            HStack(spacing: 10) {
+                PrimaryButton(label: "Log set", tint: Tokens.strainLow,
+                              enabled: enteredLoad != nil) { logSet(exercise) }
+                microphone(exercise)
+            }
+            if !HoldToTalk.discovered {
+                Text("Hold Jett’s face to log a set out loud from anywhere.")
+                    .font(.caption).foregroundStyle(Tokens.textSecondary)
+            }
             HStack {
                 Button("Previous exercise") { exerciseIndex -= 1 }
                     .disabled(exerciseIndex == 0)
@@ -264,6 +278,83 @@ struct LiveWorkoutView: View {
             }
         }
         .padding(.horizontal, Tokens.screenMargin).padding(.vertical, 16)
+    }
+
+    /// Tap to talk, tap to stop. Held-down buttons are the wrong shape for this: you
+    /// are usually still catching your breath when you start the sentence.
+    private func microphone(_ exercise: TemplateExercise) -> some View {
+        Button {
+            Haptics.decided()
+            if dictation.isListening { finishListening(exercise) } else { beginListening() }
+        } label: {
+            Image(systemName: dictation.isListening ? "stop.fill" : "mic.fill")
+                .font(.body.weight(.semibold))
+                .foregroundStyle(dictation.isListening ? Tokens.onAction : Tokens.textPrimary)
+                .frame(width: 54, height: 50)
+                .background(dictation.isListening ? Tokens.strainLow : Color.primary.opacity(0.07),
+                            in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        }
+        .buttonStyle(PressableStyle())
+        .accessibilityLabel(dictation.isListening ? "Stop listening" : "Say the set instead")
+    }
+
+    /// Only ever on screen when there is something in it: the words as they arrive,
+    /// then what they were understood to mean.
+    @ViewBuilder
+    private func dictationStrip(_ exercise: TemplateExercise) -> some View {
+        if case let .unavailable(reason) = dictation.status {
+            Text(reason).font(.caption).foregroundStyle(Tokens.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        } else if dictation.isListening {
+            ListeningRow(transcript: dictation.transcript)
+        } else if let heard {
+            SpokenSetCard(resolution: heard, metric: metric,
+                          log: { commitHeard(exercise) },
+                          discard: { self.heard = nil })
+        } else if let heardNothing {
+            Text(heardNothing).font(.caption).foregroundStyle(Tokens.textSecondary)
+        }
+    }
+
+    private func beginListening() {
+        heard = nil
+        heardNothing = nil
+        dictation.reset()
+        Task { await dictation.start() }
+    }
+
+    private func finishListening(_ exercise: TemplateExercise) {
+        let spoken = dictation.stop()
+        let programme = exercises.map(\.plannedExercise)
+        switch SpokenSetResolver.resolve(spoken, current: exercise.plannedExercise,
+                                         programme: programme, unitsAreMetric: metric) {
+        case .ready(let resolution):
+            heard = resolution
+        case .needsReps:
+            heardNothing = "I caught that, but not how many reps."
+        case .needsExercise, .heardNothing:
+            heardNothing = spoken.isEmpty ? "I didn\u{2019}t hear anything."
+                                          : "I didn\u{2019}t catch a set in that."
+        }
+    }
+
+    private func commitHeard(_ exercise: TemplateExercise) {
+        guard let resolution = heard else { return }
+        let planned = exercises.first {
+            $0.name.caseInsensitiveCompare(resolution.exercise.name) == .orderedSame
+        }
+        SpokenSetWriter.write(resolution, muscleGroup: planned?.muscleGroup ?? exercise.muscleGroup,
+                              into: session, in: context)
+        Haptics.committed()
+        heard = nil
+        // The screen follows what was said: logging squats out loud while bench is open
+        // should leave squats open, or the next set goes somewhere else.
+        if let planned, let index = exercises.firstIndex(where: { $0.id == planned.id }) {
+            if index == exerciseIndex { prepareSet() } else { exerciseIndex = index }
+        } else {
+            prepareSet()
+        }
+        startRest(seconds: planned?.restSeconds ?? exercise.restSeconds)
     }
 
     private func prepareSet() {

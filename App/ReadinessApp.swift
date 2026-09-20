@@ -50,6 +50,7 @@ struct RootView: View {
     @Environment(AppModel.self) private var model
     @State private var tab = 0
     @State private var askingJett = false
+    @State private var talking = false
 
     var body: some View {
         // QA: the home cards on their own, so a styling change can be looked at without
@@ -160,7 +161,8 @@ struct RootView: View {
         // The bar floats, so it becomes part of the safe area rather than sitting on
         // top of the content — every screen scrolls clear of it without knowing it exists.
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            FloatingTabBar(selection: $tab) { askingJett = true }
+            FloatingTabBar(selection: $tab, onAsk: { askingJett = true },
+                           onTalk: { talking = true })
                 .padding(.top, 6)
         }
         // fullScreenCover, not sheet: the large detent always leaves an inset strip of
@@ -170,6 +172,9 @@ struct RootView: View {
             CoachSheet()
                 .presentationBackground(Tokens.messageCanvas)
         }
+        // A sheet, not a cover: saying one set is a moment, and the screen behind it
+        // is usually the thing you were already looking at.
+        .sheet(isPresented: $talking) { DictationSheet() }
     }
 }
 

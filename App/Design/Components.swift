@@ -673,6 +673,9 @@ struct JettFace: View {
 struct FloatingTabBar: View {
     @Binding var selection: Int
     var onAsk: () -> Void
+    /// Held rather than tapped. Speaking is what you want when your hands are busy,
+    /// which is also when you are least able to aim at a small target.
+    var onTalk: () -> Void = {}
 
     static let height: CGFloat = 64
 
@@ -721,6 +724,15 @@ struct FloatingTabBar: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(PressableStyle())
+        // Long press before the tap, so holding never also opens the chat behind it.
+        .simultaneousGesture(
+            LongPressGesture(minimumDuration: 0.4).onEnded { _ in
+                Haptics.committed()
+                onTalk()
+            })
         .accessibilityLabel("Ask Coach Jett")
+        .accessibilityHint("Double tap and hold to say a set out loud")
+        // VoiceOver cannot perform a long press, so the same door is an action here.
+        .accessibilityAction(named: "Say a set") { onTalk() }
     }
 }

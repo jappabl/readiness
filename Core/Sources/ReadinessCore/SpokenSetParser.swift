@@ -17,11 +17,21 @@ public enum SetFeel: String, CaseIterable, Sendable, Codable {
     public var displayName: String { rawValue.capitalized }
 }
 
+/// The unit a weight was said in, when the sentence said one.
+///
+/// A bare "one hundred for five" means different weights in different gyms, so the
+/// number alone is not enough to write down.
+public enum SpokenLoadUnit: Sendable, Equatable {
+    case pounds, kilograms
+}
+
 /// What the app understood from something the user said between sets.
 public struct SpokenSetLog: Equatable, Sendable {
     public let exercise: String?
     public let reps: [Int]
     public let load: Double?
+    /// Nil when the number was said on its own — the caller decides whose unit it is.
+    public let loadUnit: SpokenLoadUnit?
     public let rir: Int?
     public let feel: SetFeel?
     /// Kept verbatim, so the user can always see what was heard.
@@ -50,10 +60,12 @@ public enum SpokenSetParser {
         guard !raw.isEmpty else { return nil }
 
         let text = normalised(raw)
+        let heard = spokenLoad(in: text)
         let log = SpokenSetLog(
             exercise: exercise(in: raw, knownExercises: knownExercises),
             reps: reps(in: text),
-            load: load(in: text),
+            load: heard?.value,
+            loadUnit: heard?.unit,
             rir: rir(in: text),
             feel: feel(in: text),
             transcript: raw)
@@ -125,16 +137,23 @@ public enum SpokenSetParser {
 
     // MARK: - Load
 
-    static func load(in text: String) -> Double? {
-        let patterns = [
-            #"(\d+(?:\.\d+)?)\s*(?:pounds?|lbs?|kilos?|kgs?)\b"#,
-            #"\bat\s+(\d+(?:\.\d+)?)"#,
-            #"(\d+(?:\.\d+)?)\s+for\s+\d"#,
-        ]
-        for pattern in patterns {
+    static func load(in text: String) -> Double? { spokenLoad(in: text)?.value }
+
+    /// The weight, and the unit it was said in when one was said.
+    ///
+    /// Only the first pattern carries a unit. The other two are bare numbers, and
+    /// reporting them as pounds would silently log a metric lifter 2.2× light.
+    static func spokenLoad(in text: String) -> (value: Double, unit: SpokenLoadUnit?)? {
+        if let match = matches(#"(\d+(?:\.\d+)?)\s*(pounds?|lbs?|kilos?|kilograms?|kgs?)\b"#,
+                               in: text).first,
+           let value = Double(match[1]), value > 0, value <= maximumReasonableLoad {
+            let metric = match[2].hasPrefix("kilo") || match[2].hasPrefix("kg")
+            return (value, metric ? .kilograms : .pounds)
+        }
+        for pattern in [#"\bat\s+(\d+(?:\.\d+)?)"#, #"(\d+(?:\.\d+)?)\s+for\s+\d"#] {
             if let match = matches(pattern, in: text).first, let value = Double(match[1]),
                value > 0, value <= maximumReasonableLoad {
-                return value
+                return (value, nil)
             }
         }
         return nil

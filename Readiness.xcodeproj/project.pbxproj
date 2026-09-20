@@ -36,6 +36,7 @@
 		D5DD1FF9090A37E50C8620A7 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8D4A3BC6412D0F227E7426E /* AppModel.swift */; };
 		6CF173F1EF544C1C8F301AEC /* DemoPhysiology.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AC211F10AAF4501965D0EC1 /* DemoPhysiology.swift */; };
 		3AE4AE04E96C4CA5A0ADA8BD /* LogSetsIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E370FDA10DB4D5587685970 /* LogSetsIntent.swift */; };
+		26EC5CA84A95FA981E6FE1E4 /* Dictation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1AEA8A75DC789A0395CD19D1 /* Dictation.swift */; };
 		699DE0D93E6F4551A62F39B6 /* Subscriptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFC3C84970F1464F8574ABE3 /* Subscriptions.swift */; };
 		3637D17E12D76F9EAA126693 /* Copy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 727B333776AC76D5EAD1EBBA /* Copy.swift */; };
 		1D66984FFF3FD202CDD45688 /* DayAssembler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 280764FE330CD4284D76C605 /* DayAssembler.swift */; };
@@ -57,6 +58,7 @@
 		CF0AA57D606C48A894B2CB5E /* InsightsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D16EF9A0AB8846CEB4E6FA31 /* InsightsView.swift */; };
 		541C59ABE797C87E4BBA51A8 /* TodayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 413893742ACAB1BB14BDF3DD /* TodayView.swift */; };
 		C46266E031749544D0DF6C53 /* TrainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC32141384EFB7AF34329A9C /* TrainView.swift */; };
+		A873098868149F5B8C0F29FA /* DictationViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3FB61FCBDEDB39A386D7C86 /* DictationViews.swift */; };
 		D085794618AE538D4BE3D478 /* WhyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2B0A795BF9B08D14DCEB342 /* WhyView.swift */; };
 		D072615FEFD249E88D115417 /* PaywallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C95AB93C82A34BC0B01D62C5 /* PaywallView.swift */; };
 		A70E92D1032C41FEBC942B02 /* PaywallDemo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AD2DCC0F47C4BD8A3688C09 /* PaywallDemo.swift */; };
@@ -90,6 +92,7 @@
 		7C3380F055337EA303C536B7 /* RecommendationEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD58B08A5DA45A979AEB8E31 /* RecommendationEngine.swift */; };
 		51ED31F44E6B48A325A251C7 /* SessionPlanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77311ADBF1851EC9BE0A1B98 /* SessionPlanner.swift */; };
 		5B3B248146C139959F77B91B /* SpokenSetParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08F8A3D6CEA4393252D67072 /* SpokenSetParser.swift */; };
+		746A63E00B113D1E55F867F3 /* SpokenSetResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = BEBB3C62E6CA24AFF5E2F266 /* SpokenSetResolver.swift */; };
 		A343E7F972FC8BA6774F7F35 /* StrainEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA4B7944599E6BF427A4842E /* StrainEngine.swift */; };
 		9DB49FB00EA20A4C94A59D67 /* Training.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8E4DCF35AF6C72C1EB7D54F /* Training.swift */; };
 		FB3DF503CF598BD1301BFADB /* HealthContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02A1C405C63366A690521580 /* HealthContext.swift */; };
@@ -129,6 +132,7 @@
 		A8D4A3BC6412D0F227E7426E /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppModel.swift"; sourceTree = "<group>"; };
 		2AC211F10AAF4501965D0EC1 /* DemoPhysiology.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DemoPhysiology.swift"; sourceTree = "<group>"; };
 		1E370FDA10DB4D5587685970 /* LogSetsIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "LogSetsIntent.swift"; sourceTree = "<group>"; };
+		1AEA8A75DC789A0395CD19D1 /* Dictation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Dictation.swift"; sourceTree = "<group>"; };
 		FFC3C84970F1464F8574ABE3 /* Subscriptions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Subscriptions.swift"; sourceTree = "<group>"; };
 		727B333776AC76D5EAD1EBBA /* Copy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Copy.swift"; sourceTree = "<group>"; };
 		280764FE330CD4284D76C605 /* DayAssembler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DayAssembler.swift"; sourceTree = "<group>"; };
@@ -150,6 +154,7 @@
 		D16EF9A0AB8846CEB4E6FA31 /* InsightsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "InsightsView.swift"; sourceTree = "<group>"; };
 		413893742ACAB1BB14BDF3DD /* TodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TodayView.swift"; sourceTree = "<group>"; };
 		BC32141384EFB7AF34329A9C /* TrainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TrainView.swift"; sourceTree = "<group>"; };
+		C3FB61FCBDEDB39A386D7C86 /* DictationViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DictationViews.swift"; sourceTree = "<group>"; };
 		E2B0A795BF9B08D14DCEB342 /* WhyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WhyView.swift"; sourceTree = "<group>"; };
 		C95AB93C82A34BC0B01D62C5 /* PaywallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PaywallView.swift"; sourceTree = "<group>"; };
 		0AD2DCC0F47C4BD8A3688C09 /* PaywallDemo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PaywallDemo.swift"; sourceTree = "<group>"; };
@@ -184,6 +189,7 @@
 		AD58B08A5DA45A979AEB8E31 /* RecommendationEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "RecommendationEngine.swift"; sourceTree = "<group>"; };
 		77311ADBF1851EC9BE0A1B98 /* SessionPlanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SessionPlanner.swift"; sourceTree = "<group>"; };
 		08F8A3D6CEA4393252D67072 /* SpokenSetParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SpokenSetParser.swift"; sourceTree = "<group>"; };
+		BEBB3C62E6CA24AFF5E2F266 /* SpokenSetResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SpokenSetResolver.swift"; sourceTree = "<group>"; };
 		AA4B7944599E6BF427A4842E /* StrainEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StrainEngine.swift"; sourceTree = "<group>"; };
 		C8E4DCF35AF6C72C1EB7D54F /* Training.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Training.swift"; sourceTree = "<group>"; };
 		02A1C405C63366A690521580 /* HealthContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HealthContext.swift"; sourceTree = "<group>"; };
@@ -306,6 +312,7 @@
 				A8D4A3BC6412D0F227E7426E /* AppModel.swift */,
 				2AC211F10AAF4501965D0EC1 /* DemoPhysiology.swift */,
 				1E370FDA10DB4D5587685970 /* LogSetsIntent.swift */,
+				1AEA8A75DC789A0395CD19D1 /* Dictation.swift */,
 				FFC3C84970F1464F8574ABE3 /* Subscriptions.swift */,
 				727B333776AC76D5EAD1EBBA /* Copy.swift */,
 				280764FE330CD4284D76C605 /* DayAssembler.swift */,
@@ -342,6 +349,7 @@
 				D16EF9A0AB8846CEB4E6FA31 /* InsightsView.swift */,
 				413893742ACAB1BB14BDF3DD /* TodayView.swift */,
 				BC32141384EFB7AF34329A9C /* TrainView.swift */,
+				C3FB61FCBDEDB39A386D7C86 /* DictationViews.swift */,
 				E2B0A795BF9B08D14DCEB342 /* WhyView.swift */,
 				C95AB93C82A34BC0B01D62C5 /* PaywallView.swift */,
 				0AD2DCC0F47C4BD8A3688C09 /* PaywallDemo.swift */,
@@ -388,6 +396,7 @@
 				AD58B08A5DA45A979AEB8E31 /* RecommendationEngine.swift */,
 				77311ADBF1851EC9BE0A1B98 /* SessionPlanner.swift */,
 				08F8A3D6CEA4393252D67072 /* SpokenSetParser.swift */,
+				BEBB3C62E6CA24AFF5E2F266 /* SpokenSetResolver.swift */,
 				AA4B7944599E6BF427A4842E /* StrainEngine.swift */,
 				C8E4DCF35AF6C72C1EB7D54F /* Training.swift */,
 			);
@@ -493,6 +502,7 @@
 				D5DD1FF9090A37E50C8620A7 /* AppModel.swift in Sources */,
 				6CF173F1EF544C1C8F301AEC /* DemoPhysiology.swift in Sources */,
 				3AE4AE04E96C4CA5A0ADA8BD /* LogSetsIntent.swift in Sources */,
+				26EC5CA84A95FA981E6FE1E4 /* Dictation.swift in Sources */,
 				699DE0D93E6F4551A62F39B6 /* Subscriptions.swift in Sources */,
 				3637D17E12D76F9EAA126693 /* Copy.swift in Sources */,
 				1D66984FFF3FD202CDD45688 /* DayAssembler.swift in Sources */,
@@ -514,6 +524,7 @@
 				CF0AA57D606C48A894B2CB5E /* InsightsView.swift in Sources */,
 				541C59ABE797C87E4BBA51A8 /* TodayView.swift in Sources */,
 				C46266E031749544D0DF6C53 /* TrainView.swift in Sources */,
+				A873098868149F5B8C0F29FA /* DictationViews.swift in Sources */,
 				D085794618AE538D4BE3D478 /* WhyView.swift in Sources */,
 				D072615FEFD249E88D115417 /* PaywallView.swift in Sources */,
 				A70E92D1032C41FEBC942B02 /* PaywallDemo.swift in Sources */,
@@ -551,6 +562,7 @@
 				7C3380F055337EA303C536B7 /* RecommendationEngine.swift in Sources */,
 				51ED31F44E6B48A325A251C7 /* SessionPlanner.swift in Sources */,
 				5B3B248146C139959F77B91B /* SpokenSetParser.swift in Sources */,
+				746A63E00B113D1E55F867F3 /* SpokenSetResolver.swift in Sources */,
 				A343E7F972FC8BA6774F7F35 /* StrainEngine.swift in Sources */,
 				9DB49FB00EA20A4C94A59D67 /* Training.swift in Sources */,
 			);
