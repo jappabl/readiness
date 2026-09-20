@@ -100,8 +100,8 @@ struct GymConfirmCard: View {
             Text(label)
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(Tokens.accent)
-                .padding(.horizontal, 20).padding(.vertical, 9)
-                .background(Tokens.accent.opacity(0.12), in: Capsule())
+                .padding(.horizontal, 16).padding(.vertical, 9)
+                .contentShape(.rect)
         }
         .buttonStyle(.plain)
     }

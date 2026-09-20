@@ -148,15 +148,16 @@ public enum StrainScore {
         public let id: String
         public let title: String
         public let lowerReserve: Double
+        public let symbol: String
     }
 
     public static let zones: [Zone] = [
-        Zone(id: "zone5", title: "Maximum", lowerReserve: 0.90),
-        Zone(id: "zone4", title: "Hard", lowerReserve: 0.80),
-        Zone(id: "zone3", title: "Moderate", lowerReserve: 0.70),
-        Zone(id: "zone2", title: "Light", lowerReserve: 0.60),
-        Zone(id: "zone1", title: "Very light", lowerReserve: 0.50),
-        Zone(id: "zone0", title: "Everyday movement", lowerReserve: 0.0),
+        Zone(id: "zone5", title: "All-out effort", lowerReserve: 0.90, symbol: "flame.fill"),
+        Zone(id: "zone4", title: "Hard effort", lowerReserve: 0.80, symbol: "figure.run"),
+        Zone(id: "zone3", title: "Moderate effort", lowerReserve: 0.70, symbol: "figure.run"),
+        Zone(id: "zone2", title: "Light effort", lowerReserve: 0.60, symbol: "figure.walk.motion"),
+        Zone(id: "zone1", title: "Very light effort", lowerReserve: 0.50, symbol: "figure.walk.motion"),
+        Zone(id: "zone0", title: "Everyday movement", lowerReserve: 0.0, symbol: "figure.walk"),
     ]
 
     static func zone(forReserve reserve: Double) -> Zone {
@@ -200,6 +201,7 @@ public enum StrainScore {
         // with no load at all gives every row a magnitude of zero rather than a
         // division by it.
         let share = total > 0 ? value / total : 0
+        let heaviest = Swift.max(loadByZone.values.max() ?? 0, muscular)
 
         var rows: [ScoreContributor] = zones.compactMap { zone in
             guard let minutes = minutesByZone[zone.id], minutes > 0 else { return nil }
@@ -212,6 +214,8 @@ public enum StrainScore {
                 comparison: nil,
                 comparisonLabel: nil,
                 state: .fine,
+                level: heaviest > 0 ? load / heaviest : 0,
+                symbol: zone.symbol,
                 magnitude: load * share,
                 explanation: explanation(for: zone))
         }
@@ -225,6 +229,8 @@ public enum StrainScore {
                 comparison: nil,
                 comparisonLabel: nil,
                 state: .fine,
+                level: heaviest > 0 ? muscular / heaviest : 0,
+                symbol: "dumbbell.fill",
                 magnitude: muscular * share,
                 explanation: "Sets taken within about three reps of failure. A heavy "
                            + "triple barely moves your heart rate, so lifting is close "
@@ -277,6 +283,8 @@ public enum StrainScore {
                 comparison: nil,
                 comparisonLabel: nil,
                 state: .fine,
+                level: Double(percent) / 100,
+                symbol: "flame.fill",
                 magnitude: value,
                 explanation: "Without heart rate there is no way to measure how hard "
                            + "today actually was, so this compares today's \(fallback.metric.label.lowercased()) "

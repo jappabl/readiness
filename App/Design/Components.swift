@@ -298,12 +298,10 @@ struct TimelineRow: View {
                     .overlay(Image(systemName: symbol).font(.system(size: 16)).foregroundStyle(tint))
                 if let badge {
                     Text(badge)
-                        .font(.system(size: 9, weight: .semibold))
+                        .font(.system(size: 10, weight: .bold))
                         .monospacedDigit()
-                        .foregroundStyle(Tokens.onAccent)
-                        .padding(.horizontal, 4).padding(.vertical, 1)
-                        .background(tint, in: Capsule())
-                        .offset(x: -3, y: 4)
+                        .foregroundStyle(tint)
+                        .offset(x: -1, y: 5)
                 }
             }
             VStack(alignment: .leading, spacing: 2) {

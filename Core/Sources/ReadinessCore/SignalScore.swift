@@ -72,7 +72,7 @@ public enum ContributorState: String, Sendable, Codable, Equatable {
     }
 }
 
-public struct ScoreContributor: Sendable, Equatable, Codable {
+public struct ScoreContributor: Sendable, Equatable, Codable, Identifiable {
     /// Stable across runs and releases, so a row can be diffed and tested by name.
     public let id: String
     public let title: String
@@ -82,6 +82,20 @@ public struct ScoreContributor: Sendable, Equatable, Codable {
     public let comparison: Double?
     public let comparisonLabel: String?
     public let state: ContributorState
+    /// How this row is doing on its own terms, 0...1, higher always better.
+    ///
+    /// The bar draws this and nothing else. Deriving a bar from `magnitude` looked
+    /// reasonable and was wrong in both directions: on sleep a magnitude is a loss, so a
+    /// row that cost nothing drew an empty bar and read as the worst one on screen.
+    /// A row's own level is the only thing that means the same in every signal.
+    public let level: Double?
+    /// An SF Symbol name. The tile shows this instead of a sentence — a bed, a pair of
+    /// lungs and a flame say what three lines of prose were saying, and say it faster.
+    public let symbol: String
+    /// The one sentence about this row, when the engine can say it better than a
+    /// generic "against your normal of X" can. Nil lets the screen derive one from
+    /// `value` and `comparison`, which is right for a plain physiological reading.
+    public let note: String?
     /// Points of the final score this input moved, signed. These sum to the distance
     /// between the score and its neutral point, which is what lets the screen claim the
     /// rows explain the number.
@@ -93,7 +107,9 @@ public struct ScoreContributor: Sendable, Equatable, Codable {
 
     public init(id: String, title: String, value: Double?, unit: String,
                 comparison: Double?, comparisonLabel: String?, state: ContributorState,
-                magnitude: Double, explanation: String, history: [Double] = []) {
+                level: Double? = nil, symbol: String = "circle.dashed",
+                magnitude: Double, explanation: String,
+                note: String? = nil, history: [Double] = []) {
         self.id = id
         self.title = title
         self.value = value
@@ -101,6 +117,9 @@ public struct ScoreContributor: Sendable, Equatable, Codable {
         self.comparison = comparison
         self.comparisonLabel = comparisonLabel
         self.state = state
+        self.level = level
+        self.symbol = symbol
+        self.note = note
         self.magnitude = magnitude
         self.explanation = explanation
         self.history = history
@@ -147,14 +166,16 @@ public struct SignalScore: Sendable, Equatable, Codable {
     ///
     /// Generic on purpose: it reads the contributors rather than knowing which signal it
     /// is describing, so a new input starts appearing here the day it starts counting.
+    ///
+    /// Never states the score. Every place this is shown already has the number next to
+    /// it, and repeating it spends the one sentence saying what the reader can see.
     public var summary: String {
-        guard let value else {
+        guard value != nil else {
             guard let first = missing.first else { return "Nothing recorded for this yet." }
             return "Waiting on \(first.lowercased())."
         }
-        let rounded = value.formatted(.number.precision(.fractionLength(0...1)))
         guard let lead = contributors.first, abs(lead.magnitude) >= 1 else {
-            return "\(rounded)\(unitSuffix), with nothing standing out."
+            return "Nothing stood out today."
         }
         let direction = lead.magnitude > 0 ? "pushed it up" : "pulled it down"
         let detail: String
@@ -169,10 +190,8 @@ public struct SignalScore: Sendable, Equatable, Codable {
         } else {
             detail = ""
         }
-        return "\(rounded)\(unitSuffix). \(lead.title) \(direction) most\(detail)."
+        return "\(lead.title) \(direction) most\(detail)."
     }
-
-    private var unitSuffix: String { kind == .strain ? "" : "%" }
 
     public init(kind: SignalKind, value: Double?, band: ScoreBand?,
                 contributors: [ScoreContributor], coverage: ScoreCoverage,
@@ -289,6 +308,8 @@ public enum RecoveryScore {
                 comparison: reading?.baseline,
                 comparisonLabel: reading == nil ? nil : "your normal",
                 state: .from(alignedZ: aligned),
+                level: Percentile.fromZ(aligned),
+                symbol: contribution.kind.symbol,
                 magnitude: contribution.points * ratio,
                 explanation: contribution.kind.explanation,
                 history: history[contribution.kind] ?? [])
@@ -307,6 +328,7 @@ public enum RecoveryScore {
                 comparison: nil,
                 comparisonLabel: nil,
                 state: .payAttention,
+                symbol: gate == .elevatedWristTemperature ? "thermometer.high" : "bolt.trianglebadge.exclamationmark",
                 magnitude: value - ungated,
                 explanation: gate.explanation), at: 0)
         }

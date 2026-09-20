@@ -73,6 +73,17 @@ public enum MetricKind: String, CaseIterable, Sendable, Codable {
         }
     }
 
+    /// The glyph that stands in for this metric's name on a tile too small for words.
+    public var symbol: String {
+        switch self {
+        case .hrv: return "waveform.path.ecg"
+        case .restingHeartRate: return "heart.fill"
+        case .sleepDebt: return "bed.double.fill"
+        case .respiratoryRate: return "lungs.fill"
+        case .bloodOxygen: return "drop.fill"
+        }
+    }
+
     public var unit: String {
         switch self {
         case .hrv: return "ms"

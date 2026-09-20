@@ -56,20 +56,24 @@ struct SignalDetailView: View {
             }
         }
         .sheet(isPresented: $showingWhy) {
-            if signal == .recovery, let day = model.day, let rec = model.recommendation {
-                WhyView(day: day, recommendation: rec)
-            } else {
-                calculationInfo
-            }
+            InsightsView(score: score)
         }
     }
 
-    private var percent: Int? {
+    private var score: SignalScore {
         switch signal {
-        case .recovery: return model.recoveryPercent
-        case .sleep:    return model.sleepPercent
-        case .strain:   return model.strainPercent(context: context)
+        case .recovery: return model.recoveryScore
+        case .sleep:    return model.sleepScore
+        case .strain:   return model.strainScore(context: context)
         }
+    }
+
+    /// The ring still wants a 0...100, and strain is on its own scale.
+    private var percent: Int? {
+        guard let value = score.value else { return nil }
+        return signal == .strain
+            ? Int((value / StrainScore.scaleMax * 100).rounded())
+            : Int(value.rounded())
     }
 
     // MARK: - The two figures
@@ -113,39 +117,6 @@ struct SignalDetailView: View {
         }
     }
 
-    private var calculationInfo: some View {
-        NavigationStack {
-            List {
-                Section("What is recorded") {
-                    Text(coaching)
-                }
-                switch signal {
-                case .sleep:
-                    Section("How the estimate works") {
-                        Text("Duration target coverage is multiplied by recorded sleep continuity. Continuity is time asleep divided by a credible in-bed window, or by continuously recorded time between the first and last sleep stages.")
-                        Text("With at least 7 prior sleep schedules in 28 days, bedtime and wake-time consistency can reduce the result by up to 10%. A typical shift of 2 hours applies the full adjustment. These are product choices, not clinical thresholds.")
-                        Text("Source: sleep records shared through Apple Health. Missing intervals and conflicting awake/asleep records are not treated as good sleep. REM and deep-sleep amounts do not receive invented ideal targets.")
-                    }
-                case .strain:
-                    Section("What the number means") {
-                        Text("The ring compares one recorded activity measure with at least 7 prior observed days in the last 28 days. A value of 50 is around your usual day; 100 is among your highest recorded days. It is not a maximum effort limit or a physiological strain measure.")
-                        Text("Today's activity is still accumulating. The comparison uses prior daily totals, so it will usually be lower early in the day.")
-                        Text("Source: Apple Health. Active energy is preferred, followed by exercise time, steps, workout energy, then workout time. The selected source is shown above. Workout calories are never added to active calories, which already include exercise.")
-                        Text("A missing day is excluded, not entered as zero. A recorded zero does not prove the device tracked the whole day. In-app lifting volume and acute-to-chronic load remain separate from this daily activity comparison.")
-                    }
-                case .recovery:
-                    Section("Readiness") {
-                        Text("A readiness explanation appears when today's measurements and recommendation are available.")
-                    }
-                }
-            }
-            .navigationTitle("About \(signal.title.lowercased())")
-            .navigationBarTitleDisplayMode(.inline)
-        }
-        .presentationDetents([.medium, .large])
-        .presentationDragIndicator(.visible)
-    }
-
     // MARK: - Coaching, kept short
 
     private var coaching: String {
@@ -157,11 +128,8 @@ struct SignalDetailView: View {
             let direction = reading.zScore < 0 ? "below" : "above"
             return "Your resting HRV (\(value) ms) is \(direction) its average of \(baseline) ms."
 
-        case .sleep:
-            return model.sleepScore.summary
-
-        case .strain:
-            return model.strainScore(context: context).summary
+        case .sleep, .strain:
+            return score.summary
         }
     }
 

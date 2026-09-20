@@ -105,11 +105,9 @@ struct PaywallView: View {
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundStyle(Tokens.textPrimary)
                         if let saving = yearlySaving, isYearly {
-                            Text(saving)
-                                .font(.system(size: 11, weight: .bold))
-                                .foregroundStyle(Tokens.onAccent)
-                                .padding(.horizontal, 7).padding(.vertical, 3)
-                                .background(Tokens.accent, in: Capsule())
+                            Label(saving, systemImage: "tag.fill")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundStyle(Tokens.accent)
                         }
                     }
                     Text(subtitle(for: product))

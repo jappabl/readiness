@@ -169,6 +169,8 @@ public enum SleepScore {
             comparison: need.hours,
             comparisonLabel: "your need",
             state: performance >= 0.95 ? .optimal : (performance >= 0.8 ? .fine : .payAttention),
+            level: performance,
+            symbol: "bed.double.fill",
             magnitude: -durationLoss,
             explanation: needExplanation(need))]
 
@@ -183,8 +185,11 @@ public enum SleepScore {
                 comparison: component.comparison,
                 comparisonLabel: component.comparisonLabel,
                 state: fraction >= 0.7 ? .optimal : (fraction >= 0.4 ? .fine : .payAttention),
+                level: fraction,
+                symbol: component.symbol,
                 magnitude: -qualityLoss * share,
-                explanation: component.explanation))
+                explanation: component.explanation,
+                note: component.note))
         }
 
         let missing = components.filter { $0.fraction == nil }.map(\.missingLabel)
@@ -213,6 +218,12 @@ public enum SleepScore {
         let comparisonLabel: String?
         let explanation: String
         let missingLabel: String
+        let symbol: String
+        /// What this row says in one sentence. A night's parts need saying in their own
+        /// terms — "0.5 h against the 1 h a night this long usually gives you" is a
+        /// different sentence from "below your normal", and only the engine knows which
+        /// of the two it means.
+        var note: String? = nil
     }
 
     static func quality(_ input: SleepInput) -> [Component] {
@@ -250,68 +261,112 @@ public enum SleepScore {
             return (daytime - sleeping) / daytime
         }()
 
+        // What a night this long usually gives this sleeper, so a stage row compares
+        // like with like. A short night has less deep sleep in it by arithmetic, and
+        // saying so against a fixed hour count would blame them for the clock.
+        func usualHours(_ keyPath: KeyPath<SleepBreakdown, Double>) -> Double? {
+            guard asleep > 0,
+                  let summary = BaselineSummary.of(historicShares(keyPath),
+                                                   minimumDeviation: shareDeviationFloor)
+            else { return nil }
+            return summary.mean * asleep
+        }
+
+        func hours(_ value: Double) -> String {
+            value.formatted(.number.precision(.fractionLength(0...1))) + " h"
+        }
+
+        let continuityFraction = night?.recordedContinuity
+        let deepUsual = usualHours(\.deepHours)
+        let remUsual = usualHours(\.remHours)
+        let awakeUsual = BaselineSummary.of(input.history.map(\.awakeHours),
+                                            minimumDeviation: hoursDeviationFloor)?.mean
+
         return [
             Component(
-                id: "continuity", title: "Continuity",
-                fraction: night?.recordedContinuity,
-                value: night?.recordedContinuity.map { $0 * 100 }, unit: "%",
-                comparison: nil, comparisonLabel: nil,
+                id: "continuity", title: "Solid sleep",
+                fraction: continuityFraction,
+                value: continuityFraction.map { $0 * 100 }, unit: "%",
+                comparison: 100, comparisonLabel: nil,
                 explanation: "How much of the night was actually spent asleep rather "
                            + "than awake or merely in bed. Eight broken hours are not "
                            + "eight hours, and this is the part that notices.",
-                missingLabel: "Sleep stages, so continuity could not be read"),
+                missingLabel: "Sleep stages, so continuity could not be read",
+                symbol: "moon.zzz.fill",
+                note: continuityFraction.map {
+                    $0 >= 0.95 ? "You barely stirred."
+                        : ($0 >= 0.85 ? "Broken up a little, but mostly solid."
+                                      : "You spent a fair bit of the night not asleep.")
+                }),
             Component(
-                id: "schedule", title: "Schedule",
+                id: "schedule", title: "Bed and wake times",
                 fraction: schedule.fraction,
                 value: schedule.medianMinutes, unit: "min",
-                comparison: nil, comparisonLabel: "off your usual times",
+                comparison: nil, comparisonLabel: nil,
                 explanation: "How close last night's bedtime and wake time were to the "
                            + "ones you normally keep. Going to bed at the same time is "
                            + "one of the few sleep levers that costs nothing to pull.",
-                missingLabel: "Seven nights of bed and wake times"),
+                missingLabel: "Seven nights of bed and wake times",
+                symbol: "clock.fill",
+                note: schedule.medianMinutes.map {
+                    $0 < 20 ? "Right on the times you usually keep."
+                        : "About \(Int($0.rounded())) minutes off your usual times."
+                }),
             Component(
                 id: "deep", title: "Deep sleep",
                 fraction: relative(share(\.deepHours), historicShares(\.deepHours),
                                    floor: shareDeviationFloor),
                 value: night.map { $0.deepHours }, unit: "h",
-                comparison: nil, comparisonLabel: nil,
+                comparison: deepUsual, comparisonLabel: "your usual",
                 explanation: "The share of the night spent in deep sleep, measured "
                            + "against your own nights rather than an ideal. There is no "
                            + "agreed correct amount, and anybody who tells you there is "
                            + "made it up — but a night well below your own usual is "
                            + "worth knowing about.",
-                missingLabel: "Seven nights of stage data for deep sleep"),
+                missingLabel: "Seven nights of stage data for deep sleep",
+                symbol: "moon.fill",
+                note: deepUsual.map { "A night this long usually gives you \(hours($0))." }),
             Component(
                 id: "rem", title: "REM sleep",
                 fraction: relative(share(\.remHours), historicShares(\.remHours),
                                    floor: shareDeviationFloor),
                 value: night.map { $0.remHours }, unit: "h",
-                comparison: nil, comparisonLabel: nil,
+                comparison: remUsual, comparisonLabel: "your usual",
                 explanation: "The share of the night spent in REM, against your own "
                            + "nights. It is the stage most easily cut short by alcohol "
                            + "and by waking early.",
-                missingLabel: "Seven nights of stage data for REM"),
+                missingLabel: "Seven nights of stage data for REM",
+                symbol: "eye.fill",
+                note: remUsual.map { "A night this long usually gives you \(hours($0))." }),
             Component(
                 id: "awake", title: "Time awake",
                 fraction: relative(night?.awakeHours,
                                    input.history.map(\.awakeHours),
                                    floor: hoursDeviationFloor, higherIsBetter: false),
                 value: night.map { $0.awakeHours }, unit: "h",
-                comparison: nil, comparisonLabel: nil,
+                comparison: awakeUsual, comparisonLabel: "your usual",
                 explanation: "Time spent awake between falling asleep and getting up, "
                            + "against how much you normally lose. Everybody surfaces "
                            + "during the night; the question is whether last night was "
                            + "worse than yours usually are.",
-                missingLabel: "Seven nights of stage data for awakenings"),
+                missingLabel: "Seven nights of stage data for awakenings",
+                symbol: "sun.horizon.fill",
+                note: awakeUsual.map { "You normally lose about \(hours($0)) to being awake." }),
             Component(
-                id: dipContributorID, title: "Heart rate dip",
+                id: dipContributorID, title: "Overnight heart rate drop",
                 fraction: dip.map { Swift.min(1, Swift.max(0, $0 / fullDip)) },
                 value: dip.map { $0 * 100 }, unit: "%",
-                comparison: fullDip * 100, comparisonLabel: "a strong dip",
+                comparison: fullDip * 100, comparisonLabel: nil,
                 explanation: "How far your heart rate fell overnight against your "
                            + "waking average. A large drop is the clearest sign the "
                            + "night was restorative rather than merely long.",
-                missingLabel: "Overnight and daytime heart rate"),
+                missingLabel: "Overnight and daytime heart rate",
+                symbol: "arrow.down.heart.fill",
+                note: dip.map {
+                    $0 >= fullDip ? "A big drop — your body settled properly."
+                        : ($0 >= 0.10 ? "A normal drop."
+                                      : "Your heart rate stayed high for a night's rest.")
+                }),
         ]
     }
 
