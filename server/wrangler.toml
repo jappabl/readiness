@@ -15,10 +15,12 @@ COACH_PROVIDER = "anthropic"
 COACH_MODEL = "claude-sonnet-5"
 MEAL_PROVIDER = "deepseek"
 MEAL_MODEL = "deepseek-flash"
-# App Attest stays off until the project has a real DEVELOPMENT_TEAM, because the
-# attestation payload is validated against <teamID>.<bundleID>.
+# App Attest stays off until `identify()` can actually verify an attestation. The team
+# ID is no longer the blocker — the project has had one since the signing config landed,
+# and the payload is validated against <teamID>.<bundleID>, so it is filled in here ready.
+# Turning this on before the verification exists would return 501 to every request.
 REQUIRE_ATTESTATION = "false"
-APPLE_TEAM_ID = ""
+APPLE_TEAM_ID = "V9JX42F864"
 BUNDLE_ID = "com.coachjett.ios"
 
 [[durable_objects.bindings]]

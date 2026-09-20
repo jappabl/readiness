@@ -69,10 +69,9 @@ function problem(status: number, detail: string, extra?: Record<string, string>)
  * Who is calling.
  *
  * App Attest is the layer that stops someone pointing curl at this. It stays off until
- * the project has a real DEVELOPMENT_TEAM, because the attestation payload is validated
- * against <teamID>.<bundleID> and there is nothing to validate against yet. While it is
- * off, a shared development secret is required instead, so the endpoint is never simply
- * open.
+ * the verification below exists — the team ID it validates <teamID>.<bundleID> against is
+ * in `wrangler.toml` now, so that is no longer what is missing. While it is off, a shared
+ * development secret is required instead, so the endpoint is never simply open.
  */
 async function identify(request: Request, env: Env): Promise<{ id: string } | Response> {
   const attestation = request.headers.get("x-jett-attestation")
