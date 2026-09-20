@@ -245,6 +245,13 @@ public enum RecoveryScore {
     /// beats above normal, with every other reading exactly average, produced a 34 and a
     /// "reduce" order. No one measurement is worth that much, and the whole argument for
     /// a weighted composite is that they vote together.
+    ///
+    /// It does not quite hold a lone input inside the middle band — one metric at three
+    /// clamped sigma with the other four exactly at baseline reaches 32 or 68 against
+    /// boundaries of 34 and 67. Making that literally true needs 0.309, which would also
+    /// pull the sleep-debt input's saturation down to six hours. Two points of overshoot
+    /// is the cheaper side of that trade, and it is recorded here rather than claimed
+    /// away.
     public static let contributionClamp = 0.35
 
     /// Below this share of the total weight, the composite is damped rather than

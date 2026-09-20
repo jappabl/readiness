@@ -391,33 +391,41 @@ struct ACWRGuardTests {
         }
     }
 
-    /// The guard's own comment says one session against twenty-seven rest days is
-    /// arithmetically a 4.0 spike and tells you nothing. Three sessions crammed into the
-    /// most recent week against twenty-one empty ones is the same 4.0, and it capped
-    /// every good morning of a new logger's first fortnight.
+    /// Three sessions crammed into the most recent week against twenty-one empty ones is
+    /// arithmetically a 4.0 spike and tells you nothing — but only because those twenty-
+    /// one days predate the record. The fix is the denominator, not a spread guard: the
+    /// chronic mean divides by how long the app has been watching.
     @Test("a first week of logging is not a spike")
-    func firstWeekIsNotASpike() {
-        #expect(StrainEngine.acwr(daily: days(sessionsOn: [1, 3, 5])) == nil)
-        #expect(StrainEngine.acwr(daily: days(sessionsOn: [0, 2, 4, 6])) == nil)
+    func firstWeekIsNotASpike() throws {
+        let ratio = try #require(StrainEngine.acwr(daily: days(sessionsOn: [1, 3, 5]),
+                                                   observedDays: 7))
+        #expect(ratio <= ReadinessEngine.acwrGate, "a first week read as \(ratio)")
     }
 
-    @Test("neither is a first week back after a lay-off")
-    func returningIsNotASpike() {
-        #expect(StrainEngine.acwr(daily: days(sessionsOn: [1, 3, 5])) == nil)
+    /// And the case that must NOT be suppressed, which a spread guard did suppress:
+    /// months of training, three weeks off, then four hard days back. That is what this
+    /// ratio exists to catch.
+    @Test("coming back hard after a lay-off is a spike")
+    func returningIsASpike() throws {
+        let back = days(sessionsOn: [0, 1, 2, 3])
+        let ratio = try #require(StrainEngine.acwr(daily: back, observedDays: 150))
+        #expect(ratio > ReadinessEngine.acwrGate, "four hard days after three weeks off read as \(ratio)")
     }
 
     /// But a genuine spike, on top of a real habit, still has to register.
     @Test("a real spike on a real history still fires")
     func realSpikeFires() throws {
         let habit = Array(stride(from: 8, through: 27, by: 3))
-        let ratio = try #require(StrainEngine.acwr(daily: days(sessionsOn: habit + [0, 1, 2, 3, 4, 5, 6])))
+        let ratio = try #require(StrainEngine.acwr(
+            daily: days(sessionsOn: habit + [0, 1, 2, 3, 4, 5, 6]), observedDays: 150))
         #expect(ratio > ReadinessEngine.acwrGate, "a genuine spike read as \(ratio)")
     }
 
     @Test("and a steady habit does not")
     func steadyIsClear() throws {
         let steady = Array(stride(from: 0, through: 27, by: 3))
-        let ratio = try #require(StrainEngine.acwr(daily: days(sessionsOn: steady)))
+        let ratio = try #require(StrainEngine.acwr(daily: days(sessionsOn: steady),
+                                                   observedDays: 150))
         #expect(ratio <= ReadinessEngine.acwrGate, "a steady habit read as \(ratio)")
     }
 }

@@ -173,7 +173,14 @@ public struct SleepDebt: Sendable, Equatable {
 
     /// A real ceiling rather than a scoring convenience. Past this the number stops
     /// being information and starts being an accusation.
-    public static let maximumHours = 12.0
+    ///
+    /// Seven rather than twelve, because that is where recovery stops being able to hear
+    /// it: a 0.30-weight input against a 0.35 clamp saturates at `hoursPerDeviation`
+    /// times 1.17, which is seven hours. At twelve, the top 42% of the displayed range
+    /// scored identically — somebody forty nights into a six-hour habit could sleep nine
+    /// hours twice and watch the ring not move, with the advice still reading "reduce".
+    /// The number shown and the number scored should agree.
+    public static let maximumHours = 7.0
 
     /// `nights` is hours slept, oldest first, ending with last night.
     /// What the balance accrues against.

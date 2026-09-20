@@ -37,15 +37,6 @@ public enum StrainEngine {
 
     /// Acute (7 day) against chronic (28 day) load. Above ~1.5 is a spike.
     /// Nil when there is not enough training in the window to compare against.
-    /// Training days needed OUTSIDE the acute window before the ratio means anything.
-    ///
-    /// Counting training days alone was not enough. Three sessions crammed into the most
-    /// recent week against twenty-one empty ones is arithmetically the same 4.0 spike the
-    /// guard exists to reject — so a new logger's first fortnight, and anybody's first
-    /// week back after a lay-off, capped every good morning at 66 and explained it with a
-    /// spike that was really just the start of a record.
-    public static let minimumChronicDays = 2
-
     /// `observedDays` is how long the app has actually been watching. The chronic mean
     /// used to divide by a fixed twenty-eight regardless, so the window was padded with
     /// days that predate the record — and a perfectly steady three-sessions-a-week
@@ -56,9 +47,12 @@ public enum StrainEngine {
         guard daily.count >= chronicDays else { return nil }
         let chronic = daily.suffix(chronicDays)
         guard chronic.filter({ $0 > 0 }).count >= minimumTrainingDays else { return nil }
-        // The chronic window has to describe a habit, not just contain the acute one.
-        let older = chronic.prefix(chronicDays - acuteDays)
-        guard older.filter({ $0 > 0 }).count >= minimumChronicDays else { return nil }
+        // No spread guard. One was added when the chronic mean still divided by a fixed
+        // twenty-eight, to stop a new logger's first sessions reading as a spike — but
+        // the observed-days denominator solves that properly, and requiring training
+        // days outside the acute window suppresses the one case this ratio exists for:
+        // months of training, three weeks off, then four hard days back. That returned
+        // nothing instead of 3.5.
 
         let covered = Swift.max(1, Swift.min(chronicDays, observedDays ?? chronic.count))
         let chronicMean = chronic.reduce(0, +) / Double(covered)

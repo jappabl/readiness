@@ -134,9 +134,10 @@ struct SleepDebtTests {
                 "arrow said \(SleepDebt.of(nights: after).change), balance moved \(moved)")
     }
 
-    @Test("a long night reads as progress")
+    /// Held below the cap on both sides, or the worse night has nowhere left to go.
+    @Test("a long night reads as progress and a bad one does not")
     func progressIsNegative() {
-        let dug = settled(8.0, 8) + Array(repeating: 5.5, count: 4)
+        let dug = settled(8.0, 10) + Array(repeating: 6.5, count: 2)
         #expect(SleepDebt.of(nights: dug + [10.5]).change < 0)
         #expect(SleepDebt.of(nights: dug + [4.0]).change > 0)
     }

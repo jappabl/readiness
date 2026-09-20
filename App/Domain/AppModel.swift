@@ -496,12 +496,19 @@ final class AppModel {
         let cutoff = Calendar.current.startOfDay(for: date).addingTimeInterval(86_399)
         let recent = Array(series.filter { $0.date <= cutoff }.suffix(days))
         var out: [MetricKind: [Double]] = [:]
+        // Accumulated over the whole record and then trimmed, not accumulated over the
+        // trimmed record. Walking a growing slice meant the first points could not show
+        // a fortnight's balance at all, and the reference — a median of whatever it was
+        // handed — moved as the line was drawn, putting a spike to the cap in the middle
+        // of somebody's recovery.
         var nights: [Double] = []
-        out[.sleepDebt] = recent.compactMap { day -> Double? in
-            guard let hours = day.sleepHours else { return nil }
+        var balances: [Double] = []
+        for day in series {
+            guard let hours = day.sleepHours else { continue }
             nights.append(hours)
-            return SleepDebt.of(nights: nights).hours
+            balances.append(SleepDebt.of(nights: nights).hours)
         }
+        out[.sleepDebt] = Array(balances.suffix(days))
         for kind in MetricKind.allCases {
             let values = recent.compactMap { day -> Double? in
                 switch kind {
