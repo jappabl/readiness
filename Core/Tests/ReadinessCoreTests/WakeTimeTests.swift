@@ -28,7 +28,7 @@ struct WakeTimeTests {
     }
 
     private func wake(_ episodes: [(Double, Double)]) -> Date? {
-        breakdown(episodes).wakeTime(calendar: calendar)
+        breakdown(episodes).wakeTime(on: midnight, calendar: calendar)
     }
 
     @Test("an ordinary night ends the night")
@@ -50,6 +50,15 @@ struct WakeTimeTests {
         #expect(wake([(17.5 - hours, 17.5)]) == nil)
     }
 
+    /// Six was a bedtime, not a boundary. A night shift ending at six, a new parent, a
+    /// red-eye — all went to bed at exactly the hour that stopped qualifying, and had a
+    /// perfectly recorded day reported as part-recorded every day.
+    @Test("a night that starts at dawn is still a night", arguments: [5.0, 6.0, 7.5, 8.5])
+    func lateBedtimeStillANight(hour: Double) throws {
+        let woke = try #require(wake([(hour, hour + 7)]))
+        #expect(woke == midnight.addingTimeInterval((hour + 7) * 3600))
+    }
+
     /// With both, the night wins, whichever is longer.
     @Test("a night plus a longer afternoon sleep still reports the night")
     func nightBeatsLongerNap() throws {
@@ -65,7 +74,7 @@ struct WakeTimeTests {
 
     @Test("no sleep at all says nothing")
     func noSleep() {
-        #expect(SleepBreakdown().wakeTime(calendar: calendar) == nil)
+        #expect(SleepBreakdown().wakeTime(on: midnight, calendar: calendar) == nil)
     }
 
     /// The periods themselves are carried, merged and in order, because the wear check

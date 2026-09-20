@@ -492,7 +492,7 @@ final class AppModel {
 
     /// The trailing values behind each contributor, for the chart its row expands to.
     private func metricHistory(days: Int = 28, endingOn date: Date = Date()) -> [MetricKind: [Double]] {
-        let cutoff = Calendar.current.startOfDay(for: date).addingTimeInterval(86_399)
+        let cutoff = Self.endOfDay(date)
         let recent = Array(series.filter { $0.date <= cutoff }.suffix(days))
         var out: [MetricKind: [Double]] = [:]
         // `SleepDebt.history` rather than a walk over `SleepDebt.of`, which cannot produce
@@ -537,7 +537,7 @@ final class AppModel {
 
     func recoveryScore(on date: Date) -> SignalScore {
         let calendar = Calendar.current
-        let upToDate = series.filter { $0.date <= calendar.startOfDay(for: date).addingTimeInterval(86_399) }
+        let upToDate = series.filter { $0.date <= Self.endOfDay(date, calendar: calendar) }
         // Dated, like everything else on this path. Passing today's ratio meant one live
         // spike capped every past day in the calendar at 66 and hung a contributor row
         // on each of them about a spike that had not happened yet.
@@ -616,7 +616,7 @@ final class AppModel {
     /// contradicted each other on the same screen: "your need was 7.0 hours" above a
     /// card saying twelve hours behind.
     private func sleepNights(upTo date: Date, days: Int = 28) -> [Double] {
-        let cutoff = Calendar.current.startOfDay(for: date).addingTimeInterval(86_399)
+        let cutoff = Self.endOfDay(date)
         return Array(series.filter { $0.date <= cutoff }.compactMap(\.sleepHours).suffix(days))
     }
 
@@ -668,8 +668,7 @@ final class AppModel {
                 // assumes a 24-hour day, so on a spring-forward date it lands an hour into
                 // the next one and reported the last hour as a hole, and on a fall-back
                 // date it stopped an hour short of the day's end.
-                : Calendar.current.startOfDay(for: Calendar.current.date(
-                    byAdding: .day, value: 1, to: date) ?? date).addingTimeInterval(-1),
+                : Self.endOfDay(date),
             // The night's own wake time, which `primarySleepEnd` is only when the longest
             // episode of the day was a night. With none recorded, a nap became the "wake
             // time" and started the window in the afternoon, so a morning the watch spent
@@ -680,7 +679,7 @@ final class AppModel {
             // then counted as unworn time, so a watch that never came off was reported as
             // a part-recorded day whenever any sleep of 40 minutes to four hours had
             // samples on both sides of it.
-            asleepPeriods: day?.sleep?.asleepPeriods ?? [],
+            asleepPeriods: asleepPeriods(spanning: date),
             fallback: DailyStrain.evaluate(days: activity, on: date)))
     }
 
@@ -710,6 +709,38 @@ final class AppModel {
         }
     }
 
+    /// Every stretch of sleep that falls inside a day, including the night that begins in
+    /// its evening.
+    ///
+    /// A night belongs to the day you wake up on, so a day's own breakdown holds the night
+    /// that *ended* on it and nothing from its evening. A finished day's window runs to
+    /// its own midnight, so that evening's sleep was never subtracted and read as a hole:
+    /// every past day was reported as part-recorded, permanently, for anybody who does not
+    /// sleep in their watch.
+    private func asleepPeriods(spanning date: Date) -> [DateInterval] {
+        let calendar = Calendar.current
+        let next = calendar.date(byAdding: .day, value: 1, to: date) ?? date
+        return [date, next]
+            .flatMap { day in
+                series.first { calendar.isDate($0.date, inSameDayAs: day) }?
+                    .sleep?.asleepPeriods ?? []
+            }
+            .sorted { $0.start < $1.start }
+    }
+
+    /// The last instant of a day, found rather than assumed.
+    ///
+    /// `startOfDay + 86,399` assumes every day is twenty-four hours. On a spring-forward
+    /// date it lands past the *next* day's start, and `DailyPhysiology.date` is a
+    /// start-of-day, so tomorrow's row satisfied `date <= cutoff`: once a year, that day's
+    /// recovery rendered unavailable on data that was present, tomorrow's resting rate
+    /// entered the baseline that day was scored against, and tomorrow's night entered the
+    /// window behind that day's need and balance.
+    static func endOfDay(_ date: Date, calendar: Calendar = .current) -> Date {
+        let next = calendar.date(byAdding: .day, value: 1, to: date) ?? date
+        return calendar.startOfDay(for: next).addingTimeInterval(-1)
+    }
+
     /// The resting-rate baseline as it stood on a given day.
     ///
     /// `baseline(.restingHeartRate)` reads today's assembly, which is a different
@@ -717,7 +748,7 @@ final class AppModel {
     /// synced — at which point every past day silently fell back to that day's single
     /// reading, the exact thing `StrainInput.restingHeartRate` documents must not happen.
     private func restingBaseline(upTo date: Date) -> Double? {
-        let cutoff = Calendar.current.startOfDay(for: date).addingTimeInterval(86_399)
+        let cutoff = Self.endOfDay(date)
         let values = series.filter { $0.date <= cutoff }.compactMap(\.restingHeartRate)
         return BaselineEngine.evaluate(series: values)?.mean
     }

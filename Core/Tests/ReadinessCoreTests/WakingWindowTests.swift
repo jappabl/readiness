@@ -92,4 +92,46 @@ struct WakingWindowTests {
                                         sessionAt: 10..<11.5))
         #expect(result.coverage == .partial)
     }
+
+    /// A staged night fragments at every awake segment, and the day's start was inferred
+    /// from where the *first* fragment ended. When that fell before local midnight the
+    /// inference pointed at yesterday, nothing could qualify, and the leading-gap check
+    /// switched off entirely: 50 points hidden and reported as a complete record, decided
+    /// by which side of midnight somebody happened to stir.
+    @Test("a night that stirs before midnight still says when the day started",
+          arguments: [-1.75, -1.0, -0.5, 0.5, 1.5])
+    func brokenNightBeforeMidnight(blipAt: Double) {
+        let night = [DateInterval(start: at(-2), end: at(blipAt)),
+                     DateInterval(start: at(blipAt + 0.17), end: at(6.5))]
+        let result = StrainScore.of(day(worn: [(9, 22)], asleep: night, sessionAt: 7..<8.5))
+        #expect(result.coverage == .partial,
+                "a blip at \(blipAt) hid the morning: \(result.missing)")
+    }
+
+    /// The wake time is when the night ended, not when its first fragment did. A
+    /// five-minute misread before the real night, or ninety minutes awake in the middle of
+    /// it, used to make the window start there and call the rest of the night a hole.
+    @Test("a fragment is not the end of the night")
+    func fragmentIsNotWaking() {
+        let misread = [DateInterval(start: at(0.08), end: at(0.17)),
+                       DateInterval(start: at(1), end: at(8))]
+        #expect(StrainScore.of(day(worn: [(8, 22)], asleep: misread)).coverage == .full,
+                "a five-minute misread before the night was called a hole")
+        let brokenNight = [DateInterval(start: at(-1), end: at(1)),
+                           DateInterval(start: at(2.5), end: at(7))]
+        #expect(StrainScore.of(day(worn: [(7, 22)], asleep: brokenNight)).coverage == .full,
+                "ninety minutes awake mid-night was called a hole")
+    }
+
+    /// A past day runs to its own midnight, and the sleep that starts that evening belongs
+    /// to the next wake day — so it was never subtracted, and every past day was reported
+    /// as part-recorded for anybody who does not sleep in their watch.
+    @Test("an evening is not a hole on a day that is over", arguments: [20.0, 21.0, 22.0])
+    func eveningSleepIsNotAHole(offAt: Double) {
+        let night = [DateInterval(start: at(-2), end: at(7)),
+                     DateInterval(start: at(offAt + 0.5), end: at(31))]
+        let result = StrainScore.of(day(worn: [(7, offAt)], asleep: night, readAtHour: 24))
+        #expect(result.coverage == .full,
+                "watch off at \(offAt):00 on a finished day: \(result.missing)")
+    }
 }

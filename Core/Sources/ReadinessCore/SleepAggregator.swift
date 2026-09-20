@@ -102,7 +102,12 @@ public struct SleepBreakdown: Sendable, Equatable {
         return (deepHours * scale, remHours * scale, coreHours * scale)
     }
 
-    /// A sleep starting before this hour is the one the day began with.
+    /// A sleep starting before this hour is one the day began with.
+    ///
+    /// Nine, not six. Six is a bedtime, not a boundary: a night shift ending at 06:00, a
+    /// new parent, anyone off a red-eye went to bed at exactly the hour that stopped
+    /// qualifying, so a perfectly recorded day was reported as part-recorded every single
+    /// day. Nine still excludes an afternoon sleep, which is the case the rule exists for.
     ///
     /// Not a length. Round 7 guarded the wake time by episode length — trust it only for
     /// four hours or more — and length cannot tell a night from a nap: a broken 3.5-hour
@@ -110,7 +115,7 @@ public struct SleepBreakdown: Sendable, Equatable {
     /// both directions at once, hiding a 42-point hole after a short night and a 45-point
     /// one after a long daytime sleep. When the sleep started is the thing that actually
     /// separates them.
-    public static let latestWakingStartHour = 6.0
+    public static let latestWakingStartHour = 9.0
 
     /// When the waking day began, or nil when the record cannot say.
     ///
@@ -124,8 +129,8 @@ public struct SleepBreakdown: Sendable, Equatable {
     ///
     /// A short or broken night is not trusted either. The fallback is a bound the clock can
     /// prove, which is weaker but never points at the wrong hour.
-    public func wakeTime(calendar: Calendar = .current) -> Date? {
-        WakingDay.start(of: asleepPeriods, calendar: calendar)
+    public func wakeTime(on day: Date, calendar: Calendar = .current) -> Date? {
+        WakingDay.start(of: asleepPeriods, on: day, calendar: calendar)
     }
 
     /// In-bed or awake records alone do not establish how long someone slept.
@@ -150,15 +155,26 @@ public enum WakingDay {
     /// The sleep the day began with: the earliest one that either ran in from yesterday
     /// or started in the small hours. A sleep that began in the afternoon says nothing
     /// about when the day started, however long it lasted.
-    public static func start(of periods: [DateInterval],
+    /// `day` is any moment inside the waking day being asked about.
+    ///
+    /// Taken from the caller rather than inferred from the periods. Inferring it from
+    /// where the *first* period ended was wrong for any night that stirs: a staged night
+    /// fragments at every awake segment, so a blip before local midnight put the inferred
+    /// day a day early, nothing could qualify, and the answer went nil — switching the
+    /// leading-gap check off and hiding fifty points, decided by which side of midnight
+    /// somebody happened to turn over.
+    public static func start(of periods: [DateInterval], on day: Date,
                              calendar: Calendar = .current) -> Date? {
-        guard let dayStart = periods.first.map({ calendar.startOfDay(for: $0.end) })
-        else { return nil }
-        return periods.first {
+        let dayStart = calendar.startOfDay(for: day)
+        // The end of the last of them, not the first. A five-minute misread before the
+        // real night, or ninety minutes awake in the middle of one, is not the moment the
+        // day began — and taking the first fragment's end called the rest of the night a
+        // hole in the record.
+        return periods.filter {
             $0.start < dayStart
                 || $0.start.timeIntervalSince(dayStart) / 3600
                     < SleepBreakdown.latestWakingStartHour
-        }?.end
+        }.map(\.end).max()
     }
 }
 

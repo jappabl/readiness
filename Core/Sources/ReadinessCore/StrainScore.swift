@@ -413,8 +413,8 @@ public enum StrainScore {
             // trailing holes but is blind to a late start, so that one case is answered
             // by the floor below instead of by a guessed hour.
             let gap = largestUnobservedGap(in: samples,
-                                           from: WakingDay.start(of: input.asleepPeriods)
-                                               ?? first,
+                                           from: WakingDay.start(of: input.asleepPeriods,
+                                                                 on: input.readAt) ?? first,
                                            to: input.readAt,
                                            asleep: input.asleepPeriods)
             if gap >= unobservedGapMinutes || fallsShortOfTheDay(input, from: first) {
@@ -452,7 +452,8 @@ public enum StrainScore {
     /// happened by now. Only consulted when the night is unknown; with a wake time the
     /// leading gap already says this, and says it more precisely.
     private static func fallsShortOfTheDay(_ input: StrainInput, from first: Date) -> Bool {
-        guard WakingDay.start(of: input.asleepPeriods) == nil else { return false }
+        guard WakingDay.start(of: input.asleepPeriods, on: input.readAt) == nil
+        else { return false }
         let sinceMidnight = input.readAt
             .timeIntervalSince(Calendar.current.startOfDay(for: input.readAt)) / 60
         let wakingSoFar = sinceMidnight - maximumSleepMinutes
