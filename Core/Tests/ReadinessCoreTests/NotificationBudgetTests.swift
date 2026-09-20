@@ -54,13 +54,19 @@ struct NotificationBudgetTests {
         #expect(!NotificationBudget.consume(state, now: fortnight).allowed)
     }
 
-    @Test("winding the clock back does not refill the bucket")
-    func clockGoingBackwardsEarnsNothing() {
-        var state = NotificationBudget.State()
-        for _ in 0..<NotificationBudget.capacity {
-            state = NotificationBudget.consume(state, now: start).state
-        }
+    @Test("winding the clock back neither refills the bucket nor drains it")
+    func clockGoingBackwardsNeitherRefillsNorDrains() {
+        // Asserting refusal from an empty bucket cannot pin the backwards-clock clamp:
+        // with the clamp, elapsed is zero and tokens stay at zero, refused; without it,
+        // a hugely negative elapsed time only drives tokens further negative, still
+        // refused. Either way the assertion holds, so deleting the clamp would not turn
+        // this test red. A partly used bucket is where the two worlds diverge: without
+        // the clamp, the same backwards jump drives tokens deeply negative and wrongly
+        // refuses a message that should still be allowed.
+        let state = NotificationBudget.consume(NotificationBudget.State(), now: start).state
         let yesterday = start.addingTimeInterval(-100 * 24 * 3600)
-        #expect(!NotificationBudget.consume(state, now: yesterday).allowed)
+        let result = NotificationBudget.consume(state, now: yesterday)
+        #expect(result.allowed)
+        #expect(result.state == NotificationBudget.State(tokens: 1, updated: yesterday))
     }
 }
