@@ -61,6 +61,8 @@ struct RootView: View {
             NavigationStack { SignalDetailView(signal: signal) }
         } else if let signal = Self.insightsHarness {
             InsightsView(score: SampleScores.score(for: signal))
+        } else if Self.whyHarness, let day = model.day, let recommendation = model.recommendation {
+            WhyView(day: day, recommendation: recommendation)
         } else if Self.cardGallery {
             CardGallery()
         // Onboarding is not a tab. It replaces the app until it is done, because a tab
@@ -99,6 +101,17 @@ struct RootView: View {
         return Signal(rawValue: arguments[index + 1])
         #else
         return nil
+        #endif
+    }()
+
+    /// `--why`, for the evidence sheet. Pairs with `--demo-today`. Added while fixing a
+    /// second recovery ring on this screen that disagreed with Today's by 82 points — the
+    /// kind of thing only looking at both of them catches.
+    private static let whyHarness: Bool = {
+        #if DEBUG
+        ProcessInfo.processInfo.arguments.contains("--why")
+        #else
+        false
         #endif
     }()
 

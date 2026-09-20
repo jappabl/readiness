@@ -187,11 +187,7 @@ struct InsightsView: View {
     /// 90% drew a green tile with a down arrow, and every overnight heart rate dip
     /// between 12 and 15% did the same. Direction and colour now say one thing.
     private func direction(_ contributor: ScoreContributor) -> String? {
-        switch contributor.state {
-        case .optimal: return "arrow.up"
-        case .payAttention: return "arrow.down"
-        case .fine: return nil
-        }
+        contributor.directionSymbol
     }
 
     /// Percent joins its number; everything else keeps its unit beside it.
@@ -269,15 +265,12 @@ struct InsightsView: View {
         }
     }
 
+    /// The two states that mean something share their colour with every other breakdown.
+    /// An unremarkable row wears the signal's own colour instead — not blue, which was a
+    /// third meaning on a screen with two and left every ordinary row looking like an
+    /// instruction. It is also what stops the grid reading flat.
     private func colour(_ state: ContributorState) -> Color {
-        switch state {
-        case .optimal: return Tokens.recoveryHigh
-        case .payAttention: return Tokens.alert
-        // Not blue. Blue was a third meaning on a screen with two, and it left every
-        // ordinary row looking like an instruction. An unremarkable row wears the
-        // signal's own colour instead, which is also what stops the grid reading flat.
-        case .fine: return signalTint
-        }
+        state == .fine ? signalTint : state.indicatorColour
     }
 
     private var signalTint: Color {
@@ -389,6 +382,32 @@ struct ContributorDetail: View {
 /// strain a magnitude is a contribution, so the biggest bar was the biggest cost — fine.
 /// On sleep a magnitude is a loss, so a row that cost nothing drew an empty bar and read
 /// as the worst thing on the screen.
+extension ScoreContributor {
+    /// How this row went, as one glyph — never which side of a number it landed on.
+    ///
+    /// Shared, because `WhyView` grew its own version of this row and drifted: it drew a
+    /// bar straight off the z with a fixed polarity, which made sleep debt's dot sit on
+    /// the "your normal" tick at zero debt, tinted green, over the sentence "slightly
+    /// above baseline" — and left 69% of the track unreachable.
+    var directionSymbol: String? {
+        switch state {
+        case .optimal: return "arrow.up"
+        case .payAttention: return "arrow.down"
+        case .fine: return nil
+        }
+    }
+}
+
+extension ContributorState {
+    var indicatorColour: Color {
+        switch self {
+        case .optimal: return Tokens.recoveryHigh
+        case .payAttention: return Tokens.alert
+        case .fine: return Tokens.textSecondary
+        }
+    }
+}
+
 struct ComparisonBar: View {
     let contributor: ScoreContributor
     /// Deliberately one neutral colour.

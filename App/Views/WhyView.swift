@@ -55,8 +55,21 @@ struct WhyView: View {
         }
     }
 
+    /// The one recovery score there is.
+    ///
+    /// This screen used to compute its own — the composite run through a standard normal
+    /// CDF as though its spread were 1.0, which is the transfer `RecoveryScore` exists to
+    /// replace, and with no gate ceiling at all. So the two rings disagreed by up to seven
+    /// points on an ordinary morning and by **82** under the illness gate: Today showed a
+    /// red 8, and tapping it to ask why showed a green 90 beside this screen's own headline
+    /// "Recover". A second hand-maintained breakdown of the same result was always going to
+    /// end up describing a different model; there is one now.
+    private var score: SignalScore {
+        RecoveryScore.of(day.readiness, readings: day.readings)
+    }
+
     private var readinessPercent: Int? {
-        max(1, Percentile.percent(fromZ: day.readiness.composite))
+        score.value.map { max(1, Int($0.rounded())) }
     }
 
     private var call: some View {
@@ -87,11 +100,13 @@ struct WhyView: View {
             Text("The plan").microLabel()
             ForEach(recommendation.adjustments, id: \.self) { adjustment in
                 HStack(spacing: 12) {
+                    // Neutral, and no disc. These are the steps of one instruction, not
+                    // four things competing for attention, and a tinted capsule behind a
+                    // glyph is the house rule this screen was still breaking.
                     Image(systemName: Copy.symbol(for: adjustment))
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(Tokens.accent)
-                        .frame(width: 32, height: 32)
-                        .background(Tokens.accent.opacity(0.12), in: Circle())
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(Tokens.textPrimary)
+                        .frame(width: 24)
                     Text(Copy.describe(adjustment))
                         .font(.system(size: 15, weight: .medium))
                         .foregroundStyle(Tokens.textPrimary)
@@ -113,16 +128,15 @@ struct WhyView: View {
     // MARK: - Evidence
 
     /// Biggest mover first, whichever way it moved — on a good day the reason is a
-    /// metric that went up.
-    private var ranked: [InputContribution] {
-        day.readiness.contributions.sorted { abs($0.points) > abs($1.points) }
-    }
+    /// metric that went up. Already ordered that way, and with the gate's own row included,
+    /// which this screen previously left out entirely.
+    private var ranked: [ScoreContributor] { score.contributors }
 
     private var evidence: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("What it read").sectionHeading()
             ListCard {
-                ForEach(Array(ranked.enumerated()), id: \.element.kind) { index, contribution in
+                ForEach(Array(ranked.enumerated()), id: \.element.id) { index, contribution in
                     if index > 0 { Divider().overlay(Tokens.hairline).padding(.leading, 14) }
                     row(for: contribution)
                 }
@@ -182,45 +196,78 @@ struct WhyView: View {
         }
     }
 
-    private func row(for contribution: InputContribution) -> some View {
-        let reading = day.readings.first { $0.kind == contribution.kind }
-        let tint = contribution.points < 0 ? Tokens.negative : Tokens.positive
+    /// One input, in the same shapes the rest of the app uses for a contributor.
+    ///
+    /// The bar is `ComparisonBar` over the contributor's own `level` rather than a
+    /// `RangeBar` over the raw z with a fixed polarity. That mattered most for sleep debt,
+    /// which is one-sided: the old row could only place its dot between 0.31 and 0.50 of
+    /// the track, so 69% of the bar was unreachable, the "your normal" tick marked the
+    /// *best* case rather than the middle, and owing nothing drew a green dot sitting on
+    /// that tick under the words "slightly above baseline".
+    private func row(for contributor: ScoreContributor) -> some View {
+        let kind = MetricKind(rawValue: contributor.id)
         return VStack(alignment: .leading, spacing: 9) {
             HStack(spacing: 10) {
-                Image(systemName: Copy.symbol(for: contribution.kind))
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(tint)
-                    .frame(width: 26, height: 26)
-                    .background(tint.opacity(0.12), in: Circle())
-                Text(contribution.kind.displayName)
+                // Neutral, and no disc behind it. The symbol says which measurement this
+                // is; the arrow says how it went.
+                Image(systemName: contributor.symbol)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(Tokens.textPrimary)
+                    .frame(width: 22)
+                Text(contributor.title)
                     .font(.system(size: 15, weight: .medium))
                     .foregroundStyle(Tokens.textPrimary)
-                InfoButton(contribution.kind)
-                    .padding(.horizontal, -9)
+                if let kind {
+                    InfoButton(kind)
+                        .padding(.horizontal, -9)
+                }
                 Spacer(minLength: 8)
-                if let reading {
+                if let arrow = contributor.directionSymbol {
+                    Image(systemName: arrow)
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(contributor.state.indicatorColour)
+                }
+                if let value = contributor.value {
                     HStack(alignment: .firstTextBaseline, spacing: 3) {
-                        Text(reading.value, format: .number.precision(.fractionLength(1)))
+                        Text(number(value) + (contributor.unit == "%" ? "%" : ""))
                             .font(.system(size: 17, weight: .semibold)).monospacedDigit()
                             .foregroundStyle(Tokens.textPrimary)
-                        Text(reading.kind.unit)
-                            .font(.system(size: 12))
-                            .foregroundStyle(Tokens.textSecondary)
+                        if contributor.unit != "%" {
+                            Text(contributor.unit)
+                                .font(.system(size: 12))
+                                .foregroundStyle(Tokens.textSecondary)
+                        }
                     }
                 }
             }
             VStack(alignment: .leading, spacing: 6) {
-                RangeBar(z: contribution.zScore,
-                         polarity: contribution.kind.polarity,
-                         tint: tint)
-                Text(Copy.deviationPhrase(contribution.zScore))
-                    .font(.system(size: 13))
-                    .foregroundStyle(Tokens.textSecondary)
+                ComparisonBar(contributor: contributor)
+                if let note = phrase(contributor) {
+                    Text(note)
+                        .font(.system(size: 13))
+                        .foregroundStyle(Tokens.textSecondary)
+                }
             }
-            .padding(.leading, 36)
+            .padding(.leading, 32)
         }
         .padding(.horizontal, 14).padding(.vertical, 12)
         .accessibilityElement(children: .combine)
+    }
+
+    /// The engine's own sentence where it has one, and otherwise what the reading was
+    /// judged against. Never a phrase derived from the z here: that was how this screen
+    /// came to describe a different model from the one doing the scoring.
+    private func phrase(_ contributor: ScoreContributor) -> String? {
+        if let note = contributor.note { return note }
+        guard let comparison = contributor.comparison, let label = contributor.comparisonLabel
+        else { return nil }
+        let sentenceCased = label.prefix(1).uppercased() + label.dropFirst()
+        let unit = contributor.unit == "%" ? "%" : " " + contributor.unit
+        return "\(sentenceCased) is \(number(comparison))\(unit)"
+    }
+
+    private func number(_ value: Double) -> String {
+        value.formatted(.number.precision(.fractionLength(0...1)))
     }
 
     // MARK: - Limits

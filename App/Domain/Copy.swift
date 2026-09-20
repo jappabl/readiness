@@ -98,12 +98,6 @@ enum Copy {
         return "\(strength)\(direction) baseline"
     }
 
-    /// The same phrase, sentence-cased for standing on its own under a graph.
-    static func deviationPhrase(_ z: Double) -> String {
-        let phrase = deviation(z)
-        return phrase.prefix(1).uppercased() + phrase.dropFirst()
-    }
-
     /// Iconography lives with the words because they are one voice: an adjustment and
     /// the glyph that stands for it should never be chosen independently.
     static func symbol(for adjustment: SessionAdjustment) -> String {
