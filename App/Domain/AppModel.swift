@@ -95,6 +95,16 @@ final class AppModel {
 
     private(set) var series: [DailyPhysiology] = []
     private var healthSeries: [DailyPhysiology] = []
+    /// When the heart-rate trace was last read out of HealthKit.
+    ///
+    /// Today's strain is judged against how much of the day the record covers, and that
+    /// question is about the data, not about the clock. `readAt: Date()` is re-evaluated on
+    /// every render while `healthSeries` only changes on a refresh — and there is no health
+    /// refresh on foreground, background delivery is hourly and does not observe heart rate
+    /// at all — so resuming a suspended app measured this hour's clock against last hour's
+    /// samples. A watch that never left the wrist was reported as a part-recorded day once
+    /// the app was forty minutes stale, at any hour of the day.
+    private(set) var healthReadAt: Date?
     private(set) var latestWeight: (date: Date, kilograms: Double)?
     private var healthWeight: (date: Date, kilograms: Double)?
     var healthReadError: String?
@@ -187,6 +197,7 @@ final class AppModel {
         // access; this just hands the model a series.
         if ProcessInfo.processInfo.arguments.contains("--demo-today") {
             healthSeries = DemoPhysiology.series()
+            healthReadAt = Date()
             healthWeight = healthSeries.last.flatMap { day in
                 day.bodyMassKg.map { (date: day.date, kilograms: $0) }
             }
@@ -209,7 +220,7 @@ final class AppModel {
 
         if requestHealthAccess { UserDefaults.standard.set(false, forKey: Self.healthSkipKey) }
         if UserDefaults.standard.bool(forKey: Self.healthSkipKey) {
-            healthSeries = []; healthWeight = nil; mergeLocalLogs(); day = nil; recommendation = nil; hasOnboardingHealthData = false
+            healthSeries = []; healthWeight = nil; healthReadAt = nil; mergeLocalLogs(); day = nil; recommendation = nil; hasOnboardingHealthData = false
             healthProfile = HealthProfile()
             phase = needsOnboarding ? .needsOnboarding : .ready
             return
@@ -253,6 +264,7 @@ final class AppModel {
 
             healthReadError = nil
             healthSeries = fetched
+            healthReadAt = Date()
             healthWeight = await healthKit.latestBodyMass()
             mergeLocalLogs()
             todayCheckIn = fetchTodayCheckIn(from: context)
@@ -640,10 +652,17 @@ final class AppModel {
                 $0.date < Calendar.current.startOfDay(for: date)
             }.compactMap(\.heartRateMax).max(),
             hardSets: hardSets(on: date, context: context),
-            // A past day is read whole; today is read part-way through.
+            // A past day is read whole; today is read as far as the data goes. See
+            // `healthReadAt` — the wall clock runs on while the samples do not.
             readAt: Calendar.current.isDateInToday(date)
-                ? Date() : Calendar.current.startOfDay(for: date).addingTimeInterval(86_399),
-            wokeAt: day?.sleep?.primarySleepEnd,
+                ? (healthReadAt ?? Date())
+                : Calendar.current.startOfDay(for: date).addingTimeInterval(86_399),
+            // The night's own wake time, which `primarySleepEnd` is only when the longest
+            // episode of the day was a night. With none recorded, a nap became the "wake
+            // time" and started the window in the afternoon, so a morning the watch spent
+            // on the charger stopped being a hole at all: 22.5 against a true 73.0, called
+            // a complete day. Nil falls back to what the clock can prove.
+            wokeAt: day?.sleep?.wakeTime,
             fallback: DailyStrain.evaluate(days: activity, on: date)))
     }
 

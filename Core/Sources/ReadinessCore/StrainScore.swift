@@ -263,7 +263,19 @@ public enum StrainScore {
     /// shorter than that cannot be describing all of it. The bound is empty early in the
     /// day, which is exactly when nothing should be claimed, and tightens as the day runs
     /// on.
-    public static let maximumSleepMinutes = 600.0
+    ///
+    /// Eleven hours rather than ten. At ten the bound reduced to "flag any complete day
+    /// whose trace starts after 10:00", which catches a Saturday lie-in and, worse, anyone
+    /// on a night shift — and the population this applies to is exactly the people with no
+    /// sleep data, who are disproportionately the ones sleeping at odd hours. Eleven still
+    /// fires on the case the floor exists for: a watch on the charger until noon, read at
+    /// eleven at night, has 660 minutes of trace against 720 provably awake.
+    ///
+    /// It cannot be made to distinguish "woke late" from "put the watch on late" — nothing
+    /// can, without a night to read. Where it is wrong it adds a line saying how much was
+    /// recorded, which is cheap; the error it is guarding against is a hard session read as
+    /// a rest day, which is not.
+    public static let maximumSleepMinutes = 660.0
 
 
     static func zone(forReserve reserve: Double) -> Zone {
@@ -399,9 +411,8 @@ public enum StrainScore {
                                            from: input.wokeAt ?? first,
                                            to: input.readAt)
             if gap >= unobservedGapMinutes || fallsShortOfTheDay(input, from: first) {
-                let hours = Int((samples.reduce(0) { $0 + $1.minutes } / 60).rounded())
                 missing.append("Part of the day — your heart rate was recorded for about "
-                               + "\(hours) \(hours == 1 ? "hour" : "hours")")
+                               + recorded(samples.reduce(0) { $0 + $1.minutes }))
             }
         }
         if input.ageYears == nil { missing.append("Your age, so your maximum heart rate is assumed") }
@@ -418,6 +429,18 @@ public enum StrainScore {
             modelVersion: modelVersion)
     }
 
+    /// How much was recorded, in the unit that can express it. Rounding a short trace to
+    /// hours produced "your heart rate was recorded for about 0 hours", which is a sentence
+    /// about nothing, beside a ring showing a real number.
+    private static func recorded(_ minutes: Double) -> String {
+        guard minutes >= 60 else {
+            let count = Swift.max(1, Int(minutes.rounded()))
+            return "\(count) \(count == 1 ? "minute" : "minutes")"
+        }
+        let hours = Int((minutes / 60).rounded())
+        return "\(hours) \(hours == 1 ? "hour" : "hours")"
+    }
+
     /// Whether the trace is too short to be describing the waking day that has provably
     /// happened by now. Only consulted when the night is unknown; with a wake time the
     /// leading gap already says this, and says it more precisely.
@@ -427,7 +450,11 @@ public enum StrainScore {
             .timeIntervalSince(Calendar.current.startOfDay(for: input.readAt)) / 60
         let wakingSoFar = sinceMidnight - maximumSleepMinutes
         guard wakingSoFar > 0 else { return false }
-        let last = input.samples.max(by: { $0.start < $1.start })
+        // From the same list `first` came from. Reading `input.samples` here instead meant
+        // a single trailing sample with a non-finite length would make `span` NaN and
+        // switch the floor off without a word. Nothing produces one today.
+        let usable = input.samples.filter { $0.minutes.isFinite && $0.beatsPerMinute.isFinite }
+        let last = usable.max(by: { $0.start < $1.start })
         let span = (last?.start.timeIntervalSince(first) ?? 0) / 60 + (last?.minutes ?? 0)
         return span < wakingSoFar
     }

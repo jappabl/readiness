@@ -569,10 +569,18 @@ struct ACWRObservedDaysTests {
 struct WearGapTests {
 
     /// Woken at seven, read at eleven at night, worn all day apart from `off`.
+    /// A fixed ordinary Thursday, not `Date()`. On a spring-forward day
+    /// `startOfDay + 23 h` is the *next* midnight, so the clock floor sees zero minutes
+    /// elapsed and switches itself off — which made one of these tests unable to pass at
+    /// all on 2027-03-14, and the floor an hour stricter on every fall-back day.
+    private var midnight: Date {
+        Calendar.current.date(from: DateComponents(year: 2026, month: 9, day: 10))!
+    }
+
     private func day(off: Range<Double>? = nil, onAt: Double = 7, bpm: Double = 75,
                      sessionAt: Range<Double>? = nil, sessionBpm: Double = 145,
                      wokeAtHour: Double? = 7, readAtHour: Double = 23) -> StrainInput {
-        let midnight = Calendar.current.startOfDay(for: Date())
+        let midnight = midnight
         var samples: [HeartRateSample] = []
         // Five-minute buckets across the waking day, minus whatever was not worn.
         for step in 0..<Int((readAtHour - onAt) * 12) {
@@ -639,5 +647,74 @@ struct WearGapTests {
             #expect(StrainScore.of(day(wokeAtHour: wokeAtHour, readAtHour: readAtHour)).coverage == .full,
                     "flagged at \(readAtHour):00 with wokeAt = \(wokeAtHour as Any): \(result.missing)")
         }
+    }
+}
+
+
+/// The clock floor, which is the only thing standing in for a wake time the app does not
+/// have. It cannot tell "woke late" from "put the watch on late" — nobody can, without a
+/// night to read — so it claims only what the clock proves: by this hour, at least
+/// `time since midnight - maximumSleepMinutes` of waking day has happened.
+@Suite("Standing in for a wake time")
+struct WearClockFloorTests {
+
+    private var midnight: Date {
+        Calendar.current.date(from: DateComponents(year: 2026, month: 9, day: 10))!
+    }
+
+    /// Worn without a break from `onAt` to the read, and no night recorded anywhere.
+    private func unslept(onAt: Double, readAtHour: Double = 23) -> StrainInput {
+        let samples = (0..<Int((readAtHour - onAt) * 12)).map { step in
+            HeartRateSample(start: midnight.addingTimeInterval((onAt + Double(step) / 12) * 3600),
+                            minutes: 5, beatsPerMinute: 75)
+        }
+        return StrainInput(samples: samples, restingHeartRate: 55, ageYears: 35,
+                           biologicalSex: .male, hardSets: 0,
+                           readAt: midnight.addingTimeInterval(readAtHour * 3600),
+                           wokeAt: nil)
+    }
+
+    /// A lie-in is not a missing day. This is the false positive the allowance exists to
+    /// avoid, and at ten hours it started an hour too early.
+    @Test("sleeping in is not a missing day", arguments: [8.0, 9.0, 10.0, 10.5])
+    func lieInIsSilent(onAt: Double) {
+        #expect(StrainScore.of(unslept(onAt: onAt)).coverage == .full,
+                "a complete day beginning at \(onAt):00 was called incomplete")
+    }
+
+    /// And the floor still has to fire, or the case it exists for walks through: a watch
+    /// on the charger all morning, no night recorded, nothing to find a leading gap
+    /// against.
+    @Test("a morning with no trace at all is still caught", arguments: [12.0, 14.0, 17.0])
+    func missingMorningFlagged(onAt: Double) {
+        #expect(StrainScore.of(unslept(onAt: onAt)).coverage == .partial,
+                "a day that only starts at \(onAt):00 read as complete")
+    }
+
+    /// Nothing is claimed before the clock can prove it, whatever the record looks like.
+    @Test("early in the day it claims nothing", arguments: [1.0, 6.0, 9.0])
+    func earlyReadClaimsNothing(readAtHour: Double) {
+        let late = unslept(onAt: readAtHour - 0.5, readAtHour: readAtHour)
+        #expect(late.samples.isEmpty || StrainScore.of(late).coverage == .full,
+                "flagged at \(readAtHour):00, when no waking day is provable yet")
+    }
+}
+
+@Suite("Saying how much was recorded")
+struct WearMessageTests {
+
+    /// "About 0 hours" is not a sentence about anything. Reachable whenever the watch goes
+    /// on within half an hour of a late read.
+    @Test("a trace under an hour is described in minutes")
+    func shortTraceInMinutes() {
+        let midnight = Calendar.current.date(from: DateComponents(year: 2026, month: 9, day: 10))!
+        let samples = [HeartRateSample(start: midnight.addingTimeInterval(22 * 3600),
+                                       minutes: 20, beatsPerMinute: 80)]
+        let result = StrainScore.of(StrainInput(
+            samples: samples, restingHeartRate: 55, ageYears: 35, biologicalSex: .male,
+            hardSets: 0, readAt: midnight.addingTimeInterval(23 * 3600), wokeAt: nil))
+        let line = result.missing.first { $0.localizedCaseInsensitiveContains("part of the day") }
+        #expect(line?.contains("0 hours") != true, "said \"about 0 hours\": \(line ?? "nothing")")
+        #expect(line?.contains("20 minutes") == true, "said \(line ?? "nothing")")
     }
 }

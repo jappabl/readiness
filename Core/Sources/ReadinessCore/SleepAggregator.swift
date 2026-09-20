@@ -49,6 +49,28 @@ public struct SleepBreakdown: Sendable, Equatable {
 
     public init() {}
 
+    /// Shorter than this and the longest episode of the day was a nap, not a night.
+    public static let minimumNightHours = 4.0
+
+    /// When the waking day began, or nil when the record cannot say.
+    ///
+    /// Not `primarySleepEnd`, which is the end of the longest asleep episode of the wake
+    /// day — a wake time only when that episode was a night. With no night recorded, which
+    /// is the watch-on-the-charger case and exactly the population this matters for, a
+    /// recorded nap becomes the longest episode and this would hand back the middle of the
+    /// afternoon. The strain wear check judges the day against a window starting here, so
+    /// that put the window after the session it had missed: measured, a hard morning the
+    /// watch never saw scored 22.5 against a true 73.0 and reported a complete record.
+    ///
+    /// A short or broken night is not trusted either. The fallback is a bound the clock can
+    /// prove, which is weaker but never points at the wrong hour.
+    public var wakeTime: Date? {
+        guard let start = primarySleepStart, let end = primarySleepEnd,
+              end.timeIntervalSince(start) >= Self.minimumNightHours * 3600
+        else { return nil }
+        return end
+    }
+
     /// In-bed or awake records alone do not establish how long someone slept.
     public var recordedSleepHours: Double? { asleepHours > 0 ? asleepHours : nil }
 
