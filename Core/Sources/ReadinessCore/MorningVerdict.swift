@@ -32,7 +32,12 @@ public enum MorningVerdict {
     /// exactly the morning worth catching.
     private static func worstNews(recovery: SignalScore, sleep: SignalScore) -> SignalScore? {
         [recovery, sleep]
-            .filter { $0.coverage != .unavailable }
+            // `.buildingBaseline` excluded alongside `.unavailable`: it is the coverage
+            // the app's own UI labels "Still learning your normal"
+            // (`InsightsView.coverageTitle`), a caveat a lock screen cannot carry. A
+            // confident interruption off a number the screen itself hedges on would be
+            // the app contradicting itself between channels.
+            .filter { $0.coverage != .unavailable && $0.coverage != .buildingBaseline }
             .filter { ($0.contributors.first?.magnitude ?? 0) <= -notableForInterruption }
             .min { ($0.contributors.first?.magnitude ?? 0) < ($1.contributors.first?.magnitude ?? 0) }
     }

@@ -162,6 +162,30 @@ struct MorningVerdictTests {
             recentSleepScores: ordinaryHistory) == nil)
     }
 
+    // Added in review: `worstNews` filtered only `.unavailable`, so a `.buildingBaseline`
+    // score with a -9 contributor produced a confident interruption off a number the
+    // app's own UI labels "Still learning your normal" (InsightsView.coverageTitle) — a
+    // caveat a lock screen cannot carry.
+    @Test("a still-learning score does not interrupt, even with a big enough contributor")
+    func buildingBaselineCoverageIsSilent() {
+        #expect(MorningVerdict.sentence(
+            recovery: score(.recovery, value: 44, magnitude: -9, coverage: .buildingBaseline),
+            sleep: flatScore(.sleep, value: 80),
+            recentSleepScores: ordinaryHistory) == nil)
+    }
+
+    // Added in review: `bestNight` uses `value > best`, but nothing exercised the
+    // boundary itself, so a regression to `value >= best` — congratulating a tied night
+    // as a new record — turned nothing red. The file's own doc comment calls the lock
+    // screen "the one place the app cannot afford small lies."
+    @Test("tying the record, not beating it, stays quiet")
+    func tyingTheBestIsSilent() {
+        #expect(MorningVerdict.sentence(
+            recovery: flatScore(.recovery, value: 72),
+            sleep: flatScore(.sleep, value: 94),
+            recentSleepScores: ordinaryHistory) == nil)
+    }
+
     @Test("bad news outranks a best, on the morning that manages both")
     func badNewsWins() {
         let sentence = MorningVerdict.sentence(
