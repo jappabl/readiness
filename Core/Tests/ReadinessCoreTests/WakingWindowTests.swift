@@ -28,6 +28,7 @@ struct WakingWindowTests {
 
     /// Worn continuously between the hours given, minus any holes.
     private func day(worn: [(Double, Double)], asleep: [DateInterval],
+                     primary: DateInterval? = nil,
                      sessionAt: Range<Double>? = nil, readAtHour: Double = 22)
     -> StrainInput {
         var samples: [HeartRateSample] = []
@@ -41,7 +42,11 @@ struct WakingWindowTests {
         }
         return StrainInput(samples: samples, restingHeartRate: 55, ageYears: 35,
                            biologicalSex: .male, hardSets: 0,
-                           readAt: at(readAtHour), asleepPeriods: asleep)
+                           readAt: at(readAtHour), asleepPeriods: asleep,
+                           // Unless a case names one, the night is the longest episode,
+                           // which is how `SleepAggregator` picks it in production.
+                           primarySleep: primary
+                               ?? asleep.max(by: { $0.duration < $1.duration }))
     }
 
     /// A night is whatever ended this morning, however short. Three and a half hours of
@@ -133,5 +138,61 @@ struct WakingWindowTests {
         let result = StrainScore.of(day(worn: [(7, offAt)], asleep: night, readAtHour: 24))
         #expect(result.coverage == .full,
                 "watch off at \(offAt):00 on a finished day: \(result.missing)")
+    }
+
+    /// A second sleep early in the day is not when the day started.
+    ///
+    /// Taking the *last* qualifying period fixed a five-minute misread starting the window
+    /// too early, and broke the other direction: any second episode beginning before nine
+    /// dragged the window start to *its* end, so everything before it stopped being
+    /// examined — and because a wake time was then found, the clock floor was switched off
+    /// too, leaving no second net. Measured at 41 and 50 points, reported as complete.
+    @Test("a morning lie-down does not erase the morning before it")
+    func secondSleepDoesNotStartTheDay() {
+        // Up at 06:00, a hard hour at 06:15 the watch never saw, back to sleep 08:30.
+        let night = DateInterval(start: at(-1), end: at(6))
+        let lieDown = DateInterval(start: at(8.5), end: at(11))
+        let result = StrainScore.of(day(worn: [(11, 22)], asleep: [night, lieDown],
+                                        primary: night, sessionAt: 6.25..<7.25))
+        #expect(result.coverage == .partial,
+                "the 06:00-08:30 window was never looked at: \(result.missing)")
+    }
+
+    /// The same for a doze an hour after waking.
+    @Test("a doze after waking does not start the day")
+    func dozeDoesNotStartTheDay() {
+        let night = DateInterval(start: at(-2), end: at(4))
+        let doze = DateInterval(start: at(5), end: at(6))
+        let result = StrainScore.of(day(worn: [(6, 22)], asleep: [night, doze],
+                                        primary: night))
+        #expect(result.coverage == .partial, "04:00-05:00 was never looked at")
+    }
+
+    /// And the cases the "last period" rule was introduced for stay fixed, because the
+    /// primary episode spans its own awake bridges.
+    @Test("a misread and a mid-night wake are still not holes")
+    func fragmentsStillFine() {
+        let misread = DateInterval(start: at(0.08), end: at(0.17))
+        let night = DateInterval(start: at(1), end: at(8))
+        #expect(StrainScore.of(day(worn: [(8, 22)], asleep: [misread, night],
+                                   primary: night)).coverage == .full,
+                "a five-minute misread was called a hole")
+        let firstHalf = DateInterval(start: at(-1), end: at(1))
+        let secondHalf = DateInterval(start: at(2.5), end: at(7))
+        #expect(StrainScore.of(day(worn: [(7, 22)], asleep: [firstHalf, secondHalf],
+                                   primary: DateInterval(start: at(-1), end: at(7)))).coverage == .full,
+                "ninety minutes awake mid-night was called a hole")
+    }
+
+    /// The start-hour test has to be a wall clock, not elapsed seconds, or it moves by an
+    /// hour on the two days a year the clocks change. Same class as the day-end bug.
+    @Test("the cutoff is a clock hour")
+    func cutoffIsWallClock() {
+        let early = DateInterval(start: at(8.5), end: at(14))
+        #expect(WakingDay.start(of: [early], primary: early, on: midnight,
+                                calendar: calendar) != nil)
+        let late = DateInterval(start: at(9.5), end: at(15))
+        #expect(WakingDay.start(of: [late], primary: late, on: midnight,
+                                calendar: calendar) == nil)
     }
 }

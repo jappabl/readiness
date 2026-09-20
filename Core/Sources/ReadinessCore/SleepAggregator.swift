@@ -129,8 +129,15 @@ public struct SleepBreakdown: Sendable, Equatable {
     ///
     /// A short or broken night is not trusted either. The fallback is a bound the clock can
     /// prove, which is weaker but never points at the wrong hour.
+    /// The episode the night's own start and end describe, spanning any awake bridges.
+    public var primarySleep: DateInterval? {
+        guard let start = primarySleepStart, let end = primarySleepEnd, end > start
+        else { return nil }
+        return DateInterval(start: start, end: end)
+    }
+
     public func wakeTime(on day: Date, calendar: Calendar = .current) -> Date? {
-        WakingDay.start(of: asleepPeriods, on: day, calendar: calendar)
+        WakingDay.start(of: asleepPeriods, primary: primarySleep, on: day, calendar: calendar)
     }
 
     /// In-bed or awake records alone do not establish how long someone slept.
@@ -163,18 +170,29 @@ public enum WakingDay {
     /// day a day early, nothing could qualify, and the answer went nil — switching the
     /// leading-gap check off and hiding fifty points, decided by which side of midnight
     /// somebody happened to turn over.
-    public static func start(of periods: [DateInterval], on day: Date,
-                             calendar: Calendar = .current) -> Date? {
+    public static func start(of periods: [DateInterval], primary: DateInterval?,
+                             on day: Date, calendar: Calendar = .current) -> Date? {
         let dayStart = calendar.startOfDay(for: day)
-        // The end of the last of them, not the first. A five-minute misread before the
-        // real night, or ninety minutes awake in the middle of one, is not the moment the
-        // day began — and taking the first fragment's end called the rest of the night a
-        // hole in the record.
-        return periods.filter {
-            $0.start < dayStart
-                || $0.start.timeIntervalSince(dayStart) / 3600
-                    < SleepBreakdown.latestWakingStartHour
-        }.map(\.end).max()
+        func qualifies(_ period: DateInterval) -> Bool {
+            // A clock hour, not elapsed seconds: on the two days a year the clocks change
+            // an elapsed-time test moves the cutoff by an hour. Same class as the bug that
+            // made a day's last instant land in the next day.
+            period.start < dayStart
+                || calendar.component(.hour, from: period.start)
+                    < Int(SleepBreakdown.latestWakingStartHour)
+        }
+        // The night's own episode, when the night itself qualifies. `periods` are
+        // fragments — a staged night splits at every awake segment — so neither end of the
+        // fragment list is reliably the moment the day began. Taking the first was wrong
+        // (a five-minute misread, or ninety minutes awake mid-night, started the window
+        // there and called the rest of the night a hole). Taking the last was wrong the
+        // other way: any second sleep before nine dragged the start to *its* end, so a
+        // hard morning between waking and a lie-down was never examined at all — and
+        // because a wake time was found, the clock floor switched off too. The primary
+        // episode spans its own awake bridges, which is exactly what neither end of the
+        // fragment list does.
+        if let primary, qualifies(primary) { return primary.end }
+        return periods.filter(qualifies).map(\.end).max()
     }
 }
 

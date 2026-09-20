@@ -674,7 +674,7 @@ final class AppModel {
                           workoutMinutes: $0.workoutMinutes)
         }
         return StrainScore.of(StrainInput(
-            samples: Self.waking(day),
+            samples: Self.waking(day, asleep: asleepPeriods(spanning: date)),
             restingHeartRate: restingBaseline(upTo: date) ?? day?.restingHeartRate,
             ageYears: healthProfile.ageYears(),
             biologicalSex: healthProfile.biologicalSex,
@@ -713,6 +713,7 @@ final class AppModel {
             // a part-recorded day whenever any sleep of 40 minutes to four hours had
             // samples on both sides of it.
             asleepPeriods: asleepPeriods(spanning: date),
+            primarySleep: day?.sleep?.primarySleep,
             fallback: DailyStrain.evaluate(days: activity, on: date)))
     }
 
@@ -733,9 +734,14 @@ final class AppModel {
     /// held. They used to disagree: this cut out the primary episode whatever it was,
     /// while the wear check only trusted an episode it considered a night, so an
     /// untrusted episode was removed from the trace and then counted as a hole in it.
-    private static func waking(_ day: DailyPhysiology?) -> [HeartRateSample] {
+    private static func waking(_ day: DailyPhysiology?,
+                               asleep: [DateInterval]) -> [HeartRateSample] {
         guard let day else { return [] }
-        let asleep = day.sleep?.asleepPeriods ?? []
+        // The same list the wear check gets, both wake days. Cutting only this day's own
+        // periods left *this evening's* sleep in the trace — it belongs to tomorrow's wake
+        // day — so a continuously worn watch reported "Everyday movement, 1,130 min" for a
+        // waking day of 960: 170 minutes of sleep and lying awake in bed, labelled
+        // movement. Which is the exact row this function exists to prevent.
         guard !asleep.isEmpty else { return day.heartRateSamples }
         return day.heartRateSamples.filter { sample in
             !asleep.contains { $0.contains(sample.start) }

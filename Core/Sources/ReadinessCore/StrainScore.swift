@@ -38,6 +38,10 @@ public struct StrainInput: Sendable {
     /// watch was off. Without it a nap was a hole and a night the day started with was
     /// the only sleep the check could reason about at all.
     public let asleepPeriods: [DateInterval]
+
+    /// The episode the day began from, spanning its own awake bridges. See
+    /// `WakingDay.start(of:primary:on:)` — the fragment list alone cannot say.
+    public let primarySleep: DateInterval?
     /// What the ring showed before this engine existed. Used only when there is no
     /// cardiac trace at all, and always labelled.
     public let fallback: DailyStrainResult?
@@ -46,6 +50,7 @@ public struct StrainInput: Sendable {
                 biologicalSex: HealthProfile.BiologicalSex?,
                 observedMaxHeartRate: Double? = nil, hardSets: Int = 0,
                 readAt: Date = Date(), asleepPeriods: [DateInterval] = [],
+                primarySleep: DateInterval? = nil,
                 fallback: DailyStrainResult? = nil) {
         self.samples = samples
         self.restingHeartRate = restingHeartRate
@@ -55,6 +60,7 @@ public struct StrainInput: Sendable {
         self.hardSets = hardSets
         self.readAt = readAt
         self.asleepPeriods = asleepPeriods
+        self.primarySleep = primarySleep
         self.fallback = fallback
     }
 }
@@ -414,6 +420,7 @@ public enum StrainScore {
             // by the floor below instead of by a guessed hour.
             let gap = largestUnobservedGap(in: samples,
                                            from: WakingDay.start(of: input.asleepPeriods,
+                                                                 primary: input.primarySleep,
                                                                  on: input.readAt) ?? first,
                                            to: input.readAt,
                                            asleep: input.asleepPeriods)
@@ -452,8 +459,8 @@ public enum StrainScore {
     /// happened by now. Only consulted when the night is unknown; with a wake time the
     /// leading gap already says this, and says it more precisely.
     private static func fallsShortOfTheDay(_ input: StrainInput, from first: Date) -> Bool {
-        guard WakingDay.start(of: input.asleepPeriods, on: input.readAt) == nil
-        else { return false }
+        guard WakingDay.start(of: input.asleepPeriods, primary: input.primarySleep,
+                              on: input.readAt) == nil else { return false }
         let sinceMidnight = input.readAt
             .timeIntervalSince(Calendar.current.startOfDay(for: input.readAt)) / 60
         let wakingSoFar = sinceMidnight - maximumSleepMinutes
