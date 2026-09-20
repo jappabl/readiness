@@ -490,12 +490,28 @@ public enum SleepScore {
                 note: component.note))
         }
 
-        let missing = components.filter { $0.fraction == nil }.map(\.missingLabel)
-        // Most of the night unmeasured means the baselines are still being built, which
-        // is a different thing to say than "not counted today".
-        let measured = components.count - missing.count
+        // Two different reasons a component can be missing, and they are not the same
+        // thing to say. "Still learning your normal" means give it time; a night the watch
+        // did not finish labelling will not be fixed by waiting, and for a two-source user
+        // whose second app brackets the night it never resolves at all. That message used
+        // to appear for somebody with a fortnight of perfect stage history whose only
+        // problem was that last night was 96% classified.
+        let stagedNights = input.history.filter { $0.reconciledStages != nil }.count
+        let historyIsThin = stagedNights < BaselineSummary.minimumReadings
+        let tonightUnstaged = input.breakdown.map { $0.reconciledStages == nil } ?? false
+
+        let absent = components.filter { $0.fraction == nil }
+        let missing = absent.map { component -> String in
+            // Same row, right reason. The stage rows are absent because of last night,
+            // not because the record is too short to judge it against.
+            guard tonightUnstaged, !historyIsThin,
+                  component.missingLabel.localizedCaseInsensitiveContains("stage data")
+            else { return component.missingLabel }
+            return "\(component.title) last night, which your watch did not finish recording"
+        }
+        let measured = components.count - absent.count
         let coverage: ScoreCoverage = missing.isEmpty
-            ? .full : (measured <= 2 ? .buildingBaseline : .partial)
+            ? .full : (measured <= 2 && historyIsThin ? .buildingBaseline : .partial)
         return SignalScore(
             kind: .sleep,
             value: value,
