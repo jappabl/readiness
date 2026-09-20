@@ -17,7 +17,6 @@ Secrets are never committed. Locally they live in `.dev.vars` (gitignored); in p
 wrangler secret put ANTHROPIC_API_KEY
 wrangler secret put DEEPSEEK_API_KEY
 wrangler secret put DEV_SHARED_SECRET
-wrangler kv namespace create USAGE      # paste the id into wrangler.toml
 ```
 
 ## What is finished
@@ -25,9 +24,9 @@ wrangler kv namespace create USAGE      # paste the id into wrangler.toml
 - Request validation, which is the control that keeps this a proxy rather than an open
   relay. The client cannot set the model, the token ceiling, the system prompt or the
   tools; attempting to is a 400, not a silent strip.
-- Metering: burst bucket (capacity 8, one token per 12s) in a Durable Object so it is
-  correct under concurrency, and a 5-message free tier in KV. Both are ports of the
-  Swift originals in Core rather than new numbers.
+- Metering: burst bucket (capacity 8, one token per 12s) and the 5-message free tier,
+  both inside one Durable Object transaction so they are correct under concurrency.
+  Ports of the Swift originals in Core rather than new numbers.
 - Prompt assembly, extracted from the Swift source rather than retyped, with the cache
   breakpoint and history trimming covered by tests mirroring `CoachRequestTests`.
 - Streaming passthrough, unbuffered.

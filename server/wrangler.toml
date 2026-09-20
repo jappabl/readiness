@@ -29,7 +29,3 @@ class_name = "RateBucket"
 tag = "v1"
 new_sqlite_classes = ["RateBucket"]
 
-[[kv_namespaces]]
-binding = "USAGE"
-# Create with: wrangler kv namespace create USAGE, then paste the id here.
-id = "local_usage"  # placeholder; local dev only

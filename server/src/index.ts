@@ -5,7 +5,7 @@
  * the request, and forwards. The client never sends a provider body and never sees a
  * provider key.
  */
-import { allowance, consume, freshBucket, type BucketState } from "./limits"
+import { freshBucket, meterDecision, type MeterState } from "./limits"
 import { entitlement } from "./entitlement"
 import { coachBody, mealBody, trim } from "./prompt"
 import { InvalidRequest, parseCoachBody, parseMealBody, MAX_MESSAGES } from "./schema"
@@ -22,7 +22,6 @@ export interface Env {
   APPLE_TEAM_ID: string
   BUNDLE_ID: string
   BUCKET: DurableObjectNamespace
-  USAGE: KVNamespace
 }
 
 const PROVIDERS: Record<string, { url: string; key: (env: Env) => string }> = {
@@ -38,10 +37,24 @@ export class RateBucket implements DurableObject {
   constructor(private state: DurableObjectState) {}
 
   async fetch(request: Request): Promise<Response> {
-    const stored = (await this.state.storage.get<BucketState>("bucket")) ?? freshBucket()
-    const decision = consume(stored, Date.now())
-    await this.state.storage.put("bucket", decision.state)
-    return Response.json({ allowed: decision.allowed, retryAfter: decision.retryAfter })
+    const { isSubscriber } = (await request.json()) as { isSubscriber: boolean }
+    // Both meters read and written inside one blocked section. The free counter used to
+    // live in KV as a get followed by a put, which two concurrent requests could both
+    // pass before either wrote.
+    return await this.state.blockConcurrencyWhile(async () => {
+      const stored: MeterState = {
+        bucket: (await this.state.storage.get<MeterState["bucket"]>("bucket")) ?? freshBucket(),
+        freeUsed: (await this.state.storage.get<number>("freeUsed")) ?? 0,
+      }
+      const outcome = meterDecision(stored, isSubscriber, Date.now())
+      await this.state.storage.put("bucket", outcome.state.bucket)
+      await this.state.storage.put("freeUsed", outcome.state.freeUsed)
+      return Response.json({
+        allowed: outcome.allowed,
+        status: outcome.status ?? null,
+        retryAfter: outcome.retryAfter ?? null,
+      })
+    })
   }
 }
 
@@ -73,36 +86,56 @@ async function identify(request: Request, env: Env): Promise<{ id: string } | Re
     return problem(501, "App Attest verification is not implemented yet")
   }
 
-  const dev = request.headers.get("x-jett-dev-secret")
-  if (!env.DEV_SHARED_SECRET || dev !== env.DEV_SHARED_SECRET) {
+  if (!env.DEV_SHARED_SECRET) return problem(401, "not authorised")
+  if (!(await secretsMatch(request.headers.get("x-jett-dev-secret"), env.DEV_SHARED_SECRET))) {
     return problem(401, "not authorised")
   }
-  const install = request.headers.get("x-jett-install")
-  if (!install || install.length < 8 || install.length > 128) {
-    return problem(401, "missing install id")
-  }
-  return { id: install }
+  // One principal, not a claimed identity.
+  //
+  // This used to trust an `x-jett-install` header and meter against it, which meant the
+  // free tier and the burst bucket both reset by sending a different string. The smoke
+  // test for this worker changed that header between runs to get a clean bucket, which
+  // is the bypass being used as a convenience without anyone noticing.
+  //
+  // Holding the development secret already means holding the keys, so in this mode
+  // everyone is the same caller. When App Attest lands, the id becomes the attested key
+  // id, which the client cannot choose.
+  return { id: "dev-shared" }
+}
+
+/**
+ * Compare a secret without leaking its length or prefix through timing. Digest both
+ * sides first so the comparison is fixed-length whatever arrives, then accumulate the
+ * difference over every byte rather than returning early.
+ */
+async function secretsMatch(candidate: string | null, expected: string): Promise<boolean> {
+  if (candidate === null) return false
+  const encoder = new TextEncoder()
+  const [a, b] = await Promise.all([
+    crypto.subtle.digest("SHA-256", encoder.encode(candidate)),
+    crypto.subtle.digest("SHA-256", encoder.encode(expected)),
+  ])
+  const left = new Uint8Array(a)
+  const right = new Uint8Array(b)
+  let difference = 0
+  for (let i = 0; i < left.length; i++) difference |= (left[i] ?? 0) ^ (right[i] ?? 0)
+  return difference === 0
 }
 
 async function meter(id: string, isSubscriber: boolean, env: Env): Promise<Response | null> {
-  // Burst first: it applies to everyone, including subscribers, because unlimited means
-  // no monthly cap rather than no rate limit.
   const bucket = env.BUCKET.get(env.BUCKET.idFromName(id))
-  const decision = (await (await bucket.fetch("https://bucket/consume")).json()) as {
-    allowed: boolean
-    retryAfter: number | null
-  }
-  if (!decision.allowed) {
+  const decision = (await (
+    await bucket.fetch("https://bucket/consume", {
+      method: "POST",
+      body: JSON.stringify({ isSubscriber }),
+    })
+  ).json()) as { allowed: boolean; status: number | null; retryAfter: number | null }
+
+  if (decision.allowed) return null
+  if (decision.status === 429) {
     return problem(429, "one at a time", { "retry-after": String(decision.retryAfter ?? 12) })
   }
-
-  if (isSubscriber) return null
-
-  const used = Number((await env.USAGE.get(`free:${id}`)) ?? "0")
-  const room = allowance(used, false)
-  if (!room.allowed) return problem(402, "free messages used up")
-  await env.USAGE.put(`free:${id}`, String(used + 1))
-  return null
+  return problem(402, "free messages used up")
 }
 
 async function callProvider(
