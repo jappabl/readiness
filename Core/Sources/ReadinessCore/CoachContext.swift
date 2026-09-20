@@ -15,6 +15,28 @@ public struct CoachContext: Codable, Equatable, Sendable {
         public let unit: String
     }
 
+    /// One of the three rings, as the person is looking at it.
+    ///
+    /// The block carried the model's internals — state, composite, per-metric z — and none
+    /// of the three numbers actually on screen. With the hard rule "never invent a
+    /// measurement; if a number is not in the block, say you do not have it", the correct
+    /// behaviour was for Jett to say he could not see the user's recovery score while that
+    /// score sat on the screen beside the chat.
+    public struct ScoreSummary: Codable, Equatable, Sendable {
+        public let name: String
+        public let value: Int?
+        public let band: String?
+        /// Only when it is not the whole picture, so an ordinary day costs no bytes.
+        public let caveat: String?
+
+        public init(name: String, value: Int?, band: String?, caveat: String?) {
+            self.name = name
+            self.value = value
+            self.band = band
+            self.caveat = caveat
+        }
+    }
+
     public struct DaySummary: Codable, Equatable, Sendable {
         public let day: String
         public let state: String
@@ -46,6 +68,11 @@ public struct CoachContext: Codable, Equatable, Sendable {
     public let uncertainty: [String]
     public let goal: String?
     public let limitations: String?
+    /// The three rings. `var` with a default so this is additive for every caller.
+    public var scores: [ScoreSummary] = []
+    /// What the sleep score measured last night against, in hours. The rules tell the
+    /// model the need is learned "which the block states", so the block has to state it.
+    public var sleepNeedHours: Double?
     public var health: HealthContext?
     public var profile: CoachProfileSummary?
 
@@ -83,6 +110,20 @@ public struct CoachContext: Codable, Equatable, Sendable {
         if let checkIn {
             let reported = checkIn.keys.sorted().map { "\($0) \(checkIn[$0] ?? 0)/5" }
             lines.append("check-in (stress 1=maxed,5=calm): " + reported.joined(separator: ", "))
+        }
+
+        if !scores.isEmpty {
+            lines.append("scores on screen now: " + scores.map { score in
+                var text = score.name + " "
+                text += score.value.map(String.init) ?? "unavailable"
+                if let band = score.band { text += " " + band }
+                if let caveat = score.caveat { text += " (" + caveat + ")" }
+                return text
+            }.joined(separator: ", "))
+        }
+        if let sleepNeedHours {
+            lines.append("sleep need last night "
+                         + sleepNeedHours.formatted(.number.precision(.fractionLength(1))) + "h")
         }
 
         lines.append("")

@@ -933,11 +933,19 @@ final class AppModel {
                 .comparison ?? SleepNeed.baselineHours)
         let currentCheckIn = fetchTodayCheckIn(from: context)
         let currentACWR = computeACWR(from: context)
+        // The three numbers the person is looking at. The block carried the model's
+        // internals and none of them, so with "never invent a measurement" the correct
+        // behaviour was to say the recovery score could not be seen while it sat on screen
+        // beside the chat.
+        let onScreen = coachScores(context: context)
+        let need = sleepScore.contributor(SleepScore.durationContributorID)?.comparison
         guard let day, calendar.isDateInToday(day.date), let recommendation else {
             var result = CoachContextBuilder.withoutReadiness(
                 today: Date(), goal: coachGoals, limitations: profile?.limitations,
                 checkIn: currentCheckIn, acwr: currentACWR, program: program, health: health)
             result.profile = CoachProfileSummary(health: effectiveHealthProfile, answers: onboarding, limitations: profile?.limitations)
+            result.scores = onScreen
+            result.sleepNeedHours = need
             return result
         }
         var result = CoachContextBuilder.build(
@@ -948,7 +956,23 @@ final class AppModel {
             describe: Copy.describe)
         result.health = health
         result.profile = CoachProfileSummary(health: effectiveHealthProfile, answers: onboarding, limitations: profile?.limitations)
+        result.scores = onScreen
+        result.sleepNeedHours = need
         return result
+    }
+
+    /// The three rings as they read right now, with a caveat only where there is one.
+    private func coachScores(context: ModelContext) -> [CoachContext.ScoreSummary] {
+        [(Signal.recovery, recoveryScore), (.sleep, sleepScore),
+         (.strain, strainScore(context: context))].map { signal, score in
+            CoachContext.ScoreSummary(
+                name: signal.title.lowercased(),
+                value: score.value.map { Int($0.rounded()) },
+                band: score.band.map { "\($0)" },
+                // Only when it is not the whole picture, so an ordinary day costs no bytes.
+                caveat: score.coverage == .full ? nil
+                    : score.missing.isEmpty ? "partial" : "partial: " + score.missing.joined(separator: "; "))
+        }
     }
 
     // MARK: - Insight
