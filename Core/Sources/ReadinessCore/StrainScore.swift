@@ -234,12 +234,37 @@ public enum StrainScore {
     /// Below this many minutes of heart rate, the day is a sample rather than a record.
     /// Half a day, because a watch charged overnight and worn from nine to nine is the
     /// normal case and should not be flagged.
-    public static let minimumWornMinutes = 720.0
+    /// A contiguous unobserved stretch this long is a hole a session fits in.
+    ///
+    /// Forty minutes. Above a worn watch's own resting cadence, which drops to a reading
+    /// every half hour when nothing is happening, and below the shortest thing anybody
+    /// would call a session. An hour was too generous: a watch reading once an hour
+    /// leaves fifty-five-minute holes and is not a record of a day.
+    ///
+    /// Deliberately an absolute length rather than a share of the day. A share was the
+    /// bug: ninety minutes missing out of sixteen hours is a share of 0.91, so no
+    /// threshold on a share separates it from a day that is simply complete.
+    public static let unobservedGapMinutes = 40.0
 
-    /// How much of the worn span has to carry samples before the trace is a record
-    /// rather than a sketch. Two readings twelve hours apart span a day and describe
-    /// none of it.
-    public static let minimumSampledShare = 0.5
+    /// The most of a day anybody is taken to have slept, used only when the night itself
+    /// is unknown.
+    ///
+    /// `wokeAt` is nil whenever the day carries no asleep-stage sample: the watch charged
+    /// overnight, sleep tracked on the phone alone, or sleep-analysis permission declined
+    /// — and in that last case it is nil on every day, permanently. Falling back to the
+    /// first sample is what made the wear check a tautology twice over, because a watch
+    /// put on late produces a trace whose start IS the window start, so there is no
+    /// leading gap left to find.
+    ///
+    /// Without a wake time there is no honest way to place the start of the waking day,
+    /// and guessing at one flags people who simply opened the card in the morning. What
+    /// can be said without guessing is a lower bound: however late they slept, by this
+    /// hour at least `time since midnight - 10 h` of waking day has happened, and a trace
+    /// shorter than that cannot be describing all of it. The bound is empty early in the
+    /// day, which is exactly when nothing should be claimed, and tightens as the day runs
+    /// on.
+    public static let maximumSleepMinutes = 600.0
+
 
     static func zone(forReserve reserve: Double) -> Zone {
         zones.first { reserve >= $0.lowerReserve } ?? zones[zones.count - 1]
@@ -351,30 +376,30 @@ public enum StrainScore {
 
         var missing: [String] = []
         if samples.isEmpty { missing.append("Heart rate") }
-        // A watch worn for four hours produces a real number from a fifth of a day, and
-        // said nothing about it. Either the session was caught and everything around it
-        // was not, or the session was missed and a hard day reads as a rest day.
-        // Span AND density, which are different questions. Summing bucket minutes
-        // measured only density and flagged normal days; the span alone reported two
-        // samples twelve hours apart as a complete record. And the flag is judged
-        // against how much of the day has actually happened — against a fixed twelve
-        // hours it fired every morning and afternoon, which is most of when the card
-        // gets opened.
-        if let first = samples.map(\.start).min(),
-           let lastSample = samples.max(by: { $0.start < $1.start }) {
-            let span = lastSample.start.timeIntervalSince(first) / 60 + lastSample.minutes
-            let sampled = samples.reduce(0) { $0 + $1.minutes }
-            // Against the clock, not against itself. `elapsed` used to be derived from
-            // `span`, which made the comparison `span < min(720, span)` — false for
-            // every trace ever recorded. A watch worn from nine to one and read at
-            // eleven at night reported a complete day, with the evening session that
-            // was never recorded showing up as nothing at all.
-            let elapsed = Swift.max(1, input.readAt
-                .timeIntervalSince(input.wokeAt ?? first) / 60)
-            let thin = span < Swift.min(minimumWornMinutes, elapsed * minimumSampledShare)
-                || sampled / Swift.max(1, span) < minimumSampledShare
-            if thin {
-                let hours = Int((sampled / 60).rounded())
+        // Where the hole is, not how much of the day carried samples.
+        //
+        // The two tests this replaces were both shares of the span, and a share cannot
+        // localise a hole. The ordinary way a load measure gets lied to is the watch
+        // coming off to train: ninety minutes missing out of sixteen hours is a sampled
+        // share of 0.91, so catching it through density would have wanted a threshold of
+        // 0.91, at which point every normal day is thin too. Measured, a hole over the
+        // session had to pass eight and a half hours before either test fired — 22.9
+        // against a true 65.5, reported as a complete day.
+        //
+        // A contiguous stretch of unobserved time is the thing that can hide a session,
+        // so that is what gets measured, across the waking window and including both
+        // edges. It subsumes what the old pair caught: two readings twelve hours apart
+        // are a twelve-hour gap, and a watch put on in the evening is a leading one.
+        if !samples.isEmpty, let first = samples.map(\.start).min() {
+            // The window runs from waking, when the night says when that was. When it
+            // does not, it runs from the first reading — which finds internal and
+            // trailing holes but is blind to a late start, so that one case is answered
+            // by the floor below instead of by a guessed hour.
+            let gap = largestUnobservedGap(in: samples,
+                                           from: input.wokeAt ?? first,
+                                           to: input.readAt)
+            if gap >= unobservedGapMinutes || fallsShortOfTheDay(input, from: first) {
+                let hours = Int((samples.reduce(0) { $0 + $1.minutes } / 60).rounded())
                 missing.append("Part of the day — your heart rate was recorded for about "
                                + "\(hours) \(hours == 1 ? "hour" : "hours")")
             }
@@ -391,6 +416,38 @@ public enum StrainScore {
             coverage: missing.isEmpty ? .full : .partial,
             missing: missing,
             modelVersion: modelVersion)
+    }
+
+    /// Whether the trace is too short to be describing the waking day that has provably
+    /// happened by now. Only consulted when the night is unknown; with a wake time the
+    /// leading gap already says this, and says it more precisely.
+    private static func fallsShortOfTheDay(_ input: StrainInput, from first: Date) -> Bool {
+        guard input.wokeAt == nil else { return false }
+        let sinceMidnight = input.readAt
+            .timeIntervalSince(Calendar.current.startOfDay(for: input.readAt)) / 60
+        let wakingSoFar = sinceMidnight - maximumSleepMinutes
+        guard wakingSoFar > 0 else { return false }
+        let last = input.samples.max(by: { $0.start < $1.start })
+        let span = (last?.start.timeIntervalSince(first) ?? 0) / 60 + (last?.minutes ?? 0)
+        return span < wakingSoFar
+    }
+
+    /// The longest contiguous run of minutes inside the window that no sample describes,
+    /// counting the stretch before the first reading and the stretch after the last.
+    ///
+    /// Samples before the window start are not a gap — somebody read at nine in the
+    /// morning wore the watch through a night this window does not reach back to.
+    private static func largestUnobservedGap(in samples: [HeartRateSample],
+                                            from start: Date, to end: Date) -> Double {
+        let ordered = samples.sorted { $0.start < $1.start }
+        var cursor = start
+        var largest = 0.0
+        for sample in ordered {
+            largest = Swift.max(largest, sample.start.timeIntervalSince(cursor) / 60)
+            let finish = sample.start.addingTimeInterval(sample.minutes * 60)
+            if finish > cursor { cursor = finish }
+        }
+        return Swift.max(largest, end.timeIntervalSince(cursor) / 60)
     }
 
     /// No cardiac trace at all — the ordinary case for anybody without a watch. The ring

@@ -477,9 +477,10 @@ struct WearTimeClockTests {
     /// elapsed from the first sample meant a late-worn watch had a span equal to the
     /// elapsed time, so the test was `span < span × share` — false however late it went
     /// on. Fifty-six minutes of a sixteen-hour day reported a complete record.
-    /// 15:00 is excluded deliberately: eight hours of a sixteen-hour waking day is
-    /// exactly `minimumSampledShare`, which is the line by design rather than a case.
-    @Test("a watch put on late says so", arguments: [16, 17, 19, 21, 22])
+    /// 15:00 used to be excluded, because eight hours of a sixteen-hour waking day sat
+    /// exactly on the old share threshold. Measuring the leading gap instead has no such
+    /// boundary, so the case is an ordinary one now.
+    @Test("a watch put on late says so", arguments: [12, 15, 16, 17, 19, 21, 22])
     func lateWearFlagged(onAtHour: Int) {
         let result = StrainScore.of(day(from: onAtHour, hours: Double(23 - onAtHour),
                                         readAtHour: 23))
@@ -487,10 +488,30 @@ struct WearTimeClockTests {
                 "watch on at \(onAtHour):00 of a day that started at 07:00 read as complete")
     }
 
-    /// And a watch on a charger for the first couple of hours is not a missing day.
-    @Test("a short morning charge is not flagged")
-    func morningChargeIsSilent() {
-        #expect(StrainScore.of(day(from: 9, hours: 14, readAtHour: 23)).coverage == .full)
+    /// A watch on the charger until nine is a two-hour hole in the record, and this test
+    /// used to assert it was nothing to mention. That expectation was written when the
+    /// only available tests were shares of the day, and it does not survive the question
+    /// being asked properly: a two-hour hole and a ninety-minute hole are the same event,
+    /// and a session fits in either. The app under-reporting a hard morning is the
+    /// expensive error; a line saying the record covers fourteen hours is the cheap one.
+    @Test("a morning on the charger is a hole like any other")
+    func morningChargeIsReported() {
+        #expect(StrainScore.of(day(from: 9, hours: 14, readAtHour: 23)).coverage == .partial)
+    }
+
+    /// The charge that genuinely is nothing: back on the wrist inside half an hour.
+    @Test("a brief charge is not a missing day")
+    func briefChargeIsSilent() {
+        let midnight = Calendar.current.startOfDay(for: Date())
+        let samples = (0..<186).map {
+            HeartRateSample(start: midnight.addingTimeInterval(7.5 * 3600 + Double($0) * 300),
+                            minutes: 5, beatsPerMinute: 80)
+        }
+        let result = StrainScore.of(StrainInput(
+            samples: samples, restingHeartRate: 55, ageYears: 30, biologicalSex: .male,
+            hardSets: 0, readAt: midnight.addingTimeInterval(23 * 3600),
+            wokeAt: midnight.addingTimeInterval(7 * 3600)))
+        #expect(result.coverage == .full, "a 30-minute charge was called a missing day")
     }
 }
 
@@ -537,5 +558,86 @@ struct ACWRObservedDaysTests {
         for index in (daily.count - StrainEngine.acuteDays)..<daily.count { daily[index] = 5000 }
         let ratio = try #require(StrainEngine.acwr(daily: daily, observedDays: 200))
         #expect(ratio > ReadinessEngine.acwrGate, "a genuine spike read as \(ratio)")
+    }
+}
+
+/// The wear check asked how *much* of the day carried samples and never *where* the
+/// hole was, and a share cannot localise a hole. Both of its tests were shares of the
+/// span, so a gap over the session — the exact thing that makes a load measure lie —
+/// had to grow past eight and a half hours before either fired.
+@Suite("The wear check needs to know where the hole is")
+struct WearGapTests {
+
+    /// Woken at seven, read at eleven at night, worn all day apart from `off`.
+    private func day(off: Range<Double>? = nil, onAt: Double = 7, bpm: Double = 75,
+                     sessionAt: Range<Double>? = nil, sessionBpm: Double = 145,
+                     wokeAtHour: Double? = 7, readAtHour: Double = 23) -> StrainInput {
+        let midnight = Calendar.current.startOfDay(for: Date())
+        var samples: [HeartRateSample] = []
+        // Five-minute buckets across the waking day, minus whatever was not worn.
+        for step in 0..<Int((readAtHour - onAt) * 12) {
+            let hour = onAt + Double(step) / 12
+            if let off, off.contains(hour) { continue }
+            let rate = (sessionAt?.contains(hour) ?? false) ? sessionBpm : bpm
+            samples.append(HeartRateSample(start: midnight.addingTimeInterval(hour * 3600),
+                                           minutes: 5, beatsPerMinute: rate))
+        }
+        return StrainInput(samples: samples, restingHeartRate: 55, ageYears: 35,
+                           biologicalSex: .male, hardSets: 0,
+                           readAt: midnight.addingTimeInterval(readAtHour * 3600),
+                           wokeAt: wokeAtHour.map { midnight.addingTimeInterval($0 * 3600) })
+    }
+
+    /// The headline case, and the ordinary one: the watch comes off to train. Ninety
+    /// minutes missing out of sixteen hours is a sampled share of 0.91, so the density
+    /// test would need a threshold near 0.91 to see it — no calibration of a share can
+    /// do this job. Measured before the fix: strain 22.9 against a true 65.5, coverage
+    /// `.full`, nothing said.
+    @Test("a hole over the session is not a complete record")
+    func gapOverSessionFlagged() {
+        let result = StrainScore.of(day(off: 10..<11.5, sessionAt: 10..<11.5))
+        #expect(result.coverage == .partial,
+                "90 minutes missing over the session read as a complete day")
+        #expect(result.missing.contains { $0.localizedCaseInsensitiveContains("part of the day") })
+        #expect(result.value != nil, "a flagged day still has to produce a number")
+    }
+
+    /// Sweeping the hole: every size an hour and over is a hole a session fits in.
+    @Test("any missing hour is reported", arguments: [1.0, 1.5, 4.0, 7.0])
+    func gapsOfAnHourOrMoreFlagged(hours: Double) {
+        let result = StrainScore.of(day(off: 10..<(10 + hours)))
+        #expect(result.coverage == .partial, "\(hours) h missing mid-day read as complete")
+    }
+
+    /// The other side of the line. A watch off the wrist for a few minutes is how every
+    /// watch behaves, and the carry-forward already covers it.
+    @Test("a short break is not a missing day", arguments: [0.25, 0.5])
+    func shortBreaksAreSilent(hours: Double) {
+        #expect(StrainScore.of(day(off: 10..<(10 + hours))).coverage == .full,
+                "\(hours * 60) minutes off the wrist was called a missing day")
+    }
+
+    /// Round 5's fix, for the third time. With no wake time the window used to start at
+    /// the first sample, so the span test became `span < span x 0.5` again: false however
+    /// late the watch went on. `wokeAt` is nil whenever the day has no asleep-stage
+    /// sample — watch on the charger overnight, iPhone-only sleep, or sleep-analysis
+    /// permission declined, which makes it nil on every day, permanently.
+    @Test("a watch put on at ten at night says so, wake time or not",
+          arguments: [Double?.some(7), Double?.none])
+    func lateWearFlaggedWithoutWakeTime(wokeAtHour: Double?) {
+        let result = StrainScore.of(day(onAt: 22, wokeAtHour: wokeAtHour))
+        #expect(result.coverage == .partial,
+                "one hour of trace read as a complete day with wokeAt = \(wokeAtHour as Any)")
+    }
+
+    /// And the day that is genuinely complete stays silent, at every hour it gets opened,
+    /// with or without a wake time.
+    @Test("a fully worn day is never flagged", arguments: [9.0, 12.0, 15.0, 18.0, 23.0])
+    func fullDayIsSilent(readAtHour: Double) {
+        for wokeAtHour in [Double?.some(7), nil] {
+            let result = StrainScore.of(day(wokeAtHour: wokeAtHour, readAtHour: readAtHour))
+            #expect(StrainScore.of(day(wokeAtHour: wokeAtHour, readAtHour: readAtHour)).coverage == .full,
+                    "flagged at \(readAtHour):00 with wokeAt = \(wokeAtHour as Any): \(result.missing)")
+        }
     }
 }
