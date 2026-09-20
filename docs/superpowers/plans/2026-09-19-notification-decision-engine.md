@@ -512,12 +512,19 @@ import Foundation
 struct MorningVerdictTests {
 
     /// A score with one contributor that moved it by `magnitude` points.
+    ///
+    /// `title` defaults to the same contributor every other test in this file uses.
+    /// `worseSignalWins` overrides it, because `SignalScore.summary` reads only the
+    /// leading contributor — never `kind` or the score's own `value` — so two scores
+    /// sharing a contributor title render an identical sentence whichever one is
+    /// picked, and the wrong signal could win without the test noticing.
     private func score(_ kind: SignalKind, value: Double, magnitude: Double,
-                       coverage: ScoreCoverage = .full) -> SignalScore {
+                       coverage: ScoreCoverage = .full,
+                       title: String = "Heart rate variability") -> SignalScore {
         SignalScore(
             kind: kind, value: value, band: nil,
             contributors: [ScoreContributor(
-                id: "hrv", title: "Heart rate variability", value: 42, unit: "ms",
+                id: "hrv", title: title, value: 42, unit: "ms",
                 comparison: 58, comparisonLabel: "your normal", state: .payAttention,
                 magnitude: magnitude, explanation: "")],
             coverage: coverage, neutral: 50, modelVersion: "test")
@@ -572,12 +579,18 @@ struct MorningVerdictTests {
 
     @Test("the sentence comes from whichever signal moved further")
     func worseSignalWins() {
+        // Distinct titles so the two summaries cannot coincide: if the implementation
+        // ever picked the less-negative signal (recovery, -6) instead of the more
+        // negative one (sleep, -14), the sentence would name the wrong contributor and
+        // this assertion would catch it. With a shared contributor title both scores
+        // read identically whichever is chosen, and the test would pass either way.
+        let recoveryScore = score(.recovery, value: 55, magnitude: -6,
+                                  title: "Heart rate variability")
+        let sleepScore = score(.sleep, value: 40, magnitude: -14, title: "Deep sleep")
         let sentence = MorningVerdict.sentence(
-            recovery: score(.recovery, value: 55, magnitude: -6),
-            sleep: score(.sleep, value: 40, magnitude: -14),
-            recentSleepScores: ordinaryHistory)
-        let expected = score(.sleep, value: 40, magnitude: -14).summary
-        #expect(sentence == expected)
+            recovery: recoveryScore, sleep: sleepScore, recentSleepScores: ordinaryHistory)
+        #expect(sentence == sleepScore.summary)
+        #expect(sentence != recoveryScore.summary)
     }
 
     @Test("an ordinary good night stays quiet")
