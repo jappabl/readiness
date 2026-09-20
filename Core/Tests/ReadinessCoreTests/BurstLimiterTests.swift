@@ -57,16 +57,20 @@ struct BurstLimiterTests {
         #expect(allowed == BurstLimiter.capacity, "the bucket overflowed to \(allowed)")
     }
 
-    @Test("a clock moved backwards does not hand out free messages")
-    func clockGoingBackwardsIsSafe() {
-        // Device clocks move. Treating a negative interval as elapsed time would let
-        // anyone refill the bucket by changing the date.
-        var state = BurstLimiter.State()
-        for _ in 0..<BurstLimiter.capacity {
-            state = BurstLimiter.consume(state, now: start).state
-        }
+    @Test("a clock moved backwards neither refills nor drains the bucket")
+    func clockGoingBackwardsNeitherRefillsNorDrains() {
+        // Asserting refusal from an empty bucket cannot pin the backwards-clock clamp:
+        // with the clamp, elapsed is zero and tokens stay at zero, refused; without it,
+        // a hugely negative elapsed time only drives tokens further negative, still
+        // refused. Either way the assertion holds, so deleting the clamp would not turn
+        // this test red. A partly used bucket is where the two worlds diverge: without
+        // the clamp, the same backwards jump drives tokens deeply negative and wrongly
+        // refuses a message that should still be allowed.
+        let state = BurstLimiter.consume(BurstLimiter.State(), now: start).state
         let earlier = start.addingTimeInterval(-86_400)
-        #expect(!BurstLimiter.consume(state, now: earlier).allowed)
+        let result = BurstLimiter.consume(state, now: earlier)
+        #expect(result.allowed)
+        #expect(result.state == BurstLimiter.State(tokens: 6, updated: earlier))
     }
 
     @Test("a steady conversation is never interrupted")
