@@ -20,12 +20,16 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>JettProxyURL</key>
+	<string></string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Take a meal photo to review and log its estimated calories and macros.</string>
 	<key>NSHealthShareUsageDescription</key>
-	<string>Coach Jett reads your overnight heart rate variability, resting heart rate, sleep, respiratory rate, blood oxygen and wrist temperature to work out today's training loads. This data never leaves your device.</string>
+	<string>Coach Jett reads sleep, heart and breathing metrics, temperature, activity, workouts, height, date of birth, biological sex, body measurements, nutrition (including caffeine and alcohol), and mindful sessions to show trends and guide training, sleep, and recovery. You choose which data to allow. With separate permission, derived summaries are shared with Anthropic for AI coaching.</string>
 	<key>NSHealthUpdateUsageDescription</key>
-	<string>Used only in development builds, to write sample history into the simulator so the app can be tested without a watch.</string>
+	<string>Save weight measurements and meals you choose to add to Apple Health.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>Coach Jett notices when you have been at your gym for a few minutes so Jett can offer to take the session down while you rest. Your location is only ever compared against gyms you have named yourself, and never leaves this device.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>

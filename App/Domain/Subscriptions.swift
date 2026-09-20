@@ -75,6 +75,9 @@ final class Subscriptions {
             Self.log.notice("entitlement changed to \(entitled)")
         }
         isSubscribed = entitled
+        // The server is told by Apple, not by us, so the signed form travels with every
+        // request and has to be refreshed whenever this is.
+        await Entitlement.refresh()
     }
 
     /// Returns true when the user came away subscribed.

@@ -16,8 +16,12 @@ struct ClaudeCoachProvider: CoachProvider {
     /// are paid for on every request while adding almost nothing.
     static let maximumHistoryMessages = 16
 
+    var unitsAreMetric = false
+
     var apiKey: String? { Keychain.apiKey }
-    var isConfigured: Bool { (apiKey?.isEmpty == false) }
+    /// Through the proxy there is nothing on the device to configure. The direct path
+    /// still needs a key, and still says so.
+    var isConfigured: Bool { Backend.isProxied || (apiKey?.isEmpty == false) }
 
     func stream(messages: [CoachMessage],
                 context: CoachContext,
@@ -25,7 +29,11 @@ struct ClaudeCoachProvider: CoachProvider {
         -> AsyncThrowingStream<CoachEvent, Error> {
         AsyncThrowingStream { continuation in
             Task {
-                guard let apiKey, !apiKey.isEmpty else {
+                guard CoachSharing.isAllowed else {
+                    continuation.finish(throwing: CoachError.sharingNotAllowed); return
+                }
+                let key = apiKey
+                guard Backend.isProxied || !(key ?? "").isEmpty else {
                     continuation.finish(throwing: CoachError.notConfigured); return
                 }
 
@@ -39,7 +47,7 @@ struct ClaudeCoachProvider: CoachProvider {
                         // put its conclusion in prose. Offering a tool it has no room to
                         // follow up on leaves the user holding a proposal and no reply.
                         let isFinal = round == Self.maximumToolRounds - 1
-                        let turn = try await runTurn(apiKey: apiKey, context: context,
+                        let turn = try await runTurn(apiKey: key, context: context,
                                                      messages: wire, offersTools: !isFinal,
                                                      continuation: continuation)
                         guard let call = turn.toolCall else { continuation.finish(); return }
@@ -69,27 +77,55 @@ struct ClaudeCoachProvider: CoachProvider {
         var assistantBlocks: [[String: Any]] = []
     }
 
-    private func runTurn(apiKey: String, context: CoachContext, messages: [[String: Any]],
-                         offersTools: Bool,
-                         continuation: AsyncThrowingStream<CoachEvent, Error>.Continuation)
-        async throws -> Turn {
+    /// Either our proxy or the provider, depending on `Backend`.
+    ///
+    /// Through the proxy the client sends context and turns and nothing else: the model,
+    /// the token ceiling, the system prompt and the tools are all the server's to decide,
+    /// because a proxy that forwards a body the client composed is an open relay.
+    private func buildRequest(apiKey: String?, context: CoachContext,
+                              messages: [[String: Any]], offersTools: Bool) throws -> URLRequest {
+        if Backend.isProxied {
+            return try Backend.request(.coach, body: [
+                "context": context.brief,
+                "messages": messages,
+                "unitsAreMetric": unitsAreMetric,
+                "offersTools": offersTools,
+            ])
+        }
 
+        guard let apiKey, !apiKey.isEmpty else { throw CoachError.notConfigured }
         var request = URLRequest(url: Self.endpoint)
         request.httpMethod = "POST"
         request.timeoutInterval = 120
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
         request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+        request.httpBody = try JSONSerialization.data(withJSONObject: CoachRequest.body(
+            model: Self.model,
+            rules: CoachPrompt.rules,
+            data: CoachPrompt.data(context: context, unitsAreMetric: unitsAreMetric),
+            messages: messages,
+            offersTools: offersTools))
+        return request
+    }
 
-        let body = CoachRequest.body(model: Self.model,
-                                     rules: CoachPrompt.rules,
-                                     data: CoachPrompt.data(context: context),
-                                     messages: messages,
-                                     offersTools: offersTools)
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+    private func runTurn(apiKey: String?, context: CoachContext, messages: [[String: Any]],
+                         offersTools: Bool,
+                         continuation: AsyncThrowingStream<CoachEvent, Error>.Continuation)
+        async throws -> Turn {
+
+        guard CoachSharing.isAllowed else { throw CoachError.sharingNotAllowed }
+        let request = try buildRequest(apiKey: apiKey, context: context,
+                                       messages: messages, offersTools: offersTools)
 
         let (bytes, response) = try await URLSession.shared.bytes(for: request)
         if let http = response as? HTTPURLResponse, http.statusCode != 200 {
+            if Backend.isProxied {
+                var detail = ""
+                for try await line in bytes.lines { detail += line }
+                throw Backend.failure(status: http.statusCode, body: detail,
+                                      retryAfter: http.value(forHTTPHeaderField: "Retry-After"))
+            }
             // The API says why in the body. Throwing only the status code turns a
             // fixable 400 into a mystery.
             var detail = ""

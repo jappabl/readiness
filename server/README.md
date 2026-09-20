@@ -52,3 +52,22 @@ failure came back to the client as `200 OK` with an event-stream content type an
 error JSON inside it — the client would have shown an empty answer and never run its
 error path. Found by pointing the local worker at the real API with a deliberately wrong
 key, not by reading the code. `streamOrPassError` now covers it.
+
+## Testing against the simulator
+
+The app reads `JettProxyURL` from Info.plist, and debug builds let an environment
+variable override it:
+
+```
+SIMCTL_CHILD_JETT_PROXY_URL=http://localhost:8787 \
+SIMCTL_CHILD_JETT_DEV_SECRET=local-dev-secret \
+  xcrun simctl launch booted com.coachjett.app
+```
+
+App Transport Security blocks plain HTTP, so add `NSAppTransportSecurity` with
+`NSAllowsLocalNetworking` to `App/Info.plist` **while testing and take it out again**. It
+is deliberately not committed: a health app should not ship an ATS exception for the
+convenience of a local worker.
+
+`rm -rf server/.wrangler/state` resets the meter between runs. The Durable Object keeps
+the free-message count, so without that reset the second test session starts at 402.
