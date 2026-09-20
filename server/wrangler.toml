@@ -3,6 +3,12 @@ main = "src/index.ts"
 compatibility_date = "2026-09-01"
 compatibility_flags = ["nodejs_compat"]
 
+# Every deployed version otherwise gets its own public hostname, carrying these same
+# provider keys. The auth in `identify()` applies there too, so this is not a hole — but a
+# proxy whose whole job is spending money on someone else's API should not have more public
+# front doors than it needs.
+preview_urls = false
+
 # Secrets are never committed. Set them with:
 #   wrangler secret put ANTHROPIC_API_KEY
 #   wrangler secret put DEEPSEEK_API_KEY
