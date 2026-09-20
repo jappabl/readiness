@@ -31,6 +31,27 @@ public struct ReadinessResult: Sendable, Equatable, Codable {
 public enum ReadinessGate: String, Sendable, Codable, Equatable {
     case elevatedWristTemperature
     case acuteLoadSpike
+
+    public var displayName: String {
+        switch self {
+        case .elevatedWristTemperature: return "Raised overnight temperature"
+        case .acuteLoadSpike: return "Training load spike"
+        }
+    }
+
+    public var explanation: String {
+        switch self {
+        case .elevatedWristTemperature:
+            return "Your sleeping wrist temperature was well above your own normal. "
+                 + "That is the earliest sign the body gives that it is fighting "
+                 + "something, and it outranks every other reading here — a strong HRV "
+                 + "on a morning like this is not the news it looks like."
+        case .acuteLoadSpike:
+            return "The last week of training is well above what the last month has "
+                 + "prepared you for. This cannot make a good morning bad, but it will "
+                 + "stop one being called a green light."
+        }
+    }
 }
 
 public struct ReadinessInput: Sendable {
@@ -126,13 +147,18 @@ public enum ReadinessEngine {
                                gateApplied: gate, modelVersion: modelVersion)
     }
 
-    /// Four states, thresholded on standard deviations from the user's own baseline.
-    /// Four is what the data supports; a 0-100 score would claim about 100.
+    /// Four states, read off the same scale the ring shows.
+    ///
+    /// These used to be thresholds on the composite itself, at +/-0.5 and +/-1.5. That
+    /// was a second, independent calibration of one quantity, and it was calibrated for
+    /// a spread the composite does not have: -1.5 is about a 2.5-sigma day, so
+    /// wellBelowBaseline arrived in practice only through the temperature gate. Deriving
+    /// both from the score means the ring and the advice under it cannot drift apart.
     static func state(for composite: Double) -> ReadinessState {
-        switch composite {
-        case 0.5...: return .aboveBaseline
-        case -0.5..<0.5: return .atBaseline
-        case -1.5..<(-0.5): return .belowBaseline
+        switch RecoveryScore.percent(composite: composite) {
+        case 67...: return .aboveBaseline
+        case 34..<67: return .atBaseline
+        case 15..<34: return .belowBaseline
         default: return .wellBelowBaseline
         }
     }

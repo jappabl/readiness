@@ -73,10 +73,15 @@ struct ReadinessStateTests {
         #expect(result.state == .wellBelowBaseline)
     }
 
+    /// Was written at goodness -1.0, which the old thresholds called mild. It is not:
+    /// every metric a full standard deviation the wrong way at once is past the 1st
+    /// percentile of the composite's own distribution. Calling that "mildly poor" was
+    /// the miscalibration, so the test now asks the question at a composite that really
+    /// is a middling-bad morning.
     @Test("a mildly poor morning is below baseline, not well below")
     func mildlyPoorDayIsBelowBaseline() {
         let result = ReadinessEngine.evaluate(
-            ReadinessInput(readings: morning(goodness: -1.0), daysOfHistory: 60))
+            ReadinessInput(readings: morning(goodness: -0.4), daysOfHistory: 60))
         #expect(result.state == .belowBaseline)
     }
 

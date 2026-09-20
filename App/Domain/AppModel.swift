@@ -445,11 +445,40 @@ final class AppModel {
     // Each ring needs a number, and each of these is a real quantity rather than a
     // score someone made up.
 
-    /// Where today sits among this user's own days. Floored at 1 so the worst morning
-    /// still reads as a measurement rather than a missing one.
-    var recoveryPercent: Int? {
-        guard let composite = day?.readiness.composite else { return nil }
-        return max(1, Percentile.percent(fromZ: composite))
+    /// Today's recovery, with everything that moved it.
+    ///
+    /// The ring used to run the composite through a standard normal CDF as though it
+    /// were a single z-score, which compressed it into roughly 20...80 and made the
+    /// worst mornings unreachable. `RecoveryScore` owns the transfer now, and the
+    /// readiness state and the session advice are read off the same scale.
+    var recoveryScore: SignalScore {
+        guard let day else {
+            return SignalScore(kind: .recovery, value: nil, band: nil, contributors: [],
+                               coverage: .unavailable, missing: ["Health data"],
+                               modelVersion: ReadinessEngine.modelVersion)
+        }
+        return RecoveryScore.of(day.readiness, readings: day.readings, history: metricHistory())
+    }
+
+    var recoveryPercent: Int? { recoveryScore.value.map { Int($0.rounded()) } }
+
+    /// The trailing values behind each contributor, for the chart its row expands to.
+    private func metricHistory(days: Int = 28) -> [MetricKind: [Double]] {
+        let recent = Array(series.suffix(days))
+        var out: [MetricKind: [Double]] = [:]
+        for kind in MetricKind.allCases {
+            let values = recent.compactMap { day -> Double? in
+                switch kind {
+                case .hrv: return day.hrvSDNN
+                case .restingHeartRate: return day.restingHeartRate
+                case .sleepDebt: return day.sleepHours.map { DayAssembler.sleepNeedHours - $0 }
+                case .respiratoryRate: return day.respiratoryRate
+                case .bloodOxygen: return day.bloodOxygenPercent
+                }
+            }
+            if !values.isEmpty { out[kind] = values }
+        }
+        return out
     }
 
     var sleepScore: SleepScoreResult {

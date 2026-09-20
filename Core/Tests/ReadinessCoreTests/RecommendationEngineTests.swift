@@ -48,12 +48,15 @@ struct CheckInTests {
         #expect(rec.state == .recover)
     }
 
+    /// The borderline moved when the states stopped being thresholds on the composite
+    /// and started being read off the recovery scale. A composite of -0.4 is now a
+    /// reduce day on its own; an ordinary morning is the one a bad check-in can move.
     @Test("a poor check-in can pull a borderline day down a state")
     func checkInMovesBorderlineDays() {
         let without = RecommendationEngine.recommend(
-            RecommendationInput(readiness: readiness(-0.4)))
+            RecommendationInput(readiness: readiness(0.0)))
         let with = RecommendationEngine.recommend(
-            RecommendationInput(readiness: readiness(-0.4),
+            RecommendationInput(readiness: readiness(0.0),
                                 checkIn: CheckIn(soreness: 1, energy: 1, stress: 1, mood: 1)))
         #expect(without.state == .maintain)
         #expect(with.state == .reduce)
@@ -73,9 +76,11 @@ struct TrainingStateTests {
         #expect(RecommendationEngine.recommend(RecommendationInput(readiness: readiness(0.0))).state == .maintain)
     }
 
+    /// -1.0 now says recover, which is the point of the recalibration: every stream a
+    /// standard deviation down at once is not a trim-a-few-sets morning.
     @Test("a down morning says reduce")
     func downDayReduces() {
-        #expect(RecommendationEngine.recommend(RecommendationInput(readiness: readiness(-1.0))).state == .reduce)
+        #expect(RecommendationEngine.recommend(RecommendationInput(readiness: readiness(-0.4))).state == .reduce)
     }
 
     @Test("a badly down morning says recover")
@@ -124,7 +129,7 @@ struct AdjustmentTests {
 
     @Test("a reduce day trims sets and caps effort rather than cutting load")
     func reduceTrimsVolume() {
-        let rec = RecommendationEngine.recommend(RecommendationInput(readiness: readiness(-1.0)))
+        let rec = RecommendationEngine.recommend(RecommendationInput(readiness: readiness(-0.4)))
         #expect(rec.adjustments.contains { if case .reduceWorkingSets = $0 { return true }; return false })
         #expect(rec.adjustments.contains { if case .capEffort = $0 { return true }; return false })
         #expect(!rec.adjustments.contains(.proceedAsPlanned))

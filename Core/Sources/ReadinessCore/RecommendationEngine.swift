@@ -57,11 +57,14 @@ public enum RecommendationEngine {
         return max(-maximumCheckInShift, min(maximumCheckInShift, normalised * maximumCheckInShift))
     }
 
+    /// Read off the recovery scale, for the same reason `ReadinessEngine.state(for:)` is:
+    /// a session called "maintain" underneath a red ring is the app disagreeing with
+    /// itself in front of the user. The boundaries are the recovery bands.
     static func trainingState(for composite: Double) -> TrainingState {
-        switch composite {
-        case 0.5...: return .push
-        case -0.5..<0.5: return .maintain
-        case -1.5..<(-0.5): return .reduce
+        switch RecoveryScore.percent(composite: composite) {
+        case 67...: return .push
+        case 34..<67: return .maintain
+        case 15..<34: return .reduce
         default: return .recover
         }
     }
