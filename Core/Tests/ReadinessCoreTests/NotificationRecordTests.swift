@@ -53,7 +53,13 @@ struct NotificationRecordTests {
     func insightIsTextual() {
         var record = NotificationRecord()
         record.lastInsight = "Your training volume has been about 18% higher."
-        // Novelty for insights is a text comparison; the day-based check never blocks it.
+        // Every other moment was also said at this exact instant. If the switch ever
+        // read one of those fields instead of returning early for `.newInsight`, it
+        // would see a same-day match here and wrongly block — so novelty must ignore
+        // the calendar regardless of what the rest of the record holds.
+        record.lastMorningVerdict = morning
+        record.lastIllnessGate = morning
+        record.lastBedtimeTarget = morning
         #expect(!record.alreadySentToday(.newInsight, now: morning, calendar: calendar))
     }
 
@@ -61,7 +67,10 @@ struct NotificationRecordTests {
     func codable() throws {
         var record = NotificationRecord()
         record.lastMorningVerdict = morning
+        record.lastIllnessGate = morning.addingTimeInterval(3600)
+        record.lastBedtimeTarget = morning.addingTimeInterval(7200)
         record.lastInsight = "something"
+        record.budget = NotificationBudget.State(tokens: 1.5, updated: morning.addingTimeInterval(10_800))
         let data = try JSONEncoder().encode(record)
         #expect(try JSONDecoder().decode(NotificationRecord.self, from: data) == record)
     }
