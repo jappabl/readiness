@@ -31,7 +31,9 @@ struct SleepDebtHistoryTests {
         let cases: [[Double]] = [summerThenTerm, slippedHabit, longSleeperSettling,
                                  badWeek, wobbly]
         for nights in cases {
-            let row = SleepDebt.of(nights: Array(nights.suffix(points))).hours
+            // The whole record, as the app hands it over: the decay runs per calendar
+            // night and `SleepDebt` caps the reference's own sample itself.
+            let row = SleepDebt.of(nights: nights).hours
             let head = try #require(SleepDebt.history(nights: nights, points: points).last)
             #expect(abs(head - row) < 0.001,
                     "chart ended at \(head) under a row reading \(row)")

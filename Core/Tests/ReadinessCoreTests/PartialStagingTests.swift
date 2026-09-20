@@ -135,8 +135,12 @@ struct PartialStagingTests {
         #expect(result.contributor("deep") == nil,
                 "deep was scored off \(Int(classified * 100))% of the night")
         #expect(result.contributor("rem") == nil)
-        #expect(result.missing.contains { $0.localizedCaseInsensitiveContains("stage") },
-                "nothing on screen says the stages were not read: \(result.missing)")
+        // Named per stage rather than as one line, and this used to pass only because the
+        // continuity row happened to say "stages" too.
+        #expect(result.missing.contains { $0.localizedCaseInsensitiveContains("deep") },
+                "nothing on screen says deep sleep was not read: \(result.missing)")
+        #expect(result.missing.contains { $0.localizedCaseInsensitiveContains("rem") },
+                "nothing on screen says REM was not read: \(result.missing)")
     }
 
     /// The published hours still fit the night, in this direction too.

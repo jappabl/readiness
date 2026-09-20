@@ -39,7 +39,7 @@ enum DayAssembler {
         let all = series.map(\.sleepHours)
         let recorded = all.compactMap { $0 }
         guard recorded.count >= 2 else { return nil }
-        let debt = SleepDebt.of(nights: Array(all.suffix(debtNights)))
+        let debt = SleepDebt.of(nights: all)
         return MetricReading(kind: .sleepDebt,
                              value: debt.hours,
                              // Owing nothing is the target, for everybody.

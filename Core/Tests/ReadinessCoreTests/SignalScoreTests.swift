@@ -58,7 +58,8 @@ struct SleepSampleTests {
         let breakdown = SleepAggregator.byWakeDay(samples, calendar: calendar)[calendar.startOfDay(for: date(19))]
         let result = score(breakdown, hours: 8)
         #expect(continuity(result) == nil)
-        #expect(result.missing.contains { $0.localizedCaseInsensitiveContains("continuity") })
+        #expect(result.missing.contains { $0.localizedCaseInsensitiveContains("continuous") },
+                "nothing said the night could not be read as one run: \(result.missing)")
     }
 
     @Test("Unobserved gaps between stage samples are not assumed asleep or awake")

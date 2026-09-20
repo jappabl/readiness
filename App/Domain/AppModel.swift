@@ -524,9 +524,7 @@ final class AppModel {
         // `series` directly, so opening a day in the calendar drew a line out of nights
         // from that day's future: a day 45 of a record whose nights 40-49 were the bad
         // ones showed a flat zero under a row correctly reading 7 hours behind.
-        out[.sleepDebt] = SleepDebt.history(nights: series.filter { $0.date <= cutoff }
-                                                          .map(\.sleepHours),
-                                            points: days)
+        out[.sleepDebt] = SleepDebt.history(nights: nightlySleep(upTo: date), points: days)
         for kind in MetricKind.allCases {
             let values = recent.compactMap { day -> Double? in
                 switch kind {
@@ -586,7 +584,13 @@ final class AppModel {
             breakdown: current?.sleep,
             durationHours: current?.sleepHours,
             history: past.compactMap(\.sleep),
-            priorNights: sleepNights(upTo: date),
+            // The nights *behind* this one, which is what the need is documented to learn
+            // from and what the structural history beside it already uses. Last night sat
+            // inside its own need window, so a night better than habit raised the bar it
+            // was then measured against: an 8 h night for a 6.2/8.8 sleeper scored 90.9
+            // where the nights behind it justify 97.0. The penalty landed precisely on the
+            // improvement band, and nowhere else.
+            priorNights: sleepNights(before: date),
             // Yesterday's load is what tonight has to recover from, not today's, which
             // has not happened yet when the score is read in the morning.
             //
@@ -638,9 +642,12 @@ final class AppModel {
     /// card saying twelve hours behind.
     /// One entry per calendar night, nil where nothing was recorded. The balance fades per
     /// night that *passed*, so the nights that passed have to be in the list.
-    private func nightlySleep(upTo date: Date, days: Int = 28) -> [Double?] {
+    /// Every calendar night up to `date`, so the decay runs per night that passed and the
+    /// reference has enough *recorded* nights under it to be a steady median.
+    /// `SleepDebt` caps the reference's own sample; older nights decay to nothing.
+    private func nightlySleep(upTo date: Date) -> [Double?] {
         let cutoff = Self.endOfDay(date)
-        return Array(series.filter { $0.date <= cutoff }.map(\.sleepHours).suffix(days))
+        return series.filter { $0.date <= cutoff }.map(\.sleepHours)
     }
 
     /// The nights that were actually slept, for the need.
@@ -648,9 +655,9 @@ final class AppModel {
     /// A night count rather than a calendar window, deliberately and unlike the balance:
     /// the need is a percentile of this sleeper's own distribution, so what it wants is a
     /// sample, and a sparse wearer's twenty-eight calendar days would be a smaller one.
-    private func sleepNights(upTo date: Date, days: Int = 28) -> [Double] {
-        let cutoff = Self.endOfDay(date)
-        return Array(series.filter { $0.date <= cutoff }.compactMap(\.sleepHours).suffix(days))
+    private func sleepNights(before date: Date, days: Int = 28) -> [Double] {
+        let start = Calendar.current.startOfDay(for: date)
+        return Array(series.filter { $0.date < start }.compactMap(\.sleepHours).suffix(days))
     }
 
     /// Kept as the labelled fallback for anybody without a heart rate trace.

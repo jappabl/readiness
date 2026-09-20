@@ -73,7 +73,12 @@ public struct HealthContext: Codable, Equatable, Sendable {
         guard !metrics.isEmpty else { return "Health summaries: no records available." }
         var lines = ["Health summaries: latest value and local date; prior 7/28 calendar days mean [recorded days].",
                      "Today excluded from means; today's activity/intake totals may be incomplete. Missing is unknown.",
-                     "Sleep target \(sleepTargetHours)h is a default, not measured sleep need. Stages are device estimates."]
+                     // Whatever the app is actually using. It used to say "is a default"
+                     // because it was one; it is handed the learned need now, and calling
+                     // that a default contradicted the rules two lines above in the same
+                     // request. Rounded, because sixteen significant figures of sleep need
+                     // is not a number anybody meant.
+                     "Sleep need \(sleepTargetHours.formatted(.number.precision(.fractionLength(1))))h, learned from their own nights. Stages are device estimates."]
         for metric in metrics {
             var line = "\(metric.name): \(metric.latest)\(metric.unit) @\(metric.recordedOn)"
             if metric.daysAgo > 0 { line += " (\(metric.daysAgo)d ago)" }

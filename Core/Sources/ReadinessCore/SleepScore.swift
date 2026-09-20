@@ -255,6 +255,18 @@ public struct SleepDebt: Sendable, Equatable {
         return Swift.max(median, SleepNeed.learnedFloorHours)
     }
 
+    /// How many *recorded* nights the reference rests on.
+    ///
+    /// Recorded, not calendar, and this is the one place in the balance that counts
+    /// readings rather than days. The decay has to run per night that passed, or a week
+    /// away freezes what is owed. The reference is the opposite: it is a median, the
+    /// statistic most prone to stepping on a small sample, and pinning it to a run of
+    /// calendar nights left it resting on eight readings for somebody wearing the watch
+    /// twice a week. It then re-levelled overnight — a four-nights-a-week wearer saw
+    /// 7.0 h behind, then 5.5, then 4.1 on three mornings of identical sleep, with the
+    /// arrow pointing up each time and the ring gaining seven points.
+    public static let referenceNights = 28
+
     /// The most credit a run of long nights can bank. Some, because a floor at zero
     /// stops a good night paying anything down and turns the balance into a ratchet —
     /// but not unbounded, because a fortnight of holiday is not a licence.
@@ -281,9 +293,20 @@ public struct SleepDebt: Sendable, Equatable {
         // One reference for both balances, and the same fourteen-night window ending a
         // night apart. Re-learning it between the two made the arrow disagree with the
         // number above it on 66 days out of 70, and point the wrong way on 27.
-        let against = reference(for: clean.compactMap { $0 })
+        let against = reference(for: Array(clean.compactMap { $0 }.suffix(referenceNights)))
         let balance = accumulate(clean, against: against)
-        let previous = accumulate(Array(clean.dropLast()), against: against)
+        // Yesterday's balance as yesterday computed it, against yesterday's own reference.
+        //
+        // So `change` is the difference between two consecutive cards, which is the only
+        // thing a reader can check. Measuring both against today's reference made the two
+        // internally consistent and disagreeing with what the person actually saw: the
+        // reference moves as nights enter and leave the sample, and for a sparse wearer
+        // near steady state that shift is larger than the night's own contribution, so the
+        // arrow pointed up on a morning the number had fallen. This has now been the wrong
+        // way round twice; defining it as what it claims to be settles it.
+        let yesterday = Array(clean.dropLast())
+        let previous = accumulate(yesterday, against: reference(
+            for: Array(yesterday.compactMap { $0 }.suffix(referenceNights))))
         return SleepDebt(hours: Swift.max(0, balance),
                          change: Swift.max(0, balance) - Swift.max(0, previous),
                          nights: clean.compactMap { $0 }.count)
@@ -306,12 +329,12 @@ public struct SleepDebt: Sendable, Equatable {
             return night
         }
         guard clean.contains(where: { $0 != nil }), points > 0 else { return [] }
-        let against = reference(for: clean.suffix(points).compactMap { $0 })
-        // The same span the row accumulates over, so the line ends exactly where the
-        // number says. With decay the starting point barely matters after a fortnight,
-        // but "barely" is not "exactly", and these two have disagreed before.
+        let against = reference(for: Array(clean.compactMap { $0 }.suffix(referenceNights)))
+        // The same span and the same reference the row uses, so the line ends exactly
+        // where the number says. With decay the starting point barely matters after a
+        // fortnight, but "barely" is not "exactly", and these two have disagreed before.
         let balances = clean.indices.map { end in
-            Swift.max(0, accumulate(Array(clean[...end].suffix(points)), against: against))
+            Swift.max(0, accumulate(Array(clean[...end]), against: against))
         }
         return Array(balances.suffix(points))
     }
@@ -497,14 +520,22 @@ public enum SleepScore {
         // to appear for somebody with a fortnight of perfect stage history whose only
         // problem was that last night was 96% classified.
         let stagedNights = input.history.filter { $0.reconciledStages != nil }.count
-        let historyIsThin = stagedNights < BaselineSummary.minimumReadings
+        // Whether the *record* is short, which is what "still learning your normal" says.
+        // It used to mean "too few staged nights", and a phone with no stage sensors never
+        // gets one — so the commonest first-run profile there is was told the app was
+        // still learning their normal every morning, for ever, with four reasons listed
+        // that could never be satisfied. A phone-only record of sixty nights is not thin;
+        // it is complete for what that device can see, which is what `.partial` says.
+        let historyIsThin = input.history.count < BaselineSummary.minimumReadings
+        // And the stage rewrite only makes sense where staging normally works.
+        let stagingUsuallyWorks = stagedNights >= BaselineSummary.minimumReadings
         let tonightUnstaged = input.breakdown.map { $0.reconciledStages == nil } ?? false
 
         let absent = components.filter { $0.fraction == nil }
         let missing = absent.map { component -> String in
             // Same row, right reason. The stage rows are absent because of last night,
             // not because the record is too short to judge it against.
-            guard tonightUnstaged, !historyIsThin,
+            guard tonightUnstaged, stagingUsuallyWorks,
                   component.missingLabel.localizedCaseInsensitiveContains("stage data")
             else { return component.missingLabel }
             return "\(component.title) last night, which your watch did not finish recording"
@@ -662,7 +693,13 @@ public enum SleepScore {
                 explanation: "How much of the night was actually spent asleep rather "
                            + "than awake or merely in bed. Eight broken hours are not "
                            + "eight hours, and this is the part that notices.",
-                missingLabel: "Sleep stages, so continuity could not be read",
+                // Not "sleep stages, so continuity could not be read": continuity goes
+                // nil for reasons that leave the stages perfectly intact — two separate
+                // sleep episodes in one day, or two devices whose awake and asleep samples
+                // conflict. That label appeared underneath a ring drawn from those very
+                // stages.
+                missingLabel: "One continuous record of the night, which your devices did "
+                            + "not agree on",
                 symbol: "moon.zzz.fill",
                 note: continuityFraction.map {
                     $0 >= 0.95 ? "You barely stirred."

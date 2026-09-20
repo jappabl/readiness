@@ -255,19 +255,18 @@ struct SleepDebtCard: View {
                 .font(.system(size: 15, weight: .semibold)).monospacedDigit()
         }
         .foregroundStyle(paidDown ? Tokens.recoveryHigh : Tokens.alert)
-        // "After last night", which the decay made true again.
+        // "Since yesterday", and true by construction now rather than by argument.
         //
-        // Under the seven-night window this was false about half the time: two overlapping
-        // windows differ by the night arriving *and* the night rolling off the far end,
-        // and the roll-off explained more of the movement than last night did on 40-59% of
-        // arrow-days. So it was reworded to "since yesterday". There is no window now —
-        // `previous` is the balance without last night, against the same reference — so the
-        // difference really is what last night did, and "since yesterday" became the false
-        // one: yesterday's card was measured against yesterday's own median, and when that
-        // median moves the two cards differ by up to 3.2 hours on their own.
+        // `SleepDebt.change` is the difference between two consecutive cards: yesterday's
+        // balance is computed against yesterday's own reference, not today's. This label
+        // has been wrong in both directions — "after last night" while a seven-night
+        // window's roll-off explained more of the movement than last night did, then
+        // "since yesterday" while both balances shared today's reference, which made the
+        // arrow point up on mornings the number had fallen. Defining the quantity as the
+        // thing the label claims is what settles it.
         .accessibilityLabel(paidDown
-            ? "Down \(hours(abs(debt.change))) hours after last night"
-            : "Up \(hours(abs(debt.change))) hours after last night")
+            ? "Down \(hours(abs(debt.change))) hours since yesterday"
+            : "Up \(hours(abs(debt.change))) hours since yesterday")
     }
 
     private func hours(_ value: Double) -> String {
