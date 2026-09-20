@@ -247,13 +247,20 @@ struct SleepDebtCard: View {
                 .font(.system(size: 15, weight: .semibold)).monospacedDigit()
         }
         .foregroundStyle(paidDown ? Tokens.recoveryHigh : Tokens.alert)
-        // Not "since yesterday". The balance is recomputed each day against a median
-        // that moves, so the difference between two days' cards is not the same
-        // quantity as this one — measured, it pointed the wrong way about one day in
-        // nine. What it honestly describes is the last night's own contribution.
+        // "Since yesterday", which is what it is: `SleepDebt.of` takes one reference and
+        // measures both balances against it, so this really is how the balance moved
+        // between the two days.
+        //
+        // What it is *not* is last night's own contribution, which the previous label
+        // claimed. Two overlapping seven-night windows differ by the night arriving and
+        // the night rolling off the far end, and measured over ninety nights the roll-off
+        // explained more of the movement than last night did on 40-59% of the days an
+        // arrow appeared. After a bad week it read "down 3.5 hours after last night" on
+        // two consecutive mornings when last night was exactly this sleeper's median and
+        // contributed nothing at all.
         .accessibilityLabel(paidDown
-            ? "Down \(hours(abs(debt.change))) hours after last night"
-            : "Up \(hours(abs(debt.change))) hours after last night")
+            ? "Down \(hours(abs(debt.change))) hours since yesterday"
+            : "Up \(hours(abs(debt.change))) hours since yesterday")
     }
 
     private func hours(_ value: Double) -> String {

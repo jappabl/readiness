@@ -240,6 +240,27 @@ public struct SleepDebt: Sendable, Equatable {
                          nights: Swift.min(clean.count, window))
     }
 
+    /// The balance as it ran, one point per night, ending with today's.
+    ///
+    /// For drawing. `of` cannot be walked over a growing prefix to get this, which is how
+    /// the chart came to disagree with the number above it: `of` learns its reference from
+    /// every night it is handed, so each prefix produced a different one, ending at the
+    /// whole record's median while the row was reading the last `points` nights'. A
+    /// settled sleeper whose habit had changed months ago saw a line pinned at the cap for
+    /// twenty-three of its twenty-eight points under a row saying they owed nothing.
+    ///
+    /// One reference, taken from the same nights the row reads, so a rise on this line
+    /// means less sleep and never a reference that moved underneath it.
+    public static func history(nights: [Double], points: Int) -> [Double] {
+        let clean = nights.filter { $0.isFinite && $0 >= 0 }
+        guard !clean.isEmpty, points > 0 else { return [] }
+        let against = reference(for: Array(clean.suffix(points)))
+        let balances = clean.indices.map { end in
+            Swift.max(0, accumulate(Array(clean[...end].suffix(window)), against: against))
+        }
+        return Array(balances.suffix(points))
+    }
+
     private static func accumulate(_ nights: [Double], against reference: Double) -> Double {
         guard !nights.isEmpty else { return 0 }
         var debt = 0.0

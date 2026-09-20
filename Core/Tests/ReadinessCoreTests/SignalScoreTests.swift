@@ -196,7 +196,9 @@ struct DailyStrainTests {
 
     @Test("Daily strain work does not change strength ACWR behavior")
     func acwrUnaffected() {
-        #expect(StrainEngine.acwr(daily: Array(repeating: 1000, count: 28)) == 1)
-        #expect(StrainEngine.acwr(daily: Array(repeating: 0, count: 27) + [1000]) == nil)
+        #expect(StrainEngine.acwr(daily: Array(repeating: 1000, count: 28),
+                                  observedDays: 28) == 1)
+        #expect(StrainEngine.acwr(daily: Array(repeating: 0, count: 27) + [1000],
+                                  observedDays: 28) == nil)
     }
 }

@@ -43,7 +43,7 @@ public enum StrainEngine {
     /// logger was told they had spiked on seven consecutive days, somewhere around their
     /// second week. Raising the training-day count is the wrong lever: at six a
     /// once-a-week trainer would be gated out permanently.
-    public static func acwr(daily: [Double], observedDays: Int? = nil) -> Double? {
+    public static func acwr(daily: [Double], observedDays: Int?) -> Double? {
         guard daily.count >= chronicDays else { return nil }
         let chronic = daily.suffix(chronicDays)
         guard chronic.filter({ $0 > 0 }).count >= minimumTrainingDays else { return nil }

@@ -65,26 +65,26 @@ struct ACWRTests {
 
     @Test("steady training sits at about 1.0")
     func steadyTrainingIsOne() {
-        let acwr = StrainEngine.acwr(daily: Array(repeating: 1000.0, count: 28))
+        let acwr = StrainEngine.acwr(daily: Array(repeating: 1000.0, count: 28), observedDays: 28)
         #expect(abs((acwr ?? 0) - 1.0) < 1e-9)
     }
 
     @Test("a hard week against an easy month reads as a spike")
     func spikeIsDetected() {
         let daily = Array(repeating: 500.0, count: 21) + Array(repeating: 1500.0, count: 7)
-        let acwr = StrainEngine.acwr(daily: daily)
+        let acwr = StrainEngine.acwr(daily: daily, observedDays: daily.count)
         #expect((acwr ?? 0) > 1.5)
     }
 
     @Test("backing off reads below 1.0")
     func taperIsDetected() {
         let daily = Array(repeating: 1000.0, count: 21) + Array(repeating: 300.0, count: 7)
-        #expect((StrainEngine.acwr(daily: daily) ?? 9) < 1.0)
+        #expect((StrainEngine.acwr(daily: daily, observedDays: daily.count) ?? 9) < 1.0)
     }
 
     @Test("too little history to compare returns nothing rather than a guess")
     func shortHistoryReturnsNil() {
-        #expect(StrainEngine.acwr(daily: Array(repeating: 1000.0, count: 10)) == nil)
+        #expect(StrainEngine.acwr(daily: Array(repeating: 1000.0, count: 10), observedDays: 10) == nil)
     }
 
     @Test("one session against a month of rest is not a load spike")
@@ -92,19 +92,19 @@ struct ACWRTests {
         // 27 rest days and one session gives a mathematically enormous ratio and a
         // meaningless one. Reporting it would cap a good morning for no reason.
         let daily = Array(repeating: 0.0, count: 27) + [1125.0]
-        #expect(StrainEngine.acwr(daily: daily) == nil)
+        #expect(StrainEngine.acwr(daily: daily, observedDays: daily.count) == nil)
     }
 
     @Test("enough training days in the window produce a ratio")
     func enoughTrainingDaysProducesARatio() {
         var daily = Array(repeating: 0.0, count: 28)
         for index in [2, 6, 10, 15, 20, 24, 27] { daily[index] = 1000 }
-        #expect(StrainEngine.acwr(daily: daily) != nil)
+        #expect(StrainEngine.acwr(daily: daily, observedDays: daily.count) != nil)
     }
 
     @Test("a month of rest cannot divide by zero")
     func zeroChronicIsSafe() {
-        let acwr = StrainEngine.acwr(daily: Array(repeating: 0.0, count: 28))
+        let acwr = StrainEngine.acwr(daily: Array(repeating: 0.0, count: 28), observedDays: 28)
         #expect(acwr == nil || (acwr ?? 0).isFinite)
     }
 }

@@ -336,7 +336,7 @@ public enum RecoveryScore {
         guard isDebt else { return nil }
         guard !owesNothing else { return "You are not down on sleep." }
         let formatted = hours.formatted(.number.precision(.fractionLength(0...1)))
-        return "About \(formatted) hours behind over the last two weeks."
+        return "About \(formatted) hours behind over the last week."
     }
 
     private static func contributors(_ result: ReadinessResult, ungated: Double, value: Double,

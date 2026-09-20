@@ -433,20 +433,6 @@ final class AppModel {
 
     // MARK: - Series for the dashboard
 
-    /// Raw daily values for one metric, oldest first.
-    func recentSeries(_ kind: MetricKind, days: Int = 14) -> [Double] {
-        let values: [Double?] = series.map { physiology in
-            switch kind {
-            case .hrv: return physiology.hrvSDNN
-            case .restingHeartRate: return physiology.restingHeartRate
-            case .sleepDebt: return physiology.sleepHours.map { DayAssembler.sleepNeedHours - $0 }
-            case .respiratoryRate: return physiology.respiratoryRate
-            case .bloodOxygen: return physiology.bloodOxygenPercent
-            }
-        }
-        return Array(values.compactMap { $0 }.suffix(days))
-    }
-
     func sleepHoursSeries(days: Int = 14) -> [Double] {
         Array(series.compactMap(\.sleepHours).suffix(days))
     }
@@ -496,19 +482,18 @@ final class AppModel {
         let cutoff = Calendar.current.startOfDay(for: date).addingTimeInterval(86_399)
         let recent = Array(series.filter { $0.date <= cutoff }.suffix(days))
         var out: [MetricKind: [Double]] = [:]
-        // Accumulated over the whole record and then trimmed, not accumulated over the
-        // trimmed record. Walking a growing slice meant the first points could not show
-        // a fortnight's balance at all, and the reference — a median of whatever it was
-        // handed — moved as the line was drawn, putting a spike to the cap in the middle
-        // of somebody's recovery.
-        var nights: [Double] = []
-        var balances: [Double] = []
-        for day in series {
-            guard let hours = day.sleepHours else { continue }
-            nights.append(hours)
-            balances.append(SleepDebt.of(nights: nights).hours)
-        }
-        out[.sleepDebt] = Array(balances.suffix(days))
+        // `SleepDebt.history` rather than a walk over `SleepDebt.of`, which cannot produce
+        // this: `of` learns its reference from every night handed to it, so a growing
+        // prefix measured each point against a different one and the line ended at the
+        // whole record's median while the row above it used the last 28 nights'.
+        //
+        // And built from `recent`, which is date-filtered. The previous version iterated
+        // `series` directly, so opening a day in the calendar drew a line out of nights
+        // from that day's future: a day 45 of a record whose nights 40-49 were the bad
+        // ones showed a flat zero under a row correctly reading 7 hours behind.
+        out[.sleepDebt] = SleepDebt.history(nights: series.filter { $0.date <= cutoff }
+                                                          .compactMap(\.sleepHours),
+                                            points: days)
         for kind in MetricKind.allCases {
             let values = recent.compactMap { day -> Double? in
                 switch kind {
@@ -571,12 +556,31 @@ final class AppModel {
             priorNights: sleepNights(upTo: date),
             // Yesterday's load is what tonight has to recover from, not today's, which
             // has not happened yet when the score is read in the morning.
-            strain: strainScore(on: calendar.date(byAdding: .day, value: -1, to: today) ?? today,
-                                context: nil).value,
+            //
+            // With the context, so lifting counts. Passing nil here meant `hardSets` was
+            // always zero for this call: the strain card read 73 "hard" off forty hard
+            // sets while the sleep card was handed 32.8 and added nothing, its own
+            // sentence about how hard yesterday was omitting the session entirely.
+            //
+            // And only when the number is on strain's own scale. A day with no cardiac
+            // trace falls back to an activity *percentile*, deliberately banded nil
+            // because a percentile is not a position on an absolute scale — but
+            // `SleepNeed` compares it against `strainThreshold`, so a watchless user's
+            // ordinary-but-busy day read 90 and bought 36 minutes of extra need, which is
+            // enough to move a band. Roughly a quarter of their days sit above their own
+            // 75th percentile, so it fired on days that were physiologically unremarkable.
+            strain: yesterdaysLoad(before: today),
             sleepingHeartRate: current?.sleepingHeartRate,
             daytimeHeartRate: current?.wakingHeartRate))
     }
     var sleepPercent: Int? { sleepScore.value.map { max(1, Int($0.rounded())) } }
+
+    /// Yesterday's strain, but only if it is really strain. See `sleepScore(on:)`.
+    private func yesterdaysLoad(before today: Date) -> Double? {
+        let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: today) ?? today
+        let load = strainScore(on: yesterday, context: context)
+        return load.band == nil ? nil : load.value
+    }
 
     /// The running balance, as its own thing rather than folded into the night's score.
     var sleepDebt: SleepDebt { sleepDebt(on: Date()) }
@@ -621,11 +625,20 @@ final class AppModel {
             restingHeartRate: restingBaseline(upTo: date) ?? day?.restingHeartRate,
             ageYears: healthProfile.ageYears(),
             biologicalSex: healthProfile.biologicalSex,
-            // As it stood on the day being shown. Taking the whole series meant an
-            // August peak retroactively widened a March day's reserve and cost it
-            // points for a beat it had not produced yet.
-            observedMaxHeartRate: series.filter { $0.date <= date }
-                .compactMap(\.heartRateMax).max(),
+            // As it stood *before* the day being shown. Taking the whole series meant an
+            // August peak retroactively widened a March day's reserve and cost it points
+            // for a beat it had not produced yet; including the day itself meant the same
+            // thing happening live. A two-minute all-out finish that beats your own
+            // recorded peak widens the reserve the whole day is then re-scored against, so
+            // the ring went *backwards* at the moment of maximum effort: measured, a
+            // 196 bpm finish cost 3.13 points against the number two minutes earlier.
+            //
+            // Strictly-before means the day you set a new peak is scored against your old,
+            // narrower reserve and reads a little hot. On a day you went to your limit
+            // that is the right direction to be wrong in.
+            observedMaxHeartRate: series.filter {
+                $0.date < Calendar.current.startOfDay(for: date)
+            }.compactMap(\.heartRateMax).max(),
             hardSets: hardSets(on: date, context: context),
             // A past day is read whole; today is read part-way through.
             readAt: Calendar.current.isDateInToday(date)
