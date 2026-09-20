@@ -481,21 +481,72 @@ final class AppModel {
         return out
     }
 
-    var sleepScore: SleepScoreResult {
-        let today = Calendar.current.startOfDay(for: Date())
-        let current = series.last { Calendar.current.isDate($0.date, inSameDayAs: today) }
-        let cutoff = Calendar.current.date(byAdding: .day, value: -28, to: today)!
-        let history = series.filter { $0.date >= cutoff && $0.date < today }.compactMap(\.sleep)
-        return SleepScore.evaluate(breakdown: current?.sleep, durationHours: current?.sleepHours,
-                                   history: history, targetHours: DayAssembler.sleepNeedHours)
+    /// Last night against what it needed to be, with the structure that adjusted it.
+    var sleepScore: SignalScore {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let current = series.last { calendar.isDate($0.date, inSameDayAs: today) }
+        let cutoff = calendar.date(byAdding: .day, value: -28, to: today)!
+        let past = series.filter { $0.date >= cutoff && $0.date < today }
+        return SleepScore.of(SleepInput(
+            breakdown: current?.sleep,
+            durationHours: current?.sleepHours,
+            history: past.compactMap(\.sleep),
+            priorNights: Array(past.compactMap(\.sleepHours).suffix(SleepNeed.debtWindow)),
+            // Yesterday's load is what tonight has to recover from, not today's, which
+            // has not happened yet when the score is read in the morning.
+            strain: yesterdayStrain,
+            sleepingHeartRate: current?.sleepingHeartRate,
+            daytimeHeartRate: current?.wakingHeartRate))
     }
-    var sleepPercent: Int? { sleepScore.percent }
+    var sleepPercent: Int? { sleepScore.value.map { Int($0.rounded()) } }
+
+    /// Kept as the labelled fallback for anybody without a heart rate trace.
     var dailyStrain: DailyStrainResult? {
         DailyStrain.evaluate(days: series.map { DailyActivity(date: $0.date,
             activeEnergyKcal: $0.activeEnergyKcal, exerciseMinutes: $0.exerciseMinutes,
             steps: $0.steps, workoutEnergyKcal: $0.workoutEnergyKcal, workoutMinutes: $0.workoutMinutes) })
     }
-    func strainPercent(context: ModelContext) -> Int? { dailyStrain?.percent }
+
+    func strainScore(context: ModelContext?) -> SignalScore {
+        let today = series.last { Calendar.current.isDateInToday($0.date) }
+        return StrainScore.of(StrainInput(
+            samples: today?.heartRateSamples ?? [],
+            restingHeartRate: baseline(.restingHeartRate) ?? today?.restingHeartRate,
+            ageYears: healthProfile.ageYears(),
+            biologicalSex: healthProfile.biologicalSex,
+            observedMaxHeartRate: series.compactMap(\.heartRateMax).max(),
+            hardSets: hardSetsToday(context: context),
+            fallback: dailyStrain))
+    }
+
+    var strainScore: SignalScore { strainScore(context: context) }
+    func strainPercent(context: ModelContext) -> Int? {
+        strainScore(context: context).value.map { Int($0.rounded()) }
+    }
+
+    /// Yesterday's strain, for tonight's sleep need. Read from the recorded heart rate
+    /// alone: the lifting log is keyed to sessions rather than to the physiology series,
+    /// and a missing session should not silently lower what the night is asked for.
+    private var yesterdayStrain: Double? {
+        guard let yesterday = series.last(where: {
+            Calendar.current.isDateInYesterday($0.date)
+        }), !yesterday.heartRateSamples.isEmpty else { return nil }
+        return StrainScore.of(StrainInput(
+            samples: yesterday.heartRateSamples,
+            restingHeartRate: baseline(.restingHeartRate),
+            ageYears: healthProfile.ageYears(),
+            biologicalSex: healthProfile.biologicalSex,
+            observedMaxHeartRate: series.compactMap(\.heartRateMax).max())).value
+    }
+
+    private func hardSetsToday(context: ModelContext?) -> Int {
+        guard let context,
+              let sessions = try? context.fetch(FetchDescriptor<WorkoutSession>()) else { return 0 }
+        return sessions
+            .filter { Calendar.current.isDateInToday($0.date) }
+            .reduce(0) { $0 + $1.load.hardSetsByMuscle.values.reduce(0, +) }
+    }
 
     func selectToday(_ template: WorkoutTemplate) {
         selectedTemplateID = template.persistentModelID

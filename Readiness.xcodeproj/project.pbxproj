@@ -73,6 +73,7 @@
 		3FD94C8E64C14DE69AD81372 /* Paywall.swift in Sources */ = {isa = PBXBuildFile; fileRef = F45D316905EB425A9AB06DAB /* Paywall.swift */; };
 		DC0F2F7CE79C418F889C57D4 /* BaselineSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 863E215B852B4F9F8410D01E /* BaselineSummary.swift */; };
 		BC36D411CA924DC3B12E24DD /* SignalScore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A6F64ED3C37495DB87ACB26 /* SignalScore.swift */; };
+		F45C0C429EB5496A957A6C6A /* StrainScore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBA1774ED0324232AF9A6307 /* StrainScore.swift */; };
 		899CD7A8715247D1A8D04ED0 /* Nightfall.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01090C070D7645A9BCFAE0A0 /* Nightfall.swift */; };
 		A649253F09D9460196E0FCDF /* CoachSegments.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFB6097ADC3E4ABBB1EDB905 /* CoachSegments.swift */; };
 		30B915DB9F5846B0B986099F /* CoachAnswer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7C873BD22BE4E43A743AABB /* CoachAnswer.swift */; };
@@ -164,6 +165,7 @@
 		F45D316905EB425A9AB06DAB /* Paywall.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Paywall.swift"; sourceTree = "<group>"; };
 		863E215B852B4F9F8410D01E /* BaselineSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BaselineSummary.swift"; sourceTree = "<group>"; };
 		0A6F64ED3C37495DB87ACB26 /* SignalScore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SignalScore.swift"; sourceTree = "<group>"; };
+		FBA1774ED0324232AF9A6307 /* StrainScore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StrainScore.swift"; sourceTree = "<group>"; };
 		01090C070D7645A9BCFAE0A0 /* Nightfall.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Nightfall.swift"; sourceTree = "<group>"; };
 		AFB6097ADC3E4ABBB1EDB905 /* CoachSegments.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CoachSegments.swift"; sourceTree = "<group>"; };
 		A7C873BD22BE4E43A743AABB /* CoachAnswer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CoachAnswer.swift"; sourceTree = "<group>"; };
@@ -365,6 +367,7 @@
 				F45D316905EB425A9AB06DAB /* Paywall.swift */,
 				863E215B852B4F9F8410D01E /* BaselineSummary.swift */,
 				0A6F64ED3C37495DB87ACB26 /* SignalScore.swift */,
+				FBA1774ED0324232AF9A6307 /* StrainScore.swift */,
 				01090C070D7645A9BCFAE0A0 /* Nightfall.swift */,
 				AFB6097ADC3E4ABBB1EDB905 /* CoachSegments.swift */,
 				A7C873BD22BE4E43A743AABB /* CoachAnswer.swift */,
@@ -525,6 +528,7 @@
 				3FD94C8E64C14DE69AD81372 /* Paywall.swift in Sources */,
 				DC0F2F7CE79C418F889C57D4 /* BaselineSummary.swift in Sources */,
 				BC36D411CA924DC3B12E24DD /* SignalScore.swift in Sources */,
+				F45C0C429EB5496A957A6C6A /* StrainScore.swift in Sources */,
 				899CD7A8715247D1A8D04ED0 /* Nightfall.swift in Sources */,
 				A649253F09D9460196E0FCDF /* CoachSegments.swift in Sources */,
 				30B915DB9F5846B0B986099F /* CoachAnswer.swift in Sources */,

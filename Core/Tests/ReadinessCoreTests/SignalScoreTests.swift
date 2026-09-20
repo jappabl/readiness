@@ -2,8 +2,17 @@ import Foundation
 import Testing
 @testable import ReadinessCore
 
-@Suite("Recorded sleep score")
-struct SleepScoreTests {
+/// What the sleep engine reads out of real HealthKit-shaped samples: continuity, and
+/// the schedule baseline. The score's own arithmetic — need, debt, quality, the
+/// breakdown — lives in SleepNeedTests.swift.
+///
+/// These were written against `SleepScore.evaluate`, which returned a percent built from
+/// duration times continuity times schedule. That engine has been replaced by one that
+/// scores the night against a computed need. The cases below survived because they are
+/// about reading samples honestly, which did not change: an unobserved gap is still not
+/// sleep, and conflicting sources still do not add up to a confident number.
+@Suite("Sleep, read from samples")
+struct SleepSampleTests {
     var calendar: Calendar {
         var result = Calendar(identifier: .gregorian)
         result.timeZone = TimeZone(secondsFromGMT: 0)!
@@ -22,31 +31,23 @@ struct SleepScoreTests {
         ]
         return SleepAggregator.byWakeDay(samples, calendar: calendar)[calendar.startOfDay(for: end)]!
     }
+    func score(_ breakdown: SleepBreakdown?, hours: Double?,
+               history: [SleepBreakdown] = []) -> SignalScore {
+        SleepScore.of(SleepInput(breakdown: breakdown, durationHours: hours,
+                                 history: history,
+                                 priorNights: Array(repeating: 8.0, count: 7),
+                                 calendar: calendar))
+    }
+    func continuity(_ result: SignalScore) -> Double? {
+        result.contributors.first { $0.id == "continuity" }?.value
+    }
 
     @Test("Eight hours with recorded awakenings scores below eight consolidated hours")
     func equalDurationDifferentContinuity() throws {
-        let consolidated = SleepScore.evaluate(breakdown: night(19), durationHours: 8)
-        let fragmented = SleepScore.evaluate(breakdown: night(19, awake: 2), durationHours: 8)
-        #expect(try #require(fragmented.percent) < #require(consolidated.percent))
-        #expect(fragmented.continuityPercent == 80)
-        #expect(fragmented.percent == 80)
-    }
-
-    @Test("Duration alone cannot claim sleep quality or a perfect sleep score")
-    func durationOnly() {
-        let result = SleepScore.evaluate(breakdown: nil, durationHours: 8)
-        #expect(result.percent == nil)
-        #expect(result.durationPercent == 100)
-        #expect(result.continuityPercent == nil)
-        #expect(result.coverage == .durationOnly)
-    }
-
-    @Test("Missing sleep and invalid numbers remain missing")
-    func invalidDuration() {
-        for value in [Double.nan, .infinity, -1, 0] {
-            #expect(SleepScore.evaluate(breakdown: nil, durationHours: value).percent == nil)
-        }
-        #expect(SleepScore.evaluate(breakdown: nil, durationHours: nil).coverage == .missing)
+        let consolidated = score(night(19), hours: 8)
+        let fragmented = score(night(19, awake: 2), hours: 8)
+        #expect(try #require(fragmented.value) < #require(consolidated.value))
+        #expect(continuity(fragmented) == 80)
     }
 
     @Test("Conflicting awake and asleep sources do not become reliable continuity")
@@ -56,7 +57,9 @@ struct SleepScoreTests {
             SleepInterval(start: date(19, 2), end: date(19, 3), stage: .awake),
         ]
         let breakdown = SleepAggregator.byWakeDay(samples, calendar: calendar)[calendar.startOfDay(for: date(19))]
-        #expect(SleepScore.evaluate(breakdown: breakdown, durationHours: 8).percent == nil)
+        let result = score(breakdown, hours: 8)
+        #expect(continuity(result) == nil)
+        #expect(result.missing.contains { $0.localizedCaseInsensitiveContains("continuity") })
     }
 
     @Test("Unobserved gaps between stage samples are not assumed asleep or awake")
@@ -66,7 +69,7 @@ struct SleepScoreTests {
             SleepInterval(start: date(19, 3), end: date(19, 7), stage: .core),
         ]
         let breakdown = SleepAggregator.byWakeDay(samples, calendar: calendar)[calendar.startOfDay(for: date(19))]
-        #expect(SleepScore.evaluate(breakdown: breakdown, durationHours: 7).percent == nil)
+        #expect(continuity(score(breakdown, hours: 7)) == nil)
     }
 
     @Test("A trustworthy in-bed window also establishes recorded efficiency")
@@ -76,35 +79,29 @@ struct SleepScoreTests {
             SleepInterval(start: date(18, 23), end: date(19, 7), stage: .unspecified),
         ]
         let breakdown = SleepAggregator.byWakeDay(samples, calendar: calendar)[calendar.startOfDay(for: date(19))]
-        #expect(SleepScore.evaluate(breakdown: breakdown, durationHours: 8).continuityPercent == 80)
+        #expect(continuity(score(breakdown, hours: 8)) == 80)
     }
 
-    @Test("A week of observed schedules can reduce a shifted night's heuristic")
+    @Test("A week of observed schedules can reduce a shifted night's score")
     func regularityUsesActualTimes() throws {
         let history = (11...17).map { night($0) }
-        let stable = SleepScore.evaluate(breakdown: night(19), durationHours: 8, history: history, calendar: calendar)
+        let stable = score(night(19), hours: 8, history: history)
         var shifted = night(19)
         shifted.primarySleepStart = shifted.primarySleepStart?.addingTimeInterval(2 * 3600)
         shifted.primarySleepEnd = shifted.primarySleepEnd?.addingTimeInterval(2 * 3600)
-        let irregular = SleepScore.evaluate(breakdown: shifted, durationHours: 8, history: history, calendar: calendar)
-        #expect(try #require(irregular.percent) < #require(stable.percent))
-        #expect(stable.baselineNights == 7)
-        #expect(SleepScore.evaluate(breakdown: night(19), durationHours: 8, history: Array(history.prefix(6)), calendar: calendar).regularityPercent == nil)
+        let irregular = score(shifted, hours: 8, history: history)
+        #expect(try #require(irregular.value) < #require(stable.value))
+        #expect(stable.contributors.contains { $0.id == "schedule" })
+        #expect(!score(night(19), hours: 8, history: Array(history.prefix(6)))
+            .contributors.contains { $0.id == "schedule" })
     }
 
     @Test("Schedule baseline excludes today future stale and duplicate nights")
     func scheduleBoundaries() {
         let history = [night(19), night(20)] + Array(repeating: night(18), count: 8)
-        let result = SleepScore.evaluate(breakdown: night(19), durationHours: 8, history: history, calendar: calendar)
-        #expect(result.baselineNights == 1)
-        #expect(result.regularityPercent == nil)
-    }
-
-    @Test("Long durations and invalid targets cannot overflow the score")
-    func bounds() throws {
-        let value = SleepScore.evaluate(breakdown: night(19), durationHours: 24)
-        #expect(try #require(value.percent) <= 100)
-        #expect(SleepScore.evaluate(breakdown: night(19), durationHours: 8, targetHours: 0).percent == nil)
+        let result = score(night(19), hours: 8, history: history)
+        #expect(!result.contributors.contains { $0.id == "schedule" },
+                "one distinct prior night is not a schedule baseline")
     }
 }
 

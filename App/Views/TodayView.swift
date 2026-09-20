@@ -266,9 +266,7 @@ struct TodayView: View {
             WeightTrendCard(latest: model.latestWeight, series: model.series.compactMap(\.bodyMassKg),
                 metric: model.onboarding.unitsAreMetric, onLog: { loggingWeight = true })
         case .sleepQuality:
-            SleepQualityCard(night: today?.sleep, summary: model.sleepScore.continuityPercent.map {
-                "\($0)% recorded sleep continuity. Tap Sleep above for the score breakdown."
-            } ?? "Duration recorded. More sleep detail is needed for a score.")
+            SleepQualityCard(night: today?.sleep, summary: model.sleepScore.summary)
         case .movement:
             MovementCard(activeEnergy: today?.activeEnergyKcal, steps: today?.steps, exerciseMinutes: today?.exerciseMinutes)
         case .healthMonitor:

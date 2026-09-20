@@ -31,6 +31,25 @@ public enum ScoreBand: String, Sendable, Codable, Equatable {
         default: return .red
         }
     }
+
+    /// Stricter than recovery, because sleep is a share of what the night needed to be.
+    /// Half your need is not an average night, it is a bad one.
+    public static func sleep(percent: Double) -> ScoreBand {
+        switch percent {
+        case 85...: return .green
+        case 70..<85: return .yellow
+        default: return .red
+        }
+    }
+
+    public static func strain(value: Double) -> ScoreBand {
+        switch value {
+        case 18...: return .allOut
+        case 14..<18: return .hard
+        case 10..<14: return .moderate
+        default: return .light
+        }
+    }
 }
 
 /// How a single input is doing, in the three steps a person can act on.
@@ -110,20 +129,62 @@ public struct SignalScore: Sendable, Equatable, Codable {
     public let coverage: ScoreCoverage
     /// Human-readable, for the coverage note.
     public let missing: [String]
+    /// Where the contributors count from. Recovery starts at the middle of its scale and
+    /// moves either way; strain accumulates from nothing; sleep is a full night you lose
+    /// points against. The rows always sum to `value - neutral`, whichever it is, so the
+    /// screen can render all three without knowing which signal it is looking at.
+    public let neutral: Double
     /// Set when something overrode the weighted result. The screen has to show it, or
     /// the contributors will not explain the number they sit under.
     public let gate: ReadinessGate?
     public let modelVersion: String
 
+    public func contributor(_ id: String) -> ScoreContributor? {
+        contributors.first { $0.id == id }
+    }
+
+    /// One sentence naming what actually moved the number, or what is missing.
+    ///
+    /// Generic on purpose: it reads the contributors rather than knowing which signal it
+    /// is describing, so a new input starts appearing here the day it starts counting.
+    public var summary: String {
+        guard let value else {
+            guard let first = missing.first else { return "Nothing recorded for this yet." }
+            return "Waiting on \(first.lowercased())."
+        }
+        let rounded = value.formatted(.number.precision(.fractionLength(0...1)))
+        guard let lead = contributors.first, abs(lead.magnitude) >= 1 else {
+            return "\(rounded)\(unitSuffix), with nothing standing out."
+        }
+        let direction = lead.magnitude > 0 ? "pushed it up" : "pulled it down"
+        let detail: String
+        if let measured = lead.value {
+            let formatted = measured.formatted(.number.precision(.fractionLength(0...1)))
+            if let comparison = lead.comparison, let label = lead.comparisonLabel {
+                detail = " — \(formatted)\(lead.unit.isEmpty ? "" : " " + lead.unit) against "
+                       + "\(label) of \(comparison.formatted(.number.precision(.fractionLength(0...1))))"
+            } else {
+                detail = " — \(formatted)\(lead.unit.isEmpty ? "" : " " + lead.unit)"
+            }
+        } else {
+            detail = ""
+        }
+        return "\(rounded)\(unitSuffix). \(lead.title) \(direction) most\(detail)."
+    }
+
+    private var unitSuffix: String { kind == .strain ? "" : "%" }
+
     public init(kind: SignalKind, value: Double?, band: ScoreBand?,
                 contributors: [ScoreContributor], coverage: ScoreCoverage,
-                missing: [String] = [], gate: ReadinessGate? = nil, modelVersion: String) {
+                missing: [String] = [], neutral: Double = 0,
+                gate: ReadinessGate? = nil, modelVersion: String) {
         self.kind = kind
         self.value = value
         self.band = band
         self.contributors = contributors
         self.coverage = coverage
         self.missing = missing
+        self.neutral = neutral
         self.gate = gate
         self.modelVersion = modelVersion
     }
@@ -191,6 +252,7 @@ public enum RecoveryScore {
                                        readings: readings, history: history),
             coverage: coverage,
             missing: missing,
+            neutral: neutral,
             gate: result.gateApplied,
             modelVersion: result.modelVersion)
     }

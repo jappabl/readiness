@@ -164,7 +164,7 @@ struct MovementCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Movement").sectionHeading()
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 20) {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
                     Image(systemName: "flame.fill").foregroundStyle(Tokens.strainDeep)
                     Text(activeEnergy.map { $0.formatted(.number.precision(.fractionLength(0))) } ?? "—")
@@ -176,10 +176,10 @@ struct MovementCard: View {
                     Spacer()
                     Label(exerciseMinutes.map { "\($0.formatted(.number.precision(.fractionLength(0)))) min" } ?? "No exercise yet", systemImage: "figure.run")
                 }.font(.subheadline).foregroundStyle(.secondary)
-                if activeEnergy == nil && steps == nil && exerciseMinutes == nil {
-                    Text("No movement recorded today.").font(.footnote).foregroundStyle(.secondary)
-                }
-            }.bevelCard()
+                // No summary line under the two that already said it. "No steps yet, no
+                // exercise yet, no movement recorded today" is the same sentence three
+                // times, and the third one is the only one carrying no number.
+            }.bevelCard(padding: 18)
         }
     }
 }

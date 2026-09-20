@@ -53,6 +53,17 @@ struct DailyPhysiology: Sendable, Equatable {
     var caffeineMg: Double?
     var alcoholicDrinks: Double?
 
+    // The day's heart rate in buckets, which is what a load model needs: an average and
+    // a maximum cannot tell forty hard minutes from a steady walk that reached the same
+    // peak. Empty means it was never fetched or the watch was off, never a quiet day.
+    var heartRateSamples: [HeartRateSample] = []
+
+    /// Averaged over the night's sleep window, and over the waking hours that were not
+    /// exercise. The pair is the overnight dip, which is the single clearest sign a night
+    /// was restorative rather than merely long.
+    var sleepingHeartRate: Double?
+    var wakingHeartRate: Double?
+
     // Training as the watch saw it, which is not the same as what the user logged here.
     var workoutCount: Int?
     var workoutMinutes: Double?

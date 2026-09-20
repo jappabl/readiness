@@ -87,8 +87,9 @@ struct SignalDetailView: View {
                          $0.formatted(.number.precision(.fractionLength(1))) } ?? "—",
                      unit: "h")
             StatCard(symbol: "moon.zzz", label: "Continuity",
-                     value: model.sleepScore.continuityPercent.map(String.init) ?? "—",
-                     unit: model.sleepScore.continuityPercent == nil ? nil : "%")
+                     value: model.sleepScore.contributor("continuity")?.value
+                         .map { String(Int($0.rounded())) } ?? "—",
+                     unit: model.sleepScore.contributor("continuity") == nil ? nil : "%")
 
         case .strain:
             StatCard(symbol: "flame", label: model.dailyStrain?.metric.label ?? "Activity today",
@@ -160,8 +161,7 @@ struct SignalDetailView: View {
             return model.sleepScore.summary
 
         case .strain:
-            return model.dailyStrain?.summary
-                ?? "No activity recorded in Health today. Connect Health or check the activity data you share."
+            return model.strainScore(context: context).summary
         }
     }
 

@@ -22,7 +22,14 @@ public struct BaselineSummary: Equatable, Sendable {
         value.isFinite && value >= low && value <= high
     }
 
-    public static func of(_ values: [Double]) -> BaselineSummary? {
+    /// `minimumDeviation` sets the narrowest band this quantity can have.
+    ///
+    /// The default floor of half a unit suits the streams this was written for — a
+    /// resting heart rate, an HRV in milliseconds. It is nonsense for a quantity that
+    /// lives between zero and one: a deep-sleep share of 0.15 against a floor of 0.5
+    /// makes every night exactly average, forever. Anything scored on a fraction has to
+    /// pass its own floor.
+    public static func of(_ values: [Double], minimumDeviation: Double? = nil) -> BaselineSummary? {
         let usable = values.filter(\.isFinite)
         guard usable.count >= minimumReadings else { return nil }
 
@@ -32,7 +39,15 @@ public struct BaselineSummary: Equatable, Sendable {
 
         // A band of zero width contains exactly one value, which is useless to draw and
         // reads as a claim of impossible precision. Give a flat history a hair of room.
-        if deviation <= 0 { deviation = max(abs(mean) * 0.01, 0.5) }
+        // An explicit floor is a property of the quantity and always applies: a history
+        // with almost no spread would otherwise turn a small move into a z-score of a
+        // thousand. Without one, only a perfectly flat history is widened, which is the
+        // behaviour the streams this was built for already depend on.
+        if let minimumDeviation {
+            deviation = Swift.max(deviation, minimumDeviation)
+        } else if deviation <= 0 {
+            deviation = Swift.max(abs(mean) * 0.01, 0.5)
+        }
 
         return BaselineSummary(mean: mean, deviation: deviation, count: usable.count)
     }
