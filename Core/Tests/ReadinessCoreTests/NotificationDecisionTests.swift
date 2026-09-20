@@ -198,4 +198,22 @@ struct NotificationDecisionTests {
             record: first!.record))
         #expect(second?.moment == .bedtimeTarget)
     }
+
+    /// `morningThenBedtime` never actually tests priority: its first call has a bedtime
+    /// that is not due yet, and its second call has a morning already sent, so
+    /// `bedtimeTarget` and `morningVerdict` respectively were never going to fire there
+    /// regardless of which is tried first. This is the one call where both are eligible
+    /// at once, so only priority order decides.
+    @Test("when both are eligible in the same call, the morning verdict wins on priority alone")
+    func morningOutranksBedtimeWhenBothEligible() {
+        let bedtime = morning.addingTimeInterval(14 * 3600)
+        let now = bedtime.addingTimeInterval(-30 * 60)
+        let outcome = NotificationDecision.next(input(
+            now: now,
+            recovery: score(.recovery, value: 41, magnitude: -11),
+            tonightsNeed: SleepNeed(hours: 8.9, baseline: 8.0, debt: 0.2,
+                                    strainAdjustment: 0.7, napCredit: 0),
+            usualBedtime: bedtime))
+        #expect(outcome?.moment == .morningVerdict)
+    }
 }
