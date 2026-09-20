@@ -50,7 +50,7 @@ struct InsightsView: View {
                     Button("Done") { dismiss() }.tint(Tokens.textPrimary)
                 }
             }
-            .sheet(item: $detail) { ContributorDetail(contributor: $0, tint: colour($0.state)) }
+            .sheet(item: $detail) { ContributorDetail(contributor: $0, tint: colour($0)) }
         }
     }
 
@@ -103,13 +103,13 @@ struct InsightsView: View {
             HStack(spacing: 0) {
                 Image(systemName: contributor.symbol)
                     .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(colour(contributor.state))
+                    .foregroundStyle(colour(contributor))
                     .frame(height: 20)
                 Spacer(minLength: 4)
                 if let arrow = direction(contributor) {
                     Image(systemName: arrow)
                         .font(.system(size: 13, weight: .bold))
-                        .foregroundStyle(colour(contributor.state))
+                        .foregroundStyle(colour(contributor))
                 }
             }
 
@@ -136,7 +136,7 @@ struct InsightsView: View {
             .lineLimit(1)
             .minimumScaleFactor(0.65)
 
-            ComparisonBar(contributor: contributor, tint: colour(contributor.state))
+            ComparisonBar(contributor: contributor, tint: colour(contributor))
                 .padding(.top, 10)
         }
         .padding(14)
@@ -216,6 +216,22 @@ struct InsightsView: View {
     private func measured(_ value: Double, _ unit: String) -> String {
         if unit.isEmpty { return formatted(value) }
         return unit == "%" ? formatted(value) + unit : formatted(value) + " " + unit
+    }
+
+    /// Recovery and sleep colour by how the row is doing. Strain does not have a "doing
+    /// well" axis — half an hour near threshold is not good news or bad news, it is hard
+    /// — so its tiles colour by effort instead, which is the thing worth seeing at a
+    /// glance. Everything blue said nothing.
+    private func colour(_ contributor: ScoreContributor) -> Color {
+        guard score.kind == .strain else { return colour(contributor.state) }
+        guard let reserve = StrainScore.zones.first(where: { $0.id == contributor.id })?.lowerReserve
+        else { return Tokens.accent }
+        switch reserve {
+        case 0.85...: return Tokens.strainDeep
+        case 0.75..<0.85: return Tokens.strainLow
+        case 0.45..<0.75: return Tokens.accent
+        default: return Tokens.textSecondary
+        }
     }
 
     private func colour(_ state: ContributorState) -> Color {
