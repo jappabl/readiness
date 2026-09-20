@@ -122,11 +122,13 @@ struct SignalDetailView: View {
             // so it defaulted to true and every arrow on this screen was green — a resting
             // heart rate ten beats above baseline drew a green arrow here and a red one on
             // the two screens that show the same row.
-            let favourable = reading.zScore * kind.polarity >= 0
+            // The quantity this metric is scored on, so this screen and the insights grid
+            // cannot point opposite ways about the same metric on the same morning.
+            let favourable = reading.scoringZ * kind.polarity >= 0
             StatCard(symbol: symbol, label: label,
-                     value: reading.value.formatted(.number.precision(.fractionLength(1))),
+                     value: reading.scoringValue.formatted(.number.precision(.fractionLength(1))),
                      unit: reading.kind.unit,
-                     trend: reading.zScore >= 0 ? .up : .down,
+                     trend: reading.scoringZ >= 0 ? .up : .down,
                      trendFavourable: favourable)
         } else {
             StatCard(symbol: symbol, label: label, value: "—")
@@ -139,10 +141,14 @@ struct SignalDetailView: View {
         switch signal {
         case .recovery:
             guard let reading = model.reading(.hrv) else { return "Still building your baseline." }
-            let value = reading.value.formatted(.number.precision(.fractionLength(1)))
+            // The week, which is what HRV is scored on, not last night. This sentence and
+            // the insights row behind the info button disagreed in sign on a fifth of
+            // mornings, because one read the reading and the other read the trend.
+            let value = reading.scoringValue.formatted(.number.precision(.fractionLength(1)))
             let baseline = reading.baseline.formatted(.number.precision(.fractionLength(1)))
-            let direction = reading.zScore < 0 ? "below" : "above"
-            return "Your resting HRV (\(value) ms) is \(direction) its average of \(baseline) ms."
+            let direction = reading.scoringZ < 0 ? "below" : "above"
+            return "Your resting HRV has averaged \(value) ms this week, \(direction) "
+                 + "its usual \(baseline) ms."
 
         case .sleep, .strain:
             return score.summary

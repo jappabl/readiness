@@ -33,12 +33,27 @@ enum DayAssembler {
     /// The same twenty-eight nights the card and the score read, so all three agree.
     static let debtNights = 28
 
+    /// How stale the sleep record may be before the balance stops being a measurement.
+    /// A week: the decay's own memory is about that, so past it the number is a fade
+    /// rather than an observation.
+    static let recencyNights = 7
+
     private static func debtReading(_ series: [DailyPhysiology]) -> MetricReading? {
         // Dense by calendar night: an unrecorded night fades the balance rather than
         // freezing it, so the nights that passed have to be here.
         let all = series.map(\.sleepHours)
         let recorded = all.compactMap { $0 }
         guard recorded.count >= 2 else { return nil }
+        // And something recorded *recently*. The balance decays per night that passed, so
+        // a record that simply stops produces a number fading smoothly to zero — and zero
+        // is this metric's best possible reading. Somebody who slept with the watch for two
+        // months and then stopped ended up at 0.0 h, "You are not down on sleep", a full
+        // green bar, an up arrow, `.optimal`, and coverage `.full`: the app fully confident
+        // about sleep it had not seen for a month, and the heaviest input in the model
+        // voting favourably on nothing at all. Worth 8.4 points, always toward "nothing to
+        // see". Not knowing has to look like not knowing.
+        let recent = all.suffix(recencyNights).compactMap { $0 }
+        guard recent.count >= 1 else { return nil }
         let debt = SleepDebt.of(nights: all)
         return MetricReading(kind: .sleepDebt,
                              value: debt.hours,
@@ -48,7 +63,9 @@ enum DayAssembler {
                              // How much history stands behind it, not how far the
                              // balance looks back — those were only ever the same
                              // number by coincidence, and the window has moved.
-                             sampleCount: recorded.count)
+                             // Nights actually behind this balance, not rows in the
+                             // record: confidence should not outlive the data.
+                             sampleCount: min(recorded.count, debt.nights))
     }
 
     static func assemble(series: [DailyPhysiology], acwr: Double? = nil,
@@ -91,9 +108,15 @@ enum DayAssembler {
 
         // HealthKit stores an absolute sleeping wrist temperature, not a deviation.
         // The deviation is only meaningful against this user's own baseline.
+        // Calendar days, like everything else. This was the last reading-count window in
+        // the app, and it arms the harshest override in the model: sixty *readings* of
+        // wrist temperature reach back 106 calendar days at four nights of wear a week, so
+        // a slow seasonal drift could read as a fever against a baseline from three months
+        // ago. Measured, the false-gate rate ran 4.7x to 19x the calendar-window one.
         var wristDeviation: Double?
-        let wristSeries = series.compactMap(\.wristTemperatureC)
-        if wristSeries.count >= 14, let result = BaselineEngine.evaluate(series: wristSeries),
+        let wrist = series.map(\.wristTemperatureC)
+        if wrist.suffix(BaselineEngine.windowDays).compactMap({ $0 }).count >= 14,
+           let result = BaselineEngine.evaluate(daily: wrist),
            let current = today.wristTemperatureC {
             wristDeviation = current - result.mean
         }

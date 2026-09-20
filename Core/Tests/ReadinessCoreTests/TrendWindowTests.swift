@@ -77,4 +77,41 @@ struct TrendWindowTests {
         #expect(BaselineEngine.evaluate(daily: Array(repeating: nil, count: 30)) == nil)
         #expect(BaselineEngine.evaluate(daily: []) == nil)
     }
+
+    /// A week off, then one night back. The trend exists to stop a single night deciding
+    /// the score, and renormalising over the recorded days handed that night the whole of
+    /// the missing week's weight: 65% of its own "seven-day trend" after seven days off,
+    /// 93% after a fortnight. One ordinary-ish night read past the composite clamp.
+    @Test("one night back after a gap is not a week's trend",
+          arguments: [3, 5, 7, 14, 21])
+    func oneNightDoesNotBecomeTheTrend(gap: Int) throws {
+        // Settled, with the ordinary night-to-night variation a real record has — a flat
+        // line has no spread, so nothing can be unusual against it.
+        var values: [Double?] = (0..<120).map { 55.0 + (Double($0 % 7) - 3) * 0.8 }
+        values.append(contentsOf: Array(repeating: nil, count: gap))
+        values.append(51.0)
+        let result = try #require(BaselineEngine.evaluate(daily: values))
+        // The night itself is well below baseline; the week it lands in mostly is not.
+        #expect(result.zScore < -1)
+        let message = "after \(gap) days off the trend was \(result.trendZScore) "
+            + "against today's \(result.zScore)"
+        #expect(result.trendZScore > result.zScore * 0.75, "\(message)")
+    }
+
+    /// And a fully worn record is unaffected: there is no missing weight to place.
+    @Test("a complete record places no weight on the mean")
+    func fullWearUnchanged() throws {
+        let values: [Double?] = (0..<90).map { 55.0 + (Double($0 % 7) - 3) * 1.2 }
+        let result = try #require(BaselineEngine.evaluate(daily: values))
+        // Reconstruct the plain normalised decay over the same record.
+        var weighted = 0.0, weights = 0.0
+        for (offset, value) in values.reversed().enumerated() {
+            let w = pow(BaselineEngine.trendRetention, Double(offset))
+            weighted += (value ?? 0) * w
+            weights += w
+        }
+        let plain = (weighted / weights - result.mean) / result.sd
+        #expect(abs(result.trendZScore - plain) < 0.02,
+                "full wear diverged: \(result.trendZScore) against \(plain)")
+    }
 }

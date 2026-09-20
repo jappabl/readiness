@@ -24,23 +24,31 @@ public enum MetricNarration {
     /// Fewer points than this and an extreme means nothing.
     static let minimumWindow = 5
 
-    public static func brief(reading: MetricReading, series: [Double]) -> String {
-        brief(value: reading.value, zScore: reading.zScore, series: series)
+    public static func brief(reading: MetricReading, series: [Double],
+                             spanDays: Int? = nil) -> String {
+        brief(value: reading.value, zScore: reading.zScore, series: series,
+              spanDays: spanDays)
     }
 
     /// The same sentence for a quantity that is not one of the scored metrics. Nothing
     /// here ever depended on the kind — only on where the value sits in its own history —
     /// and requiring a `MetricKind` meant sleep duration could not be described at all.
-    public static func brief(value: Double, zScore: Double, series: [Double]) -> String {
-        if let extreme = extremeNote(value: value, zScore: zScore, series: series) {
+    /// `spanDays` is how many calendar days the series covers, when that is not simply
+    /// its length. A chart's points are its *recordings*, so counting them and calling the
+    /// answer days told a four-nights-a-week wearer "Lowest in 16 days" about a window
+    /// twenty-eight days wide.
+    public static func brief(value: Double, zScore: Double, series: [Double],
+                             spanDays: Int? = nil) -> String {
+        if let extreme = extremeNote(value: value, zScore: zScore, series: series,
+                                     spanDays: spanDays) {
             return extreme
         }
         guard abs(zScore) >= usualBand else { return unremarkable }
         return Self.capitalised(deviation(zScore))
     }
 
-    private static func extremeNote(value: Double, zScore: Double,
-                                    series: [Double]) -> String? {
+    private static func extremeNote(value: Double, zScore: Double, series: [Double],
+                                    spanDays: Int? = nil) -> String? {
         guard series.count >= minimumWindow,
               abs(zScore) >= usualBand,
               let low = series.min(), let high = series.max(),
@@ -48,8 +56,9 @@ public enum MetricNarration {
 
         // Compared against the drawn window, so the words match the picture.
         let tolerance = (high - low) * 0.02
-        if value <= low + tolerance { return "Lowest in \(series.count) days" }
-        if value >= high - tolerance { return "Highest in \(series.count) days" }
+        let days = spanDays ?? series.count
+        if value <= low + tolerance { return "Lowest in \(days) days" }
+        if value >= high - tolerance { return "Highest in \(days) days" }
         return nil
     }
 

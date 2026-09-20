@@ -507,7 +507,10 @@ final class AppModel {
     /// `[chart:sleepDebt]` drew nothing at all. Silently: the prompt tells the model a
     /// chart replaces the sentence it would have written, so it withheld the number too,
     /// for the heaviest input in the whole model.
-    func chartValues(_ kind: MetricKind, days: Int = 28) -> [Double] {
+    /// How wide a chart's window is, in calendar days.
+    static let chartDays = 28
+
+    func chartValues(_ kind: MetricKind, days: Int = chartDays) -> [Double] {
         metricHistory(days: days)[kind] ?? []
     }
 

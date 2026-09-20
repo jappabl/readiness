@@ -257,7 +257,10 @@ struct CoachChartCard: View {
                 // A line on its own is a shape. This is the sentence that makes it a
                 // reason, and it is read off the data rather than written by the model.
                 if let reading {
-                    Text(MetricNarration.brief(reading: reading, series: values))
+                    // The window is twenty-eight calendar days however many of them
+                    // recorded, so the sentence counts days rather than points.
+                    Text(MetricNarration.brief(reading: reading, series: values,
+                                               spanDays: AppModel.chartDays))
                         .font(.system(size: 12, weight: .medium))
                         .foregroundStyle(Tokens.textTertiary)
                 }

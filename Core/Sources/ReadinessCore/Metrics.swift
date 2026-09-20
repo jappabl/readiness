@@ -112,6 +112,16 @@ public struct MetricReading: Sendable, Equatable, Codable {
     /// What the engine actually weighs. The same as `zScore` for every metric except
     /// HRV, which is scored on its trend — see `MetricKind.scoresOnTrend`.
     public let scoringZ: Double
+    /// The value that `scoringZ` describes — the same as `value` for every metric except
+    /// HRV, where it is the trend rather than last night's reading.
+    ///
+    /// A row that scores one quantity and prints another says two things at once. The HRV
+    /// tile read "67.7 ms against your normal of 57.1" with a red down arrow, because the
+    /// number was last night and the arrow was the week; the two disagreed in sign on a
+    /// fifth of mornings. Worse across screens: the detail sheet drew its arrow from last
+    /// night and the insights grid from the week, so one metric pointed opposite ways on
+    /// two screens of the same app.
+    public let scoringValue: Double
     public let sampleCount: Int
 
     /// Whether the measurement itself sits above its baseline.
@@ -125,12 +135,13 @@ public struct MetricReading: Sendable, Equatable, Codable {
     public var isFavourable: Bool { zScore * kind.polarity >= 0 }
 
     public init(kind: MetricKind, value: Double, baseline: Double, zScore: Double,
-                scoringZ: Double? = nil, sampleCount: Int) {
+                scoringZ: Double? = nil, scoringValue: Double? = nil, sampleCount: Int) {
         self.kind = kind
         self.value = value
         self.baseline = baseline
         self.zScore = zScore
         self.scoringZ = scoringZ ?? zScore
+        self.scoringValue = scoringValue ?? value
         self.sampleCount = sampleCount
     }
 }

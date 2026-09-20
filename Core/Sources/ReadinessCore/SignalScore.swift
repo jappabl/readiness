@@ -468,7 +468,11 @@ public enum RecoveryScore {
                 // debt 0 h" under a full bar and an up arrow is the less wrong of the two
                 // on a tile that cannot explain itself.
                 title: contribution.kind.displayName,
-                value: owesNothing ? 0 : reading?.value,
+                // The value `scoringZ` describes, so the number, the bar, the arrow and
+                // the points on this row are all about one quantity. For HRV that is the
+                // trend; last night's reading stays on the detail sheet, where it is what
+                // the chart is drawing anyway.
+                value: owesNothing ? 0 : reading?.scoringValue,
                 unit: contribution.kind.unit,
                 comparison: isDebt ? nil : reading?.baseline,
                 comparisonLabel: reading == nil || isDebt ? nil : "your normal",

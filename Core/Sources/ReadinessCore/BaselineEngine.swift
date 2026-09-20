@@ -21,8 +21,11 @@ public enum BaselineEngine {
     /// and a flat seven-day average has a mean data age of exactly 3 days and rests on
     /// exactly 7 readings. An exponential with retention r has mean age r/(1-r) and an
     /// effective sample size of (1+r)/(1-r); at 0.75 those are 3 and 7 exactly. So this is
-    /// the same estimator, moved onto a calendar axis — identical on a perfectly worn
-    /// record, and different only where days are missing, which is the whole problem.
+    /// the same estimator by those two measures, moved onto a calendar axis. Not the same
+    /// *numbers*: even on a perfect record it moves a score by about 2 points on average,
+    /// and changes a band on 2.3% of mornings. Measured against noise-free physiology that
+    /// movement is an improvement, and the gap it closes is much larger — but "identical"
+    /// would be wrong, and the next reader would use it as an invariant.
     ///
     /// The problem being: `suffix(7)` of a list whose missing days have been compacted out
     /// is seven readings, not seven days. At four nights of wear a week it spans twelve
@@ -59,9 +62,18 @@ public enum BaselineEngine {
         let variance = window.reduce(0) { $0 + ($1 - mean) * ($1 - mean) } / Double(window.count)
         let sd = variance.squareRoot()
 
-        // Each day back keeps `trendRetention` of the weight of the day after it, and the
-        // weights are normalised over the days that actually recorded — so a missing day
-        // contributes nothing rather than letting an older one stand in its place.
+        // Each day back keeps `trendRetention` of the weight of the day after it. The
+        // weight of the days that recorded nothing goes to the baseline mean, not to the
+        // days that did.
+        //
+        // Renormalising over the recorded days was the obvious thing and it was wrong: it
+        // hands whatever survives the gap the whole of the missing weight. After a week
+        // off, today's reading carried 65% of its own "seven-day trend" and after a
+        // fortnight 93% — so one night back read -1.64, past the clamp, and put the ring at
+        // 32 red where the old estimator said 46.9. The trend exists precisely to stop one
+        // night doing that. Measured against noise-free truth this is better at every wear
+        // pattern and identical at full wear, where there is no missing weight to place.
+        let fullWeight = 1 / (1 - trendRetention)
         var weighted = 0.0
         var weights = 0.0
         for index in stride(from: todayIndex, through: 0, by: -1) {
@@ -70,7 +82,7 @@ public enum BaselineEngine {
             weighted += value * weight
             weights += weight
         }
-        let trend = weights > 0 ? weighted / weights : today
+        let trend = (weighted + (fullWeight - weights) * mean) / fullWeight
 
         let meaningful = sd > Swift.max(abs(mean) * relativeSpreadFloor, .leastNormalMagnitude)
         return BaselineResult(mean: mean, sd: sd, sampleCount: window.count,
@@ -118,6 +130,8 @@ public enum BaselineEngine {
         return MetricReading(kind: kind, value: today, baseline: result.mean,
                              zScore: result.zScore,
                              scoringZ: kind.scoresOnTrend ? result.trendZScore : result.zScore,
+                             scoringValue: kind.scoresOnTrend
+                                 ? result.mean + result.trendZScore * result.sd : today,
                              sampleCount: result.sampleCount)
     }
 }
