@@ -71,9 +71,13 @@ struct ScoringRobustnessTests {
         let result = ReadinessEngine.evaluate(
             ReadinessInput(readings: [spike], daysOfHistory: 60))
 
-        // Scored on -0.4, not on -3.0: the composite is a weighted mean of scoring z.
-        #expect(abs(result.composite - (-0.4)) < 0.0001,
+        // Scored on -0.4, not on -3.0. The composite is no longer -0.4 exactly, because
+        // a single metric is damped rather than renormalised to the full weight — but it
+        // is nowhere near what the raw z would have produced, which is what this asserts.
+        let weight = try! #require(result.contributions.first).weight
+        #expect(abs(result.composite - (-0.4 * weight)) < 0.0001,
                 "composite was \(result.composite); the engine is still reading the raw z")
+        #expect(result.composite > -0.5, "a smoothed metric produced a raw-z composite")
     }
 
     @Test("sleep and resting heart rate now outweigh HRV")

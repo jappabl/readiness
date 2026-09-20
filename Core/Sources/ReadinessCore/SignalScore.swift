@@ -174,8 +174,12 @@ public struct SignalScore: Sendable, Equatable, Codable {
             guard let first = missing.first else { return "Nothing recorded for this yet." }
             return "Waiting on \(first.lowercased())."
         }
-        guard let lead = contributors.first, abs(lead.magnitude) >= 1 else {
-            return "Nothing stood out today."
+        // Five points, not one. One point of recovery is three minutes of sleep or a
+        // tenth of a beat, so the sentence used to lead on pure noise — "heart rate
+        // variability pushed it up most" off a 0.8 ms wobble.
+        guard let lead = contributors.first, abs(lead.magnitude) >= 5 else {
+            return gate.map { "\($0.displayName) is what matters today." }
+                ?? "Nothing stood out today."
         }
         let direction = lead.magnitude > 0 ? "pushed it up" : "pulled it down"
         let detail: String
@@ -223,7 +227,24 @@ public enum RecoveryScore {
     /// history would guarantee everybody the same distribution of green days, which is a
     /// percentile, not a score. Here a given physiological deviation always reads the
     /// same, for everyone — which is the whole claim an absolute scale makes.
-    public static let compositeScale = 0.6
+    public static let compositeScale = 0.75
+
+    /// The most a single input can move the composite on its own.
+    ///
+    /// Without it one metric could red-line the ring by itself: a resting heart rate two
+    /// beats above normal, with every other reading exactly average, produced a 34 and a
+    /// "reduce" order. No one measurement is worth that much, and the whole argument for
+    /// a weighted composite is that they vote together.
+    public static let contributionClamp = 0.35
+
+    /// Below this share of the total weight, the composite is damped rather than
+    /// renormalised to full confidence.
+    ///
+    /// Renormalising over whatever survived meant a single blood-oxygen reading 0.8
+    /// points low — a 0.07-weight metric — produced exactly the same score as a full
+    /// panel saying the same thing, because it inherited the entire vote of the four
+    /// streams that were missing. It stops voting; it does not get to vote for everyone.
+    public static let minimumConfidentWeight = 0.5
 
     /// Where the neutral day sits. Half the scale, by construction.
     public static let neutral = 50.0
@@ -246,7 +267,7 @@ public enum RecoveryScore {
         // The gate is the score, when there is one. A morning clamped for illness that
         // still displayed its ungated number would put a green ring above "recover".
         let ungated = percent(composite: result.composite)
-        let value = result.gateApplied == nil ? ungated : min(ungated, gatedCeiling)
+        let value = result.gateApplied.map { min(ungated, ceiling(for: $0)) } ?? ungated
 
         let voted = Set(result.contributions.map(\.kind))
         let missing = ReadinessEngine.weights.keys
@@ -254,11 +275,14 @@ public enum RecoveryScore {
             .map(\.displayName)
             .sorted()
 
+        // A thin baseline outranks a missing stream: it is the one that makes every
+        // number softer. It used to be unreachable whenever anything was absent, so a
+        // day-8 score was presented with exactly the confidence of a day-60 one.
         let coverage: ScoreCoverage
-        if !missing.isEmpty {
-            coverage = .partial
-        } else if result.confidence == .low {
+        if result.confidence == .low {
             coverage = .buildingBaseline
+        } else if !missing.isEmpty {
+            coverage = .partial
         } else {
             coverage = .full
         }
@@ -276,9 +300,19 @@ public enum RecoveryScore {
             modelVersion: result.modelVersion)
     }
 
-    /// A gated day is at the bottom of the scale by definition, because the gate means
-    /// the weighted inputs are no longer the story.
-    static let gatedCeiling = 8.0
+    /// What each gate caps the score at.
+    ///
+    /// Illness is the bottom of the scale: the weighted inputs are no longer the story.
+    /// A load spike is not — its own explanation says it "cannot make a good morning
+    /// bad", and it used to take seventy-six points off one, producing a red ring above
+    /// an at-baseline state and a "maintain". It caps at the top of yellow instead,
+    /// which is what cancelling a green light actually means.
+    static func ceiling(for gate: ReadinessGate) -> Double {
+        switch gate {
+        case .elevatedWristTemperature: return 8
+        case .acuteLoadSpike: return 66
+        }
+    }
 
     private static func contributors(_ result: ReadinessResult, ungated: Double, value: Double,
                                      readings: [MetricReading],
@@ -300,6 +334,10 @@ public enum RecoveryScore {
         var rows = result.contributions.map { contribution in
             let reading = readings.first { $0.kind == contribution.kind }
             let aligned = contribution.zScore * contribution.kind.polarity
+            // `points` is already weighted and clamped, so dividing back out recovers
+            // the aligned z the engine used.
+            let scoringAligned = contribution.weight > 0
+                ? contribution.points / contribution.weight : aligned
             return ScoreContributor(
                 id: contribution.kind.rawValue,
                 title: contribution.kind.displayName,
@@ -307,8 +345,12 @@ public enum RecoveryScore {
                 unit: contribution.kind.unit,
                 comparison: reading?.baseline,
                 comparisonLabel: reading == nil ? nil : "your normal",
-                state: .from(alignedZ: aligned),
-                level: Percentile.fromZ(aligned),
+                // Both read the z the engine actually weighed, not today's raw one.
+                // For HRV — the only metric scored on its trend — those differ, and the
+                // row could show an alarming red dot beside a magnitude saying it barely
+                // mattered, which is the screen arguing with itself.
+                state: .from(alignedZ: scoringAligned),
+                level: Percentile.fromZ(scoringAligned),
                 symbol: contribution.kind.symbol,
                 magnitude: contribution.points * ratio,
                 explanation: contribution.kind.explanation,
@@ -319,7 +361,11 @@ public enum RecoveryScore {
         // The gate earns its own row, carrying whatever distance it moved the score that
         // the weighted inputs did not. Without it the rows would describe the morning the
         // user would have had, sitting under the number they actually got.
-        if let gate = result.gateApplied {
+        // Only when it actually moved something. On a morning already below the
+        // ceiling the gate changes nothing, and a zero-magnitude row at the top made
+        // `summary` — which reads the leading row — announce "Nothing stood out today"
+        // under the worst score the model can produce.
+        if let gate = result.gateApplied, abs(value - ungated) > 0.01 {
             rows.insert(ScoreContributor(
                 id: gate.rawValue,
                 title: gate.displayName,

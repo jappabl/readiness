@@ -32,12 +32,18 @@ struct RecoveryTransferTests {
         #expect(try #require(score(composite: 0).value) == 50)
     }
 
+    /// Re-pointed when compositeScale moved from 0.6 to 0.75. At 0.6 the score was
+    /// over-spread — at a realistic correlation between the inputs it ordered a healthy
+    /// person to recover one day in five.
+    /// The transfer itself, not a morning run through the engine: past about a standard
+    /// deviation the per-contribution clamp starts holding individual inputs back, so a
+    /// uniform morning no longer lands on its own number. That clamp is deliberate and
+    /// has its own tests; this is the curve underneath it.
     @Test("the band edges sit where the spec says", arguments: [
-        (0.26, 67), (-0.26, 33), (1.20, 98), (-1.20, 2),
+        (0.3299, 67), (-0.3299, 33), (1.5403, 98), (-1.5403, 2), (0.0, 50),
     ])
-    func bandEdges(composite: Double, percent: Int) throws {
-        let value = try #require(score(composite: composite).value)
-        #expect(Int(value.rounded()) == percent)
+    func bandEdges(composite: Double, percent: Int) {
+        #expect(Int(RecoveryScore.percent(composite: composite).rounded()) == percent)
     }
 
     /// Under the old transfer this day read as 17. The point of the change is that a
@@ -45,13 +51,13 @@ struct RecoveryTransferTests {
     @Test("a bad morning reaches the bottom of the scale")
     func badMorningIsLow() throws {
         let value = try #require(score(composite: -1.0).value)
-        #expect(value < 6, "a composite of -1.0 read as \(value)")
+        #expect(value < 10, "a composite of -1.0 read as \(value)")
     }
 
     @Test("a good morning reaches the top of the scale")
     func goodMorningIsHigh() throws {
         let value = try #require(score(composite: 1.0).value)
-        #expect(value > 94, "a composite of 1.0 read as \(value)")
+        #expect(value > 90, "a composite of 1.0 read as \(value)")
     }
 
     @Test("the transfer never leaves 0...100")
@@ -107,8 +113,8 @@ struct RecoveryBandTests {
             switch result.state {
             case .aboveBaseline: #expect(percent >= 67)
             case .atBaseline: #expect(percent >= 34 && percent < 67)
-            case .belowBaseline: #expect(percent >= 15 && percent < 34)
-            case .wellBelowBaseline: #expect(percent < 15)
+            case .belowBaseline: #expect(percent >= 10 && percent < 34)
+            case .wellBelowBaseline: #expect(percent < 10)
             }
         }
     }
@@ -134,8 +140,8 @@ struct RecoveryBandTests {
             switch RecommendationEngine.trainingState(for: composite) {
             case .push: #expect(percent >= 67)
             case .maintain: #expect(percent >= 34 && percent < 67)
-            case .reduce: #expect(percent >= 15 && percent < 34)
-            case .recover: #expect(percent < 15)
+            case .reduce: #expect(percent >= 10 && percent < 34)
+            case .recover: #expect(percent < 10)
             }
         }
     }
@@ -259,5 +265,99 @@ struct ScoreCoverageTests {
         #expect(result.gate == .elevatedWristTemperature)
         #expect(try #require(result.value) < 15,
                 "a gated day cannot still show the ungated number")
+    }
+}
+
+@Suite("No single input runs the ring")
+struct SingleInputTests {
+
+    /// One metric could red-line the whole score. A resting heart rate two beats above
+    /// normal, with every other reading exactly average, produced a 34 and a "reduce".
+    @Test("one metric alone cannot leave the middle band")
+    func oneMetricCannotRedLine() throws {
+        for kind in ReadinessEngine.weights.keys {
+            for z in [2.0, 3.0, 5.0] {
+                let readings = ReadinessEngine.weights.keys.map {
+                    reading($0, z: $0 == kind ? z * -$0.polarity : 0)
+                }
+                let value = try #require(RecoveryScore.of(ReadinessEngine.evaluate(
+                    ReadinessInput(readings: readings, daysOfHistory: 60))).value)
+                #expect(value >= 25,
+                        "\(kind) alone at \(z) SD dragged the whole score to \(value)")
+            }
+        }
+    }
+
+    /// Renormalising over whatever survived handed the absent streams' votes to whoever
+    /// showed up: a lone blood-oxygen reading — weight 0.07 — scored the same as a full
+    /// panel saying the same thing.
+    @Test("a lone light-weight metric does not score like a full panel")
+    func loneMetricIsDamped() throws {
+        let alone = try #require(RecoveryScore.of(ReadinessEngine.evaluate(
+            ReadinessInput(readings: [reading(.bloodOxygen, z: -1.0)],
+                           daysOfHistory: 60))).value)
+        #expect(alone > 35, "one blood oxygen reading scored the day at \(alone)")
+    }
+
+    /// But a thin panel still has to be able to say something.
+    @Test("a partial panel still moves")
+    func partialPanelStillWorks() throws {
+        let readings = [reading(.hrv, z: -2.0), reading(.restingHeartRate, z: 2.0),
+                        reading(.sleepDebt, z: 2.0)]
+        let value = try #require(RecoveryScore.of(ReadinessEngine.evaluate(
+            ReadinessInput(readings: readings, daysOfHistory: 60))).value)
+        #expect(value < 25, "three streams all badly down only reached \(value)")
+    }
+}
+
+@Suite("Gates say what they mean")
+struct GateContractTests {
+
+    /// The load-spike gate's own explanation says it "cannot make a good morning bad".
+    /// It took seventy-six points off one, producing a red ring above an at-baseline
+    /// state and a "maintain" — the exact disagreement the score mapping exists to stop.
+    @Test("a load spike cancels a green light without making the day red")
+    func loadSpikeCapsRatherThanCrushes() throws {
+        let result = RecoveryScore.of(ReadinessEngine.evaluate(
+            ReadinessInput(readings: morning(goodness: 1.0), acwr: 1.8, daysOfHistory: 60)))
+        let value = try #require(result.value)
+        #expect(value < 67, "the spike did not cancel the green light")
+        #expect(value >= 34, "the spike crushed the day to \(value)")
+        #expect(result.band == .yellow)
+    }
+
+    @Test("illness still takes the day to the bottom")
+    func illnessCrushes() throws {
+        let result = RecoveryScore.of(ReadinessEngine.evaluate(
+            ReadinessInput(readings: morning(goodness: 2.0),
+                           wristTemperatureDeviationC: 0.8, daysOfHistory: 60)))
+        #expect(try #require(result.value) < 10)
+    }
+
+    /// On a morning already below the ceiling the gate changes nothing, and a
+    /// zero-magnitude row at the top of the list made the summary announce "Nothing
+    /// stood out today" under the worst score the model can produce.
+    @Test("a gate that moved nothing is not listed, and the summary still says something")
+    func gateThatChangedNothing() {
+        let result = RecoveryScore.of(ReadinessEngine.evaluate(
+            ReadinessInput(readings: morning(goodness: -2.5),
+                           wristTemperatureDeviationC: 0.8, daysOfHistory: 60)))
+        #expect(!result.contributors.contains { $0.id == ReadinessGate.elevatedWristTemperature.rawValue })
+        #expect(!result.summary.contains("Nothing stood out"))
+    }
+}
+
+@Suite("A thin baseline says so")
+struct ThinBaselineTests {
+
+    /// `.buildingBaseline` used to be unreachable whenever any stream was absent, so a
+    /// day-8 score was presented with exactly the confidence of a day-60 one.
+    @Test("a thin baseline outranks a missing stream in the coverage note")
+    func thinBaselineWins() {
+        let partial = ReadinessEngine.weights.keys.filter { $0 != .bloodOxygen }
+            .map { reading($0, z: 0) }
+        let result = RecoveryScore.of(ReadinessEngine.evaluate(
+            ReadinessInput(readings: partial, daysOfHistory: 5)))
+        #expect(result.coverage == .buildingBaseline)
     }
 }

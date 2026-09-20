@@ -460,7 +460,8 @@ final class AppModel {
         return RecoveryScore.of(day.readiness, readings: day.readings, history: metricHistory())
     }
 
-    var recoveryPercent: Int? { recoveryScore.value.map { Int($0.rounded()) } }
+    /// Floored at 1: a measured zero and a missing measurement must not render alike.
+    var recoveryPercent: Int? { recoveryScore.value.map { max(1, Int($0.rounded())) } }
 
     /// The trailing values behind each contributor, for the chart its row expands to.
     private func metricHistory(days: Int = 28) -> [MetricKind: [Double]] {
@@ -499,7 +500,7 @@ final class AppModel {
             sleepingHeartRate: current?.sleepingHeartRate,
             daytimeHeartRate: current?.wakingHeartRate))
     }
-    var sleepPercent: Int? { sleepScore.value.map { Int($0.rounded()) } }
+    var sleepPercent: Int? { sleepScore.value.map { max(1, Int($0.rounded())) } }
 
     /// Kept as the labelled fallback for anybody without a heart rate trace.
     var dailyStrain: DailyStrainResult? {

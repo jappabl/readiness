@@ -16,6 +16,15 @@ private func heartRate(atReserve fraction: Double, resting: Double = 50,
     resting + fraction * (maximum - resting)
 }
 
+/// Sixteen waking hours at an unremarkable desk-job heart rate, which is what the
+/// engine actually gets handed every day and what none of the first tests supplied.
+private func wakingDay(at heartRate: Double = 70) -> [HeartRateSample] {
+    (0..<192).map {
+        HeartRateSample(start: Date().addingTimeInterval(Double($0) * 300),
+                        minutes: 5, beatsPerMinute: heartRate)
+    }
+}
+
 private func input(_ samples: [HeartRateSample] = [], hardSets: Int = 0,
                    resting: Double? = 50, age: Int? = 30,
                    sex: HealthProfile.BiologicalSex? = .male,
@@ -109,9 +118,13 @@ struct TrimpTests {
 @Suite("The 0 to 21 map")
 struct StrainCurveTests {
 
+    /// Re-anchored when the curve moved from 40/400 to 20/650. The old pair spent six
+    /// of the twenty-one points below anything anybody would call training, and put a
+    /// three-hour easy ride at 19.4 — "all out" — while a genuinely epic day clamped at
+    /// the same 21 as a hard hour and a half.
     @Test("the anchors sit where the spec says", arguments: [
-        (0.0, 0.00), (20.0, 3.55), (40.0, 6.07), (121.6, 12.23),
-        (200.0, 15.69), (300.0, 18.74), (400.0, 21.00),
+        (0.0, 0.000), (20.0, 4.145), (40.0, 6.570), (100.0, 10.715),
+        (141.6, 12.495), (300.0, 16.581), (650.0, 21.000),
     ])
     func anchors(load: Double, expected: Double) {
         #expect(abs(StrainScore.strain(load: load) - expected) < 0.02,
@@ -120,7 +133,7 @@ struct StrainCurveTests {
 
     @Test("the scale stops at 21 rather than running off the end")
     func clamped() {
-        #expect(StrainScore.strain(load: 1000) == 21)
+        #expect(StrainScore.strain(load: 2000) == 21)
         #expect(StrainScore.strain(load: -5) == 0)
     }
 
@@ -146,9 +159,19 @@ struct MuscularLoadTests {
 
     /// Lifting is invisible to a heart rate measure — a heavy triple barely moves the
     /// average — so hard sets carry their own load, and Insights shows both.
-    @Test("twenty hard sets is worth forty")
+    @Test("twenty hard sets is worth a hundred")
     func hardSets() {
-        #expect(StrainScore.muscularLoad(hardSets: 20) == 40)
+        #expect(StrainScore.muscularLoad(hardSets: 20) == 100)
+    }
+
+    /// At the old 2.0 a set was worth half a minute of jogging and lifting alone could
+    /// not leave the bottom band until about forty-three sets, which no lifter would
+    /// accept. Twenty hard sets is a real session and should read as one.
+    @Test("a real lifting session reaches the middle of the scale")
+    func liftingReachesModerate() throws {
+        let value = try #require(StrainScore.of(input(hardSets: 20)).value)
+        #expect(value >= 10, "20 hard sets read as \(value)")
+        #expect(ScoreBand.strain(value: value) == .moderate)
     }
 
     @Test("a lifting session with no cardiac trace still produces strain")
@@ -257,9 +280,20 @@ struct StrainCoverageTests {
 
     @Test("everything present reads as full coverage")
     func fullCoverage() {
-        let result = StrainScore.of(input(minutes(40, at: 150), hardSets: 6))
+        let result = StrainScore.of(input(wakingDay() + minutes(40, at: 150), hardSets: 6))
         #expect(result.coverage == .full)
         #expect(result.missing.isEmpty)
+    }
+
+    /// A watch worn for four hours produces a real number out of a fifth of a day and
+    /// used to claim it had everything it wanted. Either the session was caught and
+    /// nothing around it was, or the session was missed and a hard day reads as a rest
+    /// day — silently, in both directions.
+    @Test("a barely worn watch says so")
+    func shortWearTime() {
+        let result = StrainScore.of(input(minutes(240, at: 120)))
+        #expect(result.coverage == .partial)
+        #expect(result.missing.contains { $0.localizedCaseInsensitiveContains("most of the day") })
     }
 
     @Test("nonsense samples are ignored rather than poisoning the total")
@@ -273,5 +307,57 @@ struct StrainCoverageTests {
         let result = StrainScore.of(input(samples))
         let clean = StrainScore.of(input(minutes(30, at: 150)))
         #expect(result.value == clean.value)
+    }
+}
+
+@Suite("A day of doing nothing")
+struct SedentaryDayTests {
+
+    /// The bug the whole recalibration exists for, and the one every earlier test
+    /// missed by feeding the engine half-hour toy traces instead of a day.
+    ///
+    /// Sixteen waking hours at 70 bpm is 87 TRIMP. On the old curve that was a strain
+    /// of 10 out of 21 — "moderate" — for somebody who did nothing whatsoever, rising
+    /// to "hard" at 80 bpm. A stressed or caffeinated person who never exercises read
+    /// as having trained, every single day, forever.
+    @Test("a desk day with no exercise stays in the bottom band", arguments: [68.0, 70.0, 75.0, 80.0])
+    func sedentaryStaysLight(restingAverage: Double) throws {
+        let result = StrainScore.of(input(wakingDay(at: restingAverage)))
+        let value = try #require(result.value)
+        #expect(value < 6, "doing nothing at \(restingAverage) bpm read as \(value)")
+        #expect(result.band == .light)
+    }
+
+    /// Fifteen hours of sitting used to outweigh a 45-minute run, so on a day somebody
+    /// ran, the top row of the breakdown was sitting down.
+    @Test("a run outranks the sitting around it")
+    func exerciseLeadsTheBreakdown() {
+        let result = StrainScore.of(input(wakingDay() + minutes(45, at: 145)))
+        #expect(result.contributors.first?.id != "zone0",
+                "the day's leading contributor was \(result.contributors.first?.title ?? "nothing")")
+    }
+
+    @Test("a run still moves the number")
+    func exerciseMoves() throws {
+        let idle = try #require(StrainScore.of(input(wakingDay())).value)
+        let ran = try #require(StrainScore.of(input(wakingDay() + minutes(45, at: 145))).value)
+        #expect(ran - idle > 4, "a 45 minute run moved it \(ran - idle)")
+    }
+
+    /// Capping what being awake can cost must not cap what it can show.
+    @Test("the capped minutes are still reported truthfully")
+    func minutesSurviveTheCap() throws {
+        let result = StrainScore.of(input(wakingDay()))
+        let everyday = try #require(result.contributors.first { $0.id == "zone0" })
+        #expect(everyday.value == 960)
+    }
+
+    /// The ceiling has to be out of reach of a normal hard day, or the top of the scale
+    /// is decoration. A three-hour easy ride used to read 19.4 — all out.
+    @Test("a long easy ride is hard, not all out")
+    func longRideIsNotAllOut() throws {
+        let ride = wakingDay() + minutes(180, at: 140)
+        let value = try #require(StrainScore.of(input(ride)).value)
+        #expect(value >= 14 && value < 18, "a 3 hour easy ride read as \(value)")
     }
 }

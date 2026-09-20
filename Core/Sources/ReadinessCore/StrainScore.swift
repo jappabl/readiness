@@ -70,8 +70,14 @@ public enum StrainScore {
     public static func maximumHeartRate(ageYears: Int?, observed: Double? = nil) -> Double {
         let predicted = ageYears.map { 208 - 0.7 * Double($0) } ?? assumedMaximumHeartRate
         guard let observed, observed.isFinite, observed > predicted else { return predicted }
-        return observed
+        // Bounded, because the observed maximum comes from HealthKit's raw daily peak
+        // and a single bad beat weeks ago would otherwise widen the reserve forever —
+        // quietly dropping every session since out of the band it belongs in.
+        return Swift.min(observed, predicted + observedMaximumHeadroom)
     }
+
+    /// How far above the formula a measured maximum is allowed to reach.
+    public static let observedMaximumHeadroom = 15.0
 
     /// Used when there is no date of birth. Roughly a forty-year-old, so it is wrong in
     /// both directions rather than systematically wrong in one.
@@ -111,10 +117,13 @@ public enum StrainScore {
     // MARK: - Muscular load
 
     /// A heavy triple barely moves an average heart rate, so lifting would be invisible
-    /// to a purely cardiac measure. Twenty hard sets lands at 40, which is about twenty
-    /// minutes of moderate cardio — the intended relative weight, and one constant to
-    /// retune if it reads wrong.
-    public static let hardSetLoad = 2.0
+    /// to a purely cardiac measure.
+    ///
+    /// Was 2.0, which put twenty hard sets at the cost of half an hour's jogging and
+    /// meant lifting alone could not leave the bottom band until about forty-three sets.
+    /// At 5.0 one hard set is worth roughly two minutes near threshold, twenty sets
+    /// reach "moderate", and a real session lands where a lifter would put it.
+    public static let hardSetLoad = 5.0
 
     public static func muscularLoad(hardSets: Int) -> Double {
         Double(max(0, hardSets)) * hardSetLoad
@@ -123,9 +132,15 @@ public enum StrainScore {
     // MARK: - The 0...21 map
 
     /// Curve shape. Smaller makes the bottom of the scale steeper.
-    public static let curveShape = 40.0
+    ///
+    /// Was 40 against a 400 ceiling, which spent six of the twenty-one points below
+    /// anything anybody would call training and let a three-hour easy ride read as all
+    /// out. 20 against 650 keeps the bottom honest and buys back the top: a five-hour
+    /// day for a fit athlete lands at 20 instead of slamming into the clamp, where a
+    /// marathon and a double both read 21.
+    public static let curveShape = 20.0
     /// The day's load that reads as a full 21.
-    public static let ceilingLoad = 400.0
+    public static let ceilingLoad = 650.0
     public static let scaleMax = 21.0
 
     public static func strain(load: Double) -> Double {
@@ -156,9 +171,28 @@ public enum StrainScore {
         Zone(id: "zone4", title: "Hard effort", lowerReserve: 0.80, symbol: "figure.run"),
         Zone(id: "zone3", title: "Moderate effort", lowerReserve: 0.70, symbol: "figure.run"),
         Zone(id: "zone2", title: "Light effort", lowerReserve: 0.60, symbol: "figure.walk.motion"),
-        Zone(id: "zone1", title: "Very light effort", lowerReserve: 0.50, symbol: "figure.walk.motion"),
+        // Starts at 0.40 rather than 0.50 so a brisk walk escapes the everyday bucket
+        // and its cap. Nothing in a desk trace reaches 0.40, so this does not leak.
+        Zone(id: "zone1", title: "Very light effort", lowerReserve: 0.40, symbol: "figure.walk.motion"),
         Zone(id: "zone0", title: "Everyday movement", lowerReserve: 0.0, symbol: "figure.walk"),
     ]
+
+    /// The most that being awake can contribute, in load.
+    ///
+    /// The bug this exists for: sixteen waking hours at an unremarkable 70 bpm is 87
+    /// load, which on the old curve was a strain of 10 out of 21 — "moderate" — for a
+    /// person who did nothing at all. Fifteen hours of sitting outweighed a 45-minute
+    /// run, so on a day somebody ran, the breakdown's top row was sitting down.
+    ///
+    /// Duration cannot be the answer below the first training zone: the cost per minute
+    /// is real but tiny, and a day is 1440 of them. Capping it keeps a long day on your
+    /// feet worth something without letting it become the day.
+    public static let everydayLoadCap = 20.0
+
+    /// Below this many minutes of heart rate, the day is a sample rather than a record.
+    /// Half a day, because a watch charged overnight and worn from nine to nine is the
+    /// normal case and should not be flagged.
+    public static let minimumWornMinutes = 720.0
 
     static func zone(forReserve reserve: Double) -> Zone {
         zones.first { reserve >= $0.lowerReserve } ?? zones[zones.count - 1]
@@ -192,6 +226,13 @@ public enum StrainScore {
                                                 heartRate: sample.beatsPerMinute,
                                                 resting: resting, maximum: maximum,
                                                 sex: input.biologicalSex)
+        }
+
+        // Everything under the first training zone is capped together: see
+        // `everydayLoadCap`. Applied after the zones are totalled so the minutes still
+        // show truthfully on the tile — it is the cost that is bounded, not the time.
+        if let everyday = loadByZone[zones[zones.count - 1].id] {
+            loadByZone[zones[zones.count - 1].id] = Swift.min(everyday, everydayLoadCap)
         }
 
         let total = loadByZone.values.reduce(0, +) + muscular
@@ -240,6 +281,14 @@ public enum StrainScore {
 
         var missing: [String] = []
         if samples.isEmpty { missing.append("Heart rate") }
+        // A watch worn for four hours produces a real number from a fifth of a day, and
+        // said nothing about it. Either the session was caught and everything around it
+        // was not, or the session was missed and a hard day reads as a rest day.
+        let worn = samples.reduce(0) { $0 + $1.minutes }
+        if !samples.isEmpty, worn < minimumWornMinutes {
+            missing.append("Most of the day — your heart rate was only recorded for "
+                           + "\(Int(worn / 60)) hours")
+        }
         if input.ageYears == nil { missing.append("Your age, so your maximum heart rate is assumed") }
         if input.restingHeartRate == nil { missing.append("Resting heart rate") }
         if input.biologicalSex == nil { missing.append("Biological sex") }
@@ -274,7 +323,10 @@ public enum StrainScore {
         return SignalScore(
             kind: .strain,
             value: value,
-            band: .strain(value: value),
+            // No band. A percentile of your own days is not a position on an absolute
+            // scale, and calling somebody's laziest-but-one day "all out" because it
+            // beat the other thirteen would be a lie told in colour.
+            band: nil,
             contributors: [ScoreContributor(
                 id: "activity",
                 title: fallback.metric.label,

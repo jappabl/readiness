@@ -75,9 +75,11 @@ struct SleepNeedTests {
         #expect(SleepNeed.of(priorNights: []).hours == SleepNeed.baselineHours)
     }
 
-    /// Each night's shortfall is measured against what that night needed, not against a
-    /// flat eight, so a debt built during a hard block is not understated.
-    @Test("debt is measured against each night's own need")
+    /// Was written when each night's shortfall was measured against that night's own
+    /// escalating need. It is measured against the flat baseline now — that escalation
+    /// was the ratchet — but the property it was really asserting still holds: a week of
+    /// short nights owes more than a single short night.
+    @Test("a short week owes more than a single short night")
     func recursiveNeed() {
         let flat = SleepNeed.of(priorNights: [8, 8, 8, 8, 8, 8, 6])
         let compounding = SleepNeed.of(priorNights: [6, 6, 6, 6, 6, 6, 6])
@@ -316,5 +318,121 @@ struct SleepCoverageTests {
                                               history: [], priorNights: [8, 8, 8]))
         #expect(result.coverage != .full)
         #expect(!result.missing.isEmpty)
+    }
+}
+
+@Suite("Sleep debt is not a ratchet")
+struct SleepDebtRepaymentTests {
+
+    /// The defect this suite exists for. Debt used to be measured against each night's
+    /// own escalating need and could only ever rise, so it compounded about half an hour
+    /// a night and nothing repaid it.
+    @Test("a run of long nights repays a bad one")
+    func surplusRepays() {
+        let need = SleepNeed.of(priorNights: [3, 10, 10, 10, 10, 10, 10])
+        #expect(need.debt == 0, "six ten-hour nights left a debt of \(need.debt)")
+        #expect(need.hours == SleepNeed.baselineHours)
+    }
+
+    /// Six minutes of habitual sleep used to cost sixteen points and a band: 8.0 h gave
+    /// a need of 8.0 and 7.9 h gave the maximum 9.5, so a 7.9-hour sleeper and a 5-hour
+    /// sleeper were told exactly the same thing.
+    @Test("there is no cliff just under eight hours")
+    func noCliff() {
+        let eight = SleepNeed.of(priorNights: Array(repeating: 8.0, count: 7))
+        let justUnder = SleepNeed.of(priorNights: Array(repeating: 7.9, count: 7))
+        #expect(justUnder.hours - eight.hours < 0.5,
+                "7.9h asked for \(justUnder.hours), 8.0h asked for \(eight.hours)")
+    }
+
+    /// Ordinary night-to-night variance was enough to pin the need at its maximum, which
+    /// put somebody averaging eight and a half hours in the yellow.
+    @Test("a normal week that averages enough owes nothing", arguments: [
+        [7.5, 8.5, 7.8, 8.2, 7.6, 8.4, 8.0],
+        [7.5, 9.5, 7.5, 9.5, 7.5, 9.5, 8.5],
+        [5.0, 8.5, 8.5, 8.5, 8.5, 8.5, 8.5],
+    ])
+    func varianceIsNotDebt(nights: [Double]) {
+        #expect(SleepNeed.of(priorNights: nights).debt < 0.01)
+    }
+
+    /// The same seven numbers in a different order used to give a different answer.
+    @Test("the order of a week does not change what it owes")
+    func orderIndependent() {
+        let week = [6.0, 9.0, 7.0, 9.5, 6.5, 8.5, 7.5]
+        #expect(SleepNeed.of(priorNights: week).debt
+                == SleepNeed.of(priorNights: week.reversed()).debt)
+    }
+
+    /// Still has to work: genuine chronic shortfall is what the mechanism is for.
+    @Test("a genuinely short week still owes")
+    func realDebtSurvives() {
+        let need = SleepNeed.of(priorNights: Array(repeating: 6.0, count: 7))
+        #expect(need.debt == SleepNeed.maximumDebtHours)
+        #expect(need.hours > SleepNeed.baselineHours)
+    }
+}
+
+@Suite("Measuring less never scores higher")
+struct SleepCoverageFairnessTests {
+
+    var calendar: Calendar {
+        var result = Calendar(identifier: .gregorian)
+        result.timeZone = TimeZone(secondsFromGMT: 0)!
+        return result
+    }
+    func date(_ day: Int) -> Date {
+        calendar.date(from: DateComponents(year: 2026, month: 9, day: day, hour: 7))!
+    }
+    /// `staged` false records the night the way a watch on a charger does: asleep, with
+    /// no stage detail at all.
+    func night(_ day: Int, hours: Double = 8, staged: Bool = true) -> SleepBreakdown {
+        let end = date(day)
+        let start = end.addingTimeInterval(-hours * 3600)
+        let samples: [SleepInterval] = staged
+            ? [SleepInterval(start: start, end: start.addingTimeInterval(hours * 0.15 * 3600), stage: .deep),
+               SleepInterval(start: start.addingTimeInterval(hours * 0.15 * 3600),
+                             end: start.addingTimeInterval(hours * 0.37 * 3600), stage: .rem),
+               SleepInterval(start: start.addingTimeInterval(hours * 0.37 * 3600), end: end, stage: .core)]
+            : [SleepInterval(start: start, end: end, stage: .unspecified)]
+        return SleepAggregator.byWakeDay(samples, calendar: calendar)[calendar.startOfDay(for: end)]!
+    }
+
+    func score(_ breakdown: SleepBreakdown?, staged: Bool = true) -> SignalScore {
+        SleepScore.of(SleepInput(breakdown: breakdown, durationHours: 8,
+                                 history: (1...14).map { night($0 + 1, staged: staged) },
+                                 priorNights: Array(repeating: 8.0, count: 7),
+                                 sleepingHeartRate: 56, daytimeHeartRate: 66,
+                                 calendar: calendar))
+    }
+
+    /// A phone with no sensors used to outscore an Apple Watch on the same night,
+    /// because every component it could not see was averaged in as flawless.
+    @Test("an unmeasured night cannot beat a measured good one")
+    func blindDoesNotWin() throws {
+        let measured = try #require(score(night(19)).value)
+        let unmeasured = try #require(
+            SleepScore.of(SleepInput(breakdown: nil, durationHours: 8,
+                                     priorNights: Array(repeating: 8.0, count: 7))).value)
+        #expect(unmeasured <= measured,
+                "measuring nothing scored \(unmeasured), measuring everything scored \(measured)")
+    }
+
+    /// A night recorded as plain "asleep" has no stages. That is not the same as a night
+    /// with no deep sleep in it, and the app used to say the second thing.
+    @Test("an unstaged night is not a night with no deep sleep")
+    func unstagedIsNotZero() {
+        let result = score(night(19, staged: false))
+        #expect(result.contributor("deep")?.value != 0,
+                "an unstaged night reported a measured zero hours of deep sleep")
+        #expect(result.missing.contains { $0.localizedCaseInsensitiveContains("deep") })
+    }
+
+    /// Being exactly your own normal is not a fault, and used to cost about five points
+    /// with the leading explanation naming a value identical to the person's average.
+    @Test("a completely typical night scores near the top")
+    func typicalNightIsNotPunished() throws {
+        let value = try #require(score(night(19)).value)
+        #expect(value > 95, "an utterly ordinary night scored \(value)")
     }
 }

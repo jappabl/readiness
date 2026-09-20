@@ -43,13 +43,18 @@ public struct SleepNeed: Sendable, Equatable {
                           napHours: Double? = nil) -> SleepNeed {
         let nights = priorNights.filter { $0.isFinite && $0 >= 0 }.suffix(debtWindow)
 
-        // Each night's shortfall is measured against what that night needed, not against
-        // a flat baseline, so a hole dug during a hard block is not understated. Resolved
-        // oldest first, because that is the order it happened in.
+        // Net, against the flat baseline, and a long night pays some of it back.
+        //
+        // This used to measure each night's shortfall against that night's own escalating
+        // need and never subtract, which made it a ratchet: debt only rose, and because
+        // the need rose with it, it compounded about half an hour a night. Six ten-hour
+        // nights could not repay one three-hour one. Anything habitually under 7 h 54 m
+        // pinned at the maximum, so a 7.9-hour sleeper and a 5-hour sleeper were told the
+        // same thing — and ordinary night-to-night variance was enough to do it, which
+        // put somebody averaging eight and a half hours in the yellow.
         var debt = 0.0
         for slept in nights {
-            let needThatNight = clamp(baselineHours + debt * repaymentFraction)
-            debt = Swift.min(maximumDebtHours, debt + Swift.max(0, needThatNight - slept))
+            debt = Swift.min(maximumDebtHours, Swift.max(0, debt + (baselineHours - slept)))
         }
 
         let adjustment = strain.map {
@@ -128,6 +133,15 @@ public enum SleepScore {
     /// rather than a claim about anybody's health.
     public static let fullDip = 0.15
 
+    /// Where the dip stops costing anything. AutoSleep calls 10-15% the normal band, and
+    /// scoring against the top of it meant a perfectly ordinary 10% dip lost points every
+    /// night of a person's life.
+    public static let normalDip = 0.12
+
+    /// What an unmeasured component is assumed to have been. A shade under a good night,
+    /// so an unmeasured night lands below a measured good one and above a measured bad one.
+    static let typicalComponentLevel = 0.9
+
     /// Shares live in 0...1, so their baseline band needs a floor of its own.
     static let shareDeviationFloor = 0.01
     static let hoursDeviationFloor = 0.1
@@ -147,9 +161,16 @@ public enum SleepScore {
                                 napHours: input.napHours)
         let performance = Swift.min(1, hours / need.hours)
 
+        // A component nobody measured counts as an ordinary one, never as a perfect one.
+        //
+        // Dropping the missing ones from the average meant a phone with no sensors
+        // scored 100 on a night an Apple Watch could only score 96 on, because every
+        // structural component it could not see was treated as flawless. Measuring less
+        // must not score higher.
         let components = quality(input)
-        let available = components.compactMap(\.fraction)
-        let fraction = available.isEmpty ? 1 : available.reduce(0, +) / Double(available.count)
+        let fraction = components
+            .map { $0.fraction ?? typicalComponentLevel }
+            .reduce(0, +) / Double(components.count)
         let qualityFactor = qualityFloor + (1 - qualityFloor) * fraction
         let value = perfect * performance * qualityFactor
 
@@ -230,20 +251,33 @@ public enum SleepScore {
         let night = input.breakdown
         let asleep = night?.asleepHours ?? 0
 
+        // A night recorded as plain "asleep" has no stages, and that is not the same as
+        // a night with no deep sleep in it. Without this the app told somebody whose
+        // watch was on the charger that they got zero hours of REM, and ranked it as the
+        // leading reason their night was poor.
+        let staged = (night.map { $0.deepHours + $0.remHours + $0.coreHours } ?? 0) > 0
+
         func share(_ keyPath: KeyPath<SleepBreakdown, Double>) -> Double? {
-            guard let night, asleep > 0 else { return nil }
+            guard let night, asleep > 0, staged else { return nil }
             return night[keyPath: keyPath] / asleep
         }
 
         /// Where tonight's value sits in this sleeper's own distribution, as 0...1.
         /// Higher is better, so an inverted quantity is flipped before it is read.
+        /// Recentred so that being typical is not a penalty.
+        ///
+        /// A plain Φ gives your own median 0.5, so an utterly ordinary night lost points
+        /// on every self-relative component and the leading reason for the loss was a
+        /// value identical to the person's own average. Doubling and clamping puts the
+        /// median at 1.0 and charges only the downside, which is the only side anybody
+        /// can act on.
         func relative(_ current: Double?, _ historic: [Double],
                       floor: Double, higherIsBetter: Bool = true) -> Double? {
             guard let current,
                   let summary = BaselineSummary.of(historic, minimumDeviation: floor)
             else { return nil }
             let z = (current - summary.mean) / summary.deviation
-            return Percentile.fromZ(higherIsBetter ? z : -z)
+            return Swift.min(1, 2 * Percentile.fromZ(higherIsBetter ? z : -z))
         }
 
         let historicShares = { (keyPath: KeyPath<SleepBreakdown, Double>) -> [Double] in
@@ -354,7 +388,7 @@ public enum SleepScore {
                 note: awakeUsual.map { "You normally lose about \(hours($0)) to being awake." }),
             Component(
                 id: dipContributorID, title: "Overnight heart rate drop",
-                fraction: dip.map { Swift.min(1, Swift.max(0, $0 / fullDip)) },
+                fraction: dip.map { Swift.min(1, Swift.max(0, $0 / normalDip)) },
                 value: dip.map { $0 * 100 }, unit: "%",
                 comparison: fullDip * 100, comparisonLabel: nil,
                 explanation: "How far your heart rate fell overnight against your "
@@ -413,11 +447,13 @@ public enum SleepScore {
             prior[day] = night
         }
         guard prior.count >= 7 else { return (nil, nil) }
+        // Bed time only. Using wake time as well meant any change in duration moved one
+        // of the two, so the ten-hour recovery night the need model had just asked for
+        // came back as the night's worst offender for irregularity.
+        _ = end
         let differences = prior.values.compactMap { night -> Double? in
-            guard let otherStart = night.primarySleepStart,
-                  let otherEnd = night.primarySleepEnd else { return nil }
-            return (clockDistance(start, otherStart, calendar: calendar)
-                    + clockDistance(end, otherEnd, calendar: calendar)) / 2
+            guard let otherStart = night.primarySleepStart else { return nil }
+            return clockDistance(start, otherStart, calendar: calendar)
         }.sorted()
         guard !differences.isEmpty else { return (nil, nil) }
         let middle = differences.count / 2

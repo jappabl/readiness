@@ -36,7 +36,7 @@ struct InsightsView: View {
                         LazyVGrid(columns: columns, spacing: 12) {
                             ForEach(score.contributors, id: \.id) { tile(for: $0) }
                         }
-                        if !score.missing.isEmpty { coverage }
+                        if score.coverage != .full { coverage }
                     }
                     .padding(.horizontal, Tokens.screenMargin)
                     .padding(.top, 4)
@@ -67,7 +67,7 @@ struct InsightsView: View {
     private var headline: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .firstTextBaseline, spacing: 4) {
-                Text(score.value.map { whole($0) } ?? "—")
+                Text(score.value.map { headlineScore($0) } ?? "—")
                     .font(.system(size: 52, weight: .semibold))
                     .monospacedDigit()
                     .foregroundStyle(Tokens.textPrimary)
@@ -203,6 +203,14 @@ struct InsightsView: View {
         value.formatted(.number.precision(.fractionLength(0)))
     }
 
+    /// Floored at 1 on the percent scales, because a measured 0 renders the same as no
+    /// measurement at all and the worst morning the model can produce is still a reading.
+    /// Strain is left alone: a day with the watch on and nothing done is a true zero.
+    private func headlineScore(_ value: Double) -> String {
+        guard score.kind != .strain, value > 0 else { return whole(value) }
+        return whole(Swift.max(1, value.rounded()))
+    }
+
     /// Up to one decimal, dropped when it is a zero. Rounding to whole numbers above ten
     /// put "15 br/min against your normal 14" on screen for 14.6 against 14.2 — a tenth
     /// of a breath shown as a whole one.
@@ -244,9 +252,13 @@ struct InsightsView: View {
 
     // MARK: - Coverage
 
+    /// Shown whenever coverage is not full — not only when something is named.
+    /// `.buildingBaseline` has an empty `missing` list and used to render nothing at
+    /// all, so a day-8 score appeared with exactly the confidence of a day-60 one.
     private var coverage: some View {
         VStack(alignment: .leading, spacing: 5) {
-            Text("Not counted today")
+            Label(coverageTitle, systemImage: score.coverage == .buildingBaseline
+                  ? "hourglass" : "minus.circle")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(Tokens.textSecondary)
             ForEach(score.missing, id: \.self) { item in
@@ -259,6 +271,14 @@ struct InsightsView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 4)
         .padding(.top, 2)
+    }
+
+    private var coverageTitle: String {
+        switch score.coverage {
+        case .buildingBaseline: return "Still learning your normal"
+        case .unavailable: return "Nothing recorded yet"
+        default: return "Not counted today"
+        }
     }
 }
 

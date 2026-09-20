@@ -64,7 +64,7 @@ public enum RecommendationEngine {
         switch RecoveryScore.percent(composite: composite) {
         case 67...: return .push
         case 34..<67: return .maintain
-        case 15..<34: return .reduce
+        case 10..<34: return .reduce
         default: return .recover
         }
     }

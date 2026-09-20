@@ -116,13 +116,20 @@ public enum ReadinessEngine {
 
         // Renormalise over the inputs actually present, so a missing stream dilutes
         // nothing — it simply stops voting.
+        // Renormalised over the inputs present, but only down to a floor. Above it, a
+        // missing stream stops voting and the rest carry the day as before; below it the
+        // composite is damped, because two metrics cannot speak for five.
+        let confidentWeight = Swift.max(totalWeight, RecoveryScore.minimumConfidentWeight)
         let contributions = present.map { reading -> InputContribution in
-            let weight = (weights[reading.kind] ?? 0) / totalWeight
+            let weight = (weights[reading.kind] ?? 0) / confidentWeight
             // The scoring z, not the displayed one: HRV is weighed on its trend.
             let clamped = Swift.min(Swift.max(reading.scoringZ, -zClamp), zClamp)
             let aligned = clamped * reading.kind.polarity
+            // No single input may leave the middle band on its own.
+            let points = Swift.min(Swift.max(weight * aligned, -RecoveryScore.contributionClamp),
+                                   RecoveryScore.contributionClamp)
             return InputContribution(kind: reading.kind, zScore: reading.zScore,
-                                     weight: weight, points: weight * aligned)
+                                     weight: weight, points: points)
         }
 
         let composite = contributions.reduce(0) { $0 + $1.points }
@@ -158,7 +165,7 @@ public enum ReadinessEngine {
         switch RecoveryScore.percent(composite: composite) {
         case 67...: return .aboveBaseline
         case 34..<67: return .atBaseline
-        case 15..<34: return .belowBaseline
+        case 10..<34: return .belowBaseline
         default: return .wellBelowBaseline
         }
     }

@@ -244,8 +244,13 @@ struct ReadinessConfidenceTests {
         let result = ReadinessEngine.evaluate(
             ReadinessInput(readings: [reading(.hrv, z: -2.0)], daysOfHistory: 60))
         #expect(result.contributions.count == 1)
-        #expect(result.state == .wellBelowBaseline,
+        // Was wellBelowBaseline. One metric alone is now damped and clamped, on purpose:
+        // renormalising to full weight handed the four absent streams' votes to whoever
+        // showed up, and a lone reading could order a rest day by itself. It still has to
+        // read the day rather than dilute toward zero, which is what this now asserts.
+        #expect(result.state == .belowBaseline,
                 "with only HRV present it should still read the day, not dilute toward zero")
+        #expect(result.composite < -0.2)
     }
 
     @Test("no readings at all is low confidence and at baseline rather than a crash")
