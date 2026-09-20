@@ -662,13 +662,23 @@ final class AppModel {
             // `healthReadAt` — the wall clock runs on while the samples do not.
             readAt: Calendar.current.isDateInToday(date)
                 ? (healthReadAt ?? Date())
-                : Calendar.current.startOfDay(for: date).addingTimeInterval(86_399),
+                // The end of that day, found rather than assumed: adding 86,399 seconds
+                // assumes a 24-hour day, so on a spring-forward date it lands an hour into
+                // the next one and reported the last hour as a hole, and on a fall-back
+                // date it stopped an hour short of the day's end.
+                : Calendar.current.startOfDay(for: Calendar.current.date(
+                    byAdding: .day, value: 1, to: date) ?? date).addingTimeInterval(-1),
             // The night's own wake time, which `primarySleepEnd` is only when the longest
             // episode of the day was a night. With none recorded, a nap became the "wake
             // time" and started the window in the afternoon, so a morning the watch spent
             // on the charger stopped being a hole at all: 22.5 against a true 73.0, called
             // a complete day. Nil falls back to what the clock can prove.
-            wokeAt: day?.sleep?.wakeTime,
+            // Every stretch of the day spent asleep, not just the one the day began with.
+            // A nap the wake time refused to trust was cut out of the trace anyway and
+            // then counted as unworn time, so a watch that never came off was reported as
+            // a part-recorded day whenever any sleep of 40 minutes to four hours had
+            // samples on both sides of it.
+            asleepPeriods: day?.sleep?.asleepPeriods ?? [],
             fallback: DailyStrain.evaluate(days: activity, on: date)))
     }
 
@@ -683,13 +693,19 @@ final class AppModel {
     /// the everyday load saturates either way — but it put "Everyday movement, 1,440 min"
     /// at the top of the breakdown on a rest day, under a sentence saying that was what
     /// did most of it.
+    /// The trace with the day's sleep taken out of it.
+    ///
+    /// Every asleep period, so this and the wear check agree about what sleep the day
+    /// held. They used to disagree: this cut out the primary episode whatever it was,
+    /// while the wear check only trusted an episode it considered a night, so an
+    /// untrusted episode was removed from the trace and then counted as a hole in it.
     private static func waking(_ day: DailyPhysiology?) -> [HeartRateSample] {
         guard let day else { return [] }
-        guard let start = day.sleep?.primarySleepStart,
-              let end = day.sleep?.primarySleepEnd, end > start else {
-            return day.heartRateSamples
+        let asleep = day.sleep?.asleepPeriods ?? []
+        guard !asleep.isEmpty else { return day.heartRateSamples }
+        return day.heartRateSamples.filter { sample in
+            !asleep.contains { $0.contains(sample.start) }
         }
-        return day.heartRateSamples.filter { $0.start < start || $0.start >= end }
     }
 
     /// The resting-rate baseline as it stood on a given day.

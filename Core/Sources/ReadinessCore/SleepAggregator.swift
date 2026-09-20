@@ -47,6 +47,13 @@ public struct SleepBreakdown: Sendable, Equatable {
     public var primarySleepStart: Date?
     public var primarySleepEnd: Date?
 
+    /// Every stretch of this wake day the person was asleep for, merged and in order.
+    ///
+    /// `byWakeDay` already unions these to total the night; it used to discard them. They
+    /// are what the strain wear check needs: a single wake instant cannot say that the
+    /// afternoon contained a nap, so time asleep was counted as time unrecorded.
+    public var asleepPeriods: [DateInterval] = []
+
     public init() {}
 
     /// How much of the night has to carry a stage before the record is describing its
@@ -95,8 +102,15 @@ public struct SleepBreakdown: Sendable, Equatable {
         return (deepHours * scale, remHours * scale, coreHours * scale)
     }
 
-    /// Shorter than this and the longest episode of the day was a nap, not a night.
-    public static let minimumNightHours = 4.0
+    /// A sleep starting before this hour is the one the day began with.
+    ///
+    /// Not a length. Round 7 guarded the wake time by episode length — trust it only for
+    /// four hours or more — and length cannot tell a night from a nap: a broken 3.5-hour
+    /// night is a night, and a 4.5-hour afternoon sleep is not. That guard was wrong in
+    /// both directions at once, hiding a 42-point hole after a short night and a 45-point
+    /// one after a long daytime sleep. When the sleep started is the thing that actually
+    /// separates them.
+    public static let latestWakingStartHour = 6.0
 
     /// When the waking day began, or nil when the record cannot say.
     ///
@@ -110,11 +124,8 @@ public struct SleepBreakdown: Sendable, Equatable {
     ///
     /// A short or broken night is not trusted either. The fallback is a bound the clock can
     /// prove, which is weaker but never points at the wrong hour.
-    public var wakeTime: Date? {
-        guard let start = primarySleepStart, let end = primarySleepEnd,
-              end.timeIntervalSince(start) >= Self.minimumNightHours * 3600
-        else { return nil }
-        return end
+    public func wakeTime(calendar: Calendar = .current) -> Date? {
+        WakingDay.start(of: asleepPeriods, calendar: calendar)
     }
 
     /// In-bed or awake records alone do not establish how long someone slept.
@@ -125,6 +136,29 @@ public struct SleepBreakdown: Sendable, Equatable {
     public var efficiency: Double? {
         guard inBedHours > 0 else { return nil }
         return min(1, asleepHours / inBedHours)
+    }
+}
+
+/// When a day's waking hours began, read off the sleep that ended them.
+///
+/// Shared, because the strain engine and the app both have to agree about it. They did
+/// not: one cut the day's primary sleep out of the heart-rate trace while the other only
+/// trusted an episode it considered long enough to be a night, so an episode the second
+/// rejected was removed from the trace by the first and then counted as a hole in it.
+public enum WakingDay {
+
+    /// The sleep the day began with: the earliest one that either ran in from yesterday
+    /// or started in the small hours. A sleep that began in the afternoon says nothing
+    /// about when the day started, however long it lasted.
+    public static func start(of periods: [DateInterval],
+                             calendar: Calendar = .current) -> Date? {
+        guard let dayStart = periods.first.map({ calendar.startOfDay(for: $0.end) })
+        else { return nil }
+        return periods.first {
+            $0.start < dayStart
+                || $0.start.timeIntervalSince(dayStart) / 3600
+                    < SleepBreakdown.latestWakingStartHour
+        }?.end
     }
 }
 
@@ -163,6 +197,9 @@ public enum SleepAggregator {
             let asleep = union(samples.filter { $0.stage.isAsleep })
             let episodeHours = asleep.reduce(0) { $0 + $1.hours }
             if episodeHours > 0 {
+                breakdown.asleepPeriods.append(
+                    contentsOf: asleep.map { DateInterval(start: $0.start, end: $0.end) })
+                breakdown.asleepPeriods.sort { $0.start < $1.start }
                 // Multiple disconnected sleep episodes cannot establish the continuity
                 // between them. Keep the duration, but do not silently fill the gaps.
                 breakdown.recordedContinuity = breakdown.asleepHours == 0

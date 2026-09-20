@@ -29,8 +29,15 @@ private func input(_ samples: [HeartRateSample] = [], hardSets: Int = 0,
                    resting: Double? = 50, age: Int? = 30,
                    sex: HealthProfile.BiologicalSex? = .male,
                    fallback: DailyStrainResult? = nil) -> StrainInput {
-    StrainInput(samples: samples, restingHeartRate: resting, ageYears: age,
-                biologicalSex: sex, hardSets: hardSets, fallback: fallback)
+    // Read after the last reading, not at the moment the fixture was built. These
+    // helpers start their samples at `Date()` and run forwards, so the default `readAt`
+    // sat before every one of them — a day whose trace is entirely in its own future,
+    // which no window can describe.
+    let last = samples.map { $0.start.addingTimeInterval($0.minutes * 60) }.max()
+    return StrainInput(samples: samples, restingHeartRate: resting, ageYears: age,
+                       biologicalSex: sex, hardSets: hardSets,
+                       readAt: last.map { Swift.max($0, Date()) } ?? Date(),
+                       fallback: fallback)
 }
 
 @Suite("Maximum heart rate")
@@ -442,10 +449,13 @@ struct WearTimeClockTests {
             HeartRateSample(start: start.addingTimeInterval(Double($0) * 300),
                             minutes: 5, beatsPerMinute: bpm)
         }
+        // The night that ended at `wokeAtHour`, which is what says when the day began.
+        let woke = midnight.addingTimeInterval(Double(wokeAtHour) * 3600)
         return StrainInput(samples: samples, restingHeartRate: 55, ageYears: 30,
                            biologicalSex: .male, hardSets: 0,
                            readAt: midnight.addingTimeInterval(Double(readAtHour) * 3600),
-                           wokeAt: midnight.addingTimeInterval(Double(wokeAtHour) * 3600))
+                           asleepPeriods: [DateInterval(
+                               start: woke.addingTimeInterval(-8 * 3600), end: woke)])
     }
 
     /// `elapsed` used to be derived from `span`, which made the test
@@ -510,7 +520,8 @@ struct WearTimeClockTests {
         let result = StrainScore.of(StrainInput(
             samples: samples, restingHeartRate: 55, ageYears: 30, biologicalSex: .male,
             hardSets: 0, readAt: midnight.addingTimeInterval(23 * 3600),
-            wokeAt: midnight.addingTimeInterval(7 * 3600)))
+            asleepPeriods: [DateInterval(start: midnight.addingTimeInterval(-3600),
+                                         end: midnight.addingTimeInterval(7 * 3600))]))
         #expect(result.coverage == .full, "a 30-minute charge was called a missing day")
     }
 }
@@ -593,7 +604,10 @@ struct WearGapTests {
         return StrainInput(samples: samples, restingHeartRate: 55, ageYears: 35,
                            biologicalSex: .male, hardSets: 0,
                            readAt: midnight.addingTimeInterval(readAtHour * 3600),
-                           wokeAt: wokeAtHour.map { midnight.addingTimeInterval($0 * 3600) })
+                           asleepPeriods: wokeAtHour.map {
+                               [DateInterval(start: midnight.addingTimeInterval(($0 - 8) * 3600),
+                                             end: midnight.addingTimeInterval($0 * 3600))]
+                           } ?? [])
     }
 
     /// The headline case, and the ordinary one: the watch comes off to train. Ninety
@@ -670,8 +684,7 @@ struct WearClockFloorTests {
         }
         return StrainInput(samples: samples, restingHeartRate: 55, ageYears: 35,
                            biologicalSex: .male, hardSets: 0,
-                           readAt: midnight.addingTimeInterval(readAtHour * 3600),
-                           wokeAt: nil)
+                           readAt: midnight.addingTimeInterval(readAtHour * 3600))
     }
 
     /// A lie-in is not a missing day. This is the false positive the allowance exists to
@@ -712,9 +725,56 @@ struct WearMessageTests {
                                        minutes: 20, beatsPerMinute: 80)]
         let result = StrainScore.of(StrainInput(
             samples: samples, restingHeartRate: 55, ageYears: 35, biologicalSex: .male,
-            hardSets: 0, readAt: midnight.addingTimeInterval(23 * 3600), wokeAt: nil))
+            hardSets: 0, readAt: midnight.addingTimeInterval(23 * 3600)))
         let line = result.missing.first { $0.localizedCaseInsensitiveContains("part of the day") }
         #expect(line?.contains("0 hours") != true, "said \"about 0 hours\": \(line ?? "nothing")")
         #expect(line?.contains("20 minutes") == true, "said \(line ?? "nothing")")
+    }
+}
+
+
+/// The breakdown has to add up to the ring, including in the ramp band where a sample's
+/// effort is split between training and simply being awake.
+///
+/// `magnitudesSum` pins this at reserve 0.70, where `trainingShare` is saturated and the
+/// split never happens, so the ramp was untested. A trace with no reading below 0.40
+/// reserve — a chest strap or a watch put on to train — filed everyday load to zone 0 and
+/// no minutes there, and a row is only drawn where there are minutes, so that load
+/// disappeared from the breakdown while staying in the ring: 21.19 against rows summing
+/// to 10.21, 52% unexplained.
+@Suite("The breakdown adds up inside the ramp")
+struct RampBandSumTests {
+
+    private func trace(bpm: Double, minutes: Int) -> StrainInput {
+        let start = Calendar.current.startOfDay(for: Date()).addingTimeInterval(9 * 3600)
+        let samples = (0..<minutes).map {
+            HeartRateSample(start: start.addingTimeInterval(Double($0) * 60),
+                            minutes: 1, beatsPerMinute: bpm)
+        }
+        return StrainInput(samples: samples, restingHeartRate: 55, ageYears: 35,
+                           biologicalSex: .male, hardSets: 0,
+                           readAt: start.addingTimeInterval(Double(minutes) * 60))
+    }
+
+    /// 108 bpm is reserve 0.41 for this profile — inside the 0.30–0.55 ramp, and above
+    /// the 0.40 line that decides which zone the sample is filed under.
+    @Test("a session-only trace inside the ramp still sums",
+          arguments: [(108.0, 45), (109.0, 60), (113.0, 90), (105.0, 30)])
+    func rampOnlyTraceSums(bpm: Double, minutes: Int) throws {
+        let result = StrainScore.of(trace(bpm: bpm, minutes: minutes))
+        let value = try #require(result.value)
+        let summed = result.contributors.reduce(0) { $0 + $1.magnitude }
+        #expect(abs(summed - value) < 0.01,
+                "\(minutes) min at \(bpm) bpm: ring \(value), rows \(summed)")
+    }
+
+    /// And the minutes still describe the day: no row may claim more of it than happened.
+    @Test("the rows do not invent minutes")
+    func minutesAreConserved() {
+        let result = StrainScore.of(trace(bpm: 108, minutes: 45))
+        let minutes = result.contributors
+            .filter { $0.unit == "min" }
+            .reduce(0) { $0 + ($1.value ?? 0) }
+        #expect(abs(minutes - 45) < 0.01, "rows account for \(minutes) of 45 minutes")
     }
 }

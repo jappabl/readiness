@@ -33,14 +33,11 @@ public struct StrainInput: Sendable {
     /// hours is a complete record at nine in the morning and a third of a record at six
     /// in the evening, and without one the span test had nothing to compare against.
     public let readAt: Date
-    /// When the day started, so the check knows how much of it there was to miss.
-    ///
-    /// Measuring from the first sample instead looks right and is not: a watch put on
-    /// late produces a trace running from that moment to now, so its span IS the elapsed
-    /// time and `span < elapsed × share` can never fire however late it went on. Fifty-
-    /// six minutes of a sixteen-hour day reported a complete record, with a morning
-    /// session showing as nothing at all.
-    public let wokeAt: Date?
+
+    /// Every stretch of the day spent asleep, so time in bed is not read as time the
+    /// watch was off. Without it a nap was a hole and a night the day started with was
+    /// the only sleep the check could reason about at all.
+    public let asleepPeriods: [DateInterval]
     /// What the ring showed before this engine existed. Used only when there is no
     /// cardiac trace at all, and always labelled.
     public let fallback: DailyStrainResult?
@@ -48,7 +45,7 @@ public struct StrainInput: Sendable {
     public init(samples: [HeartRateSample], restingHeartRate: Double?, ageYears: Int?,
                 biologicalSex: HealthProfile.BiologicalSex?,
                 observedMaxHeartRate: Double? = nil, hardSets: Int = 0,
-                readAt: Date = Date(), wokeAt: Date? = nil,
+                readAt: Date = Date(), asleepPeriods: [DateInterval] = [],
                 fallback: DailyStrainResult? = nil) {
         self.samples = samples
         self.restingHeartRate = restingHeartRate
@@ -57,7 +54,7 @@ public struct StrainInput: Sendable {
         self.observedMaxHeartRate = observedMaxHeartRate
         self.hardSets = hardSets
         self.readAt = readAt
-        self.wokeAt = wokeAt
+        self.asleepPeriods = asleepPeriods
         self.fallback = fallback
     }
 }
@@ -249,12 +246,12 @@ public enum StrainScore {
     /// The most of a day anybody is taken to have slept, used only when the night itself
     /// is unknown.
     ///
-    /// `wokeAt` is nil whenever the day carries no asleep-stage sample: the watch charged
-    /// overnight, sleep tracked on the phone alone, or sleep-analysis permission declined
-    /// — and in that last case it is nil on every day, permanently. Falling back to the
-    /// first sample is what made the wear check a tautology twice over, because a watch
-    /// put on late produces a trace whose start IS the window start, so there is no
-    /// leading gap left to find.
+    /// The waking day has no start whenever nothing the record calls sleep ended this
+    /// morning: the watch charged overnight, sleep tracked on the phone alone, or
+    /// sleep-analysis permission declined — and in that last case on every day,
+    /// permanently. Falling back to the first sample is what made the wear check a
+    /// tautology twice over, because a watch put on late produces a trace whose start IS
+    /// the window start, so there is no leading gap left to find.
     ///
     /// Without a wake time there is no honest way to place the start of the waking day,
     /// and guessing at one flags people who simply opened the card in the morning. What
@@ -324,14 +321,21 @@ public enum StrainScore {
         var minutesByZone: [String: Double] = [:]
         var loadByZone: [String: Double] = [:]
         var everydayRaw = 0.0
+        var everydayMinutes = 0.0
         for sample in samples {
             let reserve = min(max((sample.beatsPerMinute - resting) / max(maximum - resting, 1), 0), 1)
             let id = zone(forReserve: reserve).id
-            minutesByZone[id, default: 0] += sample.minutes
             let load = trimp(minutes: sample.minutes, heartRate: sample.beatsPerMinute,
                              resting: resting, maximum: maximum, sex: input.biologicalSex)
-            // Split across the ramp rather than assigned to one side of a line.
+            // Split across the ramp rather than assigned to one side of a line — and the
+            // minutes split with the load, or the two disagree about the same sample. They
+            // did: a trace whose every reading sat inside the ramp put everyday load in
+            // zone0 and no minutes there, and the row is emitted only where there are
+            // minutes, so that load vanished from the breakdown while staying in the ring.
+            // Measured on 45 minutes at 108 bpm: ring 21.19, rows summing to 10.21.
             let training = trainingShare(reserve: reserve)
+            minutesByZone[id, default: 0] += sample.minutes * training
+            everydayMinutes += sample.minutes * (1 - training)
             loadByZone[id, default: 0] += load * training
             everydayRaw += load * (1 - training)
         }
@@ -341,6 +345,7 @@ public enum StrainScore {
         // number by mid-morning and then stop moving for the rest of it.
         let everyday = everydayLoadCap * (1 - exp(-everydayRaw / everydayLoadCap))
         loadByZone[zones[zones.count - 1].id, default: 0] += everyday
+        minutesByZone[zones[zones.count - 1].id, default: 0] += everydayMinutes
 
         let total = loadByZone.values.reduce(0, +) + muscular
         let value = strain(load: total)
@@ -408,8 +413,10 @@ public enum StrainScore {
             // trailing holes but is blind to a late start, so that one case is answered
             // by the floor below instead of by a guessed hour.
             let gap = largestUnobservedGap(in: samples,
-                                           from: input.wokeAt ?? first,
-                                           to: input.readAt)
+                                           from: WakingDay.start(of: input.asleepPeriods)
+                                               ?? first,
+                                           to: input.readAt,
+                                           asleep: input.asleepPeriods)
             if gap >= unobservedGapMinutes || fallsShortOfTheDay(input, from: first) {
                 missing.append("Part of the day — your heart rate was recorded for about "
                                + recorded(samples.reduce(0) { $0 + $1.minutes }))
@@ -445,7 +452,7 @@ public enum StrainScore {
     /// happened by now. Only consulted when the night is unknown; with a wake time the
     /// leading gap already says this, and says it more precisely.
     private static func fallsShortOfTheDay(_ input: StrainInput, from first: Date) -> Bool {
-        guard input.wokeAt == nil else { return false }
+        guard WakingDay.start(of: input.asleepPeriods) == nil else { return false }
         let sinceMidnight = input.readAt
             .timeIntervalSince(Calendar.current.startOfDay(for: input.readAt)) / 60
         let wakingSoFar = sinceMidnight - maximumSleepMinutes
@@ -465,16 +472,41 @@ public enum StrainScore {
     /// Samples before the window start are not a gap — somebody read at nine in the
     /// morning wore the watch through a night this window does not reach back to.
     private static func largestUnobservedGap(in samples: [HeartRateSample],
-                                            from start: Date, to end: Date) -> Double {
+                                            from start: Date, to end: Date,
+                                            asleep: [DateInterval]) -> Double {
         let ordered = samples.sorted { $0.start < $1.start }
-        var cursor = start
         var largest = 0.0
-        for sample in ordered {
-            largest = Swift.max(largest, sample.start.timeIntervalSince(cursor) / 60)
-            let finish = sample.start.addingTimeInterval(sample.minutes * 60)
-            if finish > cursor { cursor = finish }
+        for window in awakeWindows(from: start, to: end, asleep: asleep) {
+            var cursor = window.start
+            for sample in ordered {
+                let finish = sample.start.addingTimeInterval(sample.minutes * 60)
+                guard finish > cursor, sample.start < window.end else { continue }
+                largest = Swift.max(largest, sample.start.timeIntervalSince(cursor) / 60)
+                cursor = finish
+            }
+            largest = Swift.max(largest, window.end.timeIntervalSince(cursor) / 60)
         }
-        return Swift.max(largest, end.timeIntervalSince(cursor) / 60)
+        return largest
+    }
+
+    /// The window, minus every stretch of it spent asleep. Sleep is not a hole in the
+    /// record — it is the one part of the day nobody expects a heart rate from — and
+    /// counting it as one flagged watches that never came off.
+    private static func awakeWindows(from start: Date, to end: Date,
+                                     asleep: [DateInterval]) -> [DateInterval] {
+        guard end > start else { return [] }
+        var windows: [DateInterval] = []
+        var cursor = start
+        for period in asleep.sorted(by: { $0.start < $1.start }) {
+            if period.end <= cursor { continue }
+            if period.start >= end { break }
+            if period.start > cursor {
+                windows.append(DateInterval(start: cursor, end: Swift.min(period.start, end)))
+            }
+            cursor = Swift.max(cursor, period.end)
+        }
+        if cursor < end { windows.append(DateInterval(start: cursor, end: end)) }
+        return windows
     }
 
     /// No cardiac trace at all — the ordinary case for anybody without a watch. The ring
