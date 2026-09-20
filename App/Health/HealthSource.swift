@@ -155,12 +155,20 @@ extension DailyPhysiology {
             ("Awake during sleep", \.awakeHours), ("In bed", \.inBedHours),
         ]
         for (name, path) in sleepFields {
+            let isStage = name != "In bed" && name != "Awake during sleep"
             streams.append(.init(name: name, unit: "h", observations: days.compactMap { day in
-                guard let night = day.sleep, night[keyPath: path] > 0 else { return nil }
-                // Conflicting sources cannot give a credible stage split.
-                if name != "In bed" && name != "Awake during sleep",
-                   night.coreHours + night.deepHours + night.remHours > night.asleepHours + 0.01 { return nil }
-                return .init(date: day.date, value: night[keyPath: path])
+                guard let night = day.sleep else { return nil }
+                guard isStage else {
+                    return night[keyPath: path] > 0
+                        ? .init(date: day.date, value: night[keyPath: path]) : nil
+                }
+                // The same split the screen shows. This used to hand over the raw staged
+                // hours and drop a night only when they overflowed it, so Jett was told
+                // "deep sleep 0.9 h" about a night the app was showing as 1.2 — and was
+                // told a number at all for nights the app says it cannot describe.
+                guard night.reconciledStages != nil, night.stagedHours > 0 else { return nil }
+                let value = night[keyPath: path] * (night.asleepHours / night.stagedHours)
+                return value > 0 ? .init(date: day.date, value: value) : nil
             }))
         }
         streams.append(.init(name: "Health workouts", unit: "", observations: days.compactMap { day in

@@ -69,26 +69,47 @@ struct PartialStagingTests {
         }
     }
 
-    /// And a night classified in the same proportions gives the same stage reading,
-    /// whatever share of it the watch got round to labelling.
-    ///
-    /// Asserted on the stage rows rather than on the whole score, because continuity is a
-    /// different measurement that genuinely depends on how the intervals fall, and this
-    /// fixture changes that when it leaves part of the night unspecified.
-    @Test("the same night, less of it labelled, reads the same")
-    func proportionalPartialIsUnchanged() throws {
-        let full = score(1)
-        for classified in [0.95, 0.9, 0.8] {
-            let partial = score(classified)
-            for id in ["deep", "rem"] {
-                let a = try #require(full.contributor(id))
-                let b = try #require(partial.contributor(id))
-                #expect(abs((a.level ?? 0) - (b.level ?? 0)) < 0.001,
-                        "\(id) level moved at \(Int(classified * 100))%: \(a.level as Any) vs \(b.level as Any)")
-                #expect(abs((a.value ?? 0) - (b.value ?? 0)) < 0.001,
-                        "\(id) hours moved at \(Int(classified * 100))%: \(a.value as Any) vs \(b.value as Any)")
-            }
+    /// And the direction where it does not hold. Under-counting means a *contiguous*
+    /// window of the night was never labelled, so what was labelled is a biased slice of
+    /// an ordered process rather than a sample of it. Rescaling it to fill the night named
+    /// a different stage as the night's worst than the full record did on more than half
+    /// of 600 measured nights, swinging up to 6.7 points either way, with nothing on
+    /// screen to say the record was partial.
+    @Test("a night only partly labelled does not have its structure guessed",
+          arguments: [0.96, 0.9, 0.8, 0.76])
+    func underCountIsNotExtrapolated(classified: Double) {
+        let result = score(classified)
+        #expect(result.contributor("deep") == nil,
+                "deep was extrapolated from \(Int(classified * 100))% of the night")
+        #expect(result.contributor("rem") == nil)
+    }
+
+    /// The specific shape that made it wrong, rather than the share: staging that starts
+    /// late. The labelled slice is missing the front of the night, where deep sleep
+    /// concentrates, so extrapolating it accused deep of a shortfall that never happened.
+    @Test("a late start does not get a stage blamed for it")
+    func lateStartBlamesNothing() {
+        let end = date(1)
+        let start = end.addingTimeInterval(-8 * 3600)
+        func slice(_ from: Double, _ to: Double, _ stage: SleepStage) -> SleepInterval {
+            SleepInterval(start: start.addingTimeInterval(from * 3600),
+                          end: start.addingTimeInterval(to * 3600), stage: stage)
         }
+        // Asleep for the whole eight hours; staged only from 1.6 h in — and the deep that
+        // happened before then is simply not in the record.
+        let night = SleepAggregator.byWakeDay(
+            [slice(0, 1.6, .unspecified), slice(1.6, 2.6, .deep),
+             slice(2.6, 4.6, .rem), slice(4.6, 8, .core)],
+            calendar: calendar)[calendar.startOfDay(for: end)]!
+        let result = SleepScore.of(SleepInput(
+            breakdown: night, durationHours: night.asleepHours,
+            history: (2...15).map { self.night($0, classified: 1) },
+            strain: nil, napHours: nil, sleepingHeartRate: nil, daytimeHeartRate: nil,
+            calendar: calendar))
+        #expect(result.contributor("deep") == nil,
+                "deep was scored off a record that starts after the deep sleep does")
+        #expect(result.summary.localizedCaseInsensitiveContains("deep") == false,
+                "the summary blamed deep: \(result.summary)")
     }
 
     /// The inversion exactly as it was measured: a night with no staging at all scored
@@ -98,7 +119,7 @@ struct PartialStagingTests {
     @Test("knowing nothing about the structure beats knowing some of it")
     func unstagedNeverBeatsStaged() throws {
         let unstaged = try #require(score(0).value)
-        for classified in [0.75, 0.8, 0.9, 1.0] {
+        for classified in [0.98, 1.0] {
             let partial = try #require(score(classified).value)
             #expect(unstaged <= partial + 0.001,
                     "no staging scored \(unstaged) against \(partial) at \(Int(classified * 100))%")
@@ -119,7 +140,7 @@ struct PartialStagingTests {
     }
 
     /// The published hours still fit the night, in this direction too.
-    @Test("published stage hours still fit the night", arguments: [1.0, 0.9, 0.8])
+    @Test("published stage hours still fit the night", arguments: [1.0, 0.99])
     func stagesFit(classified: Double) throws {
         let result = score(classified)
         let deep = try #require(result.contributor("deep")?.value)

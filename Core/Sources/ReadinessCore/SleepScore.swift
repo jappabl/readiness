@@ -112,8 +112,14 @@ public struct SleepNeed: Sendable, Equatable {
                                 / Double(learningNights))
         let confidence = trust * settled
         let blended = confidence * estimate + (1 - confidence) * baselineHours
-        return LearnedNeed(hours: Swift.min(blended, learnedCeilingHours),
-                           confidence: confidence)
+        let hours = Swift.min(blended, learnedCeilingHours)
+        // Reported against the number actually returned, not the one before the ceiling.
+        // A ten-hour sleeper's estimate is clamped to 9.5, of which only 0.47 was theirs,
+        // and the sentence was still claiming all of it came from their own nights.
+        let spread = estimate - baselineHours
+        let used = abs(spread) < 1e-9 ? confidence
+            : Swift.min(1, Swift.max(0, (hours - baselineHours) / spread))
+        return LearnedNeed(hours: hours, confidence: used)
     }
 
     /// How wide a slice of the distribution the estimate averages over.
