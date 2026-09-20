@@ -520,3 +520,78 @@ struct LearnedSleepNeedTests {
         #expect(SleepDebt.of(nights: shortSleeper).hours == 0)
     }
 }
+
+@Suite("The learned need does not lower its own bar")
+struct LearnedNeedRampTests {
+
+    /// The ramp was added to kill a twelve-point cliff and inverted the estimator's
+    /// purpose: sitting BELOW the floor, it handed a flat 6.9-hour sleeper a need of
+    /// 7.12 and a permanent green, while a weekday/weekend sleeper getting more sleep on
+    /// average sat non-green on 43 nights out of 60.
+    @Test("a habitually short sleeper is still held to the population figure",
+          arguments: [6.0, 6.5, 6.8, 6.9, 7.0])
+    func shortSleeperNotLetOff(hours: Double) {
+        #expect(SleepNeed.baseline(from: Array(repeating: hours, count: 40))
+                == SleepNeed.baselineHours,
+                "a flat \(hours) h sleeper was handed their own shortage as a target")
+    }
+
+    @Test("but somebody who genuinely sleeps less is")
+    func genuinelyShortIsLearned() {
+        let need = SleepNeed.baseline(from: Array(repeating: 7.6, count: 40))
+        #expect(need < SleepNeed.baselineHours && need > 7.2)
+    }
+
+    /// Continuous, which is the property the ramp exists for.
+    @Test("nothing steps")
+    func continuous() {
+        var previous = SleepNeed.baseline(from: Array(repeating: 6.0, count: 40))
+        for tenths in stride(from: 6.0, through: 9.6, by: 0.05) {
+            let need = SleepNeed.baseline(from: Array(repeating: tenths, count: 40))
+            #expect(abs(need - previous) < 0.35, "a step at \(tenths) h: \(previous) -> \(need)")
+            previous = need
+        }
+    }
+
+    /// The night count was a threshold too: switching from the population figure to the
+    /// learned one in one step moved an unchanged sleeper up to eleven points overnight.
+    @Test("the switch from the population figure is gradual")
+    func learningIsGradual() {
+        var previous = SleepNeed.baselineHours
+        for count in SleepNeed.learningNights...(SleepNeed.learningNights * 2 + 4) {
+            let need = SleepNeed.baseline(from: Array(repeating: 7.6, count: count))
+            #expect(abs(need - previous) < 0.1,
+                    "night \(count) moved the need \(previous) -> \(need)")
+            previous = need
+        }
+    }
+}
+
+@Suite("The debt card can see somebody improving")
+struct SleepDebtResolutionTests {
+
+    /// At a fortnight, against a reference floored at seven hours, the balance saturated
+    /// for anybody whose median was under 6.5 — so a six-hour sleeper who genuinely
+    /// improved to six and a half watched the card read the same number for forty days.
+    /// That is precisely the group the floor exists to catch.
+    @Test("improvement shows before the balance is cleared")
+    func improvementIsVisible() {
+        let stuck = SleepDebt.of(nights: Array(repeating: 6.0, count: 20)).hours
+        let better = SleepDebt.of(nights: Array(repeating: 6.5, count: 20)).hours
+        let nearlyThere = SleepDebt.of(nights: Array(repeating: 6.9, count: 20)).hours
+        #expect(better < stuck, "6.5 h read the same as 6.0 h")
+        #expect(nearlyThere < better, "6.9 h read the same as 6.5 h")
+    }
+
+    /// And a bad run inside a healthy habit still reaches the top.
+    @Test("a bad week still maxes it")
+    func badWeekStillMaxes() {
+        let nights = Array(repeating: 7.5, count: 20) + Array(repeating: 5.0, count: 5)
+        #expect(SleepDebt.of(nights: nights).hours == SleepDebt.maximumHours)
+    }
+
+    @Test("a steady sleeper still owes nothing")
+    func steadyOwesNothing() {
+        #expect(SleepDebt.of(nights: Array(repeating: 7.5, count: 20)).hours < 0.01)
+    }
+}

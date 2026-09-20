@@ -87,18 +87,28 @@ public struct SleepNeed: Sendable, Equatable {
         // Ramped into the fallback rather than switched. At a hard threshold six minutes
         // of habitual sleep bought twelve points and a band, and a person whose estimate
         // hovered near it crossed back and forth invisibly.
-        let trust = Swift.min(1, Swift.max(0, (estimate - fallbackFloorHours)
-                                           / (learnedFloorHours - fallbackFloorHours)))
-        let blended = trust * estimate + (1 - trust) * baselineHours
+        let trust = Swift.min(1, Swift.max(0, (estimate - learnedFloorHours) / learnedRampHours))
+        // And the night count is a threshold too. Switching from the population figure
+        // to the learned one in a single step moved an unchanged sleeper up to eleven
+        // points overnight, and a gappy record could cross back and forth over it.
+        let settled = Swift.min(1, Double(usable.count - learningNights)
+                                / Double(learningNights))
+        let confidence = trust * settled
+        let blended = confidence * estimate + (1 - confidence) * baselineHours
         return Swift.min(blended, learnedCeilingHours)
     }
 
     /// How wide a slice of the distribution the estimate averages over.
     public static let needBand = 0.06
 
-    /// Below this the estimate is entirely the population figure; between here and
-    /// `learnedFloorHours` the two are blended.
-    public static let fallbackFloorHours = 6.5
+    /// How far ABOVE the floor the blend runs.
+    ///
+    /// The ramp used to sit below the floor, which inverted its purpose: it was added to
+    /// kill a twelve-point cliff and instead handed a flat 6.9-hour sleeper a need of
+    /// 7.12 and a permanent green, while a weekday/weekend sleeper getting more sleep on
+    /// average sat non-green on 43 nights out of 60. Blending upward keeps the curve
+    /// continuous without lowering the bar for exactly the person the floor exists for.
+    public static let learnedRampHours = 0.75
 
     /// Strain below this costs nothing extra. Half the scale.
     public static let strainThreshold = 50.0
@@ -167,9 +177,14 @@ public struct SleepDebt: Sendable, Equatable {
     /// flattens only where further distinctions stop mattering.
     public static let hoursPerDeviation = 6.0
 
-    /// How far back it looks. Longer than the old seven-night window, because a balance
-    /// that forgets last Tuesday is not a balance.
-    public static let window = 14
+    /// How far back it looks.
+    ///
+    /// A week. At a fortnight, against a reference floored at seven hours, the balance
+    /// saturated for anybody whose median was under 6.5 — so a six-hour sleeper who
+    /// genuinely improved to six and a half watched the card read the same number for
+    /// forty days, and that is precisely the group the floor exists to catch. A week
+    /// still registers a bad run inside a healthy habit at the cap.
+    public static let window = 7
 
     /// A real ceiling rather than a scoring convenience. Past this the number stops
     /// being information and starts being an accusation.
@@ -287,10 +302,10 @@ public enum SleepScore {
     /// architecture rescue a short night would be telling people the wrong thing.
     /// Was 0.85, which is exactly where `ScoreBand.sleep` turns green — so the worst
     /// possible structure on a full-length night still landed at 85 and read as a good
-    /// one. Measured: 7.7 h against a 7.5 h need with three hours awake, no deep sleep,
-    /// no REM and no overnight heart rate drop scored 88 and green. Yellow and red were
-    /// duration-only bands.
-    public static let qualityFloor = 0.80
+    /// one. 0.80 did not fix it either: the same night, three hours awake with no deep
+    /// sleep, no REM and no overnight heart rate drop, still scored 85.7. At 0.70 it
+    /// reads 78.6, and the cost to an ordinary night is two hundredths of a point.
+    public static let qualityFloor = 0.70
 
     /// Where a full, well-built night lands, and what the breakdown counts down from.
     public static let perfect = 100.0

@@ -30,16 +30,22 @@ enum DayAssembler {
     /// same thing for everybody. Scored relatively it inverted — being eight hours down
     /// read as good news because it sat under an elevated mean — and for a chronic case
     /// pinned at the cap its deviation was exactly zero, so it stopped voting entirely.
+    /// The same twenty-eight nights the card and the score read, so all three agree.
+    static let debtNights = 28
+
     private static func debtReading(_ series: [DailyPhysiology]) -> MetricReading? {
-        let nights = series.compactMap(\.sleepHours)
-        guard nights.count >= 2 else { return nil }
-        let debt = SleepDebt.of(nights: nights)
+        let all = series.compactMap(\.sleepHours)
+        guard all.count >= 2 else { return nil }
+        let debt = SleepDebt.of(nights: Array(all.suffix(debtNights)))
         return MetricReading(kind: .sleepDebt,
                              value: debt.hours,
                              // Owing nothing is the target, for everybody.
                              baseline: 0,
                              zScore: debt.hours / SleepDebt.hoursPerDeviation,
-                             sampleCount: debt.nights)
+                             // How much history stands behind it, not how far the
+                             // balance looks back — those were only ever the same
+                             // number by coincidence, and the window has moved.
+                             sampleCount: all.count)
     }
 
     static func assemble(series: [DailyPhysiology], acwr: Double? = nil) -> AssembledDay? {

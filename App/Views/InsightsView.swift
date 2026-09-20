@@ -558,10 +558,13 @@ struct SleepStages {
               asleep > 0,
               let deep = score.contributor("deep")?.value,
               let rem = score.contributor("rem")?.value else { return nil }
-        // Scaled the way the engine scales them: two devices each unioning their own
-        // samples can report more staged hours than the night held, and the ring drew
-        // arcs summing to 129% of a seven-hour night.
-        let staged = deep + rem
+        // Scaled by the engine's own denominator — max(asleep, deep + rem + core) —
+        // rather than a second formula of the view's own. Two devices each unioning
+        // their own samples can report more staged hours than the night held, and the
+        // two scalings drew different nights: on a 186% record the ring said deep 3.0 /
+        // REM 3.5 / light 0.5 where the engine had scored 1.6 / 1.9 / 3.5.
+        let core = max(0, asleep - deep - rem)
+        let staged = deep + rem + core
         let scale = staged > asleep && staged > 0 ? asleep / staged : 1
         self.deep = deep * scale
         self.rem = rem * scale

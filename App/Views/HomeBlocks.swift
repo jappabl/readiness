@@ -247,9 +247,13 @@ struct SleepDebtCard: View {
                 .font(.system(size: 15, weight: .semibold)).monospacedDigit()
         }
         .foregroundStyle(paidDown ? Tokens.recoveryHigh : Tokens.alert)
+        // Not "since yesterday". The balance is recomputed each day against a median
+        // that moves, so the difference between two days' cards is not the same
+        // quantity as this one — measured, it pointed the wrong way about one day in
+        // nine. What it honestly describes is the last night's own contribution.
         .accessibilityLabel(paidDown
-            ? "Down \(hours(abs(debt.change))) hours since yesterday"
-            : "Up \(hours(abs(debt.change))) hours since yesterday")
+            ? "Down \(hours(abs(debt.change))) hours after last night"
+            : "Up \(hours(abs(debt.change))) hours after last night")
     }
 
     private func hours(_ value: Double) -> String {
