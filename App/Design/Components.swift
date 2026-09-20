@@ -321,7 +321,9 @@ struct TimelineRow: View {
                 RoundedRectangle(cornerRadius: 9, style: .continuous)
                     .fill(tint.opacity(0.15))
                     .frame(width: 38, height: 38)
-                    .overlay(Image(systemName: symbol).font(.system(size: 16)).foregroundStyle(tint))
+                    // Neutral: the tint stays on the disc behind it and on the badge.
+                    .overlay(Image(systemName: symbol).font(.system(size: 16))
+                        .foregroundStyle(Tokens.textPrimary))
                 if let badge {
                     Text(badge)
                         .font(.system(size: 10, weight: .bold))

@@ -125,9 +125,12 @@ struct InsightsView: View {
     private func tile(for contributor: ScoreContributor) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 0) {
+                // Neutral, always. The symbol says which measurement this is; it does
+                // not say how it went. Tinting it as well turned the grid into a
+                // fruit bowl and left three things competing to carry one meaning.
                 Image(systemName: contributor.symbol)
                     .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(colour(contributor))
+                    .foregroundStyle(Tokens.textPrimary)
                     .frame(height: 20)
                 Spacer(minLength: 4)
                 if let arrow = direction(contributor) {
@@ -543,7 +546,13 @@ struct SleepStages {
         self.light = max(0, asleep - deep - rem)
     }
 
-    var total: Double { deep + rem + light + awake }
+    /// Below this, being awake is stirring rather than an awakening, and listing it
+    /// gives a normal night a row about nothing.
+    static let minimumAwakeHours = 0.25
+
+    var countedAwake: Double { awake >= Self.minimumAwakeHours ? awake : 0 }
+
+    var total: Double { deep + rem + light + countedAwake }
 
     /// Drawn deepest first, so the ring reads from the bottom of the night outward.
     var parts: [(id: String, title: String, hours: Double, colour: Color)] {
@@ -552,7 +561,7 @@ struct SleepStages {
          ("light", "Light", light, Tokens.sleepHigh),
          // Not the track colour: awake drawn in the same grey as the empty ring was
          // invisible, which is the one stage somebody is looking for.
-         ("awake", "Awake", awake, Tokens.textTertiary.opacity(0.55))]
+         ("awake", "Awake", countedAwake, Tokens.textTertiary.opacity(0.55))]
     }
 }
 

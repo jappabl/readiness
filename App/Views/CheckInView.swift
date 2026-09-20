@@ -63,7 +63,7 @@ struct CheckInView: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 6) {
                 Image(systemName: symbol).font(.system(size: 12))
-                    .foregroundStyle(Tokens.accent)
+                    .foregroundStyle(Tokens.textPrimary)
                 Text(title).font(.system(size: 15, weight: .medium))
                     .foregroundStyle(Tokens.textPrimary)
                 Spacer()

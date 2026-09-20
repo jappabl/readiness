@@ -166,7 +166,7 @@ struct MovementCard: View {
             Text("Movement").sectionHeading()
             VStack(alignment: .leading, spacing: 20) {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Image(systemName: "flame.fill").foregroundStyle(Tokens.strainDeep)
+                    Image(systemName: "flame.fill").foregroundStyle(Tokens.textPrimary)
                     Text(activeEnergy.map { $0.formatted(.number.precision(.fractionLength(0))) } ?? "—")
                         .font(.system(size: 30, weight: .semibold)).monospacedDigit()
                     Text("active kcal").font(.subheadline).foregroundStyle(.secondary)

@@ -51,11 +51,13 @@ struct TodayView: View {
             .font(.system(size: 17, weight: .semibold))
             .foregroundStyle(Tokens.textPrimary)
             Spacer()
+            // The profile button, not a sleep affordance. It was purple because purple
+            // was to hand, which is exactly the decoration the icon rule exists to stop.
             Circle()
-                .fill(Tokens.sleepLow.opacity(0.18))
+                .fill(Tokens.textPrimary.opacity(0.07))
                 .frame(width: 32, height: 32)
                 .overlay(Image(systemName: "person.fill")
-                    .font(.system(size: 14)).foregroundStyle(Tokens.sleepLow))
+                    .font(.system(size: 14)).foregroundStyle(Tokens.textPrimary))
         }
         .padding(.horizontal, Tokens.screenMargin)
         .padding(.top, 6)
