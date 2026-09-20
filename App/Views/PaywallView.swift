@@ -148,7 +148,7 @@ struct PaywallView: View {
         VStack(spacing: 10) {
             // Prices sit here rather than in the scroll view. Pinned, they cannot be
             // pushed around by a demo that changes height every few seconds, and they
-            // are on screen without scrolling — which is what somebody weighing two
+            // are on screen without scrolling, which is what somebody weighing two
             // plans actually wants.
             plans
 

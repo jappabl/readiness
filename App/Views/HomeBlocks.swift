@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// The sections that vary by goal. Each one refuses to render a number the day does
-/// not actually have — an empty macro card is better than a confident zero.
+/// not actually have: an empty macro card is better than a confident zero.
 
 // MARK: - Nutrition
 

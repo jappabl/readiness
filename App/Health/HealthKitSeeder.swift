@@ -4,7 +4,7 @@ import HealthKit
 /// Writes synthetic history into the simulator's HealthKit store.
 ///
 /// The point is to exercise the *real* read path. Serving synthetic data straight to the
-/// UI would leave `HealthKitSource` — the riskiest code in the app — completely untested.
+/// UI would leave `HealthKitSource` (the riskiest code in the app) completely untested.
 /// This way the simulator reads HRV out of HealthKit exactly as an iPhone would.
 ///
 /// Debug builds only.
@@ -15,7 +15,7 @@ enum HealthKitSeeder {
     /// Several of the streams the app *reads* are computed by Apple and are read-only:
     /// exercise and stand minutes, time in daylight, walking heart rate average, heart
     /// rate recovery, and sleeping wrist temperature. Requesting share authorisation
-    /// for one of those does not return an error — it throws an uncaught Objective-C
+    /// for one of those does not return an error: it throws an uncaught Objective-C
     /// exception and takes the process with it, which is exactly how this app died
     /// once before. They stay off this list and are simply empty on a simulator.
     private static let writableQuantities: [HKQuantityTypeIdentifier] = [

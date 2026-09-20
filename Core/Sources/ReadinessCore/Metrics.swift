@@ -105,7 +105,7 @@ public struct MetricReading: Sendable, Equatable, Codable {
     /// always describe the number beside them.
     public let zScore: Double
     /// What the engine actually weighs. The same as `zScore` for every metric except
-    /// HRV, which is scored on its trend — see `MetricKind.scoresOnTrend`.
+    /// HRV, which is scored on its trend. See `MetricKind.scoresOnTrend`.
     public let scoringZ: Double
     public let sampleCount: Int
 

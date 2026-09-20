@@ -1,7 +1,7 @@
 import Foundation
 
-/// One bucket of time at one heart rate. Whatever the source aggregates to — five
-/// minute buckets in practice — rather than raw beats.
+/// One bucket of time at one heart rate. Whatever the source aggregates to (five
+/// minute buckets in practice) rather than raw beats.
 public struct HeartRateSample: Sendable, Equatable {
     public let start: Date
     public let minutes: Double
@@ -51,7 +51,7 @@ public struct StrainInput: Sendable {
 ///
 /// The scale is Whoop's and is derived from Borg's 6...20 rating of perceived exertion,
 /// stretched by a point to leave room at the top. What sits underneath it here is
-/// Banister's TRIMP, which is published, forty years old and testable — the app does not
+/// Banister's TRIMP, which is published, forty years old and testable: the app does not
 /// need a proprietary load model to say something true about a day.
 ///
 /// The constants are absolute and stated. The known cost is that an untrained person
@@ -71,7 +71,7 @@ public enum StrainScore {
         let predicted = ageYears.map { 208 - 0.7 * Double($0) } ?? assumedMaximumHeartRate
         guard let observed, observed.isFinite, observed > predicted else { return predicted }
         // Bounded, because the observed maximum comes from HealthKit's raw daily peak
-        // and a single bad beat weeks ago would otherwise widen the reserve forever —
+        // and a single bad beat weeks ago would otherwise widen the reserve forever:
         // quietly dropping every session since out of the band it belongs in.
         return Swift.min(observed, predicted + observedMaximumHeadroom)
     }
@@ -161,7 +161,7 @@ public enum StrainScore {
     // MARK: - Zones
 
     /// Buckets of heart rate reserve. Zone 0 is everything under the first training
-    /// zone — most of most days, and not nothing: it is where a long day on your feet
+    /// zone, most of most days, and not nothing: it is where a long day on your feet
     /// shows up.
     public struct Zone: Sendable, Equatable {
         public let id: String
@@ -184,7 +184,7 @@ public enum StrainScore {
     /// The most that being awake can contribute, in load.
     ///
     /// The bug this exists for: sixteen waking hours at an unremarkable 70 bpm is 87
-    /// load, which on the old curve was a strain of 10 out of 21 — "moderate" — for a
+    /// load, which on the old curve was a strain of 10 out of 21 ("moderate") for a
     /// person who did nothing at all. Fifteen hours of sitting outweighed a 45-minute
     /// run, so on a day somebody ran, the breakdown's top row was sitting down.
     ///
@@ -197,7 +197,7 @@ public enum StrainScore {
     ///
     /// A hard cut at the zone boundary was a cliff: sixteen hours just under it saturated
     /// at the cap, and one beat per minute higher put every one of those minutes on the
-    /// unbounded side — 104 bpm read 20, 105 bpm read 95. Ramping across a band means a
+    /// unbounded side: 104 bpm read 20, 105 bpm read 95. Ramping across a band means a
     /// bucket near the line contributes part of its load to each side, so the score moves
     /// smoothly with the day instead of hinging on it.
     public static let everydayRampLow = 0.30
@@ -332,7 +332,7 @@ public enum StrainScore {
             modelVersion: modelVersion)
     }
 
-    /// No cardiac trace at all — the ordinary case for anybody without a watch. The ring
+    /// No cardiac trace at all: the ordinary case for anybody without a watch. The ring
     /// falls back to the activity comparison that shipped before this engine, and says
     /// so, because an empty ring is worse than a labelled approximation.
     private static func fallbackScore(_ fallback: DailyStrainResult?) -> SignalScore {

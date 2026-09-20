@@ -4,7 +4,7 @@ import Foundation
 ///
 /// The model proposes; this validates. Anything it sends is clamped to what the
 /// prescription engine will actually accept, so a bad tool call becomes a safe
-/// adjustment or nothing at all — never an out-of-range instruction.
+/// adjustment or nothing at all: never an out-of-range instruction.
 public enum CoachTools {
 
     public static let adjustSession = "adjust_session"
@@ -51,7 +51,7 @@ public enum CoachTools {
             "description": """
                 Change today's planned lifting session. Use this when the user asks you to \
                 make the session easier, harder, shorter, or to move it. Propose one change \
-                at a time. The change is shown to the user for approval — it is never applied \
+                at a time. The change is shown to the user for approval: it is never applied \
                 silently.
                 """,
             "input_schema": [

@@ -48,7 +48,7 @@ public enum NotificationDecision {
         /// and the coin is spent here, before the app has shown anything. If the
         /// delivery layer persisted this unconditionally, a denied permission or a
         /// failed `UNUserNotificationCenter.add` would silently burn the day and the
-        /// coin for a message the user never saw — so the app must persist this only
+        /// coin for a message the user never saw, so the app must persist this only
         /// after the notification is confirmed delivered.
         public let record: NotificationRecord
     }
@@ -128,7 +128,7 @@ public enum NotificationDecision {
     ///
     /// `NotificationMoment.spendsBudget` is the single source of truth for which moments
     /// cost a token. This used to be stated a second time here, structurally, by which
-    /// of the four helpers simply never called `spend` at all — so the two could drift
+    /// of the four helpers simply never called `spend` at all, so the two could drift
     /// silently if a helper's wiring changed without touching the enum. Every helper
     /// calls this now, and a moment for which `spendsBudget` is false passes through
     /// unchanged and can never be refused, regardless of the bucket's state.

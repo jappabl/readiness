@@ -4,7 +4,7 @@ import Foundation
 /// A plausible sixty days of physiology, for looking at the whole app at once.
 ///
 /// Deliberately not random: the same series every launch, so a screenshot taken today
-/// can be compared with one taken next week. Deliberately not flat either — every
+/// can be compared with one taken next week. Deliberately not flat either: every
 /// engine in the app measures today against a spread, and a series with no spread makes
 /// all three scores say the same thing.
 enum DemoPhysiology {

@@ -8,7 +8,7 @@ public enum CoachSegment: Equatable, Sendable {
 
 /// Turns an answer into prose and charts.
 ///
-/// Charts are asked for with a marker in the text — `[chart:hrv]` — rather than with a
+/// Charts are asked for with a marker in the text (`[chart:hrv]`) rather than with a
 /// tool call. A tool call would mean a second request: the whole prefix read again and
 /// another round trip before the first word appears. The marker costs about six tokens
 /// and no round trip at all, and it is *cheaper than the prose it replaces*, since a

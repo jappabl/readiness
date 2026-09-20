@@ -27,7 +27,7 @@ enum Tokens {
 
     // Surfaces
     //
-    // The dark scheme was warm — a brown-black canvas, sepia greys — on the reasoning
+    // The dark scheme was warm (a brown-black canvas, sepia greys) on the reasoning
     // that a health app opened in a dark bedroom should not read as a dashboard. It
     // reads as sepia instead, and it wears badly the longer you look at it. These are
     // neutral, which keeps the low-glare intent without the tint.

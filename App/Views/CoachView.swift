@@ -22,7 +22,7 @@ struct CoachSheet: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var continuesOnboarding = false
 
-    /// With no key configured, a debug build rehearses instead of failing — the UI is
+    /// With no key configured, a debug build rehearses instead of failing: the UI is
     /// the thing being worked on far more often than the model is.
     private var provider: CoachProvider {
         let profile = (try? context.fetch(FetchDescriptor<UserProfile>()))?.first
@@ -304,7 +304,7 @@ struct CoachSheet: View {
                     switch event {
                     case .text(let chunk):
                         // The tap lands when the answer starts, not when it is asked
-                        // for — that is the moment the wait actually ended.
+                        // for: that is the moment the wait actually ended.
                         if !hasSpoken, !chunk.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                             hasSpoken = true
                             Haptics.replyBegan()

@@ -62,7 +62,7 @@ public enum ScoreBand: String, Sendable, Codable, Equatable {
 public enum ContributorState: String, Sendable, Codable, Equatable {
     case optimal, fine, payAttention
 
-    /// From the aligned z — how far this reading sits from baseline in the direction
+    /// From the aligned z: how far this reading sits from baseline in the direction
     /// that is good news. The band is deliberately wide: half a standard deviation is
     /// noise on most of these streams, and flagging it teaches people to ignore flags.
     static func from(alignedZ: Double) -> ContributorState {
@@ -80,7 +80,7 @@ public struct ScoreContributor: Sendable, Equatable, Codable, Identifiable {
     public let title: String
     public let value: Double?
     public let unit: String
-    /// What the value was judged against — the user's own baseline, or a target.
+    /// What the value was judged against: the user's own baseline, or a target.
     public let comparison: Double?
     public let comparisonLabel: String?
     public let state: ContributorState
@@ -91,7 +91,7 @@ public struct ScoreContributor: Sendable, Equatable, Codable, Identifiable {
     /// row that cost nothing drew an empty bar and read as the worst one on screen.
     /// A row's own level is the only thing that means the same in every signal.
     public let level: Double?
-    /// An SF Symbol name. The tile shows this instead of a sentence — a bed, a pair of
+    /// An SF Symbol name. The tile shows this instead of a sentence: a bed, a pair of
     /// lungs and a flame say what three lines of prose were saying, and say it faster.
     public let symbol: String
     /// The one sentence about this row, when the engine can say it better than a
@@ -164,7 +164,7 @@ public struct SignalScore: Sendable, Equatable, Codable {
     ///
     /// One point of recovery is three minutes of sleep, so a lower bar had the sentence
     /// leading on noise. Five was too high for sleep, where a structural row can never
-    /// exceed 2.5 — the home card said "nothing stood out" while the breakdown behind it
+    /// exceed 2.5: the home card said "nothing stood out" while the breakdown behind it
     /// named a row.
     public static let notableMagnitude = 2.0
 
@@ -185,7 +185,7 @@ public struct SignalScore: Sendable, Equatable, Codable {
             return "Waiting on \(first.lowercased())."
         }
         // Five points, not one. One point of recovery is three minutes of sleep or a
-        // tenth of a beat, so the sentence used to lead on pure noise — "heart rate
+        // tenth of a beat, so the sentence used to lead on pure noise: "heart rate
         // variability pushed it up most" off a 0.8 ms wobble.
         guard let lead = contributors.first, abs(lead.magnitude) >= Self.notableMagnitude else {
             return gate.map { "\($0.displayName) is what matters today." }
@@ -229,14 +229,14 @@ public enum RecoveryScore {
     /// The composite's own spread, stated rather than measured.
     ///
     /// The composite is a weighted mean of clamped z-scores whose weights sum to 1, so
-    /// its standard deviation is `sqrt(Σw²)` before correlation — about 0.49 with the
+    /// its standard deviation is `sqrt(Σw²)` before correlation: about 0.49 with the
     /// shipping weights, rising to roughly 0.83 if the inputs move together strongly.
     /// 0.6 is the middle of that range.
     ///
     /// It is a constant and not the user's own spread on purpose. Dividing by their own
     /// history would guarantee everybody the same distribution of green days, which is a
     /// percentile, not a score. Here a given physiological deviation always reads the
-    /// same, for everyone — which is the whole claim an absolute scale makes.
+    /// same, for everyone, which is the whole claim an absolute scale makes.
     public static let compositeScale = 0.75
 
     /// The most a single input can move the composite on its own.
@@ -251,7 +251,7 @@ public enum RecoveryScore {
     /// renormalised to full confidence.
     ///
     /// Renormalising over whatever survived meant a single blood-oxygen reading 0.8
-    /// points low — a 0.07-weight metric — produced exactly the same score as a full
+    /// points low (a 0.07-weight metric) produced exactly the same score as a full
     /// panel saying the same thing, because it inherited the entire vote of the four
     /// streams that were missing. It stops voting; it does not get to vote for everyone.
     public static let minimumConfidentWeight = 0.5
@@ -313,7 +313,7 @@ public enum RecoveryScore {
     /// What each gate caps the score at.
     ///
     /// Illness is the bottom of the scale: the weighted inputs are no longer the story.
-    /// A load spike is not — its own explanation says it "cannot make a good morning
+    /// A load spike is not: its own explanation says it "cannot make a good morning
     /// bad", and it used to take seventy-six points off one, producing a red ring above
     /// an at-baseline state and a "maintain". It caps at the top of yellow instead,
     /// which is what cancelling a green light actually means.
@@ -332,8 +332,8 @@ public enum RecoveryScore {
         // the composite is its share of that distance. This sums exactly, which is the
         // property the screen needs.
         //
-        // The ratio stays finite as the composite approaches zero — the transfer's slope
-        // at the origin is its limit — so inputs that cancel still report the push they
+        // The ratio stays finite as the composite approaches zero (the transfer's slope
+        // at the origin is its limit), so inputs that cancel still report the push they
         // each made rather than collapsing to a row of zeros on the one day the
         // breakdown matters most.
         let slopeAtOrigin = 100 / (compositeScale * (2 * Double.pi).squareRoot())
@@ -346,7 +346,7 @@ public enum RecoveryScore {
             let aligned = contribution.zScore * contribution.kind.polarity
             let scoringAligned = contribution.alignedZ ?? aligned
             // Sleep debt is hours short of the target, so a well-rested person's is
-            // negative — and a tile reading "-0.9 h" under the word "debt" is a puzzle,
+            // negative. A tile reading "-0.9 h" under the word "debt" is a puzzle,
             // not a measurement. Shown as none owed, and titled for what it is.
             let owesNothing = contribution.kind == .sleepDebt && (reading?.value ?? 0) <= 0
             return ScoreContributor(
@@ -357,7 +357,7 @@ public enum RecoveryScore {
                 comparison: owesNothing ? nil : reading?.baseline,
                 comparisonLabel: reading == nil || owesNothing ? nil : "your normal",
                 // Both read the z the engine actually weighed, not today's raw one.
-                // For HRV — the only metric scored on its trend — those differ, and the
+                // For HRV (the only metric scored on its trend), those differ, and the
                 // row could show an alarming red dot beside a magnitude saying it barely
                 // mattered, which is the screen arguing with itself.
                 state: .from(alignedZ: scoringAligned),
@@ -375,7 +375,7 @@ public enum RecoveryScore {
         // user would have had, sitting under the number they actually got.
         // Only when it actually moved something. On a morning already below the
         // ceiling the gate changes nothing, and a zero-magnitude row at the top made
-        // `summary` — which reads the leading row — announce "Nothing stood out today"
+        // `summary` (which reads the leading row) announce "Nothing stood out today"
         // under the worst score the model can produce.
         if let gate = result.gateApplied, abs(value - ungated) > 0.01 {
             rows.insert(ScoreContributor(

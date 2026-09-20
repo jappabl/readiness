@@ -32,7 +32,7 @@ public enum StrainEngine {
 
     /// Training days needed in the chronic window before the ratio means anything.
     /// One session against 27 rest days is arithmetically a 4.0 spike and tells you
-    /// nothing — and a bogus spike silently caps a good morning.
+    /// nothing. And a bogus spike silently caps a good morning.
     public static let minimumTrainingDays = 3
 
     /// Acute (7 day) against chronic (28 day) load. Above ~1.5 is a spike.
@@ -53,7 +53,7 @@ public enum StrainEngine {
     static let noveltyFullScaleRatio = 1.5
 
     /// How unlike the recent norm today's session was. 0 is routine, 1 is a big jump.
-    /// An easier day is not novel load — backing off is not a stressor.
+    /// An easier day is not novel load: backing off is not a stressor.
     public static func novelty(todayVolume: Double, recentVolumes: [Double]) -> Double {
         guard !recentVolumes.isEmpty else { return 0 }
         let baseline = recentVolumes.reduce(0, +) / Double(recentVolumes.count)

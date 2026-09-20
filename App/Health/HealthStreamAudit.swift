@@ -2,7 +2,7 @@ import Foundation
 import os
 
 /// Reports which streams actually came back with data, so "we read it" can be checked
-/// rather than assumed. Debug builds only — this exists because a widened read list is
+/// rather than assumed. Debug builds only: this exists because a widened read list is
 /// easy to write and easy to have silently return nothing.
 enum HealthStreamAudit {
 

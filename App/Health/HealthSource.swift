@@ -4,7 +4,7 @@ import Foundation
 /// Raw timeseries never travel past this boundary (spec 3.2).
 ///
 /// Every field here is read from HealthKit, which means it works the same whether the
-/// numbers came from an Apple Watch, an Oura ring or a Garmin — the app scores each
+/// numbers came from an Apple Watch, an Oura ring or a Garmin: the app scores each
 /// stream against the user's own history, so it never needs a vendor's own score.
 struct DailyPhysiology: Sendable, Equatable {
     var date: Date

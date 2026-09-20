@@ -2,7 +2,7 @@ import Foundation
 
 /// The only health information that ever leaves the device.
 ///
-/// Derived aggregates only — never raw samples, never a timeseries of measurements.
+/// Derived aggregates only: never raw samples, never a timeseries of measurements.
 /// Kept small on purpose: a compact summary is both the privacy boundary and the thing
 /// that decides whether a flat-priced coach is affordable.
 public struct CoachContext: Codable, Equatable, Sendable {
@@ -62,8 +62,8 @@ public struct CoachContext: Codable, Equatable, Sendable {
     /// What is actually sent to the model.
     ///
     /// The same facts as `json`, rendered as labelled lines instead of objects. JSON
-    /// spends most of its bytes repeating key names — fourteen days of history cost a
-    /// thousand bytes as objects and a third of that as rows — and every one of those
+    /// spends most of its bytes repeating key names: fourteen days of history cost a
+    /// thousand bytes as objects and a third of that as rows, and every one of those
     /// bytes is both money and time-to-first-token, because the whole prompt has to be
     /// read before the first word comes back.
     ///

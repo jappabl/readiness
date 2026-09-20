@@ -93,7 +93,7 @@ public enum ReadinessEngine {
     /// the most causally established driver of how tomorrow goes, and the only one
     /// somebody can act on directly. Resting heart rate is next, being steady enough
     /// that a few beats mean something. HRV keeps a real share but no longer decides
-    /// the day alone — it is the noisiest thing here, and it previously held the
+    /// the day alone: it is the noisiest thing here, and it previously held the
     /// largest weight purely because convention says it should.
     ///
     /// The honest end state is weights learned per person from their own outcomes. This
@@ -117,7 +117,7 @@ public enum ReadinessEngine {
         // From the readings' own sample counts, not the length of the series.
         //
         // The series counts any day with something in it, and a night of iPhone sleep is
-        // enough — so somebody with six months of phone data and a watch bought this week
+        // enough, so somebody with six months of phone data and a watch bought this week
         // reported full confidence while every heart metric was judged against two
         // samples. The calibration warning never fired for the commonest first-run
         // profile there is. The thinnest baseline in the set is the one that decides.
@@ -135,7 +135,7 @@ public enum ReadinessEngine {
         }
 
         // Renormalise over the inputs actually present, so a missing stream dilutes
-        // nothing — it simply stops voting.
+        // nothing: it simply stops voting.
         // Renormalised over the inputs present, but only down to a floor. Above it, a
         // missing stream stops voting and the rest carry the day as before; below it the
         // composite is damped, because two metrics cannot speak for five.

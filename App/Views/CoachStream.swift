@@ -215,7 +215,7 @@ struct CoachStepRow: View {
 ///
 /// Nothing about this crossed the wire. The model named a metric in six tokens; every
 /// number here was already in the app. That makes a chart *cheaper* than the sentence
-/// it replaces, not more expensive — describing a two-week trend in prose costs three
+/// it replaces, not more expensive: describing a two-week trend in prose costs three
 /// or four times as many tokens as pointing at it.
 struct CoachChartCard: View {
     let kind: MetricKind

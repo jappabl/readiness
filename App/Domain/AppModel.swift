@@ -113,7 +113,7 @@ final class AppModel {
     var todayResponse: RecommendationResponse?
 
     /// A change the coach proposed and the user approved. Composed on top of the
-    /// engine's own adjustments — the coach adds to the call, it does not replace it.
+    /// engine's own adjustments: the coach adds to the call, it does not replace it.
     var coachAdjustment: SessionAdjustment?
 
     private let healthKit = HealthKitSource()
@@ -288,7 +288,7 @@ final class AppModel {
 
             hasProgram = !templates.isEmpty
             goal = storedGoal(from: context)
-            // A missing programme is no longer a wall — the home screen asks for one
+            // A missing programme is no longer a wall: the home screen asks for one
             // in place, and only for the goals that need it.
             phase = needsOnboarding ? .needsOnboarding : .ready
 
@@ -316,7 +316,7 @@ final class AppModel {
     }
 
     /// What today's screen is made of. The barbell angle is not the front page for
-    /// everybody — see `HomeComposition`.
+    /// everybody. See `HomeComposition`.
     var goals: Set<TrainingGoal> {
         if let selected = onboarding.goals, !selected.isEmpty { return selected }
         return goal.map { [$0] } ?? onboarding.selectedGoals
@@ -348,7 +348,7 @@ final class AppModel {
     }
 
     /// The flow is over once the user has seen their own baselines, not when the goal
-    /// is stored — otherwise the reveal is cut off by the app appearing behind it.
+    /// is stored. Otherwise the reveal is cut off by the app appearing behind it.
     func finishOnboarding() {
         onboardingFinished = true
         if goal != nil { phase = .ready }
@@ -580,8 +580,8 @@ final class AppModel {
 
     /// The day's heart rate with the night cut out.
     ///
-    /// Strain is what being awake cost. Leaving the night in did not move the number —
-    /// the everyday load saturates either way — but it put "Everyday movement, 1,440 min"
+    /// Strain is what being awake cost. Leaving the night in did not move the number
+    /// (the everyday load saturates either way), but it put "Everyday movement, 1,440 min"
     /// at the top of the breakdown on a rest day, under a sentence saying that was what
     /// did most of it.
     private static func waking(_ day: DailyPhysiology?) -> [HeartRateSample] {

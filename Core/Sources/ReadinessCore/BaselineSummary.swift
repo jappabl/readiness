@@ -24,7 +24,7 @@ public struct BaselineSummary: Equatable, Sendable {
 
     /// `minimumDeviation` sets the narrowest band this quantity can have.
     ///
-    /// The default floor of half a unit suits the streams this was written for — a
+    /// The default floor of half a unit suits the streams this was written for: a
     /// resting heart rate, an HRV in milliseconds. It is nonsense for a quantity that
     /// lives between zero and one: a deep-sleep share of 0.15 against a floor of 0.5
     /// makes every night exactly average, forever. Anything scored on a fraction has to

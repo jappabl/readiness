@@ -3,8 +3,8 @@ import SwiftUI
 /// The evidence behind today's call, for the morning the app disagrees with how you feel.
 ///
 /// Read top to bottom it answers three questions in order: what should I do, what is
-/// that based on, and what could it be missing. The model's internals — weights,
-/// points, the composite total — are deliberately not on this screen. They explain how
+/// that based on, and what could it be missing. The model's internals (weights,
+/// points, the composite total) are deliberately not on this screen. They explain how
 /// the arithmetic works, not why today is what it is, and they crowded out the part
 /// that does.
 struct WhyView: View {
@@ -112,7 +112,7 @@ struct WhyView: View {
 
     // MARK: - Evidence
 
-    /// Biggest mover first, whichever way it moved — on a good day the reason is a
+    /// Biggest mover first, whichever way it moved: on a good day the reason is a
     /// metric that went up.
     private var ranked: [InputContribution] {
         day.readiness.contributions.sorted { abs($0.points) > abs($1.points) }

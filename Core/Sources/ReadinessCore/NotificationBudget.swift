@@ -9,7 +9,7 @@ import Foundation
 /// A weekly cap was considered and rejected: it cannot distinguish four messages spread
 /// across a week from four on Monday, and it resets on an arbitrary boundary, so someone
 /// who spends the allowance by Saturday is mute until midnight Sunday and then has a full
-/// allowance again. A bucket has no boundary — it just makes a busy day cost something.
+/// allowance again. A bucket has no boundary: it just makes a busy day cost something.
 ///
 /// This is `BurstLimiter`'s arithmetic with different constants, deliberately copied
 /// rather than shared. `BurstLimiter` guards a paying user's conversation with the coach,

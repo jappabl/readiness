@@ -2,7 +2,7 @@ import Foundation
 
 /// What tonight has to be, said while there is still time to do something about it.
 ///
-/// Every other message describes data already fixed — a morning verdict is about a night
+/// Every other message describes data already fixed: a morning verdict is about a night
 /// that cannot be changed. This one is the exception, which is why it is worth the
 /// interruption on the nights it fires.
 public enum BedtimeTarget {

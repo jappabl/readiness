@@ -48,7 +48,7 @@ public enum PrescriptionEngine {
         }
 
         // Round the *adjustment*, not the total. A lifter at 315 with 10 lb jumps moves
-        // to 305 or 325 — never to 310. The loadable grid is relative to their bar.
+        // to 305 or 325: never to 310. The loadable grid is relative to their bar.
         let rawDelta = lift.workingWeight * percent
         let magnitude = PlateMath.round(abs(rawDelta), toIncrement: lift.increment)
         let delta = rawDelta < 0 ? -magnitude : magnitude

@@ -14,7 +14,7 @@ public struct SleepNeed: Sendable, Equatable {
     public let napCredit: Double
 
     /// The nightly requirement before anything else applies. Unchanged from the fixed
-    /// target it replaces, because the target was never the problem — its fixedness was.
+    /// target it replaces, because the target was never the problem: its fixedness was.
     public static let baselineHours = 8.0
 
     /// How many nights of shortfall are carried.
@@ -23,7 +23,7 @@ public struct SleepNeed: Sendable, Equatable {
     /// The most debt that can be outstanding.
     ///
     /// Was 3, which pinned the need at its 9.5-hour maximum for anybody averaging under
-    /// about 7h34m — so a 7h30 sleeper could never reach green no matter what they did,
+    /// about 7h34m: a 7h30 sleeper could never reach green no matter what they did,
     /// and was told every morning that they needed nine and a half hours. At 1.5 the
     /// mechanism still does its job (a 6-hour week asks for 8h45m) without handing out
     /// advice nobody can take.
@@ -55,7 +55,7 @@ public struct SleepNeed: Sendable, Equatable {
         // the need rose with it, it compounded about half an hour a night. Six ten-hour
         // nights could not repay one three-hour one. Anything habitually under 7 h 54 m
         // pinned at the maximum, so a 7.9-hour sleeper and a 5-hour sleeper were told the
-        // same thing — and ordinary night-to-night variance was enough to do it, which
+        // same thing, and ordinary night-to-night variance was enough to do it, which
         // put somebody averaging eight and a half hours in the yellow.
         var debt = 0.0
         for slept in nights {
@@ -114,7 +114,7 @@ public struct SleepInput: Sendable {
 /// What last night was worth, as a share of what it needed to be.
 ///
 /// Duration against need is the headline, the way Whoop does it. Structure adjusts it
-/// within a narrow band, the way AutoSleep's quality does — but every structural
+/// within a narrow band, the way AutoSleep's quality does. But every structural
 /// component is scored against this sleeper's own distribution rather than an invented
 /// ideal. That constraint is inherited from docs/briefs/signal-scores.md and it is the
 /// reason deep and REM can be scored at all: the app never claims to know how much deep
@@ -257,7 +257,7 @@ public enum SleepScore {
         let missingLabel: String
         let symbol: String
         /// What this row says in one sentence. A night's parts need saying in their own
-        /// terms — "0.5 h against the 1 h a night this long usually gives you" is a
+        /// terms: "0.5 h against the 1 h a night this long usually gives you" is a
         /// different sentence from "below your normal", and only the engine knows which
         /// of the two it means.
         var note: String? = nil

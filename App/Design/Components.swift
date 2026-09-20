@@ -38,8 +38,8 @@ enum Signal: String, CaseIterable, Identifiable {
     ///
     /// Recovery and sleep carry a verdict, so they take it: a recovery of 13 used to
     /// draw in the same green as a recovery of 90, which put a healthy-looking ring
-    /// directly above the words "keep it gentle today". Strain has no verdict — a hard
-    /// day is not a bad day — so it keeps its own ramp and says intensity instead.
+    /// directly above the words "keep it gentle today". Strain has no verdict: a hard
+    /// day is not a bad day. So it keeps its own ramp and says intensity instead.
     func ring(forPercent percent: Int?) -> [Color] {
         guard self != .strain, let percent else { return ring }
         switch percent {
@@ -92,7 +92,7 @@ struct SkyBackground: View {
 
 // MARK: - Ring
 
-/// The ring. A gradient arc on a light track, rounded caps, and — for strain — a
+/// The ring. A gradient arc on a light track, rounded caps, and, for strain, a
 /// hatched remainder rather than a plain one.
 struct RingGauge: View {
     let signal: Signal
@@ -199,7 +199,7 @@ struct HeroRing: View {
 
 // MARK: - Cards
 
-/// Small icon and label, then a large value with its unit — the Bevel stat card.
+/// Small icon and label, then a large value with its unit: the Bevel stat card.
 struct StatCard: View {
     let symbol: String
     let label: String
@@ -383,7 +383,7 @@ struct RangeBar: View {
     }
 }
 
-/// Icon, label, chevron. The reference's one interactive idiom — it never uses a
+/// Icon, label, chevron. The reference's one interactive idiom: it never uses a
 /// filled button inside a card.
 struct AccessoryRow: View {
     let symbol: String
@@ -407,7 +407,7 @@ struct AccessoryRow: View {
     }
 }
 
-/// A card whose children are separated by hairlines rather than gaps — used wherever
+/// A card whose children are separated by hairlines rather than gaps: used wherever
 /// the reference groups rows inside one surface.
 struct ListCard<Content: View>: View {
     @ViewBuilder var content: Content
@@ -422,7 +422,7 @@ struct ListCard<Content: View>: View {
     }
 }
 
-/// The full-width action. Used sparingly — the reference prefers accessory rows.
+/// The full-width action. Used sparingly: the reference prefers accessory rows.
 struct PrimaryButton: View {
     let label: String
     var symbol: String?
@@ -468,7 +468,7 @@ struct FieldRow<Trailing: View>: View {
     }
 }
 
-/// A trend line with no axes — the shape is the point.
+/// A trend line with no axes: the shape is the point.
 struct Sparkline: View {
     let values: [Double]
     var tint: Color = Tokens.accent

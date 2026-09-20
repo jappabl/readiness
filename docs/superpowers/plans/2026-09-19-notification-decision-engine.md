@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build the pure-Swift decision layer in `ReadinessCore` that answers "should Coach Jett speak right now, about which moment, and in what words" — with no iOS API surface, so every product decision in the spec is provable by `swift test`.
+**Goal:** Build the pure-Swift decision layer in `ReadinessCore` that answers "should Coach Jett speak right now, about which moment, and in what words", with no iOS API surface, so every product decision in the spec is provable by `swift test`.
 
-**Architecture:** Five small `public enum` namespaces of static functions, following the existing `ReadinessCore` idiom (`BurstLimiter`, `InsightEngine`, `RecommendationEngine`). Each moment gets its own type that answers one question and returns `String?` — nil meaning "nothing worth saying". A top-level `NotificationDecision.next(_:)` runs them in priority order and applies the speaking budget. Nothing here imports `UserNotifications`, `HealthKit`, `SwiftUI` or `CoreLocation`.
+**Architecture:** Five small `public enum` namespaces of static functions, following the existing `ReadinessCore` idiom (`BurstLimiter`, `InsightEngine`, `RecommendationEngine`). Each moment gets its own type that answers one question and returns `String?`: nil meaning "nothing worth saying". A top-level `NotificationDecision.next(_:)` runs them in priority order and applies the speaking budget. Nothing here imports `UserNotifications`, `HealthKit`, `SwiftUI` or `CoreLocation`.
 
 **Tech Stack:** Swift 6.2, Swift Testing (`import Testing`, `@Suite`, `@Test`, `#expect`), swift-tools-version 6.0, iOS 17 / macOS 14 platform floor.
 
@@ -15,15 +15,15 @@
 - **Pure functions only.** No `Foundation` beyond `Date`, `Calendar`, `TimeInterval`. No I/O, no singletons, no `UserDefaults`. Every function takes `now: Date` rather than calling `Date()`.
 - **Swift Testing, not XCTest.** `import Testing`, `@Suite("...")`, `@Test("...")`, `#expect(...)`. Match `Core/Tests/ReadinessCoreTests/BurstLimiterTests.swift` for style.
 - **Every new Core file needs four `project.pbxproj` edits**, because that file is hand-written and Core sources are compiled into the app target as well as the SPM package. Pattern them on `BurstLimiter.swift` at lines 74, 167, 372, 535. After every edit: `plutil -lint Readiness.xcodeproj/project.pbxproj`.
-- **Run `swift test` from the repo root** — the `Package.swift` at root points at `Core/Sources/ReadinessCore` and `Core/Tests/ReadinessCoreTests`.
+- **Run `swift test` from the repo root**: the `Package.swift` at root points at `Core/Sources/ReadinessCore` and `Core/Tests/ReadinessCoreTests`.
 - **`BurstLimiter.swift` must not be modified.** The coach depends on it with its own constants.
-- **Notification strings live in Core, beside the engine.** This refines the spec, which said `Copy.swift`: that file is in `App/Domain/` and unreachable from a `swift test` run, which would make the copy unprovable. Core already owns user-facing prose (`SignalScore.summary`, `ReadinessGate.explanation`), so the spec's actual intent — one voice, kept together, never model-generated — is preserved. `App/Domain/Copy.swift` remains for view copy.
-- **Budget status per moment, copied verbatim from the spec:** morning verdict — not budgeted; illness gate — not budgeted; gym arrival — not budgeted and never reaches this engine (it is location-driven, App-side); new insight — budgeted; bedtime target — budgeted.
+- **Notification strings live in Core, beside the engine.** This refines the spec, which said `Copy.swift`: that file is in `App/Domain/` and unreachable from a `swift test` run, which would make the copy unprovable. Core already owns user-facing prose (`SignalScore.summary`, `ReadinessGate.explanation`), so the spec's actual intent (one voice, kept together, never model-generated) is preserved. `App/Domain/Copy.swift` remains for view copy.
+- **Budget status per moment, copied verbatim from the spec:** morning verdict: not budgeted; illness gate: not budgeted; gym arrival: not budgeted and never reaches this engine (it is location-driven, App-side); new insight: budgeted; bedtime target: budgeted.
 - **Never call `Date()` inside a decision function.** Tests pin `Date(timeIntervalSince1970: 1_800_000_000)` as a start instant, as `BurstLimiterTests` does.
 
 ---
 
-### Task 1: The vocabulary — `NotificationMoment`
+### Task 1: The vocabulary (`NotificationMoment`)
 
 **Files:**
 - Create: `Core/Sources/ReadinessCore/NotificationMoment.swift`
@@ -70,7 +70,7 @@ struct NotificationMomentTests {
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `swift test --filter NotificationMomentTests`
-Expected: FAIL — `cannot find 'NotificationMoment' in scope`.
+Expected: FAIL (`cannot find 'NotificationMoment' in scope`).
 
 - [ ] **Step 3: Write minimal implementation**
 
@@ -81,8 +81,8 @@ import Foundation
 
 /// The occasions on which Coach Jett initiates a message.
 ///
-/// Gym arrival is deliberately absent. It is transactional rather than editorial — it
-/// responds to something the user just did, the way a delivery notification does — and
+/// Gym arrival is deliberately absent. It is transactional rather than editorial: it
+/// responds to something the user just did, the way a delivery notification does. And
 /// it is decided by CoreLocation in the app layer, so it never reaches this engine and
 /// never competes for the allowance the initiated messages share.
 ///
@@ -96,8 +96,8 @@ public enum NotificationMoment: String, Sendable, Codable, Equatable, CaseIterab
     /// Whether this moment draws from the speaking budget.
     ///
     /// The morning verdict does not. Budgeting it would treat "how did I sleep" as one
-    /// nice-to-have among several, when it is the thing the user opened an account for —
-    /// and it would silence the fifth consecutive rough night, which is a fifth day they
+    /// nice-to-have among several, when it is the thing the user opened an account for.
+    /// And it would silence the fifth consecutive rough night, which is a fifth day they
     /// should train differently.
     public var spendsBudget: Bool {
         switch self {
@@ -115,7 +115,7 @@ Expected: PASS, 3 tests.
 
 - [ ] **Step 5: Register the file in the app target**
 
-`Readiness.xcodeproj/project.pbxproj` needs four edits. Generate two fresh 24-character uppercase-hex IDs that do not already appear in the file. Grep the file **as it stands right now**, not as the plan shows it — earlier tasks have already added IDs of their own: `grep -c '<candidate>' Readiness.xcodeproj/project.pbxproj` must print `0` for both before you use them. Call them `BUILDID` and `FILEID`.
+`Readiness.xcodeproj/project.pbxproj` needs four edits. Generate two fresh 24-character uppercase-hex IDs that do not already appear in the file. Grep the file **as it stands right now**, not as the plan shows it; earlier tasks have already added IDs of their own: `grep -c '<candidate>' Readiness.xcodeproj/project.pbxproj` must print `0` for both before you use them. Call them `BUILDID` and `FILEID`.
 
 1. In the `PBXBuildFile` section (near line 74, beside the `BurstLimiter.swift` entry):
    `		BUILDID /* NotificationMoment.swift in Sources */ = {isa = PBXBuildFile; fileRef = FILEID /* NotificationMoment.swift */; };`
@@ -143,7 +143,7 @@ git commit -m "The moments Jett can initiate, and which ones cost him"
 
 ---
 
-### Task 2: The speaking budget — `NotificationBudget`
+### Task 2: The speaking budget (`NotificationBudget`)
 
 **Files:**
 - Create: `Core/Sources/ReadinessCore/NotificationBudget.swift`
@@ -232,7 +232,7 @@ struct NotificationBudgetTests {
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `swift test --filter NotificationBudgetTests`
-Expected: FAIL — `cannot find 'NotificationBudget' in scope`.
+Expected: FAIL (`cannot find 'NotificationBudget' in scope`).
 
 - [ ] **Step 3: Write minimal implementation**
 
@@ -250,7 +250,7 @@ import Foundation
 /// A weekly cap was considered and rejected: it cannot distinguish four messages spread
 /// across a week from four on Monday, and it resets on an arbitrary boundary, so someone
 /// who spends the allowance by Saturday is mute until midnight Sunday and then has a full
-/// allowance again. A bucket has no boundary — it just makes a busy day cost something.
+/// allowance again. A bucket has no boundary: it just makes a busy day cost something.
 ///
 /// This is `BurstLimiter`'s arithmetic with different constants, deliberately copied
 /// rather than shared. `BurstLimiter` guards a paying user's conversation with the coach,
@@ -324,7 +324,7 @@ git commit -m "Three coins in the jar, one back every two days"
 
 ---
 
-### Task 3: What was already said — `NotificationRecord`
+### Task 3: What was already said (`NotificationRecord`)
 
 **Files:**
 - Create: `Core/Sources/ReadinessCore/NotificationRecord.swift`
@@ -413,7 +413,7 @@ struct NotificationRecordTests {
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `swift test --filter NotificationRecordTests`
-Expected: FAIL — `cannot find 'NotificationRecord' in scope`.
+Expected: FAIL (`cannot find 'NotificationRecord' in scope`).
 
 - [ ] **Step 3: Write minimal implementation**
 
@@ -432,7 +432,7 @@ public struct NotificationRecord: Equatable, Sendable, Codable {
     public var lastIllnessGate: Date?
     public var lastBedtimeTarget: Date?
     /// The exact words last sent, because insight novelty is a text comparison rather
-    /// than a calendar one — a finding that has not changed is not news, however long ago
+    /// than a calendar one: a finding that has not changed is not news, however long ago
     /// it was first said.
     public var lastInsight: String?
     public var budget: NotificationBudget.State
@@ -506,7 +506,7 @@ import Foundation
 @testable import ReadinessCore
 
 /// The morning verdict is the app's core output. It is not budgeted, and it is not
-/// suppressed for repeating itself — a fifth consecutive rough night is a fifth day the
+/// suppressed for repeating itself: a fifth consecutive rough night is a fifth day the
 /// user should train differently.
 @Suite("The morning verdict")
 struct MorningVerdictTests {
@@ -515,7 +515,7 @@ struct MorningVerdictTests {
     ///
     /// `title` defaults to the same contributor every other test in this file uses.
     /// `worseSignalWins` overrides it, because `SignalScore.summary` reads only the
-    /// leading contributor — never `kind` or the score's own `value` — so two scores
+    /// leading contributor (never `kind` or the score's own `value`), so two scores
     /// sharing a contributor title render an identical sentence whichever one is
     /// picked, and the wrong signal could win without the test noticing.
     private func score(_ kind: SignalKind, value: Double, magnitude: Double,
@@ -651,7 +651,7 @@ struct MorningVerdictTests {
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `swift test --filter MorningVerdictTests`
-Expected: FAIL — `cannot find 'MorningVerdict' in scope`.
+Expected: FAIL (`cannot find 'MorningVerdict' in scope`).
 
 - [ ] **Step 3: Write minimal implementation**
 
@@ -751,7 +751,7 @@ git commit -m "A morning speaks when the night gave it something to say"
 - Test: `Core/Tests/ReadinessCoreTests/BedtimeTargetTests.swift`
 
 **Interfaces:**
-- Consumes: `SleepNeed` (existing, `Core/Sources/ReadinessCore/SleepScore.swift` — fields `hours`, `baseline`, `debt`, `strainAdjustment`, `napCredit`).
+- Consumes: `SleepNeed` (existing, `Core/Sources/ReadinessCore/SleepScore.swift`, fields `hours`, `baseline`, `debt`, `strainAdjustment`, `napCredit`).
 - Produces: `public enum BedtimeTarget` with `static let unusualMarginHours = 0.75`, `static let windowMinutes = 90.0`, `static func isDue(now: Date, usualBedtime: Date) -> Bool`, `static func sentence(need: SleepNeed) -> String?`.
 
 **The rule, from the spec:** the only moment that changes an outcome rather than reporting one. Fires in the ninety minutes before the user's usual bedtime, and only when tonight's need exceeds their own baseline by `unusualMarginHours` or more. The reason named is whichever of yesterday's strain or accumulated debt contributed more.
@@ -831,7 +831,7 @@ struct BedtimeTargetTests {
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `swift test --filter BedtimeTargetTests`
-Expected: FAIL — `cannot find 'BedtimeTarget' in scope`. It may also fail on `SleepNeed`'s memberwise initialiser not being public.
+Expected: FAIL (`cannot find 'BedtimeTarget' in scope`). It may also fail on `SleepNeed`'s memberwise initialiser not being public.
 
 - [ ] **Step 3: Make `SleepNeed`'s initialiser available to tests if it is not already**
 
@@ -857,7 +857,7 @@ import Foundation
 
 /// What tonight has to be, said while there is still time to do something about it.
 ///
-/// Every other message describes data already fixed — a morning verdict is about a night
+/// Every other message describes data already fixed: a morning verdict is about a night
 /// that cannot be changed. This one is the exception, which is why it is worth the
 /// interruption on the nights it fires.
 public enum BedtimeTarget {
@@ -887,7 +887,7 @@ public enum BedtimeTarget {
         let because = need.strainAdjustment >= need.debt * SleepNeed.repaymentFraction
             ? "Yesterday was hard"
             : "You are behind on sleep"
-        return "\(because) — tonight needs about \(hours) hours."
+        return "\(because): tonight needs about \(hours) hours."
     }
 }
 ```
@@ -915,7 +915,7 @@ git commit -m "The one message that can still change tonight"
 
 ---
 
-### Task 6: The decision — `NotificationDecision`
+### Task 6: The decision (`NotificationDecision`)
 
 **Files:**
 - Create: `Core/Sources/ReadinessCore/NotificationDecision.swift`
@@ -1026,7 +1026,7 @@ struct NotificationDecisionTests {
         #expect(outcome == nil)
     }
 
-    @Test("the same news the next day goes out again — novelty does not gate the verdict")
+    @Test("the same news the next day goes out again: novelty does not gate the verdict")
     func repeatsAcrossDays() {
         var record = NotificationRecord()
         record.lastMorningVerdict = morning
@@ -1132,7 +1132,7 @@ struct NotificationDecisionTests {
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `swift test --filter NotificationDecisionTests`
-Expected: FAIL — `cannot find 'NotificationDecision' in scope`.
+Expected: FAIL (`cannot find 'NotificationDecision' in scope`).
 
 - [ ] **Step 3: Write minimal implementation**
 
@@ -1263,7 +1263,7 @@ Expected: PASS, 13 tests.
 - [ ] **Step 5: Run the whole suite to confirm nothing regressed**
 
 Run: `swift test`
-Expected: PASS. As planned this adds 46 tests (3 + 5 + 6 + 11 + 8 + 13); as executed it added 50 (3 + 5 + 6 + 13 + 9 + 14) — see "Amendments during execution". The suite was 455 before it, so expect 505. If the pre-existing count differs, the number that matters is that **no previously passing test fails**.
+Expected: PASS. As planned this adds 46 tests (3 + 5 + 6 + 11 + 8 + 13); as executed it added 50 (3 + 5 + 6 + 13 + 9 + 14); see "Amendments during execution". The suite was 455 before it, so expect 505. If the pre-existing count differs, the number that matters is that **no previously passing test fails**.
 
 - [ ] **Step 6: Register the file in the app target**
 
@@ -1291,22 +1291,22 @@ matches what shipped rather than what was predicted.
 
 | Task | Test added | The gap it closed |
 |---|---|---|
-| 4 | `bestIgnoresHistoryOlderThanTheWindow` | No fixture exceeded `bestWindow`, so `Array(recent.suffix(bestWindow))` never truncated. Deleting `.suffix`, or swapping it for `.prefix`, changed no test's outcome — yet in production it is the only thing stopping "your best night in three weeks" comparing today against months-old nights. |
+| 4 | `bestIgnoresHistoryOlderThanTheWindow` | No fixture exceeded `bestWindow`, so `Array(recent.suffix(bestWindow))` never truncated. Deleting `.suffix`, or swapping it for `.prefix`, changed no test's outcome. Yet in production it is the only thing stopping "your best night in three weeks" comparing today against months-old nights. |
 | 4 | `worseRecoveryWins` | Nothing exercised recovery being the worse of two simultaneously-qualifying bad signals, so a `worstNews` that always returned the `sleep` parameter passed the whole suite. |
 | 5 | `exactlyAtTheWindowEdge` | None of the three window fixtures sat on the inclusive upper bound, so `isDue`'s `<=` regressing to `<` turned nothing red. |
-| 6 | `morningOutranksBedtimeWhenBothEligible` | `morningThenBedtime`, whose stated purpose was to pin the priority order, excluded the losing moment for an order-independent reason in both of its calls — so swapping `morningVerdict` and `bedtimeTarget` inside `next(_:)` was caught by nothing. |
+| 6 | `morningOutranksBedtimeWhenBothEligible` | `morningThenBedtime`, whose stated purpose was to pin the priority order, excluded the losing moment for an order-independent reason in both of its calls, so swapping `morningVerdict` and `bedtimeTarget` inside `next(_:)` was caught by nothing. |
 
 Two further tests were strengthened rather than added: Task 2's `clockGoingBackwardsEarnsNothing`
 (started from an empty bucket, where guarded and unguarded arithmetic agree) and Task 3's
 `insightIsTextual` (left every sibling date field nil, so a wrong-field read returned false
-anyway). Task 4's `score` helper gained a `title` parameter for the same class of reason —
+anyway). Task 4's `score` helper gained a `title` parameter for the same class of reason:
 `SignalScore.summary` renders only the leading contributor, so two fixtures sharing a title
 produced an identical sentence and `.min` versus `.max` was undetectable.
 
 One finding was investigated and dismissed: `skippedMomentsAreFree` cannot catch `spend` being
 called before a helper's eligibility guards. `Input`, `NotificationRecord` and
 `NotificationBudget.State` are value types, and `next(_:)` never threads a running record between
-its four helpers — each re-reads `input.record` — so a spend on a path that returns nil is a
+its four helpers (each re-reads `input.record`), so a spend on a path that returns nil is a
 discarded local copy that reaches neither a caller nor a sibling helper. The property the test
 was written to guard is one the `Optional<Outcome>` interface makes structurally unfalsifiable.
 No production change was made.
@@ -1316,7 +1316,7 @@ No production change was made.
 These belong to later chunks and must not be built here:
 
 - **`UNUserNotificationCenter`, categories, actions, permission flow.** Chunk 3.
-- **Wake detection and the hold-until-06:00 rule.** Chunk 3 — it needs HealthKit observers. The engine takes `now` and answers for that instant; deciding *when* to ask is the app's job.
+- **Wake detection and the hold-until-06:00 rule.** Chunk 3: it needs HealthKit observers. The engine takes `now` and answers for that instant; deciding *when* to ask is the app's job.
 - **Quiet-hours preference storage.** Chunk 3.
 - **The App Group snapshot and the widget.** Chunk 4.
 - **The nap fix** (`SleepAggregator` summing naps into the wake-day bucket). Its own branch, blocked pending a reply from the `readiness-b9` session. It does not block this chunk: the engine consumes `SignalScore` values and is indifferent to how sleep duration was computed upstream.

@@ -87,7 +87,7 @@ public enum SpokenSetParser {
     // MARK: - Reps
 
     static func reps(in text: String) -> [Int] {
-        // "3 sets of 8, 6, 7" — the list stops at the first word that is not a number
+        // "3 sets of 8, 6, 7": the list stops at the first word that is not a number
         // or a joiner, so "3 sets of 5 at 225" does not swallow the weight.
         if let match = matches(#"(\d+)\s+sets?\s+of\s+((?:\d+(?:\s*(?:,|and)\s*)?)+)"#,
                                in: text).first {
@@ -101,7 +101,7 @@ public enum SpokenSetParser {
            let count = Int(match[1]), let value = Int(match[2]), valid(reps: value) {
             return Array(repeating: value, count: min(count, 20))
         }
-        // "225 for 5", and "three sets of bench press at 165 for 5" — said out loud the
+        // "225 for 5", and "three sets of bench press at 165 for 5": said out loud the
         // lift's name lands between the two numbers, so the count is read on its own.
         if let match = matches(#"\bfor\s+(\d+)"#, in: text).first,
            let value = Int(match[1]), valid(reps: value) {
