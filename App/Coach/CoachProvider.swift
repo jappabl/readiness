@@ -5,21 +5,26 @@ struct CoachMessage: Identifiable, Equatable, Codable {
     let id: UUID
     let role: Role
     var text: String
+    var reaction: CoachReaction?
 
-    init(id: UUID = UUID(), role: Role, text: String) {
+    init(id: UUID = UUID(), role: Role, text: String, reaction: CoachReaction? = nil) {
         self.id = id
         self.role = role
         self.text = text
+        self.reaction = reaction
     }
 }
 
 enum CoachError: LocalizedError {
     case notConfigured
+    case sharingNotAllowed
     case declined(String)
     case transport(String)
 
     var errorDescription: String? {
         switch self {
+        case .sharingNotAllowed:
+            return "Allow sharing to chat with Jett. You can change this in Profile."
         case .notConfigured:
             return "Add an Anthropic API key in Profile to turn the coach on."
         case .declined(let reason):
@@ -110,18 +115,51 @@ enum CoachPrompt {
 
         Hard rules:
         - Never invent a measurement. If a number is not in the block, say you do not have it.
+        - Health summaries carry local dates and coverage. Old readings are not today's readings. \
+        Today's activity and intake may be partial; missing intake is not zero consumption. \
+        Do not infer a calorie deficit from incompletely logged food or wearable energy estimates.
+        - Sleep percentage means duration against a default 8-hour target, not a validated \
+        quality score or measured personal need. Sleep stages are estimates, not a diagnosis.
+        - HRV and resting HR may reflect physical load, sleep, illness or stress; they cannot \
+        identify emotional stress. Use the person's check-in for how stressed they feel. \
+        Check-in stress runs 1=maxed to 5=calm. Do not invent a 0-100 stress score.
+        - Caffeine/alcohol records are daily totals, not bedtime timing. Ask about timing if relevant. \
+        Health workouts may overlap workouts logged here; do not add both totals together.
         - Never contradict the state or adjustments in the block. If you disagree, say so \
         in a sentence and tell them it is their call.
+        - Respect physical limitations, training experience and the listed equipment. Do not \
+        prescribe loading an injured area. Exercise substitutions must come from the allowed \
+        list when present; if it is empty, ask for professional guidance instead of guessing. \
+        If equipment is unknown, do not assume access to a gym. Experience determines the \
+        progression approach; a good recovery score alone does not justify a load increase.
+        - Age, height and biological sex are optional context, not diagnoses or identity. \
+        Missing values stay unknown. Do not apply adult calorie or weight-loss targets to minors. \
+        Never request a full birthday; only age is provided to you.
         - Never diagnose, name a condition, or suggest treatment. You are not a clinician.
         - If they describe chest pain, fainting, a possible injury, disordered eating, or \
         anything else that sounds medical, stop coaching and tell them to see a \
         professional.
         - If the request has nothing to do with training, physiology, recovery, or their \
         own data, say it is outside what you do and offer something that is not.
-        - Weights are in pounds.
+        - Recorded workout loads are in pounds. Answer in the user's preferred units, \
+        converting loads when needed.
         """
 
-    static func data(context: CoachContext) -> String {
-        "The user's data:\n" + context.brief
+    static func data(context: CoachContext, unitsAreMetric: Bool = false) -> String {
+        let units = unitsAreMetric ? "kilograms" : "pounds"
+        return "Preferred weight units: \(units).\nThe user's data:\n" + context.brief
     }
+}
+
+
+/// Versioned consent is checked again at the network boundary, not just in the UI.
+/// An in-flight request cannot be recalled; revocation prevents subsequent requests.
+enum CoachSharing {
+    /// Versioned, and bumped whenever the disclosure changes in a way that consent
+    /// given to the old wording would not cover. Naming a single provider became wrong
+    /// once the server could route to a different one without an app release, so who
+    /// receives the data changed, and nobody's previous yes covers that.
+    static let key = "coach.sharing.v3"
+    static var isAllowed: Bool { UserDefaults.standard.bool(forKey: key) }
+    static func setAllowed(_ allowed: Bool) { UserDefaults.standard.set(allowed, forKey: key) }
 }

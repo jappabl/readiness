@@ -12,6 +12,7 @@ struct ProfileView: View {
     @State private var apiKey = ""
     @State private var keySaved = false
     @State private var showingPaywall = false
+    @State private var showingSharing = false
 
     private var profile: UserProfile {
         if let existing = profiles.first { return existing }
@@ -42,6 +43,12 @@ struct ProfileView: View {
         .navigationTitle("Profile")
         .toolbarBackground(Tokens.canvas, for: .navigationBar)
         .onAppear { apiKey = Keychain.apiKey ?? "" }
+        .sheet(isPresented: $showingSharing) {
+            CoachSharingSheet(onAllow: {
+                model.coachSharingAllowed = true
+                showingSharing = false
+            }, onCancel: { showingSharing = false })
+        }
         .fullScreenCover(isPresented: $showingPaywall) {
             PaywallView { showingPaywall = false }
         }
@@ -60,30 +67,30 @@ struct ProfileView: View {
         VStack(alignment: .leading, spacing: 12) {
             heading("You")
             ListCard {
-                // Not free text: this field decides what the home screen is made of,
-                // so it has to stay one of the goals the composition knows about.
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Goal").microLabel()
-                    Menu {
-                        Picker("Goal", selection: Binding(
-                            get: { model.goal ?? .getStronger },
-                            set: { model.setGoal($0, in: context) })) {
-                            ForEach(TrainingGoal.allCases, id: \.self) { goal in
-                                Label(goal.title, systemImage: goal.symbol).tag(goal)
+                    Text("Goals").microLabel()
+                    ForEach(TrainingGoal.allCases, id: \.self) { goal in
+                        let selected = model.goals.contains(goal)
+                        Button {
+                            var goals = model.goals
+                            if selected { goals.remove(goal) } else { goals.insert(goal) }
+                            model.setGoals(goals, in: context)
+                        } label: {
+                            HStack(spacing: 10) {
+                                Image(systemName: selected ? "checkmark.circle.fill" : "circle")
+                                    .foregroundStyle(selected ? Tokens.messageOutgoing : Tokens.textSecondary)
+                                Text(goal.title).foregroundStyle(Tokens.textPrimary)
+                                Spacer(minLength: 0)
                             }
+                            .font(.body).frame(minHeight: 44)
+                            .contentShape(Rectangle())
                         }
-                    } label: {
-                        HStack(spacing: 8) {
-                            Text((model.goal ?? .getStronger).title)
-                                .font(.system(size: 15))
-                                .foregroundStyle(Tokens.textPrimary)
-                            Spacer(minLength: 0)
-                            Image(systemName: "chevron.up.chevron.down")
-                                .font(.system(size: 12, weight: .semibold))
-                                .foregroundStyle(Tokens.textSecondary)
-                        }
+                        .buttonStyle(.plain)
+                        .disabled(selected && model.goals.count == 1)
+                        .accessibilityAddTraits(selected ? .isSelected : [])
+                        .accessibilityHint(selected && model.goals.count == 1 ? "Keep at least one goal" : "")
                     }
-                    Text((model.goal ?? .getStronger).promise)
+                    Text("Pick one or more. Your home screen and coaching reflect all your goals.")
                         .font(.system(size: 13))
                         .foregroundStyle(Tokens.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -264,10 +271,29 @@ struct ProfileView: View {
         VStack(alignment: .leading, spacing: 12) {
             heading("Data")
             ListCard {
-                FieldRow(label: "Apple Health") { Text("Read-only") }
+                FieldRow(label: "Apple Health") { Text("Read + optional logs") }
+                Divider().overlay(Tokens.hairline)
+                Button("Connect or refresh Health") { Task { await model.refresh(requestHealthAccess: true); model.startBackgroundDelivery() } }
+                    .frame(maxWidth: .infinity, alignment: .leading).padding(14)
+                Divider().overlay(Tokens.hairline)
+                Toggle("Share summaries for AI coaching", isOn: Binding(
+                    get: { model.coachSharingAllowed },
+                    set: { allowed in
+                        if allowed { showingSharing = true }
+                        else { model.coachSharingAllowed = false }
+                    }))
+                    .font(.subheadline).padding(14)
             }
-            footnote("Training guidance, not medical advice. Health data stays on this "
-                     + "device and is never used for advertising.")
+            footnote("Manage read and write permissions in the Health app.")
+            footnote("Health is read on your device. If you allow AI coaching, your messages, "
+                     + "profile, check-ins, training plan, and derived health summaries go to Coach Jett's "
+                     + "server and the AI provider it uses to write the reply. "
+                     + "Your birthday and raw Health records stay here. Turning sharing off stops future requests; "
+                     + "it cannot recall data already sent. Health data is not used for advertising.")
+            footnote("Sleep uses duration and recorded continuity, plus regularity when enough history exists. Duration alone is not a sleep score. "
+                     + "Heart metrics cannot tell us how stressed you feel. Training guidance, not medical advice.")
+            footnote("Meal photos and portion notes go to the same places, and only when you approve "
+                     + "an estimate. No Health history is sent for meal estimates.")
         }
     }
 }

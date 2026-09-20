@@ -1,93 +1,136 @@
 import SwiftUI
 
-/// How an answer arrives.
-///
-/// The assistant's text is not a bubble. A bubble is for a thing somebody said to you;
-/// a coach's answer is the content of the screen, so it runs full width in plain prose
-/// and only the user's own message gets a container. That single choice is most of what
-/// separates a chat toy from a tool.
+/// Messages-style turns shared by onboarding and the live coach.
 struct CoachTurnView: View {
     let message: CoachMessage
+    var reservesReactionSpace = false
+    private var outgoing: Bool { message.role == .user }
+    private var spokenLabel: String {
+        let speaker = outgoing ? "You" : "Jett"
+        let reaction = message.reaction.map { ". Jett reacted with \($0.rawValue)" } ?? ""
+        return "\(speaker): \(message.text)" + reaction
+    }
 
     var body: some View {
-        switch message.role {
-        case .user:
-            HStack {
-                Spacer(minLength: 44)
-                Text(message.text)
-                    .font(.system(size: 16))
-                    .foregroundStyle(Tokens.onAccent)
-                    .padding(.vertical, 10).padding(.horizontal, 14)
-                    .background(Tokens.accent,
-                                in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel("You: \(message.text)")
+        HStack(alignment: .bottom, spacing: 0) {
+            if outgoing { Spacer(minLength: 44) }
+            bubble.layoutPriority(1)
+            if !outgoing { Spacer(minLength: 36) }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(spokenLabel)
+    }
 
-        case .assistant:
-            // The first line is the answer and is set as one: bigger, heavier, and on
-            // its own. Everything after it is the detail you read only if you want it.
-            let segments = CoachSegments.parse(message.text)
-            VStack(alignment: .leading, spacing: 15) {
-                ForEach(Array(segments.enumerated()), id: \.offset) { index, segment in
+    private var bubble: some View {
+        content
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(.horizontal, 15)
+            .padding(.vertical, 11)
+            .background(outgoing ? Tokens.messageOutgoing : Tokens.messageIncoming, in: bubbleShape)
+            .overlay(alignment: .topLeading) { reactionBadge }
+            .padding(.top, message.reaction == nil && !reservesReactionSpace ? 0 : 12)
+    }
+
+    private var bubbleShape: UnevenRoundedRectangle {
+        UnevenRoundedRectangle(topLeadingRadius: 20,
+                               bottomLeadingRadius: outgoing ? 20 : 6,
+                               bottomTrailingRadius: outgoing ? 6 : 20,
+                               topTrailingRadius: 20)
+    }
+
+    @ViewBuilder private var content: some View {
+        if outgoing {
+            Text(message.text).font(.body).foregroundStyle(Tokens.messageOnOutgoing)
+        } else {
+            VStack(alignment: .leading, spacing: 12) {
+                ForEach(Array(CoachSegments.parse(message.text).enumerated()), id: \.offset) { _, segment in
                     switch segment {
-                    case .text(let prose):
-                        prosePart(prose, isFirst: index == 0)
+                    case .text(let text):
+                        Text(text).font(.body).foregroundStyle(Tokens.textPrimary)
                     case .chart(let kind):
                         CoachChartCard(kind: kind)
                     }
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .textSelection(.enabled)
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel("Jett: \(message.text)")
         }
     }
 
-    /// The opening run of prose carries the answer, so its first sentence is set as a
-    /// headline. Everything after it is detail.
-    @ViewBuilder
-    private func prosePart(_ prose: String, isFirst: Bool) -> some View {
-        let answer = isFirst ? CoachAnswer.split(prose) : (lead: "", body: prose)
-        VStack(alignment: .leading, spacing: 9) {
-            if !answer.lead.isEmpty {
-                Text(Self.formatted(answer.lead))
-                    .font(.system(size: 19, weight: .semibold))
-                    .foregroundStyle(Tokens.textPrimary)
-                    .lineSpacing(2)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            if !answer.body.isEmpty {
-                Text(Self.formatted(answer.body))
-                    .font(.system(size: 15))
-                    .foregroundStyle(Tokens.textSecondary)
-                    .lineSpacing(3)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
+    @ViewBuilder private var reactionBadge: some View {
+        if let reaction = message.reaction {
+            CoachReactionView(reaction: reaction)
+                .font(.callout)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Tokens.messageIncoming, in: Capsule())
+                .overlay(Capsule().strokeBorder(Tokens.messageCanvas, lineWidth: 2))
+                .offset(x: -14, y: -16)
+                .accessibilityHidden(true)
+                .transition(.scale(scale: 0.8, anchor: .bottomLeading).combined(with: .opacity))
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    /// Inline markdown only, and whitespace preserved.
-    ///
-    /// Block syntax is deliberately not interpreted: half-written text arrives on every
-    /// keystroke of the stream, and a block parser reflows the whole answer each time a
-    /// character lands — the paragraph jumps around while you are reading it.
-    static func formatted(_ text: String) -> AttributedString {
-        (try? AttributedString(
-            markdown: text,
-            options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)))
-            ?? AttributedString(text)
     }
 }
 
-/// One quiet word while there is nothing to show yet.
-///
-/// Not a spinner and not an empty bubble: a container with nothing in it reads as a
-/// failure. This holds no layout it will not fill, and gives way the moment the first
-/// token lands.
+/// Standard Tapbacks use Apple's symbols; workout reactions keep their personality.
+private struct CoachReactionView: View {
+    let reaction: CoachReaction
+
+    var body: some View {
+        Group {
+            switch reaction {
+            case .heart:
+                Image(systemName: "heart.fill").foregroundStyle(.pink)
+            case .like:
+                Image(systemName: "hand.thumbsup.fill").foregroundStyle(Tokens.messageOutgoing)
+            case .muscle:
+                Text("💪")
+            case .running:
+                Text("🏃")
+            }
+        }
+    }
+}
+
+/// A familiar contact header, shared across onboarding and the live conversation.
+struct CoachContactHeader: View {
+    var onBack: (() -> Void)? = nil
+    var isThinking = false
+    var isSpeaking = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    var body: some View {
+        HStack {
+            Group {
+                if let onBack {
+                    Button(action: onBack) {
+                        Image(systemName: "chevron.left").font(.title3.weight(.medium))
+                            .frame(width: 44, height: 44)
+                    }
+                    .tint(Tokens.messageOutgoing)
+                    .accessibilityLabel("Back to your day")
+                } else { Color.clear.frame(width: 44, height: 44) }
+            }
+            Spacer(minLength: 0)
+            VStack(spacing: 4) {
+                if reduceMotion { JettFace(size: 42) }
+                else { JettRive(size: 42, isThinking: isThinking, isSpeaking: isSpeaking) }
+                Text("Jett").font(typeSize.isAccessibilitySize ? .body : .caption)
+                    .foregroundStyle(Tokens.textPrimary)
+            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Jett, your health and training coach")
+            .accessibilityAddTraits(.isHeader)
+            Spacer(minLength: 0)
+            Color.clear.frame(width: 44, height: 44)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .frame(maxWidth: .infinity)
+        .background(Tokens.messageCanvas)
+        .overlay(alignment: .bottom) { Divider() }
+    }
+}
+
 struct ThinkingPill: View {
     var label = "Thinking"
 
@@ -96,8 +139,8 @@ struct ThinkingPill: View {
 
     var body: some View {
         Text(label)
-            .font(.system(size: 15, weight: .medium))
-            .foregroundStyle(Tokens.textSecondary.opacity(0.55))
+            .font(.subheadline.weight(.medium))
+            .foregroundStyle(Tokens.textTertiary)
             .overlay { if !reduceMotion { sweep } }
             .frame(maxWidth: .infinity, alignment: .leading)
             .onAppear {
@@ -106,7 +149,7 @@ struct ThinkingPill: View {
                     phase = 1.6
                 }
             }
-            .accessibilityLabel("Jett is thinking")
+            .accessibilityLabel(label == "Thinking" ? "Jett is thinking" : label)
     }
 
     /// A band of light travelling across the word, masked to the glyphs themselves.
@@ -120,7 +163,7 @@ struct ThinkingPill: View {
         }
         .mask(
             Text(label)
-                .font(.system(size: 15, weight: .medium))
+                .font(.subheadline.weight(.medium))
                 .frame(maxWidth: .infinity, alignment: .leading)
         )
         .allowsHitTesting(false)
@@ -137,7 +180,7 @@ struct CoachStepRow: View {
         HStack(spacing: 9) {
             Group {
                 if isRunning {
-                    ProgressView().controlSize(.mini).tint(Tokens.textSecondary)
+                    ProgressView().controlSize(.mini).tint(Tokens.textTertiary)
                 } else {
                     Image(systemName: "checkmark")
                         .font(.system(size: 10, weight: .bold))
@@ -147,8 +190,8 @@ struct CoachStepRow: View {
             .frame(width: 14, height: 14)
 
             Text(label)
-                .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(Tokens.textSecondary)
+                .font(.footnote.weight(.medium))
+                .foregroundStyle(Tokens.textTertiary)
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 12)
@@ -189,8 +232,8 @@ struct CoachChartCard: View {
                 DrawingLine(values: values, tint: tint, lineHeight: 40) { head in
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
                         Text(kind.displayName)
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundStyle(Tokens.textSecondary)
+                            .font(.footnote.weight(.medium))
+                            .foregroundStyle(Tokens.textTertiary)
                         InfoButton(kind)
                             .padding(.horizontal, -9)
                             .padding(.vertical, -9)
@@ -200,7 +243,7 @@ struct CoachChartCard: View {
                             .foregroundStyle(Tokens.textPrimary)
                         Text(kind.unit)
                             .font(.system(size: 12))
-                            .foregroundStyle(Tokens.textSecondary)
+                            .foregroundStyle(Tokens.textTertiary)
                     }
                 }
 
@@ -223,7 +266,112 @@ struct CoachChartCard: View {
     }
 
     private var tint: Color {
-        guard let reading else { return Tokens.textSecondary }
+        guard let reading else { return Tokens.textTertiary }
         return reading.isFavourable ? Tokens.recoveryHigh : Tokens.strainLow
+    }
+}
+
+/// Shared by the first conversation and the ongoing coach. Only the send action differs.
+struct CoachComposer: View {
+    @Binding var draft: String
+    let isStreaming: Bool
+    let onSend: (String) -> Void
+    @FocusState private var focused: Bool
+
+    private var canSend: Bool {
+        !isStreaming && !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    var body: some View {
+        HStack(alignment: .bottom, spacing: 6) {
+            TextField("Ask about your health or training", text: $draft,
+                      prompt: Text("Ask about your health or training").foregroundStyle(Tokens.textTertiary),
+                      axis: .vertical)
+                .font(.body)
+                .lineLimit(1...4)
+                .fixedSize(horizontal: false, vertical: true)
+                .textFieldStyle(.plain)
+                .focused($focused)
+                .disabled(isStreaming)
+                .padding(.leading, 18)
+                .padding(.vertical, 14)
+                .accessibilityLabel("Message Jett")
+            Button {
+                let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard canSend else { return }
+                draft = ""
+                focused = false
+                onSend(text)
+            } label: {
+                Image(systemName: "arrow.up")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundStyle(canSend ? Tokens.messageOnOutgoing : Tokens.textTertiary)
+                    .frame(width: 36, height: 36)
+                    .background(canSend ? Tokens.messageOutgoing : Tokens.surfaceSunken, in: Circle())
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
+            }
+            .disabled(!canSend)
+            .padding(.trailing, 4)
+            .padding(.bottom, 4)
+            .accessibilityLabel("Send")
+        }
+        .background(Tokens.messageCanvas, in: RoundedRectangle(cornerRadius: 26))
+        .overlay(RoundedRectangle(cornerRadius: 26).strokeBorder(Tokens.hairline, lineWidth: 1))
+        .padding(.horizontal, 16)
+        .padding(.bottom, 10)
+        .padding(.top, 8)
+    }
+}
+
+
+struct CoachSharingSheet: View {
+    let onAllow: () -> Void
+    let onCancel: () -> Void
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 22) {
+                    Image(systemName: "bubble.left.and.text.bubble.right")
+                        .font(.system(size: 34, weight: .medium))
+                        .foregroundStyle(Tokens.messageOutgoing)
+                        .accessibilityHidden(true)
+                    Text("Chat with Jett").font(.title2.bold())
+                    Text("Jett's replies are written by an AI model. With your permission, we send:")
+                    Label("Your messages, goals, physical limits, training experience, equipment, check-ins, and training plan", systemImage: "bubble.left")
+                    Label("Age, height, biological sex, and summaries of sleep, heart metrics, activity, workouts, body measurements, and logged nutrition", systemImage: "heart.text.clipboard")
+                    Text("This goes to Coach Jett's server, which passes it to the AI provider that writes the reply. Your birthday and raw Health records stay on your phone. Turn sharing off anytime in Profile.")
+                        .font(.subheadline).foregroundStyle(Tokens.textTertiary)
+                }
+                .font(.body)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(24)
+            }
+            .safeAreaInset(edge: .bottom) {
+                VStack(spacing: 8) {
+                    Button("Allow and continue", action: onAllow)
+                        .buttonStyle(.borderedProminent).buttonBorderShape(.capsule)
+                        .controlSize(.large).frame(maxWidth: .infinity)
+                    Button("Not now", action: onCancel).frame(minHeight: 44)
+                }
+                .tint(Tokens.messageOutgoing)
+                .padding(.horizontal, 24).padding(.vertical, 12)
+                .frame(maxWidth: .infinity)
+                .background(Tokens.messageCanvas)
+            }
+            .background(Tokens.messageCanvas)
+        }
+        .presentationDragIndicator(.visible)
+    }
+}
+
+extension View {
+    @ViewBuilder func conversationScrollAnchor() -> some View {
+        if #available(iOS 18.0, *) {
+            self.defaultScrollAnchor(.bottom, for: .sizeChanges)
+        } else {
+            self
+        }
     }
 }
