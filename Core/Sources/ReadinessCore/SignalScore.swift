@@ -364,7 +364,20 @@ public enum RecoveryScore {
             // there is no baseline to mark and "your normal" would be a lie. A balance
             // of nothing is titled for what it is rather than shown as "0 h of debt".
             let isDebt = contribution.kind == .sleepDebt
-            let owesNothing = isDebt && (reading?.value ?? 0) < 0.25
+            // A missing reading is not a reading of zero, which is what `?? 0` made it.
+            let owesNothing = isDebt && (reading.map { $0.value < 0.25 } ?? false)
+            // Debt is one-sided, so a percentile of its aligned z cannot describe it: the
+            // z is never positive, because owing nothing is the best it gets, so the bar
+            // reached 0.500 at its fullest and 0.122 at the cap. On a morning with perfect
+            // sleep the heaviest input in the model drew the shortest bar on the grid, and
+            // the row has no baseline tick to say that half was the top.
+            //
+            // Read off the z the engine weighed rather than off the hours, so the bar, the
+            // state and the points can never disagree about the same row — the hours and
+            // the z arrive as separate fields and nothing here can check they agree.
+            let debtZ = Swift.max(0, -scoringAligned)
+            let cappedZ = SleepDebt.maximumHours / SleepDebt.hoursPerDeviation
+            let debtLevel = 1 - Swift.min(1, debtZ / cappedZ)
             return ScoreContributor(
                 id: contribution.kind.rawValue,
                 title: owesNothing ? "Sleep" : contribution.kind.displayName,
@@ -376,8 +389,12 @@ public enum RecoveryScore {
                 // For HRV — the only metric scored on its trend — those differ, and the
                 // row could show an alarming red dot beside a magnitude saying it barely
                 // mattered, which is the screen arguing with itself.
-                state: .from(alignedZ: scoringAligned),
-                level: Percentile.fromZ(scoringAligned),
+                // Owing nothing is as good as this row gets, and `from(alignedZ:)` wants
+                // half a deviation the good side of baseline to say so — which debt has
+                // no good side of. Anything owed at all falls back to the ordinary
+                // thresholds, so no amount of debt can read as a positive.
+                state: isDebt && debtZ <= 0 ? .optimal : .from(alignedZ: scoringAligned),
+                level: isDebt ? debtLevel : Percentile.fromZ(scoringAligned),
                 symbol: contribution.kind.symbol,
                 magnitude: contribution.points * ratio,
                 explanation: contribution.kind.explanation,

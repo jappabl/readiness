@@ -194,11 +194,20 @@ struct ScoreContributionTests {
         #expect(rhr.magnitude < 0)
     }
 
+    /// Sleep debt is excluded from the middle case deliberately. Every other row here is
+    /// a fluctuating measurement whose own average is the middle of its range, so sitting
+    /// exactly on baseline is "fine" and nothing more. Debt has a true zero and no good
+    /// side of it: owing nothing is not a typical reading, it is the best one available,
+    /// and its bar is scaled to say so.
     @Test("contributor state reflects the direction of the reading")
     func contributorStates() {
         #expect(score(composite: 1.5).contributors.allSatisfy { $0.state == .optimal })
         #expect(score(composite: -1.5).contributors.allSatisfy { $0.state == .payAttention })
-        #expect(score(composite: 0).contributors.allSatisfy { $0.state == .fine })
+        #expect(score(composite: 0).contributors
+            .filter { $0.id != MetricKind.sleepDebt.rawValue }
+            .allSatisfy { $0.state == .fine })
+        #expect(score(composite: 0).contributor(MetricKind.sleepDebt.rawValue)?.state
+                == .optimal)
     }
 
     @Test("contributors carry the reading and the baseline they were judged against")
@@ -519,5 +528,72 @@ struct ClampContinuityTests {
                      try span(Array(all.prefix(3))), try span(all)]
         #expect((spans.max() ?? 0) - (spans.min() ?? 0) < 25,
                 "reachable spans by panel size: \(spans.map { Int($0) })")
+    }
+}
+
+/// The debt row's bar, which could never fill past half.
+///
+/// `level` is documented as 0...1 with higher always better, and every other row uses
+/// that whole range. Debt cannot: its aligned z is never positive, because owing nothing
+/// is the best it gets, so `Percentile.fromZ` handed it 0.122...0.500 and the row was
+/// `.fine` at its very best. On a morning with perfect sleep the input carrying the most
+/// weight in the whole model drew the shortest bar on the grid, with no tick to say that
+/// half was the top.
+@Suite("The debt row is one-sided")
+struct DebtLevelTests {
+
+    private func readings(hours: Double) -> [MetricReading] {
+        ReadinessEngine.weights.keys.map { kind in
+            kind == .sleepDebt
+                ? MetricReading(kind: .sleepDebt, value: hours, baseline: 0,
+                                zScore: hours / SleepDebt.hoursPerDeviation, sampleCount: 30)
+                : MetricReading(kind: kind, value: 40, baseline: 40, zScore: 0, sampleCount: 30)
+        }
+    }
+
+    private func row(hours: Double) throws -> ScoreContributor {
+        let inputs = readings(hours: hours)
+        let result = ReadinessEngine.evaluate(ReadinessInput(readings: inputs,
+                                                             daysOfHistory: 60))
+        let score = RecoveryScore.of(result, readings: inputs, history: [:])
+        return try #require(score.contributor(MetricKind.sleepDebt.rawValue))
+    }
+
+    @Test("owing nothing fills the bar")
+    func zeroDebtIsFull() throws {
+        let row = try row(hours: 0)
+        #expect(row.level == 1)
+        #expect(row.state == .optimal)
+    }
+
+    @Test("the cap empties it")
+    func cappedDebtIsEmpty() throws {
+        #expect(try row(hours: SleepDebt.maximumHours).level == 0)
+        #expect(try row(hours: SleepDebt.maximumHours * 2).level == 0, "past the cap went negative")
+    }
+
+    @Test("and it grades in between")
+    func gradesBetween() throws {
+        let half = try #require(try row(hours: SleepDebt.maximumHours / 2).level)
+        #expect(abs(half - 0.5) < 0.001)
+        let levels = try stride(from: 0.0, through: SleepDebt.maximumHours, by: 0.5)
+            .map { try #require(try row(hours: $0).level) }
+        #expect(zip(levels, levels.dropFirst()).allSatisfy { $1 < $0 },
+                "not monotonic: \(levels)")
+    }
+
+    /// And the rows that really are two-sided keep the percentile they had.
+    @Test("a two-sided row is untouched")
+    func otherRowsUnchanged() throws {
+        let inputs = ReadinessEngine.weights.keys.map { kind in
+            MetricReading(kind: kind, value: 40, baseline: 40,
+                          zScore: 1.0 * kind.polarity, sampleCount: 30)
+        }
+        let result = ReadinessEngine.evaluate(ReadinessInput(readings: inputs,
+                                                             daysOfHistory: 60))
+        let score = RecoveryScore.of(result, readings: inputs, history: [:])
+        let hrv = try #require(score.contributor(MetricKind.hrv.rawValue))
+        #expect(hrv.level ?? 0 > 0.5, "an above-baseline row should read above the middle")
+        #expect(hrv.state == .optimal)
     }
 }
