@@ -1,7 +1,7 @@
 import Foundation
 
-/// One bucket of time at one heart rate. Whatever the source aggregates to — five
-/// minute buckets in practice — rather than raw beats.
+/// One bucket of time at one heart rate, with `minutes` being how long that reading
+/// stood for — the gap to the next one, capped. Not raw beats.
 public struct HeartRateSample: Sendable, Equatable {
     public let start: Date
     public let minutes: Double
@@ -29,6 +29,10 @@ public struct StrainInput: Sendable {
     /// formula predicts. A population average loses to a measurement.
     public let observedMaxHeartRate: Double?
     public let hardSets: Int
+    /// When the day is being read. The wear check needs a clock: a trace covering two
+    /// hours is a complete record at nine in the morning and a third of a record at six
+    /// in the evening, and without one the span test had nothing to compare against.
+    public let readAt: Date
     /// What the ring showed before this engine existed. Used only when there is no
     /// cardiac trace at all, and always labelled.
     public let fallback: DailyStrainResult?
@@ -36,13 +40,14 @@ public struct StrainInput: Sendable {
     public init(samples: [HeartRateSample], restingHeartRate: Double?, ageYears: Int?,
                 biologicalSex: HealthProfile.BiologicalSex?,
                 observedMaxHeartRate: Double? = nil, hardSets: Int = 0,
-                fallback: DailyStrainResult? = nil) {
+                readAt: Date = Date(), fallback: DailyStrainResult? = nil) {
         self.samples = samples
         self.restingHeartRate = restingHeartRate
         self.ageYears = ageYears
         self.biologicalSex = biologicalSex
         self.observedMaxHeartRate = observedMaxHeartRate
         self.hardSets = hardSets
+        self.readAt = readAt
         self.fallback = fallback
     }
 }
@@ -345,12 +350,18 @@ public enum StrainScore {
         // against how much of the day has actually happened — against a fixed twelve
         // hours it fired every morning and afternoon, which is most of when the card
         // gets opened.
-        if let first = samples.map(\.start).min(), let last = samples.map(\.start).max() {
-            let span = last.timeIntervalSince(first) / 60 + (samples.first?.minutes ?? 0)
+        if let first = samples.map(\.start).min(),
+           let lastSample = samples.max(by: { $0.start < $1.start }) {
+            let span = lastSample.start.timeIntervalSince(first) / 60 + lastSample.minutes
             let sampled = samples.reduce(0) { $0 + $1.minutes }
-            let elapsed = Swift.max(1, span)
-            let thin = span < Swift.min(minimumWornMinutes, elapsed)
-                || sampled / elapsed < minimumSampledShare
+            // Against the clock, not against itself. `elapsed` used to be derived from
+            // `span`, which made the comparison `span < min(720, span)` — false for
+            // every trace ever recorded. A watch worn from nine to one and read at
+            // eleven at night reported a complete day, with the evening session that
+            // was never recorded showing up as nothing at all.
+            let elapsed = Swift.max(1, input.readAt.timeIntervalSince(first) / 60)
+            let thin = span < Swift.min(minimumWornMinutes, elapsed * minimumSampledShare)
+                || sampled / Swift.max(1, span) < minimumSampledShare
             if thin {
                 let hours = Int((sampled / 60).rounded())
                 missing.append("Part of the day — your heart rate was recorded for about "

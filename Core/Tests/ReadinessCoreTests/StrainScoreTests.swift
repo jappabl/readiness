@@ -421,3 +421,45 @@ struct ACWRGuardTests {
         #expect(ratio <= ReadinessEngine.acwrGate, "a steady habit read as \(ratio)")
     }
 }
+
+@Suite("The wear check needs a clock")
+struct WearTimeClockTests {
+
+    private func day(from startHour: Int, hours: Double, bpm: Double = 90,
+                     readAtHour: Int) -> StrainInput {
+        let midnight = Calendar.current.startOfDay(for: Date())
+        let start = midnight.addingTimeInterval(Double(startHour) * 3600)
+        let samples = (0..<Int(hours * 12)).map {
+            HeartRateSample(start: start.addingTimeInterval(Double($0) * 300),
+                            minutes: 5, beatsPerMinute: bpm)
+        }
+        return StrainInput(samples: samples, restingHeartRate: 55, ageYears: 30,
+                           biologicalSex: .male, hardSets: 0,
+                           readAt: midnight.addingTimeInterval(Double(readAtHour) * 3600))
+    }
+
+    /// `elapsed` used to be derived from `span`, which made the test
+    /// `span < min(720, span)` — false for every trace ever recorded. Only density fired,
+    /// so a watch worn four hours reported a complete day and an evening session that
+    /// was never recorded showed up as nothing at all.
+    @Test("a watch worn for four hours of a full day says so")
+    func shortWearFlagged() {
+        let result = StrainScore.of(day(from: 9, hours: 4, readAtHour: 23))
+        #expect(result.coverage == .partial)
+        #expect(result.missing.contains { $0.localizedCaseInsensitiveContains("part of the day") })
+    }
+
+    @Test("so does a trace that is only the session")
+    func sessionOnlyFlagged() {
+        #expect(StrainScore.of(day(from: 19, hours: 1, readAtHour: 23)).coverage == .partial)
+    }
+
+    /// And round 3's complaint stays fixed: a normally worn day must not be flagged
+    /// merely because the day is not over yet.
+    @Test("a normally worn day is never flagged, whatever the hour", arguments: [9, 12, 15, 18, 23])
+    func normalWearIsSilent(readAtHour: Int) {
+        let worn = Double(readAtHour - 7)
+        let result = StrainScore.of(day(from: 7, hours: worn, readAtHour: readAtHour))
+        #expect(result.coverage == .full, "flagged at \(readAtHour):00 after \(worn) h worn")
+    }
+}

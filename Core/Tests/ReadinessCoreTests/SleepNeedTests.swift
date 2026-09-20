@@ -62,56 +62,96 @@ struct SleepNeedTests {
 @Suite("Sleep debt")
 struct SleepDebtTests {
 
-    @Test("a rested week owes nothing")
-    func noDebt() {
-        #expect(SleepDebt.of(nights: Array(repeating: 8.0, count: 14)).hours == 0)
+    /// Fourteen settled nights, so the reference has something real to sit on.
+    private func settled(_ hours: Double, _ count: Int = 14) -> [Double] {
+        Array(repeating: hours, count: count)
     }
 
-    @Test("short nights accumulate")
-    func accumulates() {
-        let debt = SleepDebt.of(nights: Array(repeating: 6.0, count: 5))
-        #expect(debt.hours > 0)
+    /// The defect that drove the rewrite: accruing against the score's need — the upper
+    /// part of the sleeper's own distribution, above their average by construction —
+    /// multiplied that bias by fourteen. Somebody averaging a solid eight hours carried
+    /// a standing balance of 4.2 h, and an ordinary weekday/weekend sleeper sat pinned
+    /// at the cap on 53 days out of 60. The balance measured their variance, not their
+    /// sleep. It accrues against their own median now.
+    @Test("a settled sleeper owes nothing, however long they sleep")
+    func settledOwesNothing() {
+        for hours in [7.0, 7.5, 8.0, 8.5, 9.0] {
+            #expect(SleepDebt.of(nights: settled(hours)).hours < 0.01,
+                    "a steady \(hours) h sleeper was told they were behind")
+        }
     }
 
-    /// The property the old ratchet did not have. A long night pays the hole down.
-    @Test("a long night repays")
+    /// And variance alone must not become a balance.
+    @Test("an ordinary week of ups and downs owes nothing")
+    func varianceIsNotDebt() {
+        let week = [7.2, 8.4, 7.6, 8.8, 6.9, 9.4, 8.1]
+        #expect(SleepDebt.of(nights: week + week).hours < 1.0)
+    }
+
+    @Test("a genuinely bad run shows")
+    func badRunShows() {
+        let nights = settled(8.0, 7) + Array(repeating: 5.0, count: 5)
+        #expect(SleepDebt.of(nights: nights).hours > 2)
+    }
+
+    /// The one thing a self-relative reference cannot see on its own: somebody
+    /// chronically short has a median that ratifies the shortage. Floored at seven.
+    @Test("chronic shortage is still caught")
+    func chronicCaught() {
+        #expect(SleepDebt.of(nights: settled(5.5)).hours > 5,
+                "a habitual 5.5 h sleeper was told they owed nothing")
+    }
+
+    /// A floor at zero stopped a good night paying anything down and made the balance a
+    /// ratchet. Credit is allowed now, bounded.
+    @Test("long nights pay it down")
     func surplusRepays() {
-        #expect(SleepDebt.of(nights: [4, 10, 10]).hours == 0)
-        #expect(SleepDebt.of(nights: [4]).hours == 4)
+        let dug = settled(8.0, 7) + Array(repeating: 5.0, count: 4)
+        let dugOut = dug + Array(repeating: 10.0, count: 4)
+        #expect(SleepDebt.of(nights: dugOut).hours < SleepDebt.of(nights: dug).hours)
     }
 
-    /// Being ahead is not a thing anybody can spend, so the balance floors at zero
-    /// rather than running negative.
-    @Test("sleeping extra does not build credit")
-    func noCredit() {
-        #expect(SleepDebt.of(nights: Array(repeating: 10.0, count: 14)).hours == 0)
+    @Test("but credit does not accumulate without bound")
+    func creditBounded() {
+        #expect(SleepDebt.of(nights: settled(8.0, 7) + Array(repeating: 11.0, count: 14)).hours == 0)
     }
 
     @Test("the balance is capped")
     func capped() {
-        #expect(SleepDebt.of(nights: Array(repeating: 1.0, count: 14)).hours
+        #expect(SleepDebt.of(nights: Array(repeating: 1.0, count: 20)).hours
                 == SleepDebt.maximumHours)
     }
 
-    /// What the card shows: which way it moved. Negative is progress.
-    @Test("the change is signed and reads as progress or not")
-    func change() {
-        #expect(SleepDebt.of(nights: [6, 6]).change == 2)
-        #expect(SleepDebt.of(nights: [6, 6, 10]).change == -2)
-        #expect(SleepDebt.of(nights: [8, 8, 8]).change == 0)
+    /// The arrow has to agree with the number above it. Both balances are accumulated
+    /// against the same reference over windows a night apart; re-learning it between
+    /// them made the arrow disagree on 66 days out of 70 and point the wrong way on 27.
+    @Test("the change matches what the balance actually did")
+    func changeIsHonest() {
+        let before = settled(8.0, 10) + [6.0]
+        let after = before + [5.0]
+        let moved = SleepDebt.of(nights: after).hours - SleepDebt.of(nights: before).hours
+        #expect(abs(SleepDebt.of(nights: after).change - moved) < 0.01,
+                "arrow said \(SleepDebt.of(nights: after).change), balance moved \(moved)")
+    }
+
+    @Test("a long night reads as progress")
+    func progressIsNegative() {
+        let dug = settled(8.0, 8) + Array(repeating: 5.5, count: 4)
+        #expect(SleepDebt.of(nights: dug + [10.5]).change < 0)
+        #expect(SleepDebt.of(nights: dug + [4.0]).change > 0)
     }
 
     @Test("it only looks back over its own window")
     func windowed() {
-        let ancient = [2.0] + Array(repeating: 8.0, count: SleepDebt.window)
-        #expect(SleepDebt.of(nights: ancient).hours == 0,
-                "a bad night older than the window still counted")
+        let ancient = [1.0] + settled(8.0, SleepDebt.window + 2)
+        #expect(SleepDebt.of(nights: ancient).hours < 0.01)
     }
 
     @Test("nonsense nights are dropped rather than carried")
     func nonsense() {
-        #expect(SleepDebt.of(nights: [.nan, 8, .infinity, 8]).hours == 0)
+        #expect(SleepDebt.of(nights: [.nan, 8, .infinity, 8]).hours.isFinite)
         #expect(SleepDebt.of(nights: []).hours == 0)
+        #expect(SleepDebt.of(nights: []).change == 0)
     }
 }
 

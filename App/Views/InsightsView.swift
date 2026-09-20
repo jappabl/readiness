@@ -558,10 +558,15 @@ struct SleepStages {
               asleep > 0,
               let deep = score.contributor("deep")?.value,
               let rem = score.contributor("rem")?.value else { return nil }
-        self.deep = deep
-        self.rem = rem
+        // Scaled the way the engine scales them: two devices each unioning their own
+        // samples can report more staged hours than the night held, and the ring drew
+        // arcs summing to 129% of a seven-hour night.
+        let staged = deep + rem
+        let scale = staged > asleep && staged > 0 ? asleep / staged : 1
+        self.deep = deep * scale
+        self.rem = rem * scale
         self.awake = score.contributor("awake")?.value ?? 0
-        self.light = max(0, asleep - deep - rem)
+        self.light = max(0, asleep - (deep + rem) * scale)
     }
 
     /// Below this, being awake is stirring rather than an awakening, and listing it

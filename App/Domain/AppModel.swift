@@ -561,7 +561,7 @@ final class AppModel {
             breakdown: current?.sleep,
             durationHours: current?.sleepHours,
             history: past.compactMap(\.sleep),
-            priorNights: past.compactMap(\.sleepHours),
+            priorNights: sleepNights(upTo: date),
             // Yesterday's load is what tonight has to recover from, not today's, which
             // has not happened yet when the score is read in the morning.
             strain: strainScore(on: calendar.date(byAdding: .day, value: -1, to: today) ?? today,
@@ -575,8 +575,18 @@ final class AppModel {
     var sleepDebt: SleepDebt { sleepDebt(on: Date()) }
 
     func sleepDebt(on date: Date) -> SleepDebt {
+        SleepDebt.of(nights: sleepNights(upTo: date))
+    }
+
+    /// The one night list both the score and the debt card learn from.
+    ///
+    /// They used to take different slices — the score twenty-eight prior nights, the
+    /// card the whole series including last night — so they learned different needs and
+    /// contradicted each other on the same screen: "your need was 7.0 hours" above a
+    /// card saying twelve hours behind.
+    private func sleepNights(upTo date: Date, days: Int = 28) -> [Double] {
         let cutoff = Calendar.current.startOfDay(for: date).addingTimeInterval(86_399)
-        return SleepDebt.of(nights: series.filter { $0.date <= cutoff }.compactMap(\.sleepHours))
+        return Array(series.filter { $0.date <= cutoff }.compactMap(\.sleepHours).suffix(days))
     }
 
     /// Kept as the labelled fallback for anybody without a heart rate trace.
@@ -606,6 +616,9 @@ final class AppModel {
             biologicalSex: healthProfile.biologicalSex,
             observedMaxHeartRate: series.compactMap(\.heartRateMax).max(),
             hardSets: hardSets(on: date, context: context),
+            // A past day is read whole; today is read part-way through.
+            readAt: Calendar.current.isDateInToday(date)
+                ? Date() : Calendar.current.startOfDay(for: date).addingTimeInterval(86_399),
             fallback: DailyStrain.evaluate(days: activity, on: date)))
     }
 

@@ -71,13 +71,34 @@ public struct SleepNeed: Sendable, Equatable {
     public static func baseline(from nights: [Double]) -> Double {
         let usable = nights.filter { $0.isFinite && $0 > 0 }.sorted()
         guard usable.count >= learningNights else { return baselineHours }
-        let position = needPercentile * Double(usable.count - 1)
-        let lower = Int(position)
-        let upper = Swift.min(lower + 1, usable.count - 1)
-        let estimate = usable[lower] + (usable[upper] - usable[lower]) * (position - Double(lower))
-        guard estimate >= learnedFloorHours else { return baselineHours }
-        return Swift.min(estimate, learnedCeilingHours)
+
+        // A band rather than a single index. On a weekday/weekend record the
+        // distribution is two clusters with nothing between them, so a point estimate
+        // sits on whichever night happens to land at the index — and one missing night
+        // moved the need by a full hour, which moved an ordinary night ten points.
+        let span = usable.indices.filter {
+            let q = Double($0) / Double(Swift.max(1, usable.count - 1))
+            return q >= needPercentile - needBand && q <= needPercentile + needBand
+        }
+        let estimate = span.isEmpty
+            ? usable[usable.count - 1]
+            : span.reduce(0.0) { $0 + usable[$1] } / Double(span.count)
+
+        // Ramped into the fallback rather than switched. At a hard threshold six minutes
+        // of habitual sleep bought twelve points and a band, and a person whose estimate
+        // hovered near it crossed back and forth invisibly.
+        let trust = Swift.min(1, Swift.max(0, (estimate - fallbackFloorHours)
+                                           / (learnedFloorHours - fallbackFloorHours)))
+        let blended = trust * estimate + (1 - trust) * baselineHours
+        return Swift.min(blended, learnedCeilingHours)
     }
+
+    /// How wide a slice of the distribution the estimate averages over.
+    public static let needBand = 0.06
+
+    /// Below this the estimate is entirely the population figure; between here and
+    /// `learnedFloorHours` the two are blended.
+    public static let fallbackFloorHours = 6.5
 
     /// Strain below this costs nothing extra. Half the scale.
     public static let strainThreshold = 50.0
@@ -155,22 +176,54 @@ public struct SleepDebt: Sendable, Equatable {
     public static let maximumHours = 12.0
 
     /// `nights` is hours slept, oldest first, ending with last night.
-    /// `nights` is hours slept, oldest first. The need is learned from the same record,
-    /// so the balance is what this person is down against their own requirement rather
-    /// than against a figure from a table.
-    public static func of(nights: [Double]) -> SleepDebt {
-        let clean = nights.filter { $0.isFinite && $0 >= 0 }
-        let need = SleepNeed.baseline(from: clean)
-        let usable = clean.suffix(window)
-        let balance = accumulate(Array(usable), need: need)
-        let previous = accumulate(Array(usable.dropLast()), need: need)
-        return SleepDebt(hours: balance, change: balance - previous, nights: usable.count)
+    /// What the balance accrues against.
+    ///
+    /// NOT the score's need. The score asks "did last night meet what you need", and the
+    /// need for that is the upper part of your own distribution — above your average by
+    /// construction. Accumulating against it over a fortnight multiplies that bias by
+    /// fourteen: measured, somebody averaging a solid eight hours carried a standing
+    /// balance of 4.2 hours and an ordinary weekday/weekend sleeper sat pinned at the
+    /// twelve-hour cap on 53 days out of 60. The number was a statement about their
+    /// variance, not their sleep.
+    ///
+    /// Their own median is unbiased — a steady sleeper owes nothing, a bad week shows,
+    /// a recovery week pays down. Floored at seven hours so the one case a self-relative
+    /// reference cannot see is still caught: somebody chronically short has a median
+    /// that ratifies the shortage, and their debt would otherwise read zero forever.
+    static func reference(for nights: [Double]) -> Double {
+        let usable = nights.filter { $0.isFinite && $0 > 0 }.sorted()
+        guard !usable.isEmpty else { return SleepNeed.baselineHours }
+        let middle = usable.count / 2
+        let median = usable.count.isMultiple(of: 2)
+            ? (usable[middle - 1] + usable[middle]) / 2 : usable[middle]
+        return Swift.max(median, SleepNeed.learnedFloorHours)
     }
 
-    private static func accumulate(_ nights: [Double], need: Double) -> Double {
+    /// The most credit a run of long nights can bank. Some, because a floor at zero
+    /// stops a good night paying anything down and turns the balance into a ratchet —
+    /// but not unbounded, because a fortnight of holiday is not a licence.
+    public static let maximumCreditHours = 3.0
+
+    /// `nights` is hours slept, oldest first.
+    public static func of(nights: [Double]) -> SleepDebt {
+        let clean = nights.filter { $0.isFinite && $0 >= 0 }
+        // One reference for both balances, and the same fourteen-night window ending a
+        // night apart. Re-learning it between the two made the arrow disagree with the
+        // number above it on 66 days out of 70, and point the wrong way on 27.
+        let against = reference(for: clean)
+        let balance = accumulate(Array(clean.suffix(window)), against: against)
+        let previous = accumulate(Array(clean.dropLast().suffix(window)), against: against)
+        return SleepDebt(hours: Swift.max(0, balance),
+                         change: Swift.max(0, balance) - Swift.max(0, previous),
+                         nights: Swift.min(clean.count, window))
+    }
+
+    private static func accumulate(_ nights: [Double], against reference: Double) -> Double {
+        guard !nights.isEmpty else { return 0 }
         var debt = 0.0
         for slept in nights {
-            debt = Swift.min(maximumHours, Swift.max(0, debt + (need - slept)))
+            debt = Swift.min(maximumHours,
+                             Swift.max(-maximumCreditHours, debt + (reference - slept)))
         }
         return debt
     }
@@ -225,7 +278,12 @@ public enum SleepScore {
     /// Structure can move the score by this much and no more. Duration has to dominate:
     /// a beautifully built five hours is still five hours, and a score that let good
     /// architecture rescue a short night would be telling people the wrong thing.
-    public static let qualityFloor = 0.85
+    /// Was 0.85, which is exactly where `ScoreBand.sleep` turns green — so the worst
+    /// possible structure on a full-length night still landed at 85 and read as a good
+    /// one. Measured: 7.7 h against a 7.5 h need with three hours awake, no deep sleep,
+    /// no REM and no overnight heart rate drop scored 88 and green. Yellow and red were
+    /// duration-only bands.
+    public static let qualityFloor = 0.80
 
     /// Where a full, well-built night lands, and what the breakdown counts down from.
     public static let perfect = 100.0
@@ -379,14 +437,25 @@ public enum SleepScore {
         /// `HealthSource` already refuses to split but the scorer did not: one probe drew
         /// a ring reading "Deep 7.0 h" on a seven-hour night, arcs summing to 129% of it.
         func isStaged(_ night: SleepBreakdown) -> Bool {
-            let stages = night.deepHours + night.remHours + night.coreHours
-            return stages > 0 && stages <= night.asleepHours + 0.01
+            night.deepHours + night.remHours + night.coreHours > 0
+        }
+        /// What the shares are taken against.
+        ///
+        /// Two devices each union their own samples and the totals are then summed, so a
+        /// phone and a watch both recording can report more staged hours than the night
+        /// contained. Rejecting those nights outright starved every structural component
+        /// — of tonight AND of the whole history — so a second tracker cost nine points
+        /// and a "still learning your normal" notice that never resolved. Scaling to fit
+        /// keeps the proportions, which is the part that was ever being scored.
+        func stageTotal(_ night: SleepBreakdown) -> Double {
+            Swift.max(night.asleepHours,
+                      night.deepHours + night.remHours + night.coreHours)
         }
         let staged = night.map(isStaged) ?? false
 
         func share(_ keyPath: KeyPath<SleepBreakdown, Double>) -> Double? {
             guard let night, asleep > 0, staged else { return nil }
-            return night[keyPath: keyPath] / asleep
+            return night[keyPath: keyPath] / stageTotal(night)
         }
 
         /// Where tonight's value sits in this sleeper's own distribution, as 0...1.
@@ -413,7 +482,7 @@ public enum SleepScore {
 
         let historicShares = { (keyPath: KeyPath<SleepBreakdown, Double>) -> [Double] in
             stagedHistory.compactMap { past in
-                past.asleepHours > 0 ? past[keyPath: keyPath] / past.asleepHours : nil
+                past.asleepHours > 0 ? past[keyPath: keyPath] / stageTotal(past) : nil
             }
         }
 
