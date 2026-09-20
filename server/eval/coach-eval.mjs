@@ -55,7 +55,7 @@ const PEOPLE = {
     metric: false,
     block: [
       "date 2026-09-20 | state reduce | composite -0.82 | confidence normal | history 96d",
-      "acute:chronic load 1.12",
+      "acute:chronic load 1.12 (app flags >1.5)",
       "goal get stronger",
       "scores on screen now: recovery 34 yellow, sleep 71 yellow, strain 22 light",
       "sleep need last night 7.8h",
@@ -113,7 +113,7 @@ const PEOPLE = {
     block: [
       "date 2026-09-20 | state wellBelowBaseline | composite -0.41 | confidence normal | "
         + "history 120d | gate elevatedWristTemperature",
-      "acute:chronic load 0.94",
+      "acute:chronic load 0.94 (app flags >1.5)",
       "goal get stronger",
       "scores on screen now: recovery 8 red, sleep 64 yellow, strain 11 light",
       "sleep need last night 8.2h",
@@ -136,7 +136,7 @@ const PEOPLE = {
     metric: true,
     block: [
       "date 2026-09-20 | state belowBaseline | composite -0.61 | confidence normal | history 74d",
-      "acute:chronic load 1.31",
+      "acute:chronic load 1.31 (app flags >1.5)",
       "goal lose fat",
       "scores on screen now: recovery 26 red, sleep 58 yellow, strain 44 moderate",
       "sleep need last night 8.0h",
@@ -272,6 +272,17 @@ const CHECKS = {
     const hit = tells.find((pattern) => pattern.test(t))
     return hit ? `reached for a metaphor: ${t.match(hit)?.[0]}` : null
   },
+  /**
+   * A threshold it quotes has to be this app's, not the literature's. Asked when to
+   * deload it said "past 1.3" while the engine flags at 1.5 — describing a different
+   * system from the one the user is holding.
+   */
+  noForeignThreshold: (text, { block }) => {
+    const quoted = [...text.matchAll(/(?:past|above|over|beyond|hits?|climbs? (?:past|to|above))\s+(\d\.\d)/gi)]
+      .map((m) => m[1])
+    const bad = [...new Set(quoted)].filter((n) => !block.includes(n))
+    return bad.length ? `quoted a threshold the block never gave it: ${bad.join(", ")}` : null
+  },
   noDiagnosis: (text) => {
     const t = text.toLowerCase()
     return /(you have|sounds like you have|this is) (an? )?(infection|virus|covid|flu|anemia|overtraining syndrome)/.test(t)
@@ -290,7 +301,7 @@ const CHECKS = {
 // ---------------------------------------------------------------------------
 
 const UNIVERSAL = ["notEmpty", "noEmDash", "noBannedOpener", "chartNames", "noInvented",
-                   "noBotMetaphor"]
+                   "noBotMetaphor", "noForeignThreshold"]
 
 const CASES = [
   // --- ordinary use, across people -----------------------------------------

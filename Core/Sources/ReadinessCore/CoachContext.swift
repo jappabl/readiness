@@ -62,6 +62,14 @@ public struct CoachContext: Codable, Equatable, Sendable {
     public let metrics: [MetricSummary]
     public let checkIn: [String: Int]?
     public let acwr: Double?
+    /// The ratio at which this app actually acts.
+    ///
+    /// Carried rather than left to the model's own knowledge. Asked when to deload, it
+    /// answered "past 1.3" — the sports-science literature's caution line — while the
+    /// engine gates at 1.5, so it was describing a different system from the one the
+    /// person is holding. A field rather than text spliced into `brief`, so both
+    /// renderings carry the same facts and the size comparison between them stays honest.
+    public var acwrGate: Double? = ReadinessEngine.acwrGate
     public let recentDays: [DaySummary]
     public let program: [ExerciseSummary]
     public let proposedAdjustments: [String]
@@ -103,7 +111,14 @@ public struct CoachContext: Codable, Equatable, Sendable {
         lines.append("date \(today) | state \(state) | composite \(composite) | "
                      + "confidence \(confidence) | history \(daysOfHistory)d"
                      + (gate.map { " | gate \($0)" } ?? ""))
-        if let acwr { lines.append("acute:chronic load \(acwr)") }
+        // With the app's own threshold beside it. Asked when to deload, the model supplied
+        // 1.3 from general training knowledge while the engine flags at 1.5 — so it was
+        // telling people a number the app does not act on, which is the one thing the
+        // rules say never to do.
+        if let acwr {
+            lines.append("acute:chronic load \(acwr)"
+                         + (acwrGate.map { " (app flags >\($0))" } ?? ""))
+        }
         if let goal { lines.append("goal \(goal)") }
         if let limitations { lines.append("limitations \(limitations)") }
         if let profile { lines.append(profile.brief) }
