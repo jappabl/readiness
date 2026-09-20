@@ -164,7 +164,7 @@ const CHECKS = {
 
 /** Collect the text out of the Messages event stream. */
 async function ask(message) {
-  const response = await fetch(`${PROXY}/coach`, {
+  const response = await fetch(`${PROXY}/v1/coach`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-jett-dev-secret": SECRET },
     body: JSON.stringify({
