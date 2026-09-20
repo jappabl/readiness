@@ -162,11 +162,41 @@ const CHECKS = {
   imperialUnits: (text) => (/\bkg\b|kilograms/i.test(text) ? "used metric for an imperial user" : null),
 }
 
+/**
+ * A transaction claim, unsigned.
+ *
+ * The proxy meters non-subscribers at five free messages, so an eval of nine cases runs
+ * out three in. While `REQUIRE_ATTESTATION` is false the server passes `allowUnverified`
+ * to `entitlement`, which skips signature checking — the same dev-mode path the app
+ * itself relies on. So this is not a bypass the eval invented; it is the mode the proxy
+ * is deployed in, and it stops working the moment real verification lands, which is
+ * exactly when it should.
+ */
+function devTransaction() {
+  const header = { alg: "ES256", x5c: [] }
+  const payload = {
+    bundleId: "com.coachjett.ios",
+    productId: "com.coachjett.ios.pro.monthly",
+    purchaseDate: Date.now() - 86_400_000,
+    expiresDate: Date.now() + 86_400_000,
+    environment: "Sandbox",
+  }
+  const encode = (value) =>
+    Buffer.from(JSON.stringify(value)).toString("base64url")
+  return `${encode(header)}.${encode(payload)}.not-a-signature`
+}
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
 /** Collect the text out of the Messages event stream. */
-async function ask(message) {
+async function ask(message, attempt = 0) {
   const response = await fetch(`${PROXY}/v1/coach`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", "x-jett-dev-secret": SECRET },
+    headers: {
+      "Content-Type": "application/json",
+      "x-jett-dev-secret": SECRET,
+      "x-jett-transaction": devTransaction(),
+    },
     body: JSON.stringify({
       context: BLOCK,
       unitsAreMetric: false,
@@ -174,6 +204,13 @@ async function ask(message) {
       messages: [{ role: "user", content: message }],
     }),
   })
+  // The burst limiter is capacity 8, one token back every 12 seconds, and nine cases
+  // will meet it. Backing off on the server's own `Retry-After` is what the client does.
+  if (response.status === 429 && attempt < 3) {
+    const wait = Number(response.headers.get("Retry-After") ?? 13)
+    await sleep((Number.isFinite(wait) ? wait : 13) * 1000 + 500)
+    return ask(message, attempt + 1)
+  }
   if (!response.ok) {
     throw new Error(`${response.status} ${(await response.text()).slice(0, 200)}`)
   }
