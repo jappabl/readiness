@@ -225,9 +225,9 @@ struct CoachChartCard: View {
 
     @Environment(AppModel.self) private var model
 
-    private var values: [Double] {
-        model.series.suffix(28).compactMap { $0.value(for: kind) }
-    }
+    /// The same series the app draws for this metric anywhere else, which for the balance
+    /// is the only place it exists — a per-day accessor cannot answer for a running total.
+    private var values: [Double] { model.chartValues(kind) }
 
     private var reading: MetricReading? {
         model.day?.readings.first { $0.kind == kind }

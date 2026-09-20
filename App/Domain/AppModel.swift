@@ -491,6 +491,17 @@ final class AppModel {
     var recoveryPercent: Int? { recoveryScore.value.map { max(1, Int($0.rounded())) } }
 
     /// The trailing values behind each contributor, for the chart its row expands to.
+    /// The trailing values behind one metric, as the app itself understands it.
+    ///
+    /// The coach's chart card read `DailyPhysiology.value(for:)` per day, which cannot
+    /// answer for the balance — a balance is a property of a run of nights — so
+    /// `[chart:sleepDebt]` drew nothing at all. Silently: the prompt tells the model a
+    /// chart replaces the sentence it would have written, so it withheld the number too,
+    /// for the heaviest input in the whole model.
+    func chartValues(_ kind: MetricKind, days: Int = 28) -> [Double] {
+        metricHistory(days: days)[kind] ?? []
+    }
+
     private func metricHistory(days: Int = 28, endingOn date: Date = Date()) -> [MetricKind: [Double]] {
         let cutoff = Self.endOfDay(date)
         let recent = Array(series.filter { $0.date <= cutoff }.suffix(days))
@@ -877,7 +888,13 @@ final class AppModel {
 
         let profile = (try? context.fetch(FetchDescriptor<UserProfile>()))?.first
 
-        let health = DailyPhysiology.coachHealthContext(series)
+        // This sleeper's own need, not the population figure. The block used to tell Jett
+        // "Sleep target 8.0h is a default, not measured sleep need" about somebody whose
+        // need had been learned for months.
+        let health = DailyPhysiology.coachHealthContext(
+            series,
+            sleepTargetHours: sleepScore.contributor(SleepScore.durationContributorID)?
+                .comparison ?? SleepNeed.baselineHours)
         let currentCheckIn = fetchTodayCheckIn(from: context)
         let currentACWR = computeACWR(from: context)
         guard let day, calendar.isDateInToday(day.date), let recommendation else {

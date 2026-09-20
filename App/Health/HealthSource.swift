@@ -124,7 +124,8 @@ protocol HealthSource: Sendable {
 
 extension DailyPhysiology {
     /// Every supported stream has a direct use in coaching; no raw samples leave here.
-    static func coachHealthContext(_ days: [DailyPhysiology], today: Date = Date()) -> HealthContext {
+    static func coachHealthContext(_ days: [DailyPhysiology], today: Date = Date(),
+                                   sleepTargetHours: Double = SleepNeed.baselineHours) -> HealthContext {
         let fields: [(String, String, KeyPath<DailyPhysiology, Double?>)] = [
             ("HRV SDNN", "ms", \.hrvSDNN), ("Resting HR", "bpm", \.restingHeartRate),
             ("Sleep", "h", \.sleepHours), ("Respiration", "/min", \.respiratoryRate),
@@ -174,6 +175,7 @@ extension DailyPhysiology {
         streams.append(.init(name: "Health workouts", unit: "", observations: days.compactMap { day in
             day.workoutCount.map { .init(date: day.date, value: Double($0)) }
         }))
-        return HealthContext.build(streams: streams, today: today, sleepTargetHours: DayAssembler.sleepNeedHours)
+        return HealthContext.build(streams: streams, today: today,
+                                   sleepTargetHours: sleepTargetHours)
     }
 }
