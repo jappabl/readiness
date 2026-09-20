@@ -17,6 +17,12 @@ struct ReadinessApp: App {
                 .environment(gym)
                 .task { await store.load() }
                 .task {
+                    #if DEBUG
+                    if let key = ProcessInfo.processInfo.environment["JETT_DEEPSEEK_API_KEY"], !key.isEmpty {
+                        _ = MealPhotoKey.save(key)
+                        unsetenv("JETT_DEEPSEEK_API_KEY")
+                    }
+                    #endif
                     model.attach(container.mainContext)
                     guard !model.needsOnboarding else { return }
                     await model.refresh()
@@ -52,6 +58,9 @@ struct RootView: View {
             NavigationStack { TrendsView() }.hidingSystemTabBar().tag(2)
             NavigationStack { ProfileView() }.hidingSystemTabBar().tag(3)
         }
+        .task {
+            if model.pendingCoachMessage != nil { askingJett = true }
+        }
         .tint(Tokens.accent)
         // The bar floats, so it becomes part of the safe area rather than sitting on
         // top of the content — every screen scrolls clear of it without knowing it exists.
@@ -64,7 +73,7 @@ struct RootView: View {
         // material ends up blurring flat grey instead of the app.
         .fullScreenCover(isPresented: $askingJett) {
             CoachSheet()
-                .presentationBackground(.ultraThinMaterial)
+                .presentationBackground(Tokens.messageCanvas)
         }
     }
 }

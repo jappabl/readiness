@@ -268,7 +268,8 @@ extension WorkoutSession {
     @MainActor
     static func today(in context: ModelContext, named: String?) -> WorkoutSession {
         let existing = (try? context.fetch(FetchDescriptor<WorkoutSession>()))?
-            .first { Calendar.current.isDateInToday($0.date) && !$0.isComplete }
+            .first { Calendar.current.isDateInToday($0.date) && !$0.isComplete
+                && (named == nil || $0.templateName == named || $0.templateName == unnamed) }
         if let existing {
             if existing.templateName.isEmpty || existing.templateName == unnamed,
                let named { existing.templateName = named }
@@ -292,9 +293,32 @@ enum Store {
                 for: WorkoutTemplate.self, TemplateExercise.self,
                      WorkoutSession.self, LoggedSet.self,
                      CheckInRow.self, DailyMetricRow.self,
-                     RecommendationRow.self, UserProfile.self)
+                     RecommendationRow.self, UserProfile.self, WeightLog.self, MealLog.self)
         } catch {
             fatalError("Could not create the local store: \(error)")
         }
     }()
+}
+
+
+@Model final class WeightLog {
+    var date: Date
+    var kilograms: Double
+    var healthSynced = false
+    init(date: Date = .now, kilograms: Double) { self.date = date; self.kilograms = kilograms }
+}
+
+@Model final class MealLog {
+    var exportID: String = UUID().uuidString
+    var date: Date
+    var name: String
+    var calories: Double
+    var protein: Double
+    var carbs: Double
+    var fat: Double
+    var healthSynced = false
+    init(date: Date = .now, name: String, nutrition: MealNutrition) {
+        self.date = date; self.name = name; calories = nutrition.calories
+        protein = nutrition.protein; carbs = nutrition.carbs; fat = nutrition.fat
+    }
 }

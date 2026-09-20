@@ -16,15 +16,19 @@ struct CoachSheet: View {
     @State private var proposal: CoachToolCall?
     @State private var toolStep: String?
     @State private var showingPaywall = false
+    @State private var showingSharing = false
+    @State private var pendingQuestion = ""
     @State private var appliedNote: String?
-    @FocusState private var composerFocused: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var continuesOnboarding = false
 
     /// With no key configured, a debug build rehearses instead of failing — the UI is
     /// the thing being worked on far more often than the model is.
     private var provider: CoachProvider {
-        let live = ClaudeCoachProvider()
+        let profile = (try? context.fetch(FetchDescriptor<UserProfile>()))?.first
+        let live = ClaudeCoachProvider(unitsAreMetric: profile?.unitsAreMetric ?? false)
         #if DEBUG
-        return live.isConfigured ? live : RehearsalCoachProvider()
+        return continuesOnboarding || live.isConfigured ? live : RehearsalCoachProvider()
         #else
         return live
         #endif
@@ -32,8 +36,9 @@ struct CoachSheet: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            grabber
-            title
+            CoachContactHeader(onBack: { dismiss() },
+                               isThinking: isStreaming && (messages.last?.text.isEmpty ?? true),
+                               isSpeaking: isStreaming && !(messages.last?.text.isEmpty ?? true))
             if messages.isEmpty && errorMessage == nil {
                 suggestions
             } else {
@@ -53,69 +58,28 @@ struct CoachSheet: View {
             composer
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .background(.ultraThinMaterial)
+        .background(Tokens.messageCanvas)
         .ignoresSafeArea(.container, edges: .bottom)
-        .gesture(
-            DragGesture(minimumDistance: 20)
-                .onEnded { value in
-                    if value.translation.height > 90 { dismiss() }
-                })
+        .sheet(isPresented: $showingSharing, onDismiss: {
+            if !model.coachSharingAllowed { draft = pendingQuestion }
+        }) {
+            CoachSharingSheet(onAllow: {
+                model.coachSharingAllowed = true
+                showingSharing = false
+                send(pendingQuestion)
+            }, onCancel: { showingSharing = false })
+        }
+        .task {
+            guard let pending = model.pendingCoachMessage else { return }
+            // Clear before sending so view recreation cannot submit a second request.
+            model.pendingCoachMessage = nil
+            continuesOnboarding = true
+            messages = model.pendingOnboardingConversation
+            model.pendingOnboardingConversation = []
+            send(pending)
+        }
         .fullScreenCover(isPresented: $showingPaywall) {
             PaywallView { showingPaywall = false }
-        }
-    }
-
-    private var grabber: some View {
-        Capsule()
-            .fill(Color.primary.opacity(0.22))
-            .frame(width: 36, height: 5)
-            .padding(.top, 8)
-            .frame(maxWidth: .infinity)
-            .contentShape(Rectangle())
-            .accessibilityLabel("Drag down to close")
-            .accessibilityAddTraits(.isButton)
-            .accessibilityAction { dismiss() }
-    }
-
-    private var title: some View {
-        VStack(spacing: 10) {
-            // Thinking until the first word lands, speaking while it streams. The
-            // mood comes from the day's call, so a bad morning shows on his face
-            // before he has said anything.
-            JettRive(size: 62,
-                     isThinking: isStreaming && (messages.last?.text.isEmpty ?? true),
-                     isSpeaking: isStreaming && !(messages.last?.text.isEmpty ?? true),
-                     mood: model.recommendation?.state.jettMood ?? 1)
-
-            VStack(spacing: 4) {
-                Text("Coach Jett")
-                    .font(.system(size: 22, weight: .bold))
-                    .foregroundStyle(Tokens.textPrimary)
-                Text(greeting)
-                    .font(.system(size: 15))
-                    .foregroundStyle(Tokens.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.horizontal, 28)
-        .padding(.top, 26)
-        .padding(.bottom, 22)
-        .accessibilityElement(children: .combine)
-        .accessibilityAddTraits(.isHeader)
-    }
-
-    /// Jett opens on what is actually true about today, not a stock hello.
-    private var greeting: String {
-        guard let recommendation = model.recommendation else {
-            return "Ask me anything about your training."
-        }
-        switch recommendation.state {
-        case .push:     return "Good day to train. Ask me anything."
-        case .maintain: return "Nothing's off today. What's on your mind?"
-        case .reduce:   return "You're under baseline today. Ask me how to adjust."
-        case .recover:  return "Rough morning. Ask me what's driving it."
         }
     }
 
@@ -125,7 +89,7 @@ struct CoachSheet: View {
                 Button { send(prompt) } label: {
                     HStack(spacing: 12) {
                         Image(systemName: "sparkle")
-                            .font(.system(size: 14))
+                            .font(.subheadline)
                             .foregroundStyle(Tokens.jettTint)
                         Text(prompt)
                             .font(.system(size: 16, weight: .medium))
@@ -154,16 +118,12 @@ struct CoachSheet: View {
         .padding(.horizontal, 20)
     }
 
-    static let starters = [
-        "Why is my recovery down today?",
-        "Can I still train legs?",
-        "What changed this week?",
-    ]
+    static let starters = OnboardingConversation.starterQuestions
 
     private var transcript: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                VStack(alignment: .leading, spacing: 14) {
+                VStack(alignment: .leading, spacing: 12) {
                     ForEach(messages) { message in
                         CoachTurnView(message: message).id(message.id)
                     }
@@ -179,24 +139,40 @@ struct CoachSheet: View {
                     if let proposal { proposalCard(proposal) }
                     if let appliedNote {
                         Label(appliedNote, systemImage: "checkmark.circle.fill")
-                            .font(.system(size: 14))
+                            .font(.subheadline)
                             .foregroundStyle(Tokens.accent)
                     }
                     if let errorMessage {
                         Text(errorMessage)
-                            .font(.system(size: 14))
-                            .foregroundStyle(Tokens.textSecondary)
+                            .font(.subheadline)
+                            .foregroundStyle(Tokens.textTertiary)
                             .fixedSize(horizontal: false, vertical: true)
                             .padding(.top, 4)
                     }
+                    Color.clear.frame(height: 1).id("coachBottom")
+                        .onAppear { proxy.scrollTo("coachBottom", anchor: .bottom) }
                 }
-                .padding(.horizontal, 20)
+                .padding(.horizontal, Tokens.screenMargin)
                 .padding(.vertical, 10)
             }
+            .conversationScrollAnchor()
             .scrollDismissesKeyboard(.interactively)
             .onChange(of: messages.last?.text) {
-                guard let last = messages.last else { return }
-                withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
+                if reduceMotion { proxy.scrollTo("coachBottom", anchor: .bottom) }
+                else { withAnimation { proxy.scrollTo("coachBottom", anchor: .bottom) } }
+            }
+            .onChange(of: errorMessage) {
+                Task { @MainActor in
+                    await Task.yield()
+                    proxy.scrollTo("coachBottom", anchor: .bottom)
+                }
+            }
+            .background {
+                GeometryReader { geometry in
+                    Color.clear.onChange(of: geometry.size.height) {
+                        proxy.scrollTo("coachBottom", anchor: .bottom)
+                    }
+                }
             }
             .animation(.spring(response: 0.34, dampingFraction: 0.86), value: toolStep)
             .animation(.spring(response: 0.34, dampingFraction: 0.86), value: proposal)
@@ -220,7 +196,7 @@ struct CoachSheet: View {
 
             if !call.reason.isEmpty {
                 Text(call.reason)
-                    .font(.system(size: 14))
+                    .font(.subheadline)
                     .foregroundStyle(Tokens.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -261,40 +237,7 @@ struct CoachSheet: View {
     }
 
     private var composer: some View {
-        HStack(spacing: 6) {
-            TextField("Ask about your health or training", text: $draft, axis: .vertical)
-                .font(.system(size: 16))
-                .lineLimit(1...4)
-                .textFieldStyle(.plain)
-                .focused($composerFocused)
-                .disabled(isStreaming)
-                .padding(.leading, 18)
-                .padding(.vertical, 14)
-
-            Button {
-                let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
-                draft = ""
-                send(text)
-            } label: {
-                Image(systemName: "arrow.up")
-                    .font(.system(size: 15, weight: .bold))
-                    .foregroundStyle(Tokens.onAccent)
-                    .frame(width: 34, height: 34)
-                    .background(canSend ? Tokens.accent : Color.primary.opacity(0.14), in: Circle())
-            }
-            .disabled(!canSend)
-            .padding(.trailing, 6)
-            .accessibilityLabel("Send")
-        }
-        .background(Color.primary.opacity(0.05), in: Capsule())
-        .overlay(Capsule().strokeBorder(Color.primary.opacity(0.07), lineWidth: 0.5))
-        .padding(.horizontal, 16)
-        .padding(.bottom, 14)
-        .padding(.top, 6)
-    }
-
-    private var canSend: Bool {
-        !isStreaming && !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        CoachComposer(draft: $draft, isStreaming: isStreaming, onSend: send)
     }
 
     private var allowance: CoachAllowance {
@@ -303,6 +246,14 @@ struct CoachSheet: View {
 
     private func send(_ text: String) {
         guard !text.isEmpty, !isStreaming else { return }
+        guard model.coachSharingAllowed else {
+            pendingQuestion = text
+            showingSharing = true
+            return
+        }
+        withAnimation(reduceMotion ? nil : .easeOut(duration: 0.24)) {
+            messages.append(CoachMessage(role: .user, text: text))
+        }
         // The wall lands where the value is, not before it: five real answers first.
         guard allowance.isAllowed else {
             Haptics.light()
@@ -315,14 +266,17 @@ struct CoachSheet: View {
             return
         }
         errorMessage = nil
-        model.recordCoachMessage()
 
         guard let coachContext = model.coachContext(context: context) else {
             errorMessage = "Still reading your health data. Try again in a moment."
             return
         }
 
-        messages.append(CoachMessage(role: .user, text: text))
+        guard provider.isConfigured else {
+            errorMessage = CoachError.notConfigured.localizedDescription
+            return
+        }
+        model.recordCoachMessage()
         let reply = CoachMessage(role: .assistant, text: "")
         messages.append(reply)
         isStreaming = true

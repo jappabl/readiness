@@ -1,0 +1,866 @@
+{
+  "/Users/hlin/Documents/badminton/code/readiness/Package.swift": {
+    "mtime": 1789693796.3436992,
+    "hash": "7225a302d54e444ff146a4b024f244cb"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Tests/ReadinessCoreTests/MetricNarrationTests.swift": {
+    "mtime": 1789749410.9597695,
+    "hash": "53404fb52be16cb3a41a29ff1df7999c"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Tests/ReadinessCoreTests/CoachToolsTests.swift": {
+    "mtime": 1789704543.5803235,
+    "hash": "d1b9246a1d7408c970c01a0b754435c1"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Tests/ReadinessCoreTests/HomeCompositionTests.swift": {
+    "mtime": 1789842366.1083536,
+    "hash": "a0cbbb15ef8c978832ef15cafa7efb7f"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Tests/ReadinessCoreTests/StrainEngineTests.swift": {
+    "mtime": 1789698267.9009733,
+    "hash": "8dfa4f73940c786ba123e0c857453c35"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Tests/ReadinessCoreTests/InsightEngineTests.swift": {
+    "mtime": 1789696573.1843348,
+    "hash": "2881839e35ba5300c0f4ca0012697930"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Tests/ReadinessCoreTests/PercentileTests.swift": {
+    "mtime": 1789697695.388644,
+    "hash": "4f15c6f1d59790b736441831c290295f"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Tests/ReadinessCoreTests/HealthContextTests.swift": {
+    "mtime": 1789838198.4805348,
+    "hash": "21f264f92ef582edac628c038e9e623a"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Tests/ReadinessCoreTests/HealthProfileTests.swift": {
+    "mtime": 1789799359.666063,
+    "hash": "2bbf002183c04d0617d6823b751beadb"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Tests/ReadinessCoreTests/SessionPlannerTests.swift": {
+    "mtime": 1789696771.371134,
+    "hash": "9e733cf53a2a7ca6a711a1eb6a856278"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Tests/ReadinessCoreTests/SignalScoreTests.swift": {
+    "mtime": 1789842091.3276057,
+    "hash": "b063a2db0c0ed001c5f03039971f272c"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Tests/ReadinessCoreTests/ReadinessEngineTests.swift": {
+    "mtime": 1789750167.2389214,
+    "hash": "d0eb110db48dddb663f8e92f27dfc78d"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Tests/ReadinessCoreTests/MetricExplanationTests.swift": {
+    "mtime": 1789745955.1458871,
+    "hash": "e59cdcd040cc366add524ada0af5fa80"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Tests/ReadinessCoreTests/SpokenSetParserTests.swift": {
+    "mtime": 1789766209.0197203,
+    "hash": "38d96a78c4c4641c380c118c38ccc618"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Tests/ReadinessCoreTests/MultipleGoalsTests.swift": {
+    "mtime": 1789842366.1087058,
+    "hash": "ea834844862e80274cd1ce393ddf2c70"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Tests/ReadinessCoreTests/RecommendationEngineTests.swift": {
+    "mtime": 1789750167.2984972,
+    "hash": "437a1e2e7fa1249f03977357a9167f05"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Tests/ReadinessCoreTests/PunctuationTests.swift": {
+    "mtime": 1789746155.7431421,
+    "hash": "0ae067a47c14bed1c01cf682b40121a0"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Tests/ReadinessCoreTests/SleepAggregatorTests.swift": {
+    "mtime": 1789795502.7950077,
+    "hash": "46f73e53440e0f5b9a88a348b4d64427"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Tests/ReadinessCoreTests/GymDetectorTests.swift": {
+    "mtime": 1789764634.675823,
+    "hash": "b79a2d1a6d5cad37a77adac0a0c58dbc"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Tests/ReadinessCoreTests/CoachSegmentTests.swift": {
+    "mtime": 1789745702.8975542,
+    "hash": "da2e98864e907c5eed58217e1580a54b"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Tests/ReadinessCoreTests/DirectionTests.swift": {
+    "mtime": 1789706520.949175,
+    "hash": "a3e05533a333b7b91cfe7ed48887e417"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Tests/ReadinessCoreTests/BaselineEngineTests.swift": {
+    "mtime": 1789694169.2182777,
+    "hash": "51b9eb7353f8543cdcd655762e7b1138"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Tests/ReadinessCoreTests/OnboardingConversationTests.swift": {
+    "mtime": 1789842366.1092496,
+    "hash": "5dd951a29c19ef61b5e8ea9fb8ffad2b"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Tests/ReadinessCoreTests/FoodLogTests.swift": {
+    "mtime": 1789843051.982001,
+    "hash": "d3d163b0166441ad60df89dee2811f21"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Tests/ReadinessCoreTests/ScoringRobustnessTests.swift": {
+    "mtime": 1789750102.7308583,
+    "hash": "2d1f8d2dcb8bc68994240e28272b0a82"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Tests/ReadinessCoreTests/PrescriptionEngineTests.swift": {
+    "mtime": 1789694113.968264,
+    "hash": "7c34c72d04fdc8b4d5386c134e2503c8"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Tests/ReadinessCoreTests/PaywallTests.swift": {
+    "mtime": 1789746777.0221345,
+    "hash": "b2a60122158428b259b9cb852be2d825"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Tests/ReadinessCoreTests/CoachRequestTests.swift": {
+    "mtime": 1789713607.82188,
+    "hash": "8c65b659d7b6278518b48f42919d2871"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Tests/ReadinessCoreTests/OnboardingAddendumTests.swift": {
+    "mtime": 1789838093.9719405,
+    "hash": "3ca5e7ac615e427f77032d3221d0c821"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Tests/ReadinessCoreTests/CoachBriefTests.swift": {
+    "mtime": 1789741967.850435,
+    "hash": "13d9c0086e7bd79ec09872ba67052385"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Tests/ReadinessCoreTests/BurstLimiterTests.swift": {
+    "mtime": 1789747093.9300616,
+    "hash": "d7dae323af108835353fea9805a3ba4a"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Tests/ReadinessCoreTests/CoachContextTests.swift": {
+    "mtime": 1789697073.3413885,
+    "hash": "672d5a34414a0287ed6bb40ecec34a18"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Tests/ReadinessCoreTests/CoachAnswerTests.swift": {
+    "mtime": 1789745472.8548586,
+    "hash": "499a1af209ce80c5bc2f85ede206716a"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Tests/ReadinessCoreTests/StarterProgramTests.swift": {
+    "mtime": 1789841911.3957255,
+    "hash": "63b9f693fe57f19a63ada09c722a33ee"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Sources/ReadinessCore/PrescriptionEngine.swift": {
+    "mtime": 1789694113.9677823,
+    "hash": "3851663280d48cbc74a8fb04f4d09942"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Sources/ReadinessCore/CoachSegments.swift": {
+    "mtime": 1789745729.7885597,
+    "hash": "b935b5ec86fed663114232bd72e91615"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Sources/ReadinessCore/InsightEngine.swift": {
+    "mtime": 1789696591.1593437,
+    "hash": "95e242317ef77d4229c39e1d8baae004"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Sources/ReadinessCore/OnboardingConversation.swift": {
+    "mtime": 1789842439.262779,
+    "hash": "27e1bc10a8dc95e9fe759ed9d83726d0"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Sources/ReadinessCore/BurstLimiter.swift": {
+    "mtime": 1789747117.571112,
+    "hash": "5c995052eb083c6ddf1302fab894cf74"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Sources/ReadinessCore/HealthContext.swift": {
+    "mtime": 1789794674.1299832,
+    "hash": "b10c3938c66550a18d40f94d45d50c51"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Sources/ReadinessCore/SpokenSetParser.swift": {
+    "mtime": 1789766238.4171686,
+    "hash": "87ee2912fbe373655c42c30276f8070d"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Sources/ReadinessCore/PlateMath.swift": {
+    "mtime": 1789694078.2955554,
+    "hash": "b5d1ca0f83bb1250b63394107698cf61"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Sources/ReadinessCore/GymDetector.swift": {
+    "mtime": 1789764666.5134168,
+    "hash": "07a0e7c80746c80f2629e2c4a993d2be"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Sources/ReadinessCore/CoachContext.swift": {
+    "mtime": 1789798095.715148,
+    "hash": "cc752529d404faabed935144074e03a5"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Sources/ReadinessCore/ReadinessEngine.swift": {
+    "mtime": 1789750075.5515323,
+    "hash": "a550221b1e0ce955ff0fb1c07d42c04a"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Sources/ReadinessCore/CoachTools.swift": {
+    "mtime": 1789704578.1052802,
+    "hash": "df07652a8e55092f5d26bf04575b50a8"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Sources/ReadinessCore/SessionPlanner.swift": {
+    "mtime": 1789696804.4910867,
+    "hash": "de450de9ca943f0ccd3fc7ba0f2ba5c8"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Sources/ReadinessCore/RecommendationEngine.swift": {
+    "mtime": 1789700319.7841415,
+    "hash": "2c853722d2b4696347423dca36a63310"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Sources/ReadinessCore/CoachAnswer.swift": {
+    "mtime": 1789745517.0053897,
+    "hash": "9d66bdbf914dc94fc9b39755e2046f08"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Sources/ReadinessCore/FoodLog.swift": {
+    "mtime": 1789843098.7114186,
+    "hash": "3bd8e7e3b7b65a9e1092a4b52b471f07"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Sources/ReadinessCore/BaselineEngine.swift": {
+    "mtime": 1789750075.4977498,
+    "hash": "fb683ac6f5ce1da41acee18e3ebd69a1"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Sources/ReadinessCore/CoachRequest.swift": {
+    "mtime": 1789745549.3896365,
+    "hash": "92c9b9940ef096cc6246f23bd01a7a04"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Sources/ReadinessCore/SleepScore.swift": {
+    "mtime": 1789842269.743204,
+    "hash": "3102535a072827f407bd3e829987c6dc"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Sources/ReadinessCore/MetricNarration.swift": {
+    "mtime": 1789749437.3799791,
+    "hash": "5aa944614aa81696b1c5519d352b1342"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Sources/ReadinessCore/Training.swift": {
+    "mtime": 1789703998.0394652,
+    "hash": "3522f95aeb881e401c9972ab962bd6e7"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Sources/ReadinessCore/SleepAggregator.swift": {
+    "mtime": 1789842269.7427642,
+    "hash": "949590fb642bd6db0538491b8e86c922"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Sources/ReadinessCore/Onboarding.swift": {
+    "mtime": 1789838093.9645636,
+    "hash": "b777ac5f24b4257549e09b7d297745d5"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Sources/ReadinessCore/DailyStrain.swift": {
+    "mtime": 1789842528.0698495,
+    "hash": "537f73907d5ba00932849cb9b0de576f"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Sources/ReadinessCore/StrainEngine.swift": {
+    "mtime": 1789698285.1438613,
+    "hash": "571b325b11241e54edf976461a03e8c0"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Sources/ReadinessCore/StarterPrograms.swift": {
+    "mtime": 1789842008.1661286,
+    "hash": "759b412c562113277b14d97907bc7323"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Sources/ReadinessCore/Metrics.swift": {
+    "mtime": 1789750075.4434478,
+    "hash": "2c709b54126201feda04beb49bbdc777"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Sources/ReadinessCore/HealthProfile.swift": {
+    "mtime": 1789799359.6654155,
+    "hash": "6a9ff1d19fbc29d24727336398148952"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Sources/ReadinessCore/Percentile.swift": {
+    "mtime": 1789697695.3810203,
+    "hash": "84bc7081fc93ef374cfe0b0c6b0d97f3"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Sources/ReadinessCore/HomeComposition.swift": {
+    "mtime": 1789842439.262063,
+    "hash": "662ac3146a503ecb903145626461cc21"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Core/Sources/ReadinessCore/Paywall.swift": {
+    "mtime": 1789746799.5220947,
+    "hash": "17f1174f10b17b8d6de70590c88f2e3e"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/App/ReadinessApp.swift": {
+    "mtime": 1789842900.728114,
+    "hash": "850642ab79c4e759f64fed54fc439107"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/App/Design/OnboardingArt.swift": {
+    "mtime": 1789839114.9442601,
+    "hash": "e356b9e96321f9a25be9699620b7f7a1"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/App/Design/Haptics.swift": {
+    "mtime": 1789742180.0208833,
+    "hash": "1e0c5cfd71f2c00a2b97838cb43fc659"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/App/Design/JettRive.swift": {
+    "mtime": 1789753982.974786,
+    "hash": "bbd5b3a891ad6c5aa72b2fc11d3c0b2c"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/App/Design/Components.swift": {
+    "mtime": 1789789539.342082,
+    "hash": "88d7607d331b3356bf9eeaf46040838a"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/App/Health/GymPresence.swift": {
+    "mtime": 1789788214.9582367,
+    "hash": "84c44f35b0398456250872b34f4266e6"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/App/Health/HealthSource.swift": {
+    "mtime": 1789794819.4847717,
+    "hash": "0fba10ad8e71054c64dd33a96d6c18bd"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/App/Health/HealthStreamAudit.swift": {
+    "mtime": 1789794588.9775493,
+    "hash": "c24d558d5f526dea7805b0612faca091"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/App/Health/HealthKitSource.swift": {
+    "mtime": 1789843122.604062,
+    "hash": "c122a8529d8230ff6eb070327e5fdff2"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/App/Health/SyntheticPhysiology.swift": {
+    "mtime": 1789710998.52402,
+    "hash": "f806bd5bcc593abbb1875f25f238e773"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/App/Health/HealthKitSeeder.swift": {
+    "mtime": 1789711101.8795898,
+    "hash": "28639ee0654aa59f3b1bb5dd32161f4d"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/App/Coach/CoachProvider.swift": {
+    "mtime": 1789798315.9430408,
+    "hash": "d2ab1743b044163e815ac15c3ebe46e0"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/App/Coach/RehearsalCoachProvider.swift": {
+    "mtime": 1789749737.4236703,
+    "hash": "6bdf3c066e7012fcff0e922154c41858"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/App/Coach/CoachUsage.swift": {
+    "mtime": 1789788214.9595866,
+    "hash": "9a689444ea98dad7971b91b562a38912"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/App/Coach/ClaudeCoachProvider.swift": {
+    "mtime": 1789794924.4350452,
+    "hash": "9a0cfa15d1a47ba9563ed11deb9a75c0"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/App/Coach/MealPhotoEstimator.swift": {
+    "mtime": 1789842884.276092,
+    "hash": "8f0f35c22db1f9ed9e7a4df81a38e0b4"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/App/Data/Models.swift": {
+    "mtime": 1789843122.60334,
+    "hash": "7168766cbf5b5d1a4354ab90d0603584"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/App/Views/GymConfirmCard.swift": {
+    "mtime": 1789765366.7139668,
+    "hash": "51901933e2f7ba759ed4319f79b62851"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/App/Views/ProfileView.swift": {
+    "mtime": 1789843483.7436104,
+    "hash": "f4562a4df0a21352c42a0609660d8129"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/App/Views/PaywallView.swift": {
+    "mtime": 1789764413.578111,
+    "hash": "b6f5abd37224bdc96469c75e72be20fc"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/App/Views/SignalDetailView.swift": {
+    "mtime": 1789842397.264931,
+    "hash": "39fc0631d9eaf2426ec35f72646af9ed"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/App/Views/SessionViews.swift": {
+    "mtime": 1789843675.578192,
+    "hash": "ecb62a17704012d77d4456aca15cab39"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/App/Views/HomeBlocks.swift": {
+    "mtime": 1789842900.7215383,
+    "hash": "33c088ef7a4a037dfcc25a9b30285420"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/App/Views/WhyView.swift": {
+    "mtime": 1789746004.3326983,
+    "hash": "a92fb7e18a51f89970df7f26d94d3154"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/App/Views/CoachStream.swift": {
+    "mtime": 1789798315.9423609,
+    "hash": "a139b82d65ed95dccf9fb9f53d5fcf0d"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/App/Views/LoggingViews.swift": {
+    "mtime": 1789843178.8784773,
+    "hash": "9db763e96854c519be79ff73e3505e6f"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/App/Views/ProgramViews.swift": {
+    "mtime": 1789842549.9874668,
+    "hash": "bbdbef0b466a47bb7ec06097bdb3cf0e"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/App/Views/TrainView.swift": {
+    "mtime": 1789842549.988299,
+    "hash": "d5c777828f3f6af9920b7d87a33a32a8"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/App/Views/PaywallDemo.swift": {
+    "mtime": 1789764413.5772607,
+    "hash": "053a7d51445250b92f4e9f6124ee64e8"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/App/Views/TodayView.swift": {
+    "mtime": 1789844320.781861,
+    "hash": "b04017fdab01eecb2dd9f01d3d7184aa"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/App/Views/OnboardingHealthDetailsView.swift": {
+    "mtime": 1789800217.9925332,
+    "hash": "f06015cc2cfe89cd612ee8ecf4000562"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/App/Views/CoachView.swift": {
+    "mtime": 1789796944.5582566,
+    "hash": "25f8a31ca3596f6bdc127549aaef0eb9"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/App/Views/TrendsView.swift": {
+    "mtime": 1789705888.1939387,
+    "hash": "a95777552beb9a3aa3f80cf97d0ca96e"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/App/Views/OnboardingView.swift": {
+    "mtime": 1789839396.9934464,
+    "hash": "058a67d45634874e304c42379276ceff"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/App/Views/CheckInView.swift": {
+    "mtime": 1789705375.7089858,
+    "hash": "e25f692abc495b7d7f0c7da3589ebee1"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/App/Domain/AppModel.swift": {
+    "mtime": 1789843483.7454584,
+    "hash": "c8077fa912b0fb4dfb37094dd1df85ef"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/App/Domain/LogSetsIntent.swift": {
+    "mtime": 1789766451.941408,
+    "hash": "c4219ded4ac2673bd1b53d4307129ab8"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/App/Domain/DayAssembler.swift": {
+    "mtime": 1789694378.1825151,
+    "hash": "5171c0e74e26cbc2e95d77679f160748"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/App/Domain/Subscriptions.swift": {
+    "mtime": 1789788214.9603372,
+    "hash": "88af9766708205e363e1e7e95f4536fc"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/App/Domain/Copy.swift": {
+    "mtime": 1789712593.0775356,
+    "hash": "688e727e673c9ec54747301523a6082d"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64_x86_64-simulator/RiveRuntime.framework/Headers/RiveDataBindingViewModel.h": {
+    "mtime": 1789463127.0,
+    "hash": "818f5714fc672803d1572980d33fd4e0"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64_x86_64-simulator/RiveRuntime.framework/Headers/RiveCommandQueue.h": {
+    "mtime": 1789463127.0,
+    "hash": "d648573214623f2005b2143c2c77d643"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64_x86_64-simulator/RiveRuntime.framework/Headers/RiveDataBindingViewModelInstance.h": {
+    "mtime": 1789463127.0,
+    "hash": "8b65a56ae9cf3fbeef2ded0096b8f0ea"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64_x86_64-simulator/RiveRuntime.framework/Headers/RiveMetalDrawableView.h": {
+    "mtime": 1789463127.0,
+    "hash": "a50e80730a58df08ea416b203b78ad77"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64_x86_64-simulator/RiveRuntime.framework/Headers/RenderContextManager.h": {
+    "mtime": 1789463127.0,
+    "hash": "f9adab0dd14336bda87efa5a45a2f8eb"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64_x86_64-simulator/RiveRuntime.framework/Headers/RiveViewModelInstanceListener.h": {
+    "mtime": 1789463127.0,
+    "hash": "dc1f764f785e5729af009f1e4711552c"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64_x86_64-simulator/RiveRuntime.framework/Headers/RiveFont.h": {
+    "mtime": 1789463127.0,
+    "hash": "b6c7fa7c0611498a3e5df85fa567d669"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64_x86_64-simulator/RiveRuntime.framework/Headers/RiveFileAssetLoader.h": {
+    "mtime": 1789463127.0,
+    "hash": "3d929708325631101b6e0f42deb52dfa"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64_x86_64-simulator/RiveRuntime.framework/Headers/RiveFileAsset.h": {
+    "mtime": 1789463127.0,
+    "hash": "af20e19a34cca3f7dfb6c98dccf1602b"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64_x86_64-simulator/RiveRuntime.framework/Headers/RiveDataBindingViewModelInstanceProperty.h": {
+    "mtime": 1789463127.0,
+    "hash": "221824b3e16833d3f10dbd25b11862bf"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64_x86_64-simulator/RiveRuntime.framework/Headers/RiveStateMachineInstance.h": {
+    "mtime": 1789463127.0,
+    "hash": "1ca9bd77bb3103cd4895eeb4127fd6d2"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64_x86_64-simulator/RiveRuntime.framework/Headers/_RiveUIRenderContextProtocol.h": {
+    "mtime": 1789463127.0,
+    "hash": "9f90e5a0a8f7f313c8417c56c826d254"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64_x86_64-simulator/RiveRuntime.framework/Headers/RiveEnums.h": {
+    "mtime": 1789463127.0,
+    "hash": "a7868a517a1661cc808c8f3d5f7ed5aa"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64_x86_64-simulator/RiveRuntime.framework/Headers/RiveUIRenderContext.h": {
+    "mtime": 1789463127.0,
+    "hash": "e85e47f8da2018b274b9cf49863eda71"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64_x86_64-simulator/RiveRuntime.framework/Headers/RiveAudioListener.h": {
+    "mtime": 1789463127.0,
+    "hash": "aad90faf5742fb469770cc430bbb2267"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64_x86_64-simulator/RiveRuntime.framework/Headers/RiveFontListener.h": {
+    "mtime": 1789463127.0,
+    "hash": "e1492e8c96865c7d578c802a1d0e7c8a"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64_x86_64-simulator/RiveRuntime.framework/Headers/RiveTextValueRun.h": {
+    "mtime": 1789463127.0,
+    "hash": "aee2522a74682509b13f4b86115a0fe9"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64_x86_64-simulator/RiveRuntime.framework/Headers/_RiveUIDeferredRenderer.h": {
+    "mtime": 1789463127.0,
+    "hash": "b507590e86a30f9aad852b43012177d4"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64_x86_64-simulator/RiveRuntime.framework/Headers/RiveRuntime.h": {
+    "mtime": 1789463127.0,
+    "hash": "376a1a604fe7477e4d748017c72ef292"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64_x86_64-simulator/RiveRuntime.framework/Headers/RiveSemanticsDiff.h": {
+    "mtime": 1789463127.0,
+    "hash": "1e942c0d5df9d6c4ea9b9153744a7439"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64_x86_64-simulator/RiveRuntime.framework/Headers/RiveRuntime-Swift.h": {
+    "mtime": 1789463130.0,
+    "hash": "346ad80950a20da421407a4103f6eb8e"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64_x86_64-simulator/RiveRuntime.framework/Headers/RiveDataBindingViewModelInstancePropertyData.h": {
+    "mtime": 1789463127.0,
+    "hash": "584e9997ff28108618a58146d5df399f"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64_x86_64-simulator/RiveRuntime.framework/Headers/RiveSMIInput.h": {
+    "mtime": 1789463127.0,
+    "hash": "24491ea052fc811e20d453a8fef44af8"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64_x86_64-simulator/RiveRuntime.framework/Headers/RiveConcurrency.h": {
+    "mtime": 1789463127.0,
+    "hash": "fdff70bbca87d9a6a2021a1a92d54c5c"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64_x86_64-simulator/RiveRuntime.framework/Headers/_RiveUIDeferredRenderContext.h": {
+    "mtime": 1789463127.0,
+    "hash": "1596d6572284d127005a4df741027233"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64_x86_64-simulator/RiveRuntime.framework/Headers/RiveRenderImageListener.h": {
+    "mtime": 1789463127.0,
+    "hash": "4a693aa13743c19ca280d0c43326045a"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64_x86_64-simulator/RiveRuntime.framework/Headers/RiveBindableArtboard.h": {
+    "mtime": 1789463127.0,
+    "hash": "7f323386d5cfeb0992cf3a04d6156a51"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64_x86_64-simulator/RiveRuntime.framework/Headers/RiveUIRenderer.h": {
+    "mtime": 1789463127.0,
+    "hash": "33a8f07d85172e31e2cf5d83ddcc7c44"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64_x86_64-simulator/RiveRuntime.framework/Headers/LayerState.h": {
+    "mtime": 1789463127.0,
+    "hash": "285d77b3eec772aead7ba1b4efce02c9"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64_x86_64-simulator/RiveRuntime.framework/Headers/RiveArtboard.h": {
+    "mtime": 1789463127.0,
+    "hash": "4facf796237b2fe4994f0b18c5853865"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64_x86_64-simulator/RiveRuntime.framework/Headers/CDNFileAssetLoader.h": {
+    "mtime": 1789463127.0,
+    "hash": "7b73fa7848b12a9cfc72f53f79df71e0"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64_x86_64-simulator/RiveRuntime.framework/Headers/_RiveCommandQueueMessagePumpDriver.h": {
+    "mtime": 1789463127.0,
+    "hash": "733b2f00a45e5a4a96a2ae49973d1b84"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64_x86_64-simulator/RiveRuntime.framework/Headers/RiveAudioEngine.h": {
+    "mtime": 1789463127.0,
+    "hash": "06992afa30d7139616f0614fd60145cb"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64_x86_64-simulator/RiveRuntime.framework/Headers/RiveLinearAnimationInstance.h": {
+    "mtime": 1789463127.0,
+    "hash": "c3b21271323eda54a8b6b24d3e0bcb49"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64_x86_64-simulator/RiveRuntime.framework/Headers/RiveCommandServer.h": {
+    "mtime": 1789463127.0,
+    "hash": "9c70d5fde409f79404e0ce7986083ad3"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64_x86_64-simulator/RiveRuntime.framework/Headers/RiveFile.h": {
+    "mtime": 1789463127.0,
+    "hash": "94a5031a9ce9ff8fa66e8e39a916336c"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64_x86_64-simulator/RiveRuntime.framework/Headers/Rive.h": {
+    "mtime": 1789463127.0,
+    "hash": "1a58cf1bdaa9b2103f286422d100c29e"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64_x86_64-simulator/RiveRuntime.framework/Headers/RiveFileListener.h": {
+    "mtime": 1789463127.0,
+    "hash": "7e6ebea1504accbe2ad8c92fa8315d05"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64_x86_64-simulator/RiveRuntime.framework/Headers/RiveStateMachineListener.h": {
+    "mtime": 1789463127.0,
+    "hash": "737098e391b91a2f2a3c92f13463ca4a"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64_x86_64-simulator/RiveRuntime.framework/Headers/RiveEvent.h": {
+    "mtime": 1789463127.0,
+    "hash": "5e2ae189adae41fb3f3595ca6c6bd026"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64_x86_64-simulator/RiveRuntime.framework/Headers/RiveArtboardListener.h": {
+    "mtime": 1789463127.0,
+    "hash": "042c9a8367cb1372ca1c78e08870500e"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64_x86_64-simulator/RiveRuntime.framework/Headers/RiveFactory.h": {
+    "mtime": 1789463127.0,
+    "hash": "384d847f13f3da3f2c34a460a91e1e6e"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64/RiveRuntime.framework/Headers/RiveDataBindingViewModel.h": {
+    "mtime": 1789463100.0,
+    "hash": "818f5714fc672803d1572980d33fd4e0"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64/RiveRuntime.framework/Headers/RiveCommandQueue.h": {
+    "mtime": 1789463100.0,
+    "hash": "d648573214623f2005b2143c2c77d643"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64/RiveRuntime.framework/Headers/RiveDataBindingViewModelInstance.h": {
+    "mtime": 1789463100.0,
+    "hash": "8b65a56ae9cf3fbeef2ded0096b8f0ea"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64/RiveRuntime.framework/Headers/RiveMetalDrawableView.h": {
+    "mtime": 1789463100.0,
+    "hash": "a50e80730a58df08ea416b203b78ad77"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64/RiveRuntime.framework/Headers/RenderContextManager.h": {
+    "mtime": 1789463100.0,
+    "hash": "f9adab0dd14336bda87efa5a45a2f8eb"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64/RiveRuntime.framework/Headers/RiveViewModelInstanceListener.h": {
+    "mtime": 1789463100.0,
+    "hash": "dc1f764f785e5729af009f1e4711552c"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64/RiveRuntime.framework/Headers/RiveFont.h": {
+    "mtime": 1789463100.0,
+    "hash": "b6c7fa7c0611498a3e5df85fa567d669"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64/RiveRuntime.framework/Headers/RiveFileAssetLoader.h": {
+    "mtime": 1789463100.0,
+    "hash": "3d929708325631101b6e0f42deb52dfa"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64/RiveRuntime.framework/Headers/RiveFileAsset.h": {
+    "mtime": 1789463100.0,
+    "hash": "af20e19a34cca3f7dfb6c98dccf1602b"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64/RiveRuntime.framework/Headers/RiveDataBindingViewModelInstanceProperty.h": {
+    "mtime": 1789463100.0,
+    "hash": "221824b3e16833d3f10dbd25b11862bf"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64/RiveRuntime.framework/Headers/RiveStateMachineInstance.h": {
+    "mtime": 1789463100.0,
+    "hash": "1ca9bd77bb3103cd4895eeb4127fd6d2"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64/RiveRuntime.framework/Headers/_RiveUIRenderContextProtocol.h": {
+    "mtime": 1789463100.0,
+    "hash": "9f90e5a0a8f7f313c8417c56c826d254"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64/RiveRuntime.framework/Headers/RiveEnums.h": {
+    "mtime": 1789463100.0,
+    "hash": "a7868a517a1661cc808c8f3d5f7ed5aa"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64/RiveRuntime.framework/Headers/RiveUIRenderContext.h": {
+    "mtime": 1789463100.0,
+    "hash": "e85e47f8da2018b274b9cf49863eda71"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64/RiveRuntime.framework/Headers/RiveAudioListener.h": {
+    "mtime": 1789463100.0,
+    "hash": "aad90faf5742fb469770cc430bbb2267"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64/RiveRuntime.framework/Headers/RiveFontListener.h": {
+    "mtime": 1789463100.0,
+    "hash": "e1492e8c96865c7d578c802a1d0e7c8a"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64/RiveRuntime.framework/Headers/RiveTextValueRun.h": {
+    "mtime": 1789463100.0,
+    "hash": "aee2522a74682509b13f4b86115a0fe9"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64/RiveRuntime.framework/Headers/_RiveUIDeferredRenderer.h": {
+    "mtime": 1789463100.0,
+    "hash": "b507590e86a30f9aad852b43012177d4"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64/RiveRuntime.framework/Headers/RiveRuntime.h": {
+    "mtime": 1789463100.0,
+    "hash": "376a1a604fe7477e4d748017c72ef292"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64/RiveRuntime.framework/Headers/RiveSemanticsDiff.h": {
+    "mtime": 1789463100.0,
+    "hash": "1e942c0d5df9d6c4ea9b9153744a7439"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64/RiveRuntime.framework/Headers/RiveRuntime-Swift.h": {
+    "mtime": 1789463104.0,
+    "hash": "a12956fc46106638387d6f80764d00ea"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64/RiveRuntime.framework/Headers/RiveDataBindingViewModelInstancePropertyData.h": {
+    "mtime": 1789463100.0,
+    "hash": "584e9997ff28108618a58146d5df399f"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64/RiveRuntime.framework/Headers/RiveSMIInput.h": {
+    "mtime": 1789463100.0,
+    "hash": "24491ea052fc811e20d453a8fef44af8"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64/RiveRuntime.framework/Headers/RiveConcurrency.h": {
+    "mtime": 1789463100.0,
+    "hash": "fdff70bbca87d9a6a2021a1a92d54c5c"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64/RiveRuntime.framework/Headers/_RiveUIDeferredRenderContext.h": {
+    "mtime": 1789463100.0,
+    "hash": "1596d6572284d127005a4df741027233"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64/RiveRuntime.framework/Headers/RiveRenderImageListener.h": {
+    "mtime": 1789463100.0,
+    "hash": "4a693aa13743c19ca280d0c43326045a"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64/RiveRuntime.framework/Headers/RiveBindableArtboard.h": {
+    "mtime": 1789463100.0,
+    "hash": "7f323386d5cfeb0992cf3a04d6156a51"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64/RiveRuntime.framework/Headers/RiveUIRenderer.h": {
+    "mtime": 1789463100.0,
+    "hash": "33a8f07d85172e31e2cf5d83ddcc7c44"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64/RiveRuntime.framework/Headers/LayerState.h": {
+    "mtime": 1789463100.0,
+    "hash": "285d77b3eec772aead7ba1b4efce02c9"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64/RiveRuntime.framework/Headers/RiveArtboard.h": {
+    "mtime": 1789463100.0,
+    "hash": "4facf796237b2fe4994f0b18c5853865"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64/RiveRuntime.framework/Headers/CDNFileAssetLoader.h": {
+    "mtime": 1789463100.0,
+    "hash": "7b73fa7848b12a9cfc72f53f79df71e0"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64/RiveRuntime.framework/Headers/_RiveCommandQueueMessagePumpDriver.h": {
+    "mtime": 1789463100.0,
+    "hash": "733b2f00a45e5a4a96a2ae49973d1b84"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64/RiveRuntime.framework/Headers/RiveAudioEngine.h": {
+    "mtime": 1789463100.0,
+    "hash": "06992afa30d7139616f0614fd60145cb"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64/RiveRuntime.framework/Headers/RiveLinearAnimationInstance.h": {
+    "mtime": 1789463100.0,
+    "hash": "c3b21271323eda54a8b6b24d3e0bcb49"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64/RiveRuntime.framework/Headers/RiveCommandServer.h": {
+    "mtime": 1789463100.0,
+    "hash": "9c70d5fde409f79404e0ce7986083ad3"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64/RiveRuntime.framework/Headers/RiveFile.h": {
+    "mtime": 1789463100.0,
+    "hash": "94a5031a9ce9ff8fa66e8e39a916336c"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64/RiveRuntime.framework/Headers/Rive.h": {
+    "mtime": 1789463100.0,
+    "hash": "1a58cf1bdaa9b2103f286422d100c29e"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64/RiveRuntime.framework/Headers/RiveFileListener.h": {
+    "mtime": 1789463100.0,
+    "hash": "7e6ebea1504accbe2ad8c92fa8315d05"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64/RiveRuntime.framework/Headers/RiveStateMachineListener.h": {
+    "mtime": 1789463100.0,
+    "hash": "737098e391b91a2f2a3c92f13463ca4a"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64/RiveRuntime.framework/Headers/RiveEvent.h": {
+    "mtime": 1789463100.0,
+    "hash": "5e2ae189adae41fb3f3595ca6c6bd026"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64/RiveRuntime.framework/Headers/RiveArtboardListener.h": {
+    "mtime": 1789463100.0,
+    "hash": "042c9a8367cb1372ca1c78e08870500e"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64/RiveRuntime.framework/Headers/RiveFactory.h": {
+    "mtime": 1789463100.0,
+    "hash": "384d847f13f3da3f2c34a460a91e1e6e"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/README.md": {
+    "mtime": 1789788091.9205158,
+    "hash": "8f17e6a36c6d973ce1f02f56d38461bc"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/DESIGN.md": {
+    "mtime": 1789843483.744698,
+    "hash": "c0bd91795610b136146d309445fd55ca"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/App/THIRD-PARTY-NOTICES.txt": {
+    "mtime": 1789785766.3547766,
+    "hash": "2df511f13ccc1efd7bc0519d2b3512c0"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/docs/superpowers/plans/2026-09-18-onboarding-addendum.md": {
+    "mtime": 1789800630.938507,
+    "hash": "585e918c51972b9b855a734ceb061cfd"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/docs/briefs/signal-scores.md": {
+    "mtime": 1789842528.073067,
+    "hash": "69fe5e65aaec9254bf46f70ab6937804"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/docs/briefs/conversational-onboarding.md": {
+    "mtime": 1789838167.634256,
+    "hash": "f87c69665bf14dd0f5b88e6e2d6c3c37"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64_x86_64-simulator/dSYMs/RiveRuntime.framework.dSYM/Contents/Resources/Relocations/aarch64/RiveRuntime.yml": {
+    "mtime": 1789463157.0,
+    "hash": "5d6713b98487fc7818388c7a5db4a176"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64_x86_64-simulator/dSYMs/RiveRuntime.framework.dSYM/Contents/Resources/Relocations/x86_64/RiveRuntime.yml": {
+    "mtime": 1789463157.0,
+    "hash": "46d8544fcf2a56d1e82dc88bd64d3c11"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Frameworks/RiveRuntime.xcframework/ios-arm64/dSYMs/RiveRuntime.framework.dSYM/Contents/Resources/Relocations/aarch64/RiveRuntime.yml": {
+    "mtime": 1789463126.0,
+    "hash": "1827cd6e3156bc795d3208a0258f92ff"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/App/Assets.xcassets/JettFace.imageset/jett-face.png": {
+    "mtime": 1789752088.7306566,
+    "hash": "9ff75aa78872411822cfd9600b48476a"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/App/Assets.xcassets/AppIcon.appiconset/appicon.png": {
+    "mtime": 1789788025.7056103,
+    "hash": "f0a5e2fe1eb87ad71d8e152428cb4733"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/App/Assets.xcassets/LogoMark.imageset/mark@2x.png": {
+    "mtime": 1789702955.6528454,
+    "hash": "5a2950763b49050b4257b0c9f8c78da1"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/App/Assets.xcassets/LogoMark.imageset/mark@3x.png": {
+    "mtime": 1789702955.6571155,
+    "hash": "7991034b114b7d0e44c85c269c67aa16"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/App/Assets.xcassets/LogoMark.imageset/mark.png": {
+    "mtime": 1789702955.649786,
+    "hash": "f2d7ddf0d6f132025d5f0b14f0ac4f68"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Brand/logo-source.png": {
+    "mtime": 1789702955.1268592,
+    "hash": "ae3dd7d09da818b2d5b916ae56d624e0"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Brand/mark-white.png": {
+    "mtime": 1789702955.5258017,
+    "hash": "e1f3bace27ba63f0dc0337f3b4385aab"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Brand/appicon-dark.png": {
+    "mtime": 1789702955.6407146,
+    "hash": "b37e693b695295bb84d852d455e35e05"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Brand/appicon-white.png": {
+    "mtime": 1789702955.6025157,
+    "hash": "1a5c558e5d3bacd808b67534073c2bb4"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Brand/mark-black.png": {
+    "mtime": 1789702955.50586,
+    "hash": "62789c94c397eadf71a764941a46bfec"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Brand/jett-face.png": {
+    "mtime": 1789752068.9764867,
+    "hash": "9ff75aa78872411822cfd9600b48476a"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/Brand/appicon-green.png": {
+    "mtime": 1789702955.5643005,
+    "hash": "932c7761ea0197c5f99d9e725064e90c"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/docs/brand/icon-green-deep.png": {
+    "mtime": 1789788106.8916864,
+    "hash": "f7cd27ef6d4fb5784c879eeb14bfe248"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/docs/brand/icon-green.png": {
+    "mtime": 1789788106.8880568,
+    "hash": "8d379c3554c8a164cdaf156e839173bc"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/docs/brand/icon-jett-deep.png": {
+    "mtime": 1789788106.8821793,
+    "hash": "f0a5e2fe1eb87ad71d8e152428cb4733"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/docs/brand/icon-jett-flat.png": {
+    "mtime": 1789788106.879913,
+    "hash": "fe941ea5d99a943f91c5d8762dfd27d5"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/docs/brand/icon-candidates.png": {
+    "mtime": 1789788106.8939981,
+    "hash": "09120dc11dad5a637d44b76a9d4cb3db"
+  },
+  "/Users/hlin/Documents/badminton/code/readiness/docs/brand/icon-indigo.png": {
+    "mtime": 1789788106.8851335,
+    "hash": "fdc5299ff7769a6e98bbec7d9fc15b70"
+  }
+}

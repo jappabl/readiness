@@ -1,0 +1,172 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-19T04:39:47.506595+00:00",
+  "title": "Design System: Coach Jett",
+  "extensions": {
+    "colorMeta": {
+      "message-blue": {
+        "role": "primary",
+        "displayName": "Messages Blue",
+        "tonalRamp": [
+          "oklch(15% 0.1961 256.06)",
+          "oklch(26% 0.1961 256.06)",
+          "oklch(38% 0.1961 256.06)",
+          "oklch(49% 0.1961 256.06)",
+          "oklch(61% 0.1961 256.06)",
+          "oklch(72% 0.1961 256.06)",
+          "oklch(84% 0.1961 256.06)",
+          "oklch(95% 0.1961 256.06)"
+        ]
+      },
+      "message-on-blue": {
+        "role": "neutral",
+        "displayName": "Message White",
+        "tonalRamp": [
+          "oklch(15% 0 0)",
+          "oklch(26% 0 0)",
+          "oklch(38% 0 0)",
+          "oklch(49% 0 0)",
+          "oklch(61% 0 0)",
+          "oklch(72% 0 0)",
+          "oklch(84% 0 0)",
+          "oklch(95% 0 0)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "conversation-body": {
+        "displayName": "Conversation Body",
+        "purpose": "SwiftUI body text style with Dynamic Type. The frontmatter size is its standard-size equivalent."
+      },
+      "conversation-choice": {
+        "displayName": "Conversation Choice",
+        "purpose": "SwiftUI subheadline medium with Dynamic Type."
+      }
+    },
+    "motion": [
+      {
+        "name": "conversation-scroll",
+        "value": "easeOut 250ms",
+        "purpose": "Onboarding scroll to latest turn; immediate with Reduce Motion."
+      },
+      {
+        "name": "onboarding-receipt-sequence",
+        "value": "Sent 0ms; Delivered 250ms; Read 800ms; reaction 980ms",
+        "purpose": "Local scripted acknowledgment of the latest answer. Receipt timing remains under Reduce Motion."
+      },
+      {
+        "name": "scripted-follow-up",
+        "value": "1250–1630ms after the answer",
+        "purpose": "Pause varies by reply length. Timing remains under Reduce Motion."
+      },
+      {
+        "name": "scripted-system-turn",
+        "value": "700ms",
+        "purpose": "Intro and system turn pacing, including Reduce Motion."
+      },
+      {
+        "name": "outgoing-arrival",
+        "value": "spring response 0.3, dampingFraction 0.9",
+        "purpose": "Outgoing answer arrival. Removed with Reduce Motion."
+      },
+      {
+        "name": "incoming-arrival",
+        "value": "easeOut 240ms",
+        "purpose": "Reply arrival with a small upward offset. Transform and animation removed with Reduce Motion."
+      },
+      {
+        "name": "reaction-arrival",
+        "value": "easeOut 200ms",
+        "purpose": "Contextual badge at the outside upper-left edge. Animation removed with Reduce Motion."
+      },
+      {
+        "name": "health-reading-minimum",
+        "value": "1300ms",
+        "purpose": "Minimum visible reading beat after the native Health authorization sheet closes."
+      },
+      {
+        "name": "thinking-shimmer",
+        "value": "linear 1250ms repeat",
+        "purpose": "Shared Thinking word; static under Reduce Motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "accessibility-text-size",
+        "value": "SwiftUI DynamicTypeSize.isAccessibilitySize"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Incoming message",
+      "kind": "custom",
+      "refersTo": "incoming-message",
+      "description": "Portable light/dark preview of the native incoming bubble. UIKit system colors remain authoritative in the app.",
+      "html": "<div class=\"ds-incoming\">Want to get stronger, build muscle, lose fat, or feel better?</div>",
+      "css": ".ds-incoming{font:17px -apple-system,BlinkMacSystemFont,sans-serif;color:#1c1c1e;background:#f2f2f7;padding:11px 15px;border-radius:20px 20px 20px 6px;max-width:300px}@media(prefers-color-scheme:dark){.ds-incoming{background:#1c1c1e;color:#f2f2f5}}"
+    },
+    {
+      "name": "Outgoing message",
+      "kind": "custom",
+      "refersTo": "outgoing-message",
+      "description": "Right-aligned answer bubble with a tighter lower-right corner.",
+      "html": "<div class=\"ds-outgoing\">Build muscle</div>",
+      "css": ".ds-outgoing{font:17px -apple-system,BlinkMacSystemFont,sans-serif;color:#fff;background:#0074e8;padding:11px 15px;border-radius:20px 20px 6px 20px;width:fit-content;max-width:300px;margin-left:auto}"
+    },
+    {
+      "name": "Answer choice",
+      "kind": "button",
+      "refersTo": "conversation-choice",
+      "description": "Multiline answer control. Native accessibility text sizes switch the surrounding grid to one column.",
+      "html": "<button class=\"ds-choice\">Get stronger</button>",
+      "css": ".ds-choice{font:500 15px -apple-system,BlinkMacSystemFont,sans-serif;text-align:left;color:#1c1c1e;background:#fff;border:1px solid rgba(0,116,232,.3);border-radius:16px;padding:13px 14px;min-height:52px;min-width:150px}.ds-choice:hover{background:rgba(0,116,232,.05)}.ds-choice:focus-visible{outline:2px solid #0074E8;outline-offset:3px}.ds-choice:active{background:rgba(0,116,232,.1)}@media(prefers-color-scheme:dark){.ds-choice{color:#f2f2f5;background:#1c1c1f}}"
+    },
+    {
+      "name": "Selected obstacle",
+      "kind": "chip",
+      "refersTo": "conversation-choice",
+      "description": "Selected multi-select answer with a checkmark, blue border and tinted fill. The production icon is SF Symbol checkmark.",
+      "html": "<button class=\"ds-selected\" aria-pressed=\"true\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 20 20\" aria-hidden=\"true\"><path d=\"m4 10 4 4 8-8\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg>Not sleeping enough</button>",
+      "css": ".ds-selected{display:flex;align-items:center;gap:9px;font:500 15px -apple-system,BlinkMacSystemFont,sans-serif;color:#1c1c1e;background:rgba(0,116,232,.1);border:1px solid #0074e8;border-radius:16px;padding:13px 14px;min-height:52px}.ds-selected:hover{background:rgba(0,116,232,.15)}.ds-selected:focus-visible{outline:2px solid #0074E8;outline-offset:3px}.ds-selected:active{background:rgba(0,116,232,.2)}@media(prefers-color-scheme:dark){.ds-selected{color:#f2f2f5}}"
+    },
+    {
+      "name": "Connect Health",
+      "kind": "button",
+      "refersTo": "connect-health",
+      "description": "The single filled action at the Health step, opening the native authorization sheet.",
+      "html": "<button class=\"ds-connect\">Connect Health</button>",
+      "css": ".ds-connect{font:600 17px -apple-system,BlinkMacSystemFont,sans-serif;color:white;background:#0074e8;border:0;border-radius:999px;min-height:50px;width:100%;padding:10px 20px}.ds-connect:hover{filter:brightness(.96)}.ds-connect:focus-visible{outline:2px solid #0074E8;outline-offset:3px}.ds-connect:active{filter:brightness(.9)}.ds-connect:disabled{opacity:.5}"
+    },
+    {
+      "name": "Message composer",
+      "kind": "input",
+      "refersTo": "message-composer",
+      "description": "Portable input preview. Native TextField uses body Dynamic Type, one to four lines and intrinsic vertical sizing; Send keeps a 44pt target.",
+      "html": "<div class=\"ds-composer\"><textarea rows=\"2\" aria-label=\"Message Jett\" placeholder=\"Ask about your health or training\"></textarea><button aria-label=\"Send\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 18 18\" aria-hidden=\"true\"><path d=\"M9 14V4m-4 4 4-4 4 4\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></button></div>",
+      "css": ".ds-composer{display:flex;align-items:flex-end;gap:6px;border:1px solid #e8e8ec;border-radius:26px;background:#fff}.ds-composer textarea{font:17px -apple-system,BlinkMacSystemFont,sans-serif;color:#1c1c1e;background:transparent;border:0;resize:vertical;min-width:0;flex:1;padding:14px 0 14px 18px}.ds-composer textarea::placeholder{color:#6e6e73}.ds-composer textarea:focus-visible{outline:none}.ds-composer:focus-within{outline:2px solid #0074E8;outline-offset:3px}.ds-composer button{display:grid;place-items:center;flex:0 0 44px;width:44px;height:44px;margin:0 4px 4px 0;border:4px solid white;border-radius:50%;color:white;background:#0074e8}.ds-composer button:hover{filter:brightness(.96)}.ds-composer button:focus-visible{outline:2px solid #0074E8;outline-offset:3px}.ds-composer button:active{filter:brightness(.9)}@media(prefers-color-scheme:dark){.ds-composer{background:#000;border-color:#2a2a2e}.ds-composer textarea{color:#f2f2f5}.ds-composer textarea::placeholder{color:#8a8a90}.ds-composer button{border-color:#000}}"
+    },
+    {
+      "name": "Contact header",
+      "kind": "nav",
+      "description": "Name and divider preview. The native header also renders the real 42pt Jett portrait above the name; live conversation adds the actual Back action.",
+      "html": "<nav class=\"ds-contact\" aria-label=\"Jett, your health and training coach\"><span>Jett</span></nav>",
+      "css": ".ds-contact{font:12px -apple-system,BlinkMacSystemFont,sans-serif;color:#1c1c1e;text-align:center;background:#fff;padding:6px 8px;border-bottom:1px solid #e8e8ec}@media(prefers-color-scheme:dark){.ds-contact{color:#f2f2f5;background:#000;border-color:#2a2a2e}}"
+    }
+  ],
+  "narrative": {
+    "overview": "The conversation uses one column with the contact header above it. Incoming messages\nalign left and outgoing messages align right. Bubbles hug their content, use the\nfrontmatter's message radius, and tighten the bottom corner on the speaker's side to\n`rounded.message-tail`. Message padding is 15pt horizontal and 11pt vertical. Leave at\nleast 44pt on an outgoing message's opposite side and 36pt for an incoming one. There\nis no shadow on either bubble.",
+    "rules": [
+      {
+        "name": "The Clear Next Step Rule",
+        "body": "Each onboarding question presents every supported answer\nas a tappable choice. The opening names all four goals: get stronger, build muscle,\nlose fat, and feel better. Frequency has four choices, obstacles expose all six options\nwith multi-select and Skip, and units offer pounds or kilos. Keep instructions short\nand local to the action. Familiar users should be able to answer immediately.",
+        "section": "components"
+      },
+      {
+        "name": "The Contextual Reaction Rule",
+        "body": "Jett reacts after the user's answer is marked Read,\nthen sends his follow-up. The badge sits outside the upper-left edge of the outgoing\nbubble, using `.topLeading` and an offset of -14pt horizontally and -16pt vertically;\nreserve 12pt above the bubble.\nUse `heart.fill` and `hand.thumbsup.fill` SF Symbols for heart and like. Muscle and\nrunning reactions use their native emoji. Reaction descriptions belong in the\nmessage's accessibility label. Add a reaction only when the answer calls for it.",
+        "section": "components"
+      }
+    ]
+  }
+}

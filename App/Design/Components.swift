@@ -406,8 +406,8 @@ struct PrimaryButton: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: 7) {
-                if let symbol { Image(systemName: symbol).font(.system(size: 14, weight: .semibold)) }
-                Text(label).font(.system(size: 16, weight: .semibold))
+                if let symbol { Image(systemName: symbol).font(.subheadline.weight(.semibold)) }
+                Text(label).font(.body.weight(.semibold))
             }
             .foregroundStyle(Tokens.onAccent)
             .frame(maxWidth: .infinity, minHeight: 50)

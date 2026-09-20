@@ -28,6 +28,30 @@ final class AppModel {
     /// runs on past it to the Health prompt and the baseline reveal.
     var onboardingFinished = false
 
+    private(set) var hasOnboardingHealthData = false
+    private(set) var healthProfile = HealthProfile()
+    var effectiveHealthProfile: HealthProfile {
+        healthProfile.fillingMissing(from: onboarding.healthDetails ?? HealthProfile())
+    }
+    var trainingLimitations: Set<PhysicalLimitation>? {
+        guard let context,
+              let profile = (try? context.fetch(FetchDescriptor<UserProfile>()))?.first
+        else { return onboarding.limitations ?? [] }
+        return PhysicalLimitation.from(profileText: profile.limitations)
+    }
+    var coachSharingAllowed = CoachSharing.isAllowed {
+        didSet { CoachSharing.setAllowed(coachSharingAllowed) }
+    }
+    var pendingCoachMessage: String?
+    var pendingOnboardingConversation: [CoachMessage] = []
+    private var healthAuthorizationRequested = false
+    private static let healthSkipKey = "health.connection.skipped"
+
+    func skipHealthConnection() {
+        UserDefaults.standard.set(true, forKey: Self.healthSkipKey)
+        healthProfile = HealthProfile()
+    }
+
     /// How many answers the free trial has spent. UserDefaults rather than the store:
     /// it is a counter, not a record, and it does not deserve a migration.
     var coachMessagesUsed: Int {
@@ -70,6 +94,18 @@ final class AppModel {
     }
 
     private(set) var series: [DailyPhysiology] = []
+    private var healthSeries: [DailyPhysiology] = []
+    private(set) var latestWeight: (date: Date, kilograms: Double)?
+    private var healthWeight: (date: Date, kilograms: Double)?
+    var healthReadError: String?
+    private var selectedTemplateID: PersistentIdentifier? {
+        didSet {
+            if let selectedTemplateID, let data = try? JSONEncoder().encode(selectedTemplateID) {
+                UserDefaults.standard.set(data, forKey: "training.today.template")
+                UserDefaults.standard.set(Calendar.current.startOfDay(for: Date()), forKey: "training.today.date")
+            }
+        }
+    }
 
     /// Retracts while the user is reading, returns when they stop or scroll back.
 
@@ -87,6 +123,12 @@ final class AppModel {
 
     func attach(_ context: ModelContext) {
         self.context = context
+        if let date = UserDefaults.standard.object(forKey: "training.today.date") as? Date,
+           Calendar.current.isDateInToday(date),
+           let data = UserDefaults.standard.data(forKey: "training.today.template") {
+            selectedTemplateID = try? JSONDecoder().decode(PersistentIdentifier.self, from: data)
+        }
+        mergeLocalLogs()
         goal = storedGoal(from: context)
         // A goal already on disk means onboarding ran in an earlier launch.
         onboardingFinished = goal != nil
@@ -99,48 +141,99 @@ final class AppModel {
         // six months of physiology before saying what the app is for is how a health
         // app gets declined on the first screen.
         if goal == nil { phase = .needsOnboarding }
+        #if DEBUG
+        // Replay the real flow on a simulator or device without resetting Health permissions.
+        if ProcessInfo.processInfo.arguments.contains("--demo-onboarding") {
+            goal = nil
+            onboardingFinished = false
+            phase = .needsOnboarding
+        }
+        #endif
     }
 
     var needsOnboarding: Bool { goal == nil || !onboardingFinished }
 
     // MARK: - Load
 
-    func refresh() async {
+    func refresh(seedSimulatorData: Bool = false, requestHealthAccess: Bool = false,
+                 onAuthorized: (() -> Void)? = nil, onHealthRead: ((Bool) -> Void)? = nil) async {
         guard let context else { return }
+        #if DEBUG && targetEnvironment(simulator)
+        // Explicit QA fixture only. Ordinary onboarding never invents Health history.
+        let seedSimulatorData = seedSimulatorData
+            || ProcessInfo.processInfo.arguments.contains("--seed-health-fixture")
+        #endif
         if case .ready = phase {} else { phase = .loading }
+        todayCheckIn = fetchTodayCheckIn(from: context)
+        acwr = computeACWR(from: context)
+        let templates = (try? context.fetch(
+            FetchDescriptor<WorkoutTemplate>(sortBy: [SortDescriptor(\.order)]))) ?? []
+        hasProgram = !templates.isEmpty
+        goal = storedGoal(from: context)
+        if requestHealthAccess { UserDefaults.standard.set(false, forKey: Self.healthSkipKey) }
+        if UserDefaults.standard.bool(forKey: Self.healthSkipKey) {
+            healthSeries = []; healthWeight = nil; mergeLocalLogs(); day = nil; recommendation = nil; hasOnboardingHealthData = false
+            healthProfile = HealthProfile()
+            phase = needsOnboarding ? .needsOnboarding : .ready
+            return
+        }
 
         do {
             guard HealthKitSource.isAvailable else { throw HealthSourceError.unavailable }
 
-            #if targetEnvironment(simulator)
-            try await healthKit.requestAuthorization(alsoShare: HealthKitSeeder.shareTypes)
-            if await !healthKit.hasAnyData() {
-                seededSampleCount = try? await HealthKitSeeder.seed(days: Self.historyDays,
-                                                                    into: healthKit)
+            if (requestHealthAccess || seedSimulatorData), !healthAuthorizationRequested {
+                #if targetEnvironment(simulator)
+                try await healthKit.requestAuthorization(
+                    alsoShare: seedSimulatorData ? HealthKitSeeder.shareTypes : [])
+                #else
+                try await healthKit.requestAuthorization()
+                #endif
+                healthAuthorizationRequested = true
             }
-            #else
-            try await healthKit.requestAuthorization()
+            onAuthorized?()
+            #if targetEnvironment(simulator)
+            if seedSimulatorData {
+                let hasHistory = await healthKit.hasAnyData()
+                let todayFixture = try? await healthKit.dailySeries(days: 1)
+                if !hasHistory || todayFixture?.last?.hasReadinessData != true {
+                    seededSampleCount = try? await HealthKitSeeder.seed(days: hasHistory ? 1 : Self.historyDays,
+                                                                        into: healthKit)
+                }
+            }
             #endif
 
-            let fetched = try await healthKit.dailySeries(days: Self.historyDays)
-            let usable = fetched.filter { $0.hrvSDNN != nil || $0.restingHeartRate != nil }
+            healthProfile = await healthKit.healthProfile()
+            let localMealIDs = ((try? context.fetch(FetchDescriptor<MealLog>())) ?? []).map(\.exportID)
+            let fetched = try await healthKit.dailySeries(days: Self.historyDays, excludingMealIDs: localMealIDs)
+            hasOnboardingHealthData = !DailyPhysiology.coachHealthContext(fetched).metrics.isEmpty
+            // Authorization completion alone does not prove read access. Only fresh
+            // records or characteristics can produce the connection celebration.
+            onHealthRead?(hasOnboardingHealthData || healthProfile.sanitized() != HealthProfile())
+            let usable = fetched.filter(\.hasReadinessData)
             #if DEBUG
             HealthStreamAudit.report(fetched)
             #endif
 
-            guard let assembled = DayAssembler.assemble(series: usable), usable.count >= 2 else {
-                phase = .failed("No health history yet. Wear your watch overnight and come back.")
+            healthReadError = nil
+            healthSeries = fetched
+            healthWeight = await healthKit.latestBodyMass()
+            mergeLocalLogs()
+            todayCheckIn = fetchTodayCheckIn(from: context)
+            acwr = computeACWR(from: context)
+            guard let latest = usable.last, Calendar.current.isDateInToday(latest.date),
+                  let assembled = DayAssembler.assemble(series: usable), usable.count >= 2,
+                  !assembled.readings.isEmpty else {
+                day = nil
+                recommendation = nil
+                phase = needsOnboarding ? .needsOnboarding : .ready
                 return
             }
             day = assembled
-            self.series = usable
             persistMetrics(assembled, into: context)
 
             todayCheckIn = fetchTodayCheckIn(from: context)
             acwr = computeACWR(from: context)
 
-            let templates = (try? context.fetch(
-                FetchDescriptor<WorkoutTemplate>(sortBy: [SortDescriptor(\.order)]))) ?? []
             let planned = plannedToday(templates: templates)
 
             let rec = RecommendationEngine.recommend(RecommendationInput(
@@ -163,11 +256,14 @@ final class AppModel {
             phase = needsOnboarding ? .needsOnboarding : .ready
 
         } catch {
-            phase = .failed(error.localizedDescription)
+            healthReadError = error.localizedDescription
+            if let day, !Calendar.current.isDateInToday(day.date) { self.day = nil; recommendation = nil }
+            phase = needsOnboarding ? .needsOnboarding : .ready
         }
     }
 
     func startBackgroundDelivery() {
+        guard !UserDefaults.standard.bool(forKey: Self.healthSkipKey) else { return }
         healthKit.startBackgroundDelivery { [weak self] in
             Task { @MainActor in await self?.refresh() }
         }
@@ -175,8 +271,6 @@ final class AppModel {
 
     // MARK: - Today's plan
 
-    /// v1 has no calendar: the plan for today is the first template in the program.
-    /// Scheduling is a later problem and does not change what the agent can say now.
     // MARK: - Goal
 
     private func storedGoal(from context: ModelContext) -> TrainingGoal? {
@@ -186,16 +280,27 @@ final class AppModel {
 
     /// What today's screen is made of. The barbell angle is not the front page for
     /// everybody — see `HomeComposition`.
-    var homeBlocks: [HomeBlock] {
-        HomeComposition.blocks(for: goal ?? .getStronger, hasProgram: hasProgram)
+    var goals: Set<TrainingGoal> {
+        if let selected = onboarding.goals, !selected.isEmpty { return selected }
+        return goal.map { [$0] } ?? onboarding.selectedGoals
     }
 
-    /// Stores everything onboarding gathered. Called before the Health prompt, so the
-    /// answers survive even if the user declines access or quits on the permission sheet.
+    private var coachGoals: String? {
+        let selected = TrainingGoal.allCases.filter { goals.contains($0) }
+        return selected.isEmpty ? nil : selected.map(\.rawValue).joined(separator: ", ")
+    }
+
+    var homeBlocks: [HomeBlock] {
+        HomeComposition.blocks(for: goals, hasProgram: hasProgram)
+    }
+
+    /// Persists the answers when the conversation hands off to the live coach.
     func completeOnboarding(_ answers: OnboardingAnswers, in context: ModelContext) {
+        let answers = answers.preservingHealthDetails(from: onboarding)
         let profile = profileRow(in: context)
         if let goal = answers.goal { profile.goal = goal.rawValue }
         profile.unitsAreMetric = answers.unitsAreMetric
+        if let limitations = answers.limitationsText { profile.limitations = limitations }
         if let encoded = try? JSONEncoder().encode(answers),
            let json = String(data: encoded, encoding: .utf8) {
             profile.onboardingJSON = json
@@ -221,21 +326,31 @@ final class AppModel {
         return created
     }
 
-    func setGoal(_ newGoal: TrainingGoal, in context: ModelContext) {
-        let profile = (try? context.fetch(FetchDescriptor<UserProfile>()))?.first
-            ?? {
-                let created = UserProfile()
-                context.insert(created)
-                return created
-            }()
-        profile.goal = newGoal.rawValue
+    func setGoals(_ selected: Set<TrainingGoal>, in context: ModelContext) {
+        guard !selected.isEmpty else { return }
+        let profile = profileRow(in: context)
+        onboarding.setGoals(selected)
+        if let marker = onboarding.goal { profile.goal = marker.rawValue }
+        if let encoded = try? JSONEncoder().encode(onboarding),
+           let json = String(data: encoded, encoding: .utf8) {
+            profile.onboardingJSON = json
+        }
         try? context.save()
-        goal = newGoal
+        goal = onboarding.goal
         phase = .ready
     }
 
     func plannedToday(templates: [WorkoutTemplate]) -> WorkoutTemplate? {
-        templates.sorted { $0.order < $1.order }.first
+        let sorted = templates.sorted { $0.order < $1.order }
+        if let date = UserDefaults.standard.object(forKey: "training.today.date") as? Date,
+           Calendar.current.isDateInToday(date),
+           let chosen = sorted.first(where: { $0.persistentModelID == selectedTemplateID }) { return chosen }
+        let completed = context.flatMap { try? $0.fetch(FetchDescriptor<WorkoutSession>(sortBy: [SortDescriptor(\.date, order: .reverse)])) } ?? []
+        if let last = completed.first(where: { $0.isComplete }),
+           let index = sorted.firstIndex(where: { $0.name == last.templateName }), !sorted.isEmpty {
+            return sorted[(index + 1) % sorted.count]
+        }
+        return sorted.first
     }
 
     // MARK: - Check-in
@@ -305,11 +420,12 @@ final class AppModel {
         guard series.count > 1 else { return [] }
         let start = max(1, series.count - days)
         return (start..<series.count).compactMap { end in
-            DayAssembler.assemble(series: Array(series[0..<end + 1]))?.readiness.composite
+            guard let assembled = DayAssembler.assemble(series: Array(series[0..<end + 1])), !assembled.readings.isEmpty else { return nil }
+            return assembled.readiness.composite
         }
     }
 
-    var latestSleepHours: Double? { series.last?.sleepHours }
+    var latestSleepHours: Double? { series.last.flatMap { Calendar.current.isDateInToday($0.date) ? $0.sleepHours : nil } }
 
     func sleepHours(on date: Date) -> Double? {
         let calendar = Calendar.current
@@ -336,37 +452,109 @@ final class AppModel {
         return max(1, Percentile.percent(fromZ: composite))
     }
 
-    /// How much of the nightly requirement was actually met.
-    var sleepPercent: Int? {
-        guard let hours = latestSleepHours else { return nil }
-        return Int(min(100, (hours / DayAssembler.sleepNeedHours * 100).rounded()))
+    var sleepScore: SleepScoreResult {
+        let today = Calendar.current.startOfDay(for: Date())
+        let current = series.last { Calendar.current.isDate($0.date, inSameDayAs: today) }
+        let cutoff = Calendar.current.date(byAdding: .day, value: -28, to: today)!
+        let history = series.filter { $0.date >= cutoff && $0.date < today }.compactMap(\.sleep)
+        return SleepScore.evaluate(breakdown: current?.sleep, durationHours: current?.sleepHours,
+                                   history: history, targetHours: DayAssembler.sleepNeedHours)
+    }
+    var sleepPercent: Int? { sleepScore.percent }
+    var dailyStrain: DailyStrainResult? {
+        DailyStrain.evaluate(days: series.map { DailyActivity(date: $0.date,
+            activeEnergyKcal: $0.activeEnergyKcal, exerciseMinutes: $0.exerciseMinutes,
+            steps: $0.steps, workoutEnergyKcal: $0.workoutEnergyKcal, workoutMinutes: $0.workoutMinutes) })
+    }
+    func strainPercent(context: ModelContext) -> Int? { dailyStrain?.percent }
+
+    func selectToday(_ template: WorkoutTemplate) {
+        selectedTemplateID = template.persistentModelID
+        hasProgram = true
+        // Re-evaluate the lower-body adjustment for the selected template immediately.
+        if let day, Calendar.current.isDateInToday(day.date) {
+            recommendation = RecommendationEngine.recommend(RecommendationInput(
+                readiness: day.readiness, checkIn: todayCheckIn, acwr: acwr,
+                hasPlannedLowerBody: template.orderedExercises.contains { $0.muscleGroup.isLowerBody },
+                hasPlannedConditioning: false))
+        }
     }
 
-    /// Sessions needed in the four-week window before "a typical week" means anything.
-    static let minimumSessionsForLoad = 3
+    private func mergeLocalLogs() {
+        guard let context else { return }
+        var merged = healthSeries
+        let weights = (try? context.fetch(FetchDescriptor<WeightLog>(sortBy: [SortDescriptor(\.date)]))) ?? []
+        latestWeight = healthWeight
+        if let local = weights.last, healthWeight == nil || local.date >= healthWeight!.date {
+            latestWeight = (local.date, local.kilograms)
+        }
+        let meals = (try? context.fetch(FetchDescriptor<MealLog>())) ?? []
+        func index(for date: Date) -> Int {
+            if let index = merged.firstIndex(where: { Calendar.current.isDate($0.date, inSameDayAs: date) }) { return index }
+            merged.append(DailyPhysiology(date: Calendar.current.startOfDay(for: date)))
+            return merged.count - 1
+        }
+        for entry in meals {
+            let i = index(for: entry.date)
+            merged[i].dietaryEnergyKcal = (merged[i].dietaryEnergyKcal ?? 0) + entry.calories
+            merged[i].proteinGrams = (merged[i].proteinGrams ?? 0) + entry.protein
+            merged[i].carbohydrateGrams = (merged[i].carbohydrateGrams ?? 0) + entry.carbs
+            merged[i].fatGrams = (merged[i].fatGrams ?? 0) + entry.fat
+        }
+        for entry in weights { merged[index(for: entry.date)].bodyMassKg = entry.kilograms }
+        if let latestWeight { merged[index(for: latestWeight.date)].bodyMassKg = latestWeight.kilograms }
+        series = merged.sorted { $0.date < $1.date }
+    }
 
-    /// This week's training volume against a typical week for this user.
-    func strainPercent(context: ModelContext) -> Int? {
-        let calendar = Calendar.current
-        guard let cutoff = calendar.date(byAdding: .day, value: -StrainEngine.chronicDays,
-                                         to: Date()) else { return nil }
-        let sessions = ((try? context.fetch(FetchDescriptor<WorkoutSession>())) ?? [])
-            .filter { $0.date >= cutoff }
-        // One session against three empty weeks is not "100% of usual"; it is no baseline.
-        guard sessions.count >= Self.minimumSessionsForLoad else { return nil }
+    func logWeight(kilograms: Double, toHealth: Bool) async throws -> String {
+        guard BodyMass.isValid(kilograms: kilograms), let context else { throw LoggingError.invalid }
+        let entry = WeightLog(kilograms: kilograms)
+        context.insert(entry)
+        do { try context.save() } catch { context.delete(entry); throw error }
+        mergeLocalLogs()
+        guard toHealth else { return "Weight saved in Jett." }
+        let sample = HKQuantitySample(type: HKQuantityType(.bodyMass),
+            quantity: HKQuantity(unit: .gramUnit(with: .kilo), doubleValue: kilograms),
+            start: entry.date, end: entry.date)
+        do {
+            try await healthKit.saveUserEntry([sample])
+            entry.healthSynced = true
+            try context.save()
+            return "Weight saved in Jett and Apple Health."
+        } catch { return "Weight saved in Jett. Apple Health couldn't save it. Check Health permissions in Settings." }
+    }
 
-        let daily = recentVolume(days: StrainEngine.chronicDays, context: context)
-        let typicalWeek = daily.reduce(0, +) / Double(StrainEngine.chronicDays) * 7
-        guard typicalWeek > 0 else { return nil }
-        let thisWeek = daily.suffix(StrainEngine.acuteDays).reduce(0, +)
-        return Int(min(100, (thisWeek / typicalWeek * 100).rounded()))
+    func logMeal(name: String, nutrition: MealNutrition, toHealth: Bool) async throws -> String {
+        guard nutrition.isValid, !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              let context else { throw LoggingError.invalid }
+        let entry = MealLog(name: name.trimmingCharacters(in: .whitespacesAndNewlines), nutrition: nutrition)
+        context.insert(entry)
+        do { try context.save() } catch { context.delete(entry); throw error }
+        mergeLocalLogs()
+        guard toHealth else { return "Meal saved." }
+        let values: [(HKQuantityTypeIdentifier, HKUnit, Double)] = [
+            (.dietaryEnergyConsumed, .kilocalorie(), nutrition.calories),
+            (.dietaryProtein, .gram(), nutrition.protein),
+            (.dietaryCarbohydrates, .gram(), nutrition.carbs), (.dietaryFatTotal, .gram(), nutrition.fat)]
+        let samples = values.map { id, unit, value in HKQuantitySample(type: HKQuantityType(id),
+            quantity: HKQuantity(unit: unit, doubleValue: value), start: entry.date, end: entry.date,
+            metadata: ["JettMealID": entry.exportID, HKMetadataKeyWasUserEntered: true]) }
+        do {
+            try await healthKit.saveUserEntry(samples)
+            entry.healthSynced = true; try context.save()
+            return "Meal saved in Jett and Apple Health."
+        } catch { return "Meal saved in Jett. Apple Health couldn't save it. Check Health permissions in Settings." }
+    }
+
+    private enum LoggingError: LocalizedError {
+        case invalid
+        var errorDescription: String? { "Check the values and try again." }
     }
 
     // MARK: - Coach context
 
     /// Assembles the only health information that ever leaves the device.
     func coachContext(context: ModelContext) -> CoachContext? {
-        guard let day, let recommendation else { return nil }
         let calendar = Calendar.current
 
         let recommendations = (try? context.fetch(
@@ -374,6 +562,7 @@ final class AppModel {
         let sessions = (try? context.fetch(FetchDescriptor<WorkoutSession>())) ?? []
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withFullDate]
+        formatter.timeZone = .current
 
         let recentDays = recommendations.suffix(CoachContext.maximumRecentDays).map { row in
             CoachContext.DaySummary(
@@ -395,12 +584,25 @@ final class AppModel {
 
         let profile = (try? context.fetch(FetchDescriptor<UserProfile>()))?.first
 
-        return CoachContextBuilder.build(
+        let health = DailyPhysiology.coachHealthContext(series)
+        let currentCheckIn = fetchTodayCheckIn(from: context)
+        let currentACWR = computeACWR(from: context)
+        guard let day, calendar.isDateInToday(day.date), let recommendation else {
+            var result = CoachContextBuilder.withoutReadiness(
+                today: Date(), goal: coachGoals, limitations: profile?.limitations,
+                checkIn: currentCheckIn, acwr: currentACWR, program: program, health: health)
+            result.profile = CoachProfileSummary(health: effectiveHealthProfile, answers: onboarding, limitations: profile?.limitations)
+            return result
+        }
+        var result = CoachContextBuilder.build(
             today: Date(), readiness: day.readiness, readings: day.readings,
             daysOfHistory: day.daysOfHistory, recommendation: recommendation,
-            checkIn: todayCheckIn, acwr: acwr, recentDays: Array(recentDays),
-            program: program, goal: profile?.goal, limitations: profile?.limitations,
+            checkIn: currentCheckIn, acwr: currentACWR, recentDays: Array(recentDays),
+            program: program, goal: coachGoals, limitations: profile?.limitations,
             describe: Copy.describe)
+        result.health = health
+        result.profile = CoachProfileSummary(health: effectiveHealthProfile, answers: onboarding, limitations: profile?.limitations)
+        return result
     }
 
     // MARK: - Insight

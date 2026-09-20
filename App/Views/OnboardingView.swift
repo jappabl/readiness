@@ -1,308 +1,434 @@
 import SwiftUI
 import SwiftData
 
-/// The flow, in the order that earns the right to ask.
-///
-/// What the app does, then what you want from it, then how you train, then what gets in
-/// the way — and only then access to six months of your physiology. Asking Health on
-/// launch, before saying anything, is how a health app gets declined on its first
-/// screen and never recovers.
-///
-/// It ends on the user's own baselines rather than a promise. Every other app in this
-/// category closes onboarding with a projection; this one closes with six months of
-/// measurements it just read, which is the actual product.
+/// The first part of the same conversation that continues in CoachSheet.
 struct OnboardingView: View {
     @Environment(AppModel.self) private var model
     @Environment(\.modelContext) private var context
-
-    private enum Step: Int, CaseIterable {
-        case welcome, goal, frequency, obstacles, method, units, health, reading, baselines
-    }
-
-    @State private var step: Step = .welcome
-    @State private var answers = OnboardingAnswers()
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var typeSize
+    @State private var flow = OnboardingConversation()
+    @State private var visibleCount = 0
     @State private var connecting = false
+    @State private var connectionDone = false
+    @State private var draft = ""
+    @State private var showingSharing = false
+    @State private var pendingQuestion = ""
+    @State private var startedAt = Date()
+    @State private var receiptAnswerID: Int?
+    @State private var deliveryStatus = ""
+    @State private var reactedAnswers: Set<Int> = []
+
+    private var settled: Bool { visibleCount == flow.turns.count }
+    private var columns: [GridItem] {
+        Array(repeating: GridItem(.flexible(), spacing: 10),
+              count: typeSize.isAccessibilitySize ? 1 : 2)
+    }
 
     var body: some View {
-        Group {
-            switch step {
-            case .welcome:   welcome
-            case .goal:      goalStep
-            case .frequency: frequencyStep
-            case .obstacles: obstaclesStep
-            case .method:    methodStep
-            case .units:     unitsStep
-            case .health:    healthStep
-            case .reading:   readingStep
-            case .baselines: baselinesStep
+        VStack(spacing: 0) {
+            CoachContactHeader(isThinking: flow.step == .reading && !connectionDone)
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Today \(startedAt.formatted(date: .omitted, time: .shortened))")
+                            .font(.caption2.weight(.medium))
+                            .foregroundStyle(Tokens.textTertiary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.bottom, 8)
+                        ForEach(Array(flow.turns.prefix(visibleCount))) { turn in
+                            turnView(turn)
+                                .transition(reduceMotion ? .opacity :
+                                    .offset(x: turn.isUser ? 12 : 0, y: 10).combined(with: .opacity))
+                        }
+                        if settled { responses }
+                        if flow.step == .reading { reading }
+                        Color.clear.frame(height: 1).id("latest")
+                    }
+                    .padding(.horizontal, Tokens.screenMargin)
+                    .padding(.top, 24)
+                    .padding(.bottom, 20)
+                }
+                .background {
+                    GeometryReader { geometry in
+                        Color.clear.onChange(of: geometry.size.height) { scroll(proxy) }
+                    }
+                }
+                .conversationScrollAnchor()
+                .scrollDismissesKeyboard(.interactively)
+                .onChange(of: visibleCount) { scrollAfterLayout(proxy) }
+                .onChange(of: flow.step) { scrollAfterLayout(proxy) }
+                .onChange(of: typeSize) {
+                    Task { @MainActor in
+                        await Task.yield()
+                        scroll(proxy)
+                    }
+                }
             }
         }
-        .animation(.spring(response: 0.38, dampingFraction: 0.88), value: step)
-    }
-
-    /// Questions only — the welcome and the reveal are not steps you are "through".
-    private func progress(_ current: Step) -> Double {
-        let questions: [Step] = [.goal, .frequency, .obstacles, .method, .units, .health]
-        guard let index = questions.firstIndex(of: current) else { return 1 }
-        return Double(index + 1) / Double(questions.count)
-    }
-
-    private func advance(to next: Step) {
-        Haptics.light()
-        step = next
-    }
-
-    // MARK: - Welcome
-
-    private var welcome: some View {
-        VStack(spacing: 0) {
-            Spacer()
-            JettRive(size: 84)
-            Text("Coach Jett")
-                .font(.system(size: 34, weight: .bold))
-                .foregroundStyle(Tokens.textPrimary)
-                .padding(.top, 24)
-            Text("See what's happening in your body,\nand know what to do about it today.")
-                .font(.system(size: 16))
-                .foregroundStyle(Tokens.textSecondary)
-                .multilineTextAlignment(.center)
-                .padding(.top, 10)
-            Spacer()
-            PrimaryButton(label: "Get started") { advance(to: .goal) }
-                .padding(.horizontal, Tokens.screenMargin)
-                .padding(.bottom, 14)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if flow.step == .ready && settled {
+                VStack(spacing: 0) {
+                    CoachComposer(draft: $draft, isStreaming: false, onSend: finish)
+                    Text("Jett uses AI. You choose what to share before your first reply.")
+                        .font(.caption2)
+                        .foregroundStyle(Tokens.textTertiary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 24)
+                        .padding(.bottom, 6)
+                }
+                .background(Tokens.messageCanvas)
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Tokens.canvas.ignoresSafeArea())
+        .background(Tokens.messageCanvas.ignoresSafeArea())
+        .sheet(isPresented: $showingSharing, onDismiss: {
+            if !model.coachSharingAllowed { draft = pendingQuestion }
+        }) {
+            CoachSharingSheet(onAllow: {
+                model.coachSharingAllowed = true
+                showingSharing = false
+                complete(pendingQuestion)
+            }, onCancel: { showingSharing = false })
+        }
+        .task(id: flow.turns.count) {
+            visibleCount = min(visibleCount, flow.turns.count)
+            do {
+                while visibleCount < flow.turns.count {
+                    let answer = flow.turns.prefix(visibleCount).last
+                    if let answer, answer.isUser {
+                        // Acknowledge the tap first, then give the reply a readable beat.
+                        try await Task.sleep(for: .milliseconds(250))
+                        deliveryStatus = "Delivered"
+                        try await Task.sleep(for: .milliseconds(550))
+                        deliveryStatus = "Read " + Date().formatted(date: .omitted, time: .shortened)
+                        try await Task.sleep(for: .milliseconds(180))
+                        withAnimation(reduceMotion ? nil : .easeOut(duration: 0.2)) {
+                            _ = reactedAnswers.insert(answer.id)
+                        }
+                        let replyLength = flow.turns[visibleCount].text.count
+                        let remaining = min(650, max(270, replyLength * 7))
+                        try await Task.sleep(for: .milliseconds(remaining))
+                    } else {
+                        try await Task.sleep(for: .milliseconds(700))
+                    }
+                    guard !Task.isCancelled else { return }
+                    Haptics.replyBegan()
+                    withAnimation(reduceMotion ? nil : .easeOut(duration: 0.24)) {
+                        visibleCount += 1
+                    }
+                    Haptics.replyEnded()
+                }
+            } catch { return }
+        }
     }
 
-    // MARK: - Questions
-
-    private var goalStep: some View {
-        OnboardingScaffold(
-            progress: progress(.goal),
-            title: "What are you here for?",
-            subtitle: "This decides what you see first. You can change it later.",
-            canAdvance: answers.goal != nil,
-            onBack: { advance(to: .welcome) },
-            action: { advance(to: .frequency) }
-        ) {
-            VStack(spacing: 10) {
-                ForEach(TrainingGoal.allCases, id: \.self) { goal in
-                    ChoiceRow(title: goal.title, detail: goal.promise, symbol: goal.symbol,
-                              isSelected: answers.goal == goal) {
-                        Haptics.decided()
-                        answers.goal = goal
-                    }
+    @ViewBuilder
+    private func turnView(_ turn: OnboardingConversation.Turn) -> some View {
+        let message = CoachMessage(role: turn.isUser ? .user : .assistant, text: turn.text,
+                                   reaction: reactedAnswers.contains(turn.id) ? turn.reaction : nil)
+        let editable = turn.id == flow.latestEditableAnswerID && settled && !connecting
+        if turn.isUser {
+            Button {
+                guard editable else { return }
+                Haptics.light()
+                withAnimation(reduceMotion ? nil : .easeOut(duration: 0.2)) {
+                    flow.editAnswer(id: turn.id)
+                    visibleCount = flow.turns.count
+                    receiptAnswerID = nil
+                }
+            } label: {
+                answerWithReceipt(message, turnID: turn.id, editable: editable, reservesReactionSpace: turn.reaction != nil)
+            }
+            .buttonStyle(.plain)
+            .allowsHitTesting(editable)
+            .accessibilityRemoveTraits(editable ? [] : .isButton)
+            .accessibilityAddTraits(editable ? .isButton : [])
+            .accessibilityLabel("You: \(turn.text)" + (message.reaction.map { ". Jett reacted with \($0.rawValue)" } ?? ""))
+            .accessibilityHint(editable ? "Double tap to change this answer" : "")
+        } else {
+            VStack(alignment: .leading, spacing: 12) {
+                answerWithReceipt(message, turnID: turn.id, editable: false)
+                // Talk goes in a bubble; a chart is content and runs full width under
+                // it. This is the one turn in onboarding that carries one, and it is
+                // the user's own history rather than an illustration of it.
+                if let kind = turn.chart {
+                    CoachChartCard(kind: kind)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
         }
     }
 
-    private var frequencyStep: some View {
-        OnboardingScaffold(
-            progress: progress(.frequency),
-            title: "How many days a week do you train?",
-            subtitle: "So a hard week isn't mistaken for a bad one.",
-            canAdvance: answers.frequency != nil,
-            onBack: { advance(to: .goal) },
-            action: { advance(to: .obstacles) }
-        ) {
-            VStack(spacing: 10) {
-                ForEach(TrainingFrequency.allCases, id: \.self) { frequency in
-                    ChoiceRow(title: frequency.title, detail: frequency.detail,
-                              symbol: frequency.symbol,
-                              isSelected: answers.frequency == frequency) {
-                        Haptics.decided()
-                        answers.frequency = frequency
-                    }
+    private func answerWithReceipt(_ message: CoachMessage, turnID: Int, editable: Bool,
+                                   reservesReactionSpace: Bool = false) -> some View {
+        VStack(alignment: .trailing, spacing: 4) {
+            CoachTurnView(message: message, reservesReactionSpace: reservesReactionSpace)
+            if receiptAnswerID == turnID {
+                HStack(spacing: 5) {
+                    Text(deliveryStatus)
+                    if editable { Text("·").accessibilityHidden(true); Text("Edit") }
                 }
+                .font(.caption2)
+                .foregroundStyle(Tokens.textTertiary)
+                .contentTransition(.opacity)
             }
         }
     }
 
-    private var obstaclesStep: some View {
-        OnboardingScaffold(
-            progress: progress(.obstacles),
-            title: "What gets in the way?",
-            subtitle: "Pick any. Jett keeps these in mind, and never scores them.",
-            canAdvance: true,
-            onBack: { advance(to: .frequency) },
-            onSkip: { advance(to: .method) },
-            action: { advance(to: .method) }
-        ) {
-            VStack(spacing: 10) {
-                ForEach(Obstacle.allCases, id: \.self) { obstacle in
-                    ChoiceRow(title: obstacle.title, symbol: obstacle.symbol,
-                              isSelected: answers.obstacles.contains(obstacle),
-                              allowsMultiple: true) {
-                        Haptics.light()
-                        if answers.obstacles.contains(obstacle) {
-                            answers.obstacles.remove(obstacle)
-                        } else {
-                            answers.obstacles.insert(obstacle)
+    @ViewBuilder private var responses: some View {
+        switch flow.step {
+        case .goal:
+            VStack(spacing: 14) {
+                LazyVGrid(columns: columns, alignment: .leading, spacing: 10) {
+                    ForEach(TrainingGoal.allCases, id: \.self) { goal in
+                        choice(goal.title, symbol: goal.symbol,
+                               selected: flow.answers.selectedGoals.contains(goal)) {
+                            Haptics.decided()
+                            flow.toggleGoal(goal)
                         }
                     }
                 }
+                Button("Continue") { commit { flow.confirmGoals() } }
+                    .font(.body.weight(.semibold))
+                    .frame(minHeight: 44).frame(maxWidth: .infinity, alignment: .trailing)
+                    .tint(Tokens.messageOutgoing)
+                    .disabled(flow.answers.selectedGoals.isEmpty)
             }
-        }
-    }
-
-    /// The differentiator, stated plainly. No invented statistic — every other app in
-    /// this category puts a fabricated retention number here, and we do not have one.
-    private var methodStep: some View {
-        OnboardingStatement(
-            title: "Measured against you",
-            body_: "Your normal, built from your own nights.",
-            onBack: { advance(to: .obstacles) },
-            progress: progress(.method),
-            action: { advance(to: .units) }
-        ) {
-            BaselineArt()
-        }
-    }
-
-    private var unitsStep: some View {
-        OnboardingScaffold(
-            progress: progress(.units),
-            title: "Pounds or kilos?",
-            subtitle: "Used for loads on the bar and for your weight.",
-            canAdvance: true,
-            onBack: { advance(to: .method) },
-            action: { advance(to: .health) }
-        ) {
-            VStack(spacing: 10) {
-                ChoiceRow(title: "Pounds", detail: "lb · 2.5 lb plates",
-                          symbol: "scalemass", isSelected: !answers.unitsAreMetric) {
-                    Haptics.decided()
-                    answers.unitsAreMetric = false
-                }
-                ChoiceRow(title: "Kilos", detail: "kg · 1.25 kg plates",
-                          symbol: "scalemass.fill", isSelected: answers.unitsAreMetric) {
-                    Haptics.decided()
-                    answers.unitsAreMetric = true
+        case .frequency:
+            LazyVGrid(columns: columns, alignment: .leading, spacing: 10) {
+                ForEach(TrainingFrequency.allCases, id: \.self) { frequency in
+                    choice(frequency.title, detail: frequency.detail) {
+                        commit { flow.chooseFrequency(frequency) }
+                    }
                 }
             }
+        case .experience:
+            LazyVGrid(columns: columns, alignment: .leading, spacing: 10) {
+                ForEach(TrainingExperience.allCases, id: \.self) { experience in
+                    choice(experience.title, detail: experience.detail) {
+                        commit { flow.chooseExperience(experience) }
+                    }
+                }
+            }
+        case .limitations:
+            VStack(spacing: 14) {
+                LazyVGrid(columns: columns, alignment: .leading, spacing: 10) {
+                    ForEach(PhysicalLimitation.allCases, id: \.self) { limitation in
+                        choice(limitation.title, selected: flow.answers.limitations?.contains(limitation) == true) {
+                            Haptics.decided()
+                            flow.toggleLimitation(limitation)
+                        }
+                    }
+                    choice("None") { commit { flow.confirmLimitations(none: true) } }
+                }
+                if flow.answers.limitations?.isEmpty == false {
+                    Button("Done") { commit { flow.confirmLimitations() } }
+                        .font(.body.weight(.semibold))
+                        .frame(minHeight: 44).frame(maxWidth: .infinity, alignment: .trailing)
+                        .tint(Tokens.messageOutgoing)
+                }
+            }
+        case .equipment:
+            LazyVGrid(columns: columns, alignment: .leading, spacing: 10) {
+                ForEach(EquipmentAccess.allCases, id: \.self) { equipment in
+                    choice(equipment.title, detail: equipment.detail) {
+                        commit { flow.chooseEquipment(equipment) }
+                    }
+                }
+            }
+        case .healthDetails:
+            OnboardingHealthDetailsView(fields: flow.missingHealthFields,
+                metric: flow.answers.unitsAreMetric, onSave: { details in
+                    commit { flow.submitHealthDetails(details) }
+                }, onSkip: { commit { flow.skipHealthDetails() } })
+        case .obstacles:
+            VStack(spacing: 14) {
+                LazyVGrid(columns: columns, alignment: .leading, spacing: 10) {
+                    ForEach(Obstacle.allCases, id: \.self) { obstacle in
+                        choice(obstacle.title, symbol: obstacle.symbol,
+                               selected: flow.answers.obstacles.contains(obstacle)) {
+                            Haptics.decided()
+                            flow.toggleObstacle(obstacle)
+                        }
+                    }
+                }
+                Button(flow.answers.obstacles.isEmpty ? "Skip" : "Done") {
+                    commit { flow.confirmObstacles() }
+                }
+                .font(.body.weight(.semibold))
+                .frame(minHeight: 44)
+                .frame(maxWidth: .infinity, alignment: .trailing)
+                .tint(Tokens.messageOutgoing)
+            }
+        case .units:
+            LazyVGrid(columns: columns, spacing: 10) {
+                choice("Pounds", detail: "lb") { commit { flow.chooseUnits(metric: false) } }
+                choice("Kilos", detail: "kg") { commit { flow.chooseUnits(metric: true) } }
+            }
+        case .health:
+            DisclosureGroup("Health data we use") {
+                Text("Sleep and heart metrics guide recovery. Activity and workouts guide training. Height, age, biological sex, body measurements, and logged food, water, caffeine, and alcohol add context. Daylight and mindful sessions support sleep and recovery coaching. You choose which to share in Health.")
+                    .font(.subheadline).foregroundStyle(Tokens.textTertiary)
+                    .padding(.vertical, 8)
+            }
+            .font(.subheadline).tint(Tokens.messageOutgoing)
+            Button(action: connect) {
+                Text(connecting ? "Opening Health…" : "Connect Health")
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(Tokens.messageOnOutgoing)
+                    .frame(maxWidth: .infinity, minHeight: 50)
+                    .background(Tokens.messageOutgoing, in: Capsule())
+            }
+            .buttonStyle(.plain)
+            .disabled(connecting)
+            Button("Not now") {
+                model.skipHealthConnection()
+                flow.skipHealth(profile: model.effectiveHealthProfile)
+            }
+            .font(.subheadline).frame(minHeight: 44).frame(maxWidth: .infinity)
+            .tint(Tokens.messageOutgoing).disabled(connecting)
+        case .ready:
+            LazyVGrid(columns: columns, spacing: 10) {
+                ForEach(OnboardingConversation.starterQuestions, id: \.self) { question in
+                    choice(question) {
+                        Haptics.decided()
+                        draft = question
+                    }
+                }
+            }
+            Button("Explore the app first") { complete(nil) }
+                .font(.subheadline).frame(minHeight: 44).frame(maxWidth: .infinity)
+                .tint(Tokens.messageOutgoing)
+        case .reading:
+            EmptyView()
         }
     }
 
-    // MARK: - Health
+    private func choice(_ title: String, detail: String? = nil, symbol: String? = nil,
+                        selected: Bool = false, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(alignment: .center, spacing: 9) {
+                if let symbol {
+                    Image(systemName: selected ? "checkmark" : symbol)
+                        .font(.subheadline)
+                        .frame(width: 20)
+                }
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(title).font(.subheadline.weight(.medium))
+                    if let detail {
+                        Text(detail).font(.caption).foregroundStyle(Tokens.textTertiary)
+                    }
+                }
+                .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
+            }
+            .foregroundStyle(Tokens.textPrimary)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 13)
+            .frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
+            .background(selected ? Tokens.messageOutgoing.opacity(0.10) : Tokens.surface,
+                        in: RoundedRectangle(cornerRadius: 16))
+            .overlay(RoundedRectangle(cornerRadius: 16)
+                .strokeBorder(selected ? Tokens.messageOutgoing : Tokens.messageOutgoing.opacity(0.30), lineWidth: 1))
+            .contentShape(RoundedRectangle(cornerRadius: 16))
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(selected ? .isSelected : [])
+    }
 
-    private var healthStep: some View {
-        OnboardingScaffold(
-            progress: progress(.health),
-            title: "Connect Health",
-            subtitle: "Read on this device and kept on it. Nothing is uploaded.",
-            canAdvance: !connecting,
-            actionTitle: connecting ? "Connecting…" : "Connect Health",
-            onBack: { advance(to: .units) },
-            action: connect
-        ) {
-            // No chips under it: the picture names its own three sources, and a
-            // caption that repeats the illustration is the thing to cut first.
-            PrivateArt()
-                .padding(.top, 2)
+    private var reading: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            ReadingArt(size: 150, isDone: connectionDone).frame(maxWidth: .infinity)
+            if connectionDone {
+                Text("Health connected")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(Tokens.textPrimary)
+                    .frame(maxWidth: .infinity)
+            } else {
+                ThinkingPill(label: "Checking Health")
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private func commit(_ action: () -> Void) {
+        guard settled else { return }
+        Haptics.decided()
+        withAnimation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.9)) {
+            action()
+            visibleCount += 1
+            receiptAnswerID = flow.turns.last(where: \.isUser)?.id
+            deliveryStatus = "Sent"
         }
     }
 
-    /// The read is usually faster than a frame, which made the screen that explains it
-    /// flash past like a glitch. Held just long enough to be read as a step rather than
-    /// a stutter, and no longer than somebody would wait without wondering.
-    private static let readingDwell: Duration = .milliseconds(1300)
+    private func scrollAfterLayout(_ proxy: ScrollViewProxy) {
+        Task { @MainActor in
+            await Task.yield()
+            scroll(proxy)
+        }
+    }
+
+    private func scroll(_ proxy: ScrollViewProxy) {
+        if reduceMotion { proxy.scrollTo("latest", anchor: .bottom) }
+        else { withAnimation(.easeOut(duration: 0.25)) { proxy.scrollTo("latest", anchor: .bottom) } }
+    }
 
     private func connect() {
+        guard !connecting else { return }
         connecting = true
-        model.completeOnboarding(answers, in: context)
-        advance(to: .reading)
+        connectionDone = false
         Task {
-            let began = ContinuousClock.now
-            await model.refresh()
-            model.startBackgroundDelivery()
-            let remaining = Self.readingDwell - began.duration(to: .now)
-            if remaining > .zero { try? await Task.sleep(for: remaining) }
-            connecting = false
-            Haptics.committed()
-            advance(to: .baselines)
-        }
-    }
-
-    // MARK: - The reveal
-
-    private var readingStep: some View {
-        VStack(spacing: 26) {
-            Spacer()
-            ReadingArt()
-            Text("Reading your history")
-                .font(.system(size: 24, weight: .bold))
-                .foregroundStyle(Tokens.textPrimary)
-            Spacer()
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Tokens.canvas.ignoresSafeArea())
-    }
-
-    /// Real numbers, read from the device a second ago. The entire pitch of the app is
-    /// that it uses your own history — so the last thing onboarding does is show it.
-    private var baselinesStep: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 30))
-                            .foregroundStyle(Tokens.accent)
-                        Text(headline)
-                            .font(.system(size: 27, weight: .bold))
-                            .foregroundStyle(Tokens.textPrimary)
-                            .fixedSize(horizontal: false, vertical: true)
-                        Text(subhead)
-                            .font(.system(size: 15))
-                            .foregroundStyle(Tokens.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    .padding(.top, 20)
-
-                    if let day = model.day, !day.readings.isEmpty {
-                        ListCard {
-                            ForEach(Array(day.readings.enumerated()), id: \.element.kind) { index, reading in
-                                if index > 0 {
-                                    Divider().overlay(Tokens.hairline).padding(.leading, 14)
-                                }
-                                FieldRow(label: reading.kind.displayName) {
-                                    Text(reading.baseline.formatted(.number.precision(.fractionLength(1)))
-                                         + " " + reading.kind.unit)
-                                        .monospacedDigit()
-                                }
-                            }
-                        }
-                    }
-                }
-                .padding(.horizontal, Tokens.screenMargin)
-                .padding(.bottom, 24)
+            var hasFreshHealthData = false
+            var began: ContinuousClock.Instant?
+            await model.refresh(seedSimulatorData: false, requestHealthAccess: true, onAuthorized: {
+                flow.beginReading()
+                began = .now
+            }, onHealthRead: { hasFreshHealthData = $0 })
+            // Authorization errors still reach the honest empty-data result.
+            if began == nil { flow.beginReading(); began = .now }
+            if let began {
+                let remaining = Duration.milliseconds(1300) - began.duration(to: .now)
+                if remaining > .zero { try? await Task.sleep(for: remaining) }
             }
-            PrimaryButton(label: "Start") { model.finishOnboarding() }
-                .padding(.horizontal, Tokens.screenMargin)
-                .padding(.bottom, 12)
+            if hasFreshHealthData {
+                connectionDone = true
+                Haptics.committed()
+                // The Rive transition takes 300ms. Let the settled check read before
+                // the thread moves on; Reduce Motion gets the static confirmation.
+                try? await Task.sleep(for: .milliseconds(reduceMotion ? 600 : 1100))
+            }
+            model.startBackgroundDelivery()
+            withAnimation(reduceMotion ? nil : .easeOut(duration: 0.24)) {
+                flow.finishReading(hasHealthData: model.hasOnboardingHealthData,
+                                   daysRead: model.series.count,
+                                   profile: model.effectiveHealthProfile)
+                // The reading/done beat already supplied the pause. Replace it with
+                // Jett's reply together so the thread never jumps to an empty gap.
+                visibleCount = flow.turns.count
+                connecting = false
+            }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .background(Tokens.canvas.ignoresSafeArea())
     }
 
-    private var headline: String {
-        guard let day = model.day else { return "You're set up" }
-        return "\(Copy.count(day.daysOfHistory, "day")) of your history, read"
+    private func finish(_ text: String) {
+        guard flow.step == .ready, settled else { return }
+        guard model.coachSharingAllowed else {
+            pendingQuestion = text
+            showingSharing = true
+            return
+        }
+        complete(text)
     }
 
-    private var subhead: String {
-        guard let day = model.day else {
-            return "No history on this phone yet. Wear your watch tonight and I'll "
-                 + "have something to say tomorrow."
+    private func complete(_ text: String?) {
+        model.completeOnboarding(flow.answers, in: context)
+        model.pendingOnboardingConversation = flow.turns.map {
+            CoachMessage(role: $0.isUser ? .user : .assistant, text: $0.text, reaction: $0.reaction)
         }
-        switch day.readiness.confidence {
-        case .low:
-            return "Enough to start, not enough to be sure. These baselines sharpen every night."
-        default:
-            return "These are your baselines. Every number in the app is measured against them."
-        }
+        model.pendingCoachMessage = text
+        Haptics.committed()
+        model.finishOnboarding()
     }
 }

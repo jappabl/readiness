@@ -9,6 +9,16 @@ enum Tokens {
         })
     }
 
+    // Native conversation surfaces follow Messages in both appearances.
+    static let messageCanvas = Color(uiColor: .systemBackground)
+    static let messageIncoming = Color(uiColor: .secondarySystemBackground)
+    // Messages blue adjusted slightly for white body-text contrast.
+    /// What you said, in Jett's colour rather than iMessage's. Also gains a dark
+    /// variant it did not have: the old value was the same in both schemes and glared
+    /// against the dark canvas.
+    static let messageOutgoing = dynamic(light: 0x6B5CF5, dark: 0x8A7DFF)
+    static let messageOnOutgoing = Color.white
+
     // Surfaces
     static let canvas        = dynamic(light: 0xF1F1F4, dark: 0x0E0E10)
     static let surface       = dynamic(light: 0xFFFFFF, dark: 0x1C1C1F)
@@ -37,7 +47,12 @@ enum Tokens {
     static let sleepDeep     = dynamic(light: 0x3F45A8, dark: 0x5A62C4)
 
     // Meaning
-    static let accent        = dynamic(light: 0x2FA84A, dark: 0x54C96E)
+    /// Jett's colour, and the app's. It was green, which collided with nothing but
+    /// also meant nothing: green is what a fitness app reaches for by default. Purple
+    /// is the one hue no metric already owns — sleep is indigo, recovery green, strain
+    /// amber — so it can mean "this is an action, or this is Jett" without ever being
+    /// mistaken for a reading.
+    static let accent        = dynamic(light: 0x6B5CF5, dark: 0x8A7DFF)
     static let onAccent      = dynamic(light: 0xFFFFFF, dark: 0x0E0E10)
     static let positive      = dynamic(light: 0x34A853, dark: 0x5BD45B)
     static let negative      = dynamic(light: 0xE9573F, dark: 0xF07A64)
@@ -45,7 +60,10 @@ enum Tokens {
     /// Pulled from the coach ring's sweep, for the few marks that belong to Jett
     /// rather than to the app. Keeps his surfaces off the brand green, which now reads
     /// as "an action you take" everywhere else.
-    static let jettTint = dynamic(light: 0x6B5CF5, dark: 0x8A7DFF)
+    /// Kept as a name for the few places that mean "Jett specifically" rather than
+    /// "an action". Same colour as the accent now, and deliberately one source of truth
+    /// so the two can never drift apart.
+    static let jettTint = accent
 
     // Skies behind the detail screens
     static let skyStrainTop      = dynamic(light: 0xCFE0EE, dark: 0x1B2430)

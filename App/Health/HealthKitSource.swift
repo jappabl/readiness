@@ -2,7 +2,7 @@ import Foundation
 import HealthKit
 
 /// Reads the real HealthKit store. Read-only by design: nothing the user's watch
-/// recorded is ever modified, and nothing leaves the device (constraint C3).
+/// recorded is ever modified. Only derived coach summaries may be shared with consent.
 ///
 /// Reading through HealthKit rather than each vendor's own API is what makes this
 /// device-agnostic: an Apple Watch, an Oura ring and a Garmin all land in the same
@@ -30,7 +30,7 @@ final class HealthKitSource: HealthSource, @unchecked Sendable {
         Stream(key: "respiratoryRate", id: .respiratoryRate, unit: .beatsPerMinute, options: .discreteAverage),
         Stream(key: "spo2", id: .oxygenSaturation, unit: .percent(), options: .discreteAverage),
         // Sleeping wrist temperature is an Apple Watch Series 8+ signal. Body
-        // temperature covers everyone else, and is what a simulator can be seeded with.
+        // temperature is a separate measurement and never substitutes in its baseline.
         Stream(key: "wristTemp", id: .appleSleepingWristTemperature, unit: .degreeCelsius(), options: .discreteAverage),
         Stream(key: "bodyTemp", id: .bodyTemperature, unit: .degreeCelsius(), options: .discreteAverage),
 
@@ -63,6 +63,8 @@ final class HealthKitSource: HealthSource, @unchecked Sendable {
         Stream(key: "carbs", id: .dietaryCarbohydrates, unit: .gram(), options: .cumulativeSum),
         Stream(key: "fat", id: .dietaryFatTotal, unit: .gram(), options: .cumulativeSum),
         Stream(key: "water", id: .dietaryWater, unit: .liter(), options: .cumulativeSum),
+        Stream(key: "caffeine", id: .dietaryCaffeine, unit: .gramUnit(with: .milli), options: .cumulativeSum),
+        Stream(key: "alcohol", id: .numberOfAlcoholicBeverages, unit: .count(), options: .cumulativeSum),
     ]
 
     static var readTypes: Set<HKObjectType> {
@@ -73,6 +75,10 @@ final class HealthKitSource: HealthSource, @unchecked Sendable {
         if let sleep = HKCategoryType.categoryType(forIdentifier: .sleepAnalysis) { types.insert(sleep) }
         if let mindful = HKCategoryType.categoryType(forIdentifier: .mindfulSession) { types.insert(mindful) }
         types.insert(HKObjectType.workoutType())
+        if let height = HKObjectType.quantityType(forIdentifier: .height) { types.insert(height) }
+        for id: HKCharacteristicTypeIdentifier in [.dateOfBirth, .biologicalSex] {
+            if let type = HKObjectType.characteristicType(forIdentifier: id) { types.insert(type) }
+        }
         return types
     }
 
@@ -91,6 +97,32 @@ final class HealthKitSource: HealthSource, @unchecked Sendable {
         try await store.save(samples)
     }
 
+    /// An explicit logging action, well after onboarding has dismissed its read sheet.
+    /// No new read types or chained onboarding authorization requests are introduced.
+    func saveUserEntry(_ samples: [HKQuantitySample]) async throws {
+        let types = Set(samples.map { $0.quantityType as HKSampleType })
+        if types.contains(where: { store.authorizationStatus(for: $0) == .notDetermined }) {
+            try await store.requestAuthorization(toShare: types, read: [])
+        }
+        guard types.allSatisfy({ store.authorizationStatus(for: $0) == .sharingAuthorized }) else {
+            throw HealthSourceError.denied
+        }
+        try await store.save(samples)
+    }
+
+    func latestBodyMass() async -> (date: Date, kilograms: Double)? {
+        let type = HKQuantityType(.bodyMass)
+        return await withCheckedContinuation { continuation in
+            let query = HKSampleQuery(sampleType: type,
+                predicate: HKQuery.predicateForSamples(withStart: nil, end: Date(), options: .strictEndDate),
+                limit: 1, sortDescriptors: [NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)]) { _, samples, _ in
+                guard let sample = samples?.first as? HKQuantitySample else { continuation.resume(returning: nil); return }
+                continuation.resume(returning: (sample.endDate, sample.quantity.doubleValue(for: .gramUnit(with: .kilo))))
+            }
+            store.execute(query)
+        }
+    }
+
     /// Ties samples to a workout, which is what makes `workout.statistics(for:)`
     /// answer. Without it a seeded workout reads back with no energy at all.
     func associate(_ samples: [HKSample], with workout: HKWorkout) async throws {
@@ -102,16 +134,47 @@ final class HealthKitSource: HealthSource, @unchecked Sendable {
         }
     }
 
+    /// Characteristics and the latest height are useful even with no recent samples.
+    /// Called after the same authorization as the daily streams, never another prompt.
+    func healthProfile() async -> HealthProfile {
+        guard Self.isAvailable else { return HealthProfile() }
+        let birthday = try? store.dateOfBirthComponents()
+        let sex = try? store.biologicalSex().biologicalSex
+        let biologicalSex: HealthProfile.BiologicalSex? = sex == .female ? .female
+            : sex == .male ? .male : sex == .other ? .other : nil
+        let height = await latestHeightCM()
+        return HealthProfile(heightCM: height, dateOfBirth: birthday,
+                             biologicalSex: biologicalSex).sanitized()
+    }
+
+    private func latestHeightCM() async -> Double? {
+        guard let type = HKObjectType.quantityType(forIdentifier: .height) else { return nil }
+        return await withCheckedContinuation { continuation in
+            // Height often predates the 180-day history window. Do not discard it.
+            let predicate = HKQuery.predicateForSamples(withStart: nil, end: Date(), options: .strictEndDate)
+            let query = HKSampleQuery(sampleType: type, predicate: predicate, limit: 1,
+                sortDescriptors: [NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)]) { _, samples, _ in
+                let value = (samples?.first as? HKQuantitySample)?.quantity.doubleValue(for: .meterUnit(with: .centi))
+                continuation.resume(returning: value)
+            }
+            store.execute(query)
+        }
+    }
+
     // MARK: - Daily aggregates
 
     func dailySeries(days: Int) async throws -> [DailyPhysiology] {
+        try await dailySeries(days: days, excludingMealIDs: [])
+    }
+
+    func dailySeries(days: Int, excludingMealIDs: [String]) async throws -> [DailyPhysiology] {
         guard Self.isAvailable else { throw HealthSourceError.unavailable }
 
         let calendar = Calendar.current
         let end = calendar.startOfDay(for: Date())
         guard let start = calendar.date(byAdding: .day, value: -(days - 1), to: end) else { return [] }
 
-        async let quantities = collect(Self.streams, from: start, to: end)
+        async let quantities = collect(Self.streams, from: start, to: end, excludingMealIDs: excludingMealIDs)
         async let sleep = dailySleep(from: start, to: end)
         async let workouts = dailyWorkouts(from: start, to: end)
         async let mindful = dailyCategoryMinutes(.mindfulSession, from: start, to: end)
@@ -132,10 +195,11 @@ final class HealthKitSource: HealthSource, @unchecked Sendable {
                 restingHeartRate: value("rhr"),
                 // The scored figure stays the plain total, so the readiness model reads
                 // exactly what it always did; the breakdown rides alongside it.
-                sleepHours: night?.asleepHours,
+                sleepHours: night?.recordedSleepHours,
                 respiratoryRate: value("respiratoryRate"),
                 bloodOxygenPercent: value("spo2").map { $0 * 100 },   // HealthKit stores 0...1
-                wristTemperatureC: value("wristTemp") ?? value("bodyTemp"),
+                wristTemperatureC: value("wristTemp"),
+                bodyTemperatureC: value("bodyTemp"),
                 sleep: night,
                 heartRateAverage: value("hrAvg"),
                 heartRateMin: value("hrMin"),
@@ -159,6 +223,8 @@ final class HealthKitSource: HealthSource, @unchecked Sendable {
                 carbohydrateGrams: value("carbs"),
                 fatGrams: value("fat"),
                 waterLiters: value("water"),
+                caffeineMg: value("caffeine"),
+                alcoholicDrinks: value("alcohol"),
                 workoutCount: session?.count,
                 workoutMinutes: session?.minutes,
                 workoutEnergyKcal: session?.kcal,
@@ -169,12 +235,12 @@ final class HealthKitSource: HealthSource, @unchecked Sendable {
     /// Runs every stream concurrently. A stream the user has no data for, or has
     /// declined, comes back empty rather than failing the whole day.
     private func collect(_ streams: [Stream], from start: Date,
-                         to end: Date) async throws -> [String: [Date: Double]] {
+                         to end: Date, excludingMealIDs: [String]) async throws -> [String: [Date: Double]] {
         await withTaskGroup(of: (String, [Date: Double]).self) { group in
             for stream in streams {
                 group.addTask { [weak self] in
                     guard let self else { return (stream.key, [:]) }
-                    let values = (try? await self.dailyStatistic(stream, from: start, to: end)) ?? [:]
+                    let values = (try? await self.dailyStatistic(stream, from: start, to: end, excludingMealIDs: excludingMealIDs)) ?? [:]
                     return (stream.key, values)
                 }
             }
@@ -185,13 +251,19 @@ final class HealthKitSource: HealthSource, @unchecked Sendable {
     }
 
     private func dailyStatistic(_ stream: Stream, from start: Date,
-                                to end: Date) async throws -> [Date: Double] {
+                                to end: Date, excludingMealIDs: [String]) async throws -> [Date: Double] {
         guard let type = HKQuantityType.quantityType(forIdentifier: stream.id) else { return [:] }
         let calendar = Calendar.current
         guard let dayAfterEnd = calendar.date(byAdding: .day, value: 1, to: end) else { return [:] }
 
-        let predicate = HKQuery.predicateForSamples(withStart: start, end: dayAfterEnd,
+        let dates = HKQuery.predicateForSamples(withStart: start, end: dayAfterEnd,
                                                     options: .strictStartDate)
+        // These entries are already in the local ledger. Exclude only our exports,
+        // retaining other apps, earlier installs, other devices and QA records.
+        let isFood = ["dietaryEnergy", "protein", "carbs", "fat"].contains(stream.key)
+        let exported = HKQuery.predicateForObjects(withMetadataKey: "JettMealID", allowedValues: excludingMealIDs)
+        let predicate = isFood && !excludingMealIDs.isEmpty ? NSCompoundPredicate(andPredicateWithSubpredicates: [dates,
+            NSCompoundPredicate(notPredicateWithSubpredicate: exported)]) : dates
         return try await withCheckedThrowingContinuation { continuation in
             let query = HKStatisticsCollectionQuery(
                 quantityType: type,
@@ -256,7 +328,7 @@ final class HealthKitSource: HealthSource, @unchecked Sendable {
     // MARK: - Workouts and sessions
 
     private func dailyWorkouts(from start: Date,
-                               to end: Date) async throws -> [Date: (count: Int, minutes: Double, kcal: Double)] {
+                               to end: Date) async throws -> [Date: (count: Int, minutes: Double, kcal: Double?)] {
         let calendar = Calendar.current
         guard let dayAfterEnd = calendar.date(byAdding: .day, value: 1, to: end) else { return [:] }
 
@@ -270,10 +342,10 @@ final class HealthKitSource: HealthSource, @unchecked Sendable {
             store.execute(query)
         }
 
-        let energies = await withTaskGroup(of: (UUID, Double).self) { group in
+        let energies = await withTaskGroup(of: (UUID, Double?).self) { group in
             for workout in workouts {
                 group.addTask { [weak self] in
-                    (workout.uuid, await self?.energyBurned(in: workout) ?? 0)
+                    (workout.uuid, await self?.energyBurned(in: workout))
                 }
             }
             var out: [UUID: Double] = [:]
@@ -281,13 +353,13 @@ final class HealthKitSource: HealthSource, @unchecked Sendable {
             return out
         }
 
-        var out: [Date: (count: Int, minutes: Double, kcal: Double)] = [:]
+        var out: [Date: (count: Int, minutes: Double, kcal: Double?)] = [:]
         for workout in workouts {
             let day = calendar.startOfDay(for: workout.startDate)
-            var entry = out[day] ?? (count: 0, minutes: 0, kcal: 0)
+            var entry = out[day] ?? (count: 0, minutes: 0, kcal: Optional(0.0))
             entry.count += 1
             entry.minutes += workout.duration / 60
-            entry.kcal += energies[workout.uuid] ?? 0
+            entry.kcal = entry.kcal.flatMap { total in energies[workout.uuid].map { total + $0 } }
             out[day] = entry
         }
         return out
@@ -296,12 +368,12 @@ final class HealthKitSource: HealthSource, @unchecked Sendable {
     /// A workout the watch built carries its own statistics. One written by another app
     /// often does not — but the energy samples tied to it are still there, and asking
     /// the workout what belongs to it is the only way to find them.
-    private func energyBurned(in workout: HKWorkout) async -> Double {
+    private func energyBurned(in workout: HKWorkout) async -> Double? {
         guard let type = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned)
-        else { return 0 }
+        else { return nil }
 
         if let value = workout.statistics(for: type)?
-            .sumQuantity()?.doubleValue(for: .kilocalorie()), value > 0 {
+            .sumQuantity()?.doubleValue(for: .kilocalorie()), value >= 0 {
             return value
         }
         return await withCheckedContinuation { continuation in
@@ -310,7 +382,7 @@ final class HealthKitSource: HealthSource, @unchecked Sendable {
                 quantitySamplePredicate: HKQuery.predicateForObjects(from: workout),
                 options: .cumulativeSum) { _, statistics, _ in
                     continuation.resume(
-                        returning: statistics?.sumQuantity()?.doubleValue(for: .kilocalorie()) ?? 0)
+                        returning: statistics?.sumQuantity()?.doubleValue(for: .kilocalorie()))
                 }
             store.execute(query)
         }
@@ -364,7 +436,7 @@ final class HealthKitSource: HealthSource, @unchecked Sendable {
     /// The competitor's loudest complaint is that nothing updates unless the app is
     /// opened. This is the fix, and it is wired before anything else ships.
     func startBackgroundDelivery(onUpdate: @escaping @Sendable () -> Void) {
-        let watched: [HKQuantityTypeIdentifier] = [.heartRateVariabilitySDNN, .restingHeartRate]
+        let watched: [HKQuantityTypeIdentifier] = [.heartRateVariabilitySDNN, .restingHeartRate, .activeEnergyBurned, .appleExerciseTime, .stepCount, .bodyMass, .dietaryEnergyConsumed]
         for id in watched {
             guard let type = HKQuantityType.quantityType(forIdentifier: id) else { continue }
             observe(type, onUpdate: onUpdate)

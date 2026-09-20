@@ -83,3 +83,43 @@ struct SleepAggregatorTests {
         #expect(breakdown?.asleepHours == 6)
     }
 }
+
+extension SleepAggregatorTests {
+    @Test("Unspecified phone sleep overlapping watch stages counts once")
+    func mixedSources() {
+        let night = [
+            SleepInterval(start: date(10, 23), end: date(11, 7), stage: .unspecified),
+            SleepInterval(start: date(10, 23), end: date(11, 2), stage: .core),
+            SleepInterval(start: date(11, 2), end: date(11, 4), stage: .deep),
+            SleepInterval(start: date(11, 4), end: date(11, 7), stage: .rem),
+        ]
+        let value = SleepAggregator.byWakeDay(night, calendar: calendar)[day(11)]
+        #expect(value?.asleepHours == 8)
+        #expect(value?.coreHours == 3)
+        #expect(value?.deepHours == 2)
+        #expect(value?.remHours == 3)
+    }
+}
+
+extension SleepAggregatorTests {
+    @Test("Early stages and the total share the episode's wake day")
+    func stageBeforeMidnight() {
+        let samples = [
+            SleepInterval(start: date(10, 22), end: date(10, 23), stage: .core),
+            SleepInterval(start: date(10, 23), end: date(11, 1), stage: .deep),
+            SleepInterval(start: date(11, 1), end: date(11, 6), stage: .rem),
+        ]
+        let result = SleepAggregator.byWakeDay(samples, calendar: calendar)
+        #expect(result[day(10)] == nil)
+        #expect(result[day(11)]?.coreHours == 1)
+        #expect(result[day(11)]?.asleepHours == 8)
+    }
+
+    @Test("In-bed and awake alone do not record zero sleep")
+    func unmeasuredSleep() {
+        let samples = [SleepInterval(start: date(10, 22), end: date(11, 7), stage: .inBed)]
+        let result = SleepAggregator.byWakeDay(samples, calendar: calendar)[day(11)]
+        #expect(result?.inBedHours == 9)
+        #expect(result?.recordedSleepHours == nil)
+    }
+}

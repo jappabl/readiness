@@ -41,7 +41,16 @@ public struct SleepBreakdown: Sendable, Equatable {
     public var awakeHours: Double = 0
     public var inBedHours: Double = 0
 
+    /// Available only when interval coverage establishes continuity without conflicting
+    /// awake/asleep samples. Nil means unknown, not perfectly consolidated sleep.
+    public var recordedContinuity: Double?
+    public var primarySleepStart: Date?
+    public var primarySleepEnd: Date?
+
     public init() {}
+
+    /// In-bed or awake records alone do not establish how long someone slept.
+    public var recordedSleepHours: Double? { asleepHours > 0 ? asleepHours : nil }
 
     /// How much of the time in bed was actually spent asleep. Nil rather than 1.0 when
     /// nothing recorded time in bed, because a watch-only night genuinely does not know.
@@ -62,25 +71,73 @@ public enum SleepAggregator {
     public static func byWakeDay(_ intervals: [SleepInterval],
                                  calendar: Calendar = .current) -> [Date: SleepBreakdown] {
         var out: [Date: SleepBreakdown] = [:]
+        var primaryHours: [Date: Double] = [:]
 
-        for stage in SleepStage.allCases {
-            let merged = union(intervals.filter { $0.stage == stage })
-            for interval in merged {
-                let wakeDay = calendar.startOfDay(for: interval.end)
-                var breakdown = out[wakeDay] ?? SleepBreakdown()
+        let valid = intervals.filter { $0.end > $0.start }
+        // Connected intervals form one sleep episode, including awake/in-bed bridges.
+        // Assign every stage and the total to the same episode's wake day.
+        for episode in union(valid) {
+            let samples = valid.filter { $0.start < episode.end && $0.end > episode.start }
+            let wakeDay = calendar.startOfDay(for: episode.end)
+            var breakdown = out[wakeDay] ?? SleepBreakdown()
+            for stage in SleepStage.allCases {
+                let hours = union(samples.filter { $0.stage == stage }).reduce(0) { $0 + $1.hours }
                 switch stage {
-                case .core:         breakdown.coreHours += interval.hours
-                case .deep:         breakdown.deepHours += interval.hours
-                case .rem:          breakdown.remHours += interval.hours
-                case .awake:        breakdown.awakeHours += interval.hours
-                case .inBed:        breakdown.inBedHours += interval.hours
-                case .unspecified:  break
+                case .core: breakdown.coreHours += hours
+                case .deep: breakdown.deepHours += hours
+                case .rem: breakdown.remHours += hours
+                case .awake: breakdown.awakeHours += hours
+                case .inBed: breakdown.inBedHours += hours
+                case .unspecified: break
                 }
-                if stage.isAsleep { breakdown.asleepHours += interval.hours }
-                out[wakeDay] = breakdown
             }
+            // Unspecified phone sleep can overlap watch stages; count that time once.
+            let asleep = union(samples.filter { $0.stage.isAsleep })
+            let episodeHours = asleep.reduce(0) { $0 + $1.hours }
+            if episodeHours > 0 {
+                // Multiple disconnected sleep episodes cannot establish the continuity
+                // between them. Keep the duration, but do not silently fill the gaps.
+                breakdown.recordedContinuity = breakdown.asleepHours == 0
+                    ? continuity(samples: samples, asleep: asleep) : nil
+                if episodeHours > (primaryHours[wakeDay] ?? 0) {
+                    breakdown.primarySleepStart = asleep.first?.start
+                    breakdown.primarySleepEnd = asleep.last?.end
+                    primaryHours[wakeDay] = episodeHours
+                }
+            }
+            breakdown.asleepHours += episodeHours
+            out[wakeDay] = breakdown
         }
         return out
+    }
+
+    private static func continuity(samples: [SleepInterval], asleep: [SleepInterval]) -> Double? {
+        guard let start = asleep.first?.start, let end = asleep.last?.end else { return nil }
+        let awake = union(samples.filter { $0.stage == .awake })
+        // Multiple devices may disagree. A conflicting overlap is not a reliable
+        // measure of either awake time or efficiency.
+        guard !awake.contains(where: { wake in
+            asleep.contains { sleep in wake.start < sleep.end && wake.end > sleep.start }
+        }) else { return nil }
+        let asleepHours = asleep.reduce(0) { $0 + $1.hours }
+        let inBed = union(samples.filter { $0.stage == .inBed })
+        if !inBed.isEmpty {
+            let fullyContained = asleep.allSatisfy { sleep in
+                inBed.contains { $0.start <= sleep.start && $0.end >= sleep.end }
+            }
+            if fullyContained {
+                let hours = inBed.reduce(0) { $0 + $1.hours }
+                return hours >= asleepHours ? asleepHours / hours : nil
+            }
+        }
+        // Apple Watch awake records cover time between sleep samples, not latency
+        // before sleep or time awake after the last sample. Report recorded continuity.
+        let detailed = samples.filter { $0.stage == .core || $0.stage == .deep || $0.stage == .rem }
+        let detailedHours = union(detailed).reduce(0) { $0 + $1.hours }
+        guard abs(detailedHours - asleepHours) < 0.0001 else { return nil }
+        let observed = union(detailed + awake)
+        guard observed.contains(where: { $0.start <= start && $0.end >= end }) else { return nil }
+        return min(1, asleepHours / (end.timeIntervalSince(start) / 3600))
     }
 
     /// Merges overlapping and touching intervals into the smallest set covering the

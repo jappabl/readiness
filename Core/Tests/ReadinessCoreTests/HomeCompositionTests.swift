@@ -51,9 +51,9 @@ struct HomeCompositionTests {
     @Test("fat loss leads with the numbers that decide fat loss")
     func fatLossLeadsWithEnergy() {
         let blocks = HomeComposition.blocks(for: .loseFat, hasProgram: true)
-        #expect(blocks.first == .energyBalance)
+        #expect(blocks.first == .nutrition)
         #expect(blocks.contains(.weightTrend))
-        #expect(blocks.contains(.protein))
+        #expect(blocks.contains(.nutrition))
     }
 
     @Test("feeling better leads with sleep and movement, not food")
@@ -61,13 +61,13 @@ struct HomeCompositionTests {
         let blocks = HomeComposition.blocks(for: .feelBetter, hasProgram: true)
         #expect(blocks.first == .sleepQuality)
         #expect(blocks.contains(.movement))
-        #expect(!blocks.contains(.energyBalance), "nobody asked to be put on a diet")
+        #expect(!blocks.contains(.nutrition), "nobody asked to be put on a diet")
     }
 
     @Test("building muscle surfaces protein, losing fat surfaces it too")
     func proteinWhereItMatters() {
-        #expect(HomeComposition.blocks(for: .buildMuscle, hasProgram: true).contains(.protein))
-        #expect(HomeComposition.blocks(for: .loseFat, hasProgram: true).contains(.protein))
+        #expect(HomeComposition.blocks(for: .buildMuscle, hasProgram: true).contains(.nutrition))
+        #expect(HomeComposition.blocks(for: .loseFat, hasProgram: true).contains(.nutrition))
     }
 
     @Test("a block never appears twice")

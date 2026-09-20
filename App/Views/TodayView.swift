@@ -10,6 +10,12 @@ struct TodayView: View {
     @State private var pickingProgram = false
     @State private var showingAdjust = false
     @State private var showingWhy = false
+    @State private var activeSession: WorkoutSession?
+    @State private var loggingWeight = false
+    @State private var loggingMeal = false
+    @State private var editingTemplate: WorkoutTemplate?
+    @State private var savedMessage: String?
+    @State private var showSaved = false
 
     var body: some View {
         ZStack {
@@ -20,8 +26,15 @@ struct TodayView: View {
         .safeAreaInset(edge: .top, spacing: 0) { header }
         .sheet(isPresented: $showingCheckIn) { CheckInView() }
         .sheet(isPresented: $pickingProgram) {
-            NavigationStack { ProgramSetupView() }
+            NavigationStack { ProgramSetupView { model.selectToday($0); pickingProgram = false } }
         }
+        .sheet(item: $activeSession) { LiveWorkoutView(session: $0) }
+        .sheet(isPresented: $loggingWeight, onDismiss: showSaveResult) { WeightLogView { saved($0) } }
+        .sheet(isPresented: $loggingMeal, onDismiss: showSaveResult) { MealLogView { saved($0) } }
+        .sheet(item: $editingTemplate) { template in
+            TemplateEditorView(template: template) { model.selectToday($0); editingTemplate = nil }
+        }
+        .alert("Saved", isPresented: $showSaved) { Button("OK", role: .cancel) { savedMessage = nil } } message: { Text(savedMessage ?? "") }
         .sheet(isPresented: $showingAdjust) { AdjustSessionView() }
         .sheet(isPresented: $showingWhy) {
             if let day = model.day, let rec = model.recommendation {
@@ -34,9 +47,6 @@ struct TodayView: View {
         HStack {
             HStack(spacing: 5) {
                 Text("Today, ") + Text(Date(), format: .dateTime.month(.wide).day())
-                Image(systemName: "chevron.down")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(Tokens.textSecondary)
             }
             .font(.system(size: 17, weight: .semibold))
             .foregroundStyle(Tokens.textPrimary)
@@ -65,9 +75,8 @@ struct TodayView: View {
             // RootView shows onboarding over the whole app; this is only ever a frame
             // in between.
             Color.clear
-        case .failed(let message):
-            ContentUnavailableView("Nothing to read yet", systemImage: "heart.text.square",
-                                   description: Text(message))
+        case .failed:
+            dashboard
         case .ready:
             dashboard
         }
@@ -86,6 +95,7 @@ struct TodayView: View {
                 }
                 summaryCard
                 checkInPrompt
+                if let error = model.healthReadError { Text("Health couldn't refresh. \(error)").font(.footnote).foregroundStyle(.secondary) }
                 // The screen below the fold is composed from the goal, not fixed:
                 // someone here to sleep better does not open on a back squat.
                 ForEach(model.homeBlocks, id: \.self) { block in
@@ -95,9 +105,14 @@ struct TodayView: View {
             }
             .padding(.horizontal, Tokens.screenMargin)
             .padding(.top, 2)
-            .padding(.bottom, 16)
+            .padding(.bottom, 100)
         }
+        .accessibilityIdentifier("today-overview")
+        .refreshable { await model.refresh() }
     }
+
+    private func saved(_ message: String) { savedMessage = message }
+    private func showSaveResult() { if savedMessage != nil { showSaved = true } }
 
     // MARK: - Rings and coaching, one card
 
@@ -180,22 +195,12 @@ struct TodayView: View {
     private var session: some View {
         let templates = (try? context.fetch(
             FetchDescriptor<WorkoutTemplate>(sortBy: [SortDescriptor(\WorkoutTemplate.order)]))) ?? []
-        if let planned = model.plannedToday(templates: templates), let rec = model.recommendation {
+        if let planned = model.plannedToday(templates: templates) {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Today's session").sectionHeading()
-                PlannedSessionCard(template: planned, recommendation: rec)
-                Button { showingAdjust = true } label: {
-                    HStack(spacing: 7) {
-                        Image(systemName: "slider.horizontal.3").font(.system(size: 13))
-                        Text("Adjust session").font(.system(size: 15))
-                        Spacer()
-                        Image(systemName: "arrow.right").font(.system(size: 13))
-                    }
-                    .foregroundStyle(Tokens.textPrimary)
-                    .bevelCard(padding: 14)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
+                PlannedSessionCard(template: planned, recommendation: model.recommendation,
+                    onChange: { pickingProgram = true }, onEdit: { editingTemplate = planned },
+                    onStart: { activeSession = WorkoutSession.today(in: context, named: planned.name) })
             }
         }
     }
@@ -212,20 +217,15 @@ struct TodayView: View {
                     Image(systemName: "sun.horizon.fill")
                         .font(.system(size: 15))
                         .foregroundStyle(Tokens.accent)
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text("How are you feeling?")
-                            .font(.system(size: 15, weight: .medium))
-                            .foregroundStyle(Tokens.textPrimary)
-                        Text("Four quick answers sharpen today's call")
-                            .font(.system(size: 13))
-                            .foregroundStyle(Tokens.textSecondary)
-                    }
+                    Text("How are you feeling?")
+                        .font(.body.weight(.semibold)).foregroundStyle(Tokens.textPrimary)
                     Spacer(minLength: 0)
                     Image(systemName: "arrow.right")
                         .font(.system(size: 13))
                         .foregroundStyle(Tokens.textSecondary)
                 }
-                .bevelCard(padding: 14)
+                .padding(18).frame(minHeight: 62)
+                .background(Tokens.accent.opacity(0.09), in: RoundedRectangle(cornerRadius: Tokens.cardRadius))
                 .contentShape(Rectangle())
             }
             .buttonStyle(PressableStyle())
@@ -253,27 +253,24 @@ struct TodayView: View {
 
     @ViewBuilder
     private func view(for block: HomeBlock) -> some View {
-        let today = model.series.last
+        let today = model.series.last { Calendar.current.isDateInToday($0.date) }
         switch block {
         case .session:
             session
         case .programPrompt:
             programPrompt
-        case .energyBalance:
-            EnergyBalanceCard(intake: today?.dietaryEnergyKcal,
-                              active: today?.activeEnergyKcal,
-                              basal: today?.basalEnergyKcal)
-        case .protein:
-            ProteinCard(grams: today?.proteinGrams, bodyMassKg: today?.bodyMassKg)
+        case .nutrition:
+            NutritionCard(calories: today?.dietaryEnergyKcal, protein: today?.proteinGrams,
+                carbs: today?.carbohydrateGrams, fat: today?.fatGrams, onLog: { loggingMeal = true })
         case .weightTrend:
-            WeightTrendCard(series: model.series.compactMap(\.bodyMassKg))
+            WeightTrendCard(latest: model.latestWeight, series: model.series.compactMap(\.bodyMassKg),
+                metric: model.onboarding.unitsAreMetric, onLog: { loggingWeight = true })
         case .sleepQuality:
-            SleepQualityCard(night: today?.sleep)
+            SleepQualityCard(night: today?.sleep, summary: model.sleepScore.continuityPercent.map {
+                "\($0)% recorded sleep continuity. Tap Sleep above for the score breakdown."
+            } ?? "Duration recorded. More sleep detail is needed for a score.")
         case .movement:
-            MovementCard(steps: today?.steps,
-                         distanceKm: today?.distanceKm,
-                         exerciseMinutes: today?.exerciseMinutes,
-                         daylightMinutes: today?.timeInDaylightMinutes)
+            MovementCard(activeEnergy: today?.activeEnergyKcal, steps: today?.steps, exerciseMinutes: today?.exerciseMinutes)
         case .healthMonitor:
             healthMonitor
         }
@@ -282,7 +279,7 @@ struct TodayView: View {
     private var programPrompt: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Training").sectionHeading()
-            AccessoryRow(symbol: "square.stack.3d.up", label: "Pick a split") {
+            AccessoryRow(symbol: "square.stack.3d.up", label: "Build your training plan") {
                 pickingProgram = true
             }
         }
@@ -293,29 +290,35 @@ struct TodayView: View {
     private var healthMonitor: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Health Monitor").sectionHeading()
-            LazyVGrid(columns: [GridItem(.flexible(), spacing: Tokens.cardGap),
-                                GridItem(.flexible(), spacing: Tokens.cardGap)],
-                      spacing: Tokens.cardGap) {
-                statCard(.respiratoryRate, symbol: "lungs", label: "RR")
-                statCard(.restingHeartRate, symbol: "heart", label: "RHR")
-                statCard(.hrv, symbol: "waveform.path.ecg", label: "HRV")
-                statCard(.bloodOxygen, symbol: "drop", label: "SpO₂")
-            }
+            VStack(spacing: 0) {
+                metricRow(.respiratoryRate, symbol: "lungs", label: "Breathing rate")
+                Divider().padding(.leading, 44)
+                metricRow(.restingHeartRate, symbol: "heart", label: "Resting heart rate")
+                Divider().padding(.leading, 44)
+                metricRow(.hrv, symbol: "waveform.path.ecg", label: "Heart rate variability")
+                Divider().padding(.leading, 44)
+                metricRow(.bloodOxygen, symbol: "drop", label: "Blood oxygen")
+            }.bevelCard(padding: 16)
         }
     }
 
-    @ViewBuilder
-    private func statCard(_ kind: MetricKind, symbol: String, label: String) -> some View {
-        if let reading = model.reading(kind) {
-            StatCard(symbol: symbol, label: label,
-                     value: reading.value.formatted(.number.precision(.fractionLength(1))),
-                     unit: reading.kind.unit,
-                     trend: reading.isAboveBaseline ? .up : .down,
-                     trendFavourable: reading.isFavourable,
-                     range: (z: reading.zScore, polarity: kind.polarity,
-                             tint: reading.isFavourable ? Tokens.recoveryHigh : Tokens.strainLow),
-                     status: Copy.position(reading.zScore),
-                     explains: kind)
-        }
+    private func metricRow(_ kind: MetricKind, symbol: String, label: String) -> some View {
+        let raw = model.series.last { Calendar.current.isDateInToday($0.date) }?.value(for: kind)
+        let reading = model.reading(kind)
+        return HStack(spacing: 12) {
+            Image(systemName: symbol).font(.body).foregroundStyle(Tokens.textSecondary).frame(width: 24)
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 5) { Text(label).font(.subheadline); InfoButton(kind) }
+                Text(reading.map { Copy.position($0.zScore) } ?? (raw == nil ? "No reading today" : "Learning your usual range"))
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            Spacer(minLength: 8)
+            if let value = raw {
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(value, format: .number.precision(.fractionLength(1))).font(.headline).monospacedDigit()
+                    Text(kind.unit).font(.caption2).foregroundStyle(.secondary)
+                }
+            } else { Text("—").foregroundStyle(.secondary) }
+        }.padding(.vertical, 12)
     }
 }

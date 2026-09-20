@@ -344,10 +344,10 @@ so the picture contradicted the sentence under it.
 
 Run a fresh install and walk the whole thread on the simulator:
 ```
-xcrun simctl uninstall booted com.coachjett.app
-xcrun simctl privacy booted reset health com.coachjett.app
+xcrun simctl uninstall booted com.coachjett.ios
+xcrun simctl privacy booted reset health com.coachjett.ios
 xcrun simctl install booted <path to Readiness.app>
-xcrun simctl launch booted com.coachjett.app
+xcrun simctl launch booted com.coachjett.ios
 xcrun simctl io booted screenshot /tmp/shot.png
 ```
 Screenshot every state: each question, the multi-select with two picked, the permission
@@ -375,3 +375,29 @@ single shot.
 3. Screenshots of every state, light and dark.
 4. A short note listing: which files you deleted, what you added to `AppModel` for the
    handoff, and anything in this brief you deliberately did not do, with the reason.
+
+
+## Addendum: training context and read-first personal details
+
+This addendum and the subsequent missing-details correction extend the implemented Messages-style thread. Earlier revisions of this brief's appearance and copy remain superseded by the current `DESIGN.md` and the user's accepted native design.
+
+The sequence is now goal, frequency, experience, obstacles, physical limitations, equipment only for lifting goals, units, Health, optional missing details, and the first real question. Core owns every branch.
+
+- **Training experience** follows frequency: Just starting (under a year), Some experience (1–3 years), Experienced (3+ years). It changes starter volume/effort and progression guidance. The exercise `increment` remains the real equipment jump used for rounding; it is not an automatic progression algorithm. Existing user-written plans are not rewritten.
+- **Physical limitations** follows obstacles: Lower back, Knees, Shoulders, or None. Multiple areas may be selected. None clears the selection. Save the result to `UserProfile.limitations`, as well as the existing answers JSON, so the live coach receives it. Known affected areas are omitted from starter suggestions. These coarse exclusions are not a clinical assessment that other movements are safe.
+- **Equipment** is asked when any selected goal has `TrainingGoal.impliesLifting`: Full gym, Dumbbells only, No equipment. It limits starter exercises and the substitution choices given to the coach. Feel better and Lose fat, alone or together, skip this turn unless a lifting goal is also selected. Unknown equipment is never assumed to mean a full gym.
+- No referral source, goal weight, desired rate of change, or additional general-purpose question.
+
+Read height, date of birth and biological sex from Health in the same authorization request as the existing streams. Height uses the latest available quantity sample, even if older than the daily-history window. DOB and sex use HealthKit characteristics. Denied, missing, unset or invalid values remain unknown. Do not issue a second Health authorization request during the read.
+
+The user's subsequent correction permits **one optional missing-details card after Health**, including if Health was skipped. Show only fields still unknown; never ask for known values and never ask for weight. Each of height, birthday and biological sex can be skipped. Skipping always continues. Use one focused selector at a time in the same attachment: a bounded height ruler with cm/ft switching, an inline native birthday wheel, then clear sex choices. A preview is not an answer; only a labelled confirmation saves it. Skip a field or skip the rest without discarding confirmed details. No rows of generic text fields.
+
+Manual details remain in the existing local answers JSON. Health values take precedence when available. Only derived age, height and biological sex enter the coach summary; the birthday never enters the transcript or provider payload. The sharing disclosure names these fields, and the consent version requires existing users to acknowledge the expanded sharing scope before a future AI request.
+
+Verification must cover both goal branches, editing the latest answer, multiple limits and None, old saved JSON, all/partial/no Health characteristics, invalid or future DOB, metric/imperial height, optional skip, profile persistence, and unchanged single-request authorization. New Core tests precede implementation.
+
+
+### Addendum: multiple goals
+The user requested overlapping goals. The first turn now accepts one or more of Get stronger, Build muscle, Lose fat and Feel better, with explicit Continue. Selecting a chip alone does not advance. Empty selections cannot continue; editing the sent reply restores the selections. Profile supports the same set and retains at least one goal.
+
+Persist every selected goal in the existing answers JSON, with backward-compatible reading of prior single-goal profiles. Send the complete set to Jett, combine home sections without duplicates, and branch to equipment whenever any selection implies lifting. Do not ask an additional primary-goal question or silently discard secondary selections.

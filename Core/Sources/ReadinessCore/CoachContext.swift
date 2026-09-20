@@ -46,6 +46,8 @@ public struct CoachContext: Codable, Equatable, Sendable {
     public let uncertainty: [String]
     public let goal: String?
     public let limitations: String?
+    public var health: HealthContext?
+    public var profile: CoachProfileSummary?
 
     public static let maximumRecentDays = 14
 
@@ -77,9 +79,10 @@ public struct CoachContext: Codable, Equatable, Sendable {
         if let acwr { lines.append("acute:chronic load \(acwr)") }
         if let goal { lines.append("goal \(goal)") }
         if let limitations { lines.append("limitations \(limitations)") }
+        if let profile { lines.append(profile.brief) }
         if let checkIn {
             let reported = checkIn.keys.sorted().map { "\($0) \(checkIn[$0] ?? 0)/5" }
-            lines.append("reported this morning: " + reported.joined(separator: ", "))
+            lines.append("check-in (stress 1=maxed,5=calm): " + reported.joined(separator: ", "))
         }
 
         lines.append("")
@@ -88,6 +91,8 @@ public struct CoachContext: Codable, Equatable, Sendable {
             lines.append("\(metric.name) \(metric.value)\(metric.unit) "
                          + "base \(metric.baseline) z \(metric.z)")
         }
+
+        if let health { lines.append("\n" + health.brief) }
 
         if !recentDays.isEmpty {
             lines.append("")
@@ -153,6 +158,7 @@ public enum CoachContextBuilder {
                              describe: (SessionAdjustment) -> String) -> CoachContext {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withFullDate]
+        formatter.timeZone = .current
 
         return CoachContext(
             today: formatter.string(from: today),
@@ -179,5 +185,26 @@ public enum CoachContextBuilder {
             uncertainty: recommendation.uncertainty,
             goal: goal?.isEmpty == false ? goal : nil,
             limitations: limitations?.isEmpty == false ? limitations : nil)
+    }
+}
+
+
+extension CoachContextBuilder {
+    public static func withoutReadiness(today: Date, goal: String?, limitations: String?,
+                                        checkIn: CheckIn?, acwr: Double?,
+                                        program: [CoachContext.ExerciseSummary],
+                                        health: HealthContext) -> CoachContext {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withFullDate]
+        formatter.timeZone = .current
+        return CoachContext(today: formatter.string(from: today), state: "unknown",
+                            composite: 0, confidence: "none", daysOfHistory: 0, gate: nil,
+                            metrics: [], checkIn: checkIn.map {
+                                ["soreness": $0.soreness, "energy": $0.energy,
+                                 "stress": $0.stress, "mood": $0.mood]
+                            }, acwr: acwr, recentDays: [], program: program,
+                            proposedAdjustments: [],
+                            uncertainty: ["No current readiness baseline. Zero composite is a placeholder, not a measurement. Use only the dated Health summaries that are available."],
+                            goal: goal, limitations: limitations, health: health)
     }
 }

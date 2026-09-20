@@ -50,8 +50,7 @@ public enum TrainingGoal: String, Sendable, Codable, CaseIterable, Equatable {
 public enum HomeBlock: String, Sendable, Equatable, CaseIterable {
     case session
     case programPrompt
-    case energyBalance
-    case protein
+    case nutrition
     case weightTrend
     case sleepQuality
     case movement
@@ -59,6 +58,19 @@ public enum HomeBlock: String, Sendable, Equatable, CaseIterable {
 }
 
 public enum HomeComposition {
+
+    /// Combine every selected goal in stable display order, with shared cards once.
+    public static func blocks(for goals: Set<TrainingGoal>, hasProgram: Bool) -> [HomeBlock] {
+        var result: [HomeBlock] = []
+        for goal in TrainingGoal.allCases where goals.contains(goal) {
+            for block in blocks(for: goal, hasProgram: hasProgram)
+                where block != .healthMonitor && !result.contains(block) {
+                result.append(block)
+            }
+        }
+        return result + [.healthMonitor]
+    }
+
 
     /// What today's screen is made of, in order.
     ///
@@ -74,11 +86,11 @@ public enum HomeComposition {
         case .getStronger:
             body = [lead]
         case .buildMuscle:
-            body = [lead, .protein, .weightTrend]
+            body = [lead, .nutrition, .weightTrend]
         case .loseFat:
-            // Energy balance first because it is the only thing that decides fat loss.
+            // Keep calories and macros together, without inferring a deficit from an incomplete log.
             // The session stays, below it, so training does not quietly disappear.
-            body = [.energyBalance, .protein, .weightTrend, .session]
+            body = [.nutrition, .weightTrend, .session]
         case .feelBetter:
             body = [.sleepQuality, .movement, .session]
         }

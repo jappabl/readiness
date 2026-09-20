@@ -1,9 +1,60 @@
+---
+name: Coach Jett
+description: Native health and training guidance, with a Messages-style coach conversation.
+colors:
+  message-blue: "#0074E8"
+  message-on-blue: "#FFFFFF"
+typography:
+  conversation-body:
+    fontFamily: "-apple-system"
+    fontSize: "17pt"
+    fontWeight: 400
+  conversation-choice:
+    fontFamily: "-apple-system"
+    fontSize: "15pt"
+    fontWeight: 500
+rounded:
+  message: "20pt"
+  message-tail: "6pt"
+  conversation-choice: "16pt"
+  composer: "26pt"
+spacing:
+  conversation-gap: "12pt"
+  conversation-margin: "16pt"
+components:
+  incoming-message:
+    typography: "{typography.conversation-body}"
+    rounded: "{rounded.message}"
+    padding: "11pt 15pt"
+  message-composer:
+    typography: "{typography.conversation-body}"
+    rounded: "{rounded.composer}"
+  outgoing-message:
+    backgroundColor: "{colors.message-blue}"
+    textColor: "{colors.message-on-blue}"
+    typography: "{typography.conversation-body}"
+    rounded: "{rounded.message}"
+    padding: "11pt 15pt"
+  conversation-choice:
+    typography: "{typography.conversation-choice}"
+    rounded: "{rounded.conversation-choice}"
+    padding: "13pt 14pt"
+  connect-health:
+    backgroundColor: "{colors.message-blue}"
+    textColor: "{colors.message-on-blue}"
+    height: "50pt"
+---
+
 # Design system
 
 The spec for how this app looks and behaves. Edit this file; `App/Design/Tokens.swift`
 and `App/Design/Components.swift` implement it.
 
-Every value here is what is actually in the build today, not an aspiration.
+The conversation frontmatter records the reusable values in `CoachStream.swift` and
+`OnboardingView.swift`. Conversation font sizes are the standard-size equivalents;
+SwiftUI Dynamic Type styles remain the native source of truth. UIKit resolves the
+conversation's system background colors for the current appearance. Existing sections
+below retain the wider app's design decisions.
 
 ---
 
@@ -30,6 +81,15 @@ Defined as semantic tokens, resolved per appearance. **No view hardcodes a hex.*
 
 All pairs measure **≥ 4.5:1** against both `canvas` and `surface`. Re-check with the
 contrast script before changing any of them.
+
+### Conversation
+
+`messageOutgoing` uses `colors.message-blue` with `messageOnOutgoing` white text.
+This pair measures 4.503:1. Conversation actions share this blue; the app's green brand
+accent remains in place on the surrounding health and training screens.
+`messageCanvas` resolves `UIColor.systemBackground`; `messageIncoming` resolves
+`UIColor.secondarySystemBackground`. Keep these semantic UIKit colors rather than
+copying one appearance's resolved values into a view.
 
 ### Signals
 
@@ -76,7 +136,11 @@ SF Pro throughout. All numerals `.monospacedDigit()` so values do not jitter.
 | Secondary / caption | 13 | regular |
 | Micro label | 12 | medium, uppercase, 0.6 tracking |
 
-Micro labels (`COACHING`, `GOAL`) are the only place small caps and tracking are used.
+Micro labels (`COACHING`, `GOAL`) are the incumbent dashboard convention. Do not carry
+that treatment into the conversation: message text uses `.body`, choices use
+`.subheadline.weight(.medium)`, supporting choice text uses `.caption`, and metadata
+uses `.caption2`. The contact name uses `.caption`, rising to `.body` at accessibility
+sizes. These native text styles scale with Dynamic Type.
 
 ---
 
@@ -130,6 +194,9 @@ a rule through it.
 | `PressableStyle` | 0.975 scale + 0.8 opacity on press |
 | `FloatingTabBar` | Five slots on a floating white surface, inset 12 from the edges, radius 24 |
 | `JettFace` | The coach. His portrait, circle-cropped, with a hairline edge |
+| `CoachContactHeader` | Centered 42pt Jett portrait and name over a hairline; a real back action only in the live conversation |
+| `CoachTurnView` | Shared incoming and outgoing Messages-style bubbles, including contextual reactions |
+| `CoachComposer` | Multiline native message field and 44pt Send target, shared by onboarding and live coach |
 
 **Buttons inside cards are accessory rows, not filled buttons.** Filled buttons are
 reserved for the one primary action on a screen.
@@ -151,12 +218,76 @@ Used for Today's rings over the coaching card, and Why's call over the plan. Rea
 it whenever the relationship is *rests on* — a verdict over its consequences, a figure
 over its explanation. Not for two peers, which are two cards with a 12pt gap.
 
+### Conversation and onboarding
+
+**The Clear Next Step Rule.** Each onboarding question presents every supported answer
+as a tappable choice. The opening names all four goals: get stronger, build muscle,
+lose fat, and feel better. Frequency has four choices, followed by three experience levels. Obstacles expose all six options
+with multi-select and Skip. Physical limitations offer three areas and None. Equipment follows
+only for goals that imply lifting. Units offer pounds or kilos. Keep instructions short
+and local to the action. Familiar users should be able to answer immediately.
+
+The conversation uses one column with the contact header above it. Incoming messages
+align left and outgoing messages align right. Bubbles hug their content, use the
+frontmatter's message radius, and tighten the bottom corner on the speaker's side to
+`rounded.message-tail`. Message padding is 15pt horizontal and 11pt vertical. Leave at
+least 44pt on an outgoing message's opposite side and 36pt for an incoming one. There
+is no shadow on either bubble.
+
+The onboarding thread has 16pt side margins and 12pt gaps. Answer buttons form two
+columns with 10pt gaps at ordinary sizes and one column at accessibility sizes. They
+wrap naturally, have at least 52pt height, and use a 1pt blue border. A selected
+obstacle has a checkmark, a full-strength border and a 10% blue fill. The latest answer
+shows its Read time and an Edit action together until the Health read starts. Editing
+removes that answer and its follow-up so the choice can be made again.
+
+**The Contextual Reaction Rule.** Jett reacts after the user's answer is marked Read,
+then sends his follow-up. The badge sits outside the upper-left edge of the outgoing
+bubble, using `.topLeading` and an offset of -14pt horizontally and -16pt vertically;
+reserve 12pt above the bubble.
+Use `heart.fill` and `hand.thumbsup.fill` SF Symbols for heart and like. Muscle and
+running reactions use their native emoji. Reaction descriptions belong in the
+message's accessibility label. Add a reaction only when the answer calls for it.
+
+Connect Health is the one filled action at that step. Explain its value in one short
+message, with expandable category details and a Not now action. Only an explicit
+Connect action requests Health permission; skipping persists across launches. After the sheet closes,
+show the reading illustration with “Checking Health.” Both an empty read and an
+available-data read lead to a useful conversation. Do not promise an immediate HRV
+reading, a completed baseline, or a number of days that was not measured.
+
+After Health, a single optional card shows only unknown height, birthday and biological
+sex. Known values are never asked for. The attachment shows one focused selector at a time: a height ruler, inline birthday
+wheel, or sex choices. Known fields are omitted. Unconfirmed previews stay unknown.
+Each field can be skipped, and Skip rest continues with any already-confirmed values.
+The birthday stays local; only age is included in the coach summary. No weight question.
+
+Experience changes starter volume, effort and progression guidance. Equipment limits
+starter exercises and substitutions, while physical limitations populate the profile
+field the coach reads. Do not silently rewrite user-created plans or infer working weights.
+
+The final step offers four starters covering training, recovery, sleep and nutrition.
+Tapping one fills the composer so the user can edit it before sending. The first send
+opens an explicit Anthropic consent sheet naming the shared data. Not now preserves
+the draft; Explore the app first finishes without a provider request. Once permitted,
+sending carries the exact question and existing transcript into the live coach once. The onboarding
+thread itself is scripted and makes no coach-provider request.
+
+The composer grows from one to four body-text lines. Its TextField keeps its intrinsic
+vertical size so large text can wrap. The fixed 18pt Send symbol sits in a 36pt circle
+inside a 44pt hit target. Disable sending whitespace or sending while a reply is in
+progress. A concise disclosure accompanies the final composer: “Jett uses AI. You
+choose what to share before your first reply.” The separate consent sheet identifies
+Anthropic, messages/profile/check-ins/training, and derived Health summaries. Consent
+can be revoked in Profile and is checked at the network boundary for every request.
+
 ### How an answer arrives
 
-The coach's text is **not a bubble**. A bubble is for something somebody said to you; an
-answer is the content of the screen, so it runs full width in plain prose and only the
-user's own message gets a container. That one choice is most of what separates a chat
-toy from a tool.
+Jett's answer appears in a soft grey incoming bubble; the user's message appears in a
+blue outgoing bubble. Onboarding and the live coach share `CoachTurnView`, the contact
+header and the composer, so handing off the first question continues the same visual
+conversation. Both speakers use regular body text. Charts requested by the live coach
+remain inline within the incoming bubble and draw only from available device history.
 
 While there is nothing to show, there is one quiet shimmering word and no container —
 an empty bubble reads as a failure. A step the coach took is one line, past tense, with
@@ -217,7 +348,8 @@ point — you do not need telling twice what it is, and the missing label is wha
 the slot read as somebody rather than as a destination.
 
 **He is animated where he is present, and static where he is a button.** The coach
-sheet and onboarding run the Rive file; the tab bar and the paywall use the PNG. A 38pt
+sheet and onboarding run the Rive file, switching to the static portrait with Reduce
+Motion; the tab bar and the paywall use the PNG. A 38pt
 face breathing permanently in the tab bar is noise, and the tab bar is somewhere you
 tap rather than somewhere he is.
 
@@ -243,9 +375,11 @@ job of a coach.
    What is *displayed* is always today, so the words under a number describe that
    number; only the engine sees the smoothed figure.
 
-1. **Never show a number the app did not measure.** No invented scores. Ring figures
-   are percentiles against the user's own history, share of a target, or share of a
-   typical week — all real quantities.
+1. **Never present missing measurements as a score.** Recovery and daily activity
+   use personal percentiles. Sleep is a clearly explained deterministic estimate of
+   duration, recorded continuity, and schedule consistency when available; duration
+   alone never earns a sleep score. See `docs/briefs/signal-scores.md`. Food photos
+   produce editable estimates, labelled as estimates and saved only after review.
 2. **"No data" and "very low" must look different.** A ring with no history shows `—`;
    a terrible day shows its real figure with a visible arc floor.
 3. **Colour never carries meaning that text does not also carry.**
@@ -270,7 +404,7 @@ job of a coach.
    middle slot. It is hand-built; everything else is not.
 7. **Haptics only where something is committed or decided.** A set, a check-in, an
    applied change, an override, a timer expiring. Never on navigation or scrolling —
-   except the coach orb, which is the app's signature control and answers to the touch.
+   except the coach portrait, which is the app's signature control and answers to the touch.
 
 ---
 
@@ -281,7 +415,26 @@ job of a coach.
 - Press: `.easeOut(0.12)`
 - Coach button retract: `.easeOut(0.22)`
 
-Every animation checks `accessibilityReduceMotion`.
+The scripted onboarding thread acknowledges the answer immediately with Sent, changes
+to Delivered at 250ms, shows Read with the current time at 800ms, and adds the contextual
+reaction at 980ms. Jett's follow-up arrives 1250–1630ms after the answer, with the final
+pause varying by copy length. Intro and system turns use a 700ms beat. Only the latest
+answer shows its receipt; once settled, its caption combines the Read time and Edit.
+These receipts are part of the local scripted conversation, which makes no provider
+request before the final question is sent.
+
+The outgoing message uses a spring with response 0.3 and damping fraction 0.9. Replies
+arrive with a 240ms ease-out and a small upward offset; reactions use a 200ms ease-out.
+Onboarding scrolls to new content with `.easeOut(duration: 0.25)`.
+
+Reduce Motion preserves the receipt and reply timing while removing message transforms
+and springs. The contact portrait becomes static, reading arcs pause, the Thinking
+shimmer stops and scrolling is immediate. The actual Health read keeps a minimum 1.3s
+visible reading beat after the system sheet closes. It carries no fabricated percentage
+or staged checklist.
+
+Other animation entries above remain the incumbent vocabulary; each new animation
+must honor Reduce Motion.
 
 ---
 
@@ -300,7 +453,9 @@ Every animation checks `accessibilityReduceMotion`.
 - Lead with the decision, not the data
 - Short. If the screen shows it, do not write it
 - Never grade a number — say where it sits ("Above usual"), not how good it is
-- One medical/privacy disclaimer, in Profile, nowhere else
+- Keep the general medical/privacy explanation in Profile. The final onboarding
+  composer adds the brief provider disclosure at the point of sending, followed by
+  explicit permission before the first third-party AI request.
 - **No em dashes.** They read as machine-written. A comma, a full stop, or a new
   sentence does the same job without the tell. The one exception is `—` standing alone
   as the "no value" glyph, which is a symbol rather than punctuation.
@@ -316,8 +471,9 @@ not an assistant. The difference is mostly what he leaves out.
 
 **Shape.** The first line is the answer, under 15 words, and it stands alone: it is the
 only line most people read. Then at most two short lines — the number that drove it, and
-what to do. Under 60 words unless asked to go deeper. The view sets that first line as a
-headline, so a rambling opener has nowhere to hide.
+what to do. Under 60 words unless asked to go deeper. Message text uses regular body
+style throughout; the writing carries the hierarchy. Scripted onboarding uses one
+short question or instruction at a time, with choices available immediately below.
 
 **Charts, not descriptions.** When the shape of a trend is the point, Jett writes
 `[chart:hrv]` and the app draws that metric from history it already holds. The model
@@ -330,11 +486,10 @@ listing them; a single metric on its own rarely makes the case. None when one nu
 already says it. Stacked charts use the compact card, because three full-height ones
 push the point off the screen.
 
-**An answer is one column: the call, the evidence, what to do.** Nothing else. The
-charts sit in that column without a card around them, because a bordered box in the
-middle of a thought reads as an interruption rather than as the evidence for the
-sentence above it. Three weights carry the structure: the call in bold primary, the
-action in secondary, the chart's own read a step quieter than both.
+**An answer is one column: the call, the evidence, what to do.** The incoming bubble
+contains that column. Inline charts have no additional card border; their labels stay
+quieter than the body text. Scripted onboarding shows choices and an honest Health
+result without inserting a metric chart.
 
 **A chart replaces the sentence, it does not accompany it.** The chart already names the
 metric and shows the number, so saying either again in prose is the single thing that
@@ -379,9 +534,9 @@ full-width button, however important the answer is to us. Colour still means wha
 means everywhere else.
 
 **Permission is asked for once, in front of the reason.** Never at launch, never before
-the feature has been chosen. A switch the user flipped themselves is the only thing that
-may raise a system dialog, and the switch follows what they asked for rather than what
-iOS has granted so far, so it never flicks back while a dialog is still up.
+the feature has been chosen. An explicit action such as Connect Health or a switch
+change may raise a system dialog. A switch follows what the user asked for rather than
+what iOS has granted so far, so it never flicks back while a dialog is still up.
 
 **A switch row is tappable across its whole width.** A bare `Toggle` outside a `List`
 only responds on the switch itself, which is a 50pt target hard against the right edge.
@@ -389,27 +544,14 @@ Wrap the row in a button and let the switch be the indicator.
 
 ## Motion that replaces words
 
-**An illustration that needs a caption is not finished.** The Health screen carried
-four labels and four captions; it now carries one picture that names its own three
-sources, and the captions and the chips both went with it. If a label is there to say
-what the drawing means, fix the drawing.
+Onboarding uses one native reading illustration during the Health read. `ReadingArt`
+draws the existing strain, recovery and sleep colors as moving arcs around Jett at
+150pt. Those arcs communicate activity, not a measured result or a percentage. The
+contact portrait remains compact throughout the conversation.
 
-**Drawn here, not imported.** Onboarding's motion is Canvas and TimelineView against the
-same tokens as everything else, so it inherits dark mode, Dynamic Type and Reduce Motion
-and no colour is ever a hex value transcribed twice. Rive earns its place for Jett, who
-is a character with moods; a chart that moves is not a character.
-
-**Tune motion per colour scheme.** A translucent wash of the accent green looks calm over
-the light canvas and radioactive over the dark one. The same alpha is not the same
-picture, so the band is dimmer at night and the outlines are brighter.
-
-**Most of a loop is its settled state.** The finished frame is the one carrying the
-meaning, so arrival is quick and the hold is long. Loops close by fading, never by
-cutting.
-
-**A picture must not contradict the sentence under it.** The baseline scatter is centred
-and scaled after it is generated rather than trusted raw, because the first version's
-sample sat off-centre and the cloud fell below the band that was meant to describe it.
+Canvas and TimelineView use the app's existing tokens. Rive supplies Jett's character
+motion. Reduce Motion pauses the arcs and substitutes `JettFace`. Keep motion attached
+to a real state change or wait; the questions and choices need no decorative loops.
 
 ## The name
 
@@ -419,7 +561,7 @@ the home screen is a readiness score, and none of that gets renamed. Product nam
 domain vocabulary are separate, and collapsing them would cost us the only word that
 accurately describes what the number is.
 
-The bundle id moved with the name, to `com.coachjett.app`, and that was only cheap
+The bundle id moved with the name, to `com.coachjett.ios`, and that was only cheap
 because nothing had shipped. A bundle id is the identity every stored thing hangs off:
 HealthKit authorisation, UserDefaults, the local store, the keychain, the StoreKit
 product ids. Changing it after a release orphans all of them on every existing install.
@@ -433,3 +575,20 @@ What stayed behind, on purpose: the Xcode project, target and scheme, the
 action you take" everywhere else in the app, and an icon is not an action. It is the same
 artwork as the face in the tab bar, so the thing you tap on the home screen and the thing
 that talks to you inside are recognisably one character.
+
+
+### Multiple goals
+The opening goal chips support multiple selections. Ask "What would you like to work on? Pick any that apply." A tap toggles a visible checkmark and selected fill; Continue stays disabled until at least one goal is selected. Only Continue sends the combined answer, in stable chip order. Editing that reply restores every selected chip. Keep the opening message animations and reply receipts.
+
+Store the full goal set in the existing onboarding JSON, read legacy single-goal answers, and expose the same multi-selection in Profile. Keep at least one Profile goal. The complete set determines home cards without duplicates and the context sent to Jett. Ask equipment if any selected goal implies lifting; a Feel better/Lose fat combination skips it. The old profile goal column is a compatibility marker, not a user-ranked primary goal.
+
+
+## September 19 hands-on critique pass
+
+Keep Home actions direct: one Nutrition card for calories and all macros, camera-first
+Log meal, current weight with Log weight, one-line check-in, editable today's workout,
+and plain-English Health Monitor rows. No calorie deficit claim from partial meal logs.
+Use the Messages onboarding voice: acknowledge the actual answers, modest humor for
+positive goals, empathetic words rather than celebration badges for obstacles/injuries.
+Weight logs are new measurements, with local persistence and explicit Health save status.
+Meal exports carry individual IDs so Health imports and local entries count exactly once.
