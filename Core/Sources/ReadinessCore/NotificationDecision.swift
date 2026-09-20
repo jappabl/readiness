@@ -43,6 +43,13 @@ public enum NotificationDecision {
         public let moment: NotificationMoment
         public let body: String
         /// The record to persist, with this message written into it and any coin spent.
+        ///
+        /// This is the record as of the DECISION, not the delivery: the day is stamped
+        /// and the coin is spent here, before the app has shown anything. If the
+        /// delivery layer persisted this unconditionally, a denied permission or a
+        /// failed `UNUserNotificationCenter.add` would silently burn the day and the
+        /// coin for a message the user never saw — so the app must persist this only
+        /// after the notification is confirmed delivered.
         public let record: NotificationRecord
     }
 

@@ -4,6 +4,14 @@ import Foundation
 ///
 /// The engine is a pure function, so it cannot look anything up. The app persists this
 /// between launches and hands it back on the next decision.
+///
+/// Encodes compactly and tolerates unknown keys, but `budget` is a required key and
+/// there is no version field, so the synthesized `Decodable` fails outright on an older
+/// payload missing it. Every field added after v1 must be `Optional` — so its absence
+/// decodes to `nil` rather than failing the whole record — or this type needs a custom
+/// `init(from:)` that can supply a default. The app should decode with `try?`, falling
+/// back to `NotificationRecord()` on failure, rather than letting a decode error crash
+/// or wedge notifications entirely.
 public struct NotificationRecord: Equatable, Sendable, Codable {
 
     public var lastMorningVerdict: Date?
