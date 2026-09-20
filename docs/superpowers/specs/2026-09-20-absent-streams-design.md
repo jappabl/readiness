@@ -1,6 +1,6 @@
 # Telling "missing today" apart from "your phone cannot measure this"
 
-**Status:** proposed, for review
+**Status:** approved, not yet built
 **Scope:** what the app says about data it does not have
 
 ## The problem
@@ -38,26 +38,28 @@ never again.
 
 ## Proposal
 
-### 1. Detect structural absence from the record, not from a device list
+### 1. Ask, then watch the data
 
-A stream is *structurally absent* when the record is long enough to have shown it and
-never has:
+Onboarding asks once: **do you wear a watch to bed?** That answer is the starting state,
+and the record corrects it from there. Four states, and the transitions are the whole
+feature:
 
-```
-structurallyAbsent(stream) =
-    daysOfHistory >= BaselineSummary.minimumReadings   // 7
-    && days carrying that stream == 0
-```
+| they said | data says | what happens |
+|---|---|---|
+| yes | stages arriving | nothing — normal operation |
+| **yes** | **nothing, 7 days** | **nudge: the watch is not being worn to bed** |
+| no | nothing | stage rows never mentioned again |
+| **no** | **stages start arriving** | **"you got a watch" — congratulate, then confirm** |
 
-No device inventory, no HealthKit capability query, no user question. It is self-correcting
-in both directions: buy a watch and stage rows appear within a week; stop wearing it and
-they go back to being "absent today" first, then structural after seven empty days.
+Only the two bold rows say anything. The answer is a starting point, never a lock: somebody
+who buys a watch six months in is recognised by their data, not asked again.
 
-**Open question for review:** seven days may be too eager. A week's holiday without the
-watch would reclassify a watch user as structural, and they would lose the daily nudge that
-their watch is off. Alternatives: require the stream to have *never* appeared in the whole
-record, or use a longer threshold (28 days) for the transition into structural and a short
-one out of it.
+Asymmetric thresholds, because the two errors are not equal:
+
+- **Into "no watch": 28 days.** A fortnight's holiday must not reclassify a watch owner
+  and silence the nudge that their watch is off.
+- **Out of "no watch": 7 days** — one week of stage data is enough to say a watch has
+  appeared, and the congratulation should not lag a month behind the purchase.
 
 ### 2. Three states, not two
 
@@ -67,22 +69,18 @@ one out of it.
 | `.partial` | something usually present is absent today | "Not counted today" |
 | `.buildingBaseline` | the record is too short to judge against | "Still learning your normal" |
 
-Structurally absent streams are **excluded from the missing list entirely** and do not
-push coverage below `.full`. A phone-only sleeper who slept and whose sleep was recorded
-has a complete record *for their device*, and the score should say so.
+Streams the person has no sensor for are **excluded from the missing list entirely** and do
+not push coverage below `.full`. **Decided: a phone-only sleeper can see a complete score.**
+Their record is complete for the device they own, and never being able to see a full ring
+is the actual complaint.
 
-This is the substantive behaviour change: today that user can never see `.full`.
+### 3. The nudges
 
-### 3. Say it once, where it belongs
+Two, both rare, neither repeating:
 
-Onboarding's last screen already tells people what the app read. It gains one line naming
-what it will never read, in terms of what it costs them:
-
-> Sleep stages and overnight heart rate need a watch. Without one I score your nights on
-> how long and how unbroken they were, which is most of it.
-
-Not a nag, not a purchase prompt, and not repeated. If they later connect a watch, the
-rows appear on their own and need no announcement.
+- *Watch not worn:* once, after seven empty nights against a "yes" answer. Not daily.
+- *Watch detected:* once, when stages appear against a "no" answer. Confirm rather than
+  assume — a single night of stage data could be a borrowed device or a one-off.
 
 ### 4. The score itself does not change
 
@@ -105,9 +103,12 @@ their missing lists, `DailyPhysiology` gains a per-stream presence count, onboar
 one sentence. No change to any scoring path, so the existing suite should stay green
 without edits — which is also the check that this is presentation-only.
 
-## Decision needed
+## Decided
 
-1. The seven-day threshold, or one of the alternatives in §1.
-2. Whether a structurally-absent stream should really allow `.full`, or whether coverage
-   should stay `.partial` with an empty list. `.full` is the honest answer for that device;
-   `.partial` is more conservative and keeps the ring's track visibly incomplete.
+1. Ask in onboarding; correct from the data. 28 days into "no watch", 7 days out.
+2. A phone-only sleeper can reach `.full`.
+
+## Still open
+
+Where the two nudges appear. The coach stream is the obvious home for both, but "you got a
+watch" is a moment and might be worth more than a chat line.
