@@ -271,9 +271,18 @@ public enum RecoveryScore {
         return 100 * Percentile.fromZ(composite / compositeScale)
     }
 
+    /// The inputs that can only ever vote one way.
+    ///
+    /// Sleep debt is the whole list: owing nothing is the best it gets, so its aligned z
+    /// is never positive. That is right for what it measures and fine alongside anything
+    /// two-sided, but when it is the only thing voting the ring cannot exceed its own
+    /// neutral however well somebody slept.
+    static let oneSidedKinds: Set<MetricKind> = [.sleepDebt]
+
     public static func of(_ result: ReadinessResult,
                           readings: [MetricReading] = [],
-                          history: [MetricKind: [Double]] = [:]) -> SignalScore {
+                          history: [MetricKind: [Double]] = [:],
+                          sleep: SignalScore? = nil) -> SignalScore {
         guard !result.contributions.isEmpty else {
             return SignalScore(kind: .recovery, value: nil, band: nil, contributors: [],
                                coverage: .unavailable,
@@ -283,10 +292,24 @@ public enum RecoveryScore {
 
         // The gate is the score, when there is one. A morning clamped for illness that
         // still displayed its ungated number would put a green ring above "recover".
-        let ungated = percent(composite: result.composite)
-        let value = result.gateApplied.map { min(ungated, ceiling(for: $0)) } ?? ungated
-
+        //
+        // When every input that voted is one-sided, the composite measures only how far
+        // *down* the day has been pulled, and the ring is capped at its own neutral. Then
+        // the best estimate of how recovered somebody is, from what they have actually
+        // given us, is the night itself — so the night is the starting point and the
+        // balance still moves it from there, instead of moving it down from a middle it
+        // can never climb above.
         let voted = Set(result.contributions.map(\.kind))
+        let oneSidedOnly = !voted.isEmpty && voted.isSubset(of: oneSidedKinds)
+        let base = oneSidedOnly ? sleep?.value : nil
+        // What the inputs themselves say, on their own scale. The rows are attributed
+        // against this and nothing else; the night is a separate row carrying its own
+        // distance from neutral, so the two still sum to the headline exactly.
+        let weighed = percent(composite: result.composite)
+        let ungated = base.map { Swift.min(100, Swift.max(1, $0 + weighed - neutral)) } ?? weighed
+        let value = result.gateApplied.map { min(ungated, ceiling(for: $0)) } ?? ungated
+        let gateDelta = value - ungated
+
         let missing = ReadinessEngine.weights.keys
             .filter { !voted.contains($0) }
             .map(\.displayName)
@@ -308,8 +331,9 @@ public enum RecoveryScore {
             kind: .recovery,
             value: value,
             band: .recovery(percent: value),
-            contributors: contributors(result, ungated: ungated, value: value,
-                                       readings: readings, history: history),
+            contributors: nightRow(base)
+                + contributors(result, ungated: weighed, value: weighed + gateDelta,
+                               readings: readings, history: history),
             coverage: coverage,
             missing: missing,
             neutral: neutral,
@@ -329,6 +353,31 @@ public enum RecoveryScore {
         case .elevatedWristTemperature: return 8
         case .acuteLoadSpike: return 66
         }
+    }
+
+    /// The night itself, as a row, when the night is what the score was built from.
+    ///
+    /// Without it the grid would show a single sleep-debt tile beside a number that came
+    /// mostly from somewhere else — a breakdown that cannot explain its own headline,
+    /// which is the failure `WhyView` was rebuilt to stop. Its magnitude is the distance
+    /// the night moved the score from neutral, so the rows still sum to `value - neutral`
+    /// exactly, with the balance's own rows carrying the rest.
+    private static func nightRow(_ base: Double?) -> [ScoreContributor] {
+        guard let base else { return [] }
+        return [ScoreContributor(
+            id: "night",
+            title: "Last night",
+            value: base,
+            unit: "",
+            comparison: nil,
+            comparisonLabel: nil,
+            state: .from(alignedZ: (base - neutral) / 25),
+            level: Swift.min(1, Swift.max(0, base / 100)),
+            symbol: "bed.double.fill",
+            magnitude: base - neutral,
+            explanation: "With no heart data shared, how well you slept is the best read "
+                       + "on how recovered you are — so the night is where this starts, "
+                       + "and the standing balance moves it from there.")]
     }
 
     /// Debt speaks in hours behind, not in distance from a personal normal.

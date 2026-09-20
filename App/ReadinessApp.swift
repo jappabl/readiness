@@ -265,6 +265,7 @@ enum SampleScores {
             .hrv: [58, 61, 55, 63, 57, 52, 49, 46, 42],
             .restingHeartRate: [52, 51, 53, 52, 54, 55, 56, 57, 57],
         ]
+        // A full panel, so the sleep fallback is not in play here.
         return RecoveryScore.of(
             ReadinessEngine.evaluate(ReadinessInput(readings: readings, daysOfHistory: 90)),
             readings: readings, history: history)

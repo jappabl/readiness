@@ -64,9 +64,11 @@ struct WhyView: View {
     /// red 8, and tapping it to ask why showed a green 90 beside this screen's own headline
     /// "Recover". A second hand-maintained breakdown of the same result was always going to
     /// end up describing a different model; there is one now.
-    private var score: SignalScore {
-        RecoveryScore.of(day.readiness, readings: day.readings)
-    }
+    /// Read off the model rather than recomputed here, so this screen cannot drift again.
+    /// Recomputing it needed every input the model feeds in — the trailing history, and
+    /// now the night, for somebody whose only shared stream is sleep — and a call site
+    /// that has to remember those is a call site that will eventually forget one.
+    private var score: SignalScore { model.recoveryScore }
 
     private var readinessPercent: Int? {
         score.value.map { max(1, Int($0.rounded())) }

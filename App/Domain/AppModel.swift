@@ -483,7 +483,8 @@ final class AppModel {
                                coverage: .unavailable, missing: ["Health data"],
                                modelVersion: ReadinessEngine.modelVersion)
         }
-        return RecoveryScore.of(day.readiness, readings: day.readings, history: metricHistory())
+        return RecoveryScore.of(day.readiness, readings: day.readings,
+                                history: metricHistory(), sleep: sleepScore)
     }
 
     /// Floored at 1: a measured zero and a missing measurement must not render alike.
@@ -549,7 +550,8 @@ final class AppModel {
                                modelVersion: ReadinessEngine.modelVersion)
         }
         return RecoveryScore.of(assembled.readiness, readings: assembled.readings,
-                                history: metricHistory(endingOn: date))
+                                history: metricHistory(endingOn: date),
+                                sleep: sleepScore(on: date))
     }
 
     /// Last night against what it needed to be, with the structure that adjusted it.
