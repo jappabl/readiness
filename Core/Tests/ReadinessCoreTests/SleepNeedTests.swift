@@ -293,7 +293,9 @@ struct SleepCoverageTests {
         let result = SleepScore.of(SleepInput(breakdown: nil, durationHours: 7,
                                               priorNights: Array(repeating: 8.0, count: 7)))
         #expect(result.value != nil)
-        #expect(result.coverage == .partial)
+        // Duration alone leaves every structural component unmeasured, which is a
+        // baseline still being built rather than one thing not counted today.
+        #expect(result.coverage == .buildingBaseline)
         #expect(result.missing.contains { $0.localizedCaseInsensitiveContains("stage") })
     }
 

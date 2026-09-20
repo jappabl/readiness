@@ -191,7 +191,24 @@ public enum StrainScore {
     /// Duration cannot be the answer below the first training zone: the cost per minute
     /// is real but tiny, and a day is 1440 of them. Capping it keeps a long day on your
     /// feet worth something without letting it become the day.
-    public static let everydayLoadCap = 20.0
+    public static let everydayLoadCap = 25.0
+
+    /// Where a minute stops counting as pottering and starts counting as training.
+    ///
+    /// A hard cut at the zone boundary was a cliff: sixteen hours just under it saturated
+    /// at the cap, and one beat per minute higher put every one of those minutes on the
+    /// unbounded side — 104 bpm read 20, 105 bpm read 95. Ramping across a band means a
+    /// bucket near the line contributes part of its load to each side, so the score moves
+    /// smoothly with the day instead of hinging on it.
+    public static let everydayRampLow = 0.30
+    public static let everydayRampHigh = 0.55
+
+    /// How much of a bucket counts as training rather than as being awake.
+    static func trainingShare(reserve: Double) -> Double {
+        let t = Swift.min(1, Swift.max(0, (reserve - everydayRampLow)
+                                       / (everydayRampHigh - everydayRampLow)))
+        return t * t * (3 - 2 * t)
+    }
 
     /// Below this many minutes of heart rate, the day is a sample rather than a record.
     /// Half a day, because a watch charged overnight and worn from nine to nine is the
@@ -222,22 +239,24 @@ public enum StrainScore {
         // rather than only how much it cost.
         var minutesByZone: [String: Double] = [:]
         var loadByZone: [String: Double] = [:]
+        var everydayRaw = 0.0
         for sample in samples {
             let reserve = min(max((sample.beatsPerMinute - resting) / max(maximum - resting, 1), 0), 1)
             let id = zone(forReserve: reserve).id
             minutesByZone[id, default: 0] += sample.minutes
-            loadByZone[id, default: 0] += trimp(minutes: sample.minutes,
-                                                heartRate: sample.beatsPerMinute,
-                                                resting: resting, maximum: maximum,
-                                                sex: input.biologicalSex)
+            let load = trimp(minutes: sample.minutes, heartRate: sample.beatsPerMinute,
+                             resting: resting, maximum: maximum, sex: input.biologicalSex)
+            // Split across the ramp rather than assigned to one side of a line.
+            let training = trainingShare(reserve: reserve)
+            loadByZone[id, default: 0] += load * training
+            everydayRaw += load * (1 - training)
         }
 
-        // Everything under the first training zone is capped together: see
-        // `everydayLoadCap`. Applied after the zones are totalled so the minutes still
-        // show truthfully on the tile — it is the cost that is bounded, not the time.
-        if let everyday = loadByZone[zones[zones.count - 1].id] {
-            loadByZone[zones[zones.count - 1].id] = Swift.min(everyday, everydayLoadCap)
-        }
+        // Being awake saturates rather than clamping, so the bottom of the scale keeps
+        // its resolution: a hard ceiling made every easy day read exactly the same
+        // number by mid-morning and then stop moving for the rest of it.
+        let everyday = everydayLoadCap * (1 - exp(-everydayRaw / everydayLoadCap))
+        loadByZone[zones[zones.count - 1].id, default: 0] += everyday
 
         let total = loadByZone.values.reduce(0, +) + muscular
         let value = strain(load: total)
@@ -288,10 +307,16 @@ public enum StrainScore {
         // A watch worn for four hours produces a real number from a fifth of a day, and
         // said nothing about it. Either the session was caught and everything around it
         // was not, or the session was missed and a hard day reads as a rest day.
-        let worn = samples.reduce(0) { $0 + $1.minutes }
-        if !samples.isEmpty, worn < minimumWornMinutes {
-            missing.append("Most of the day — your heart rate was only recorded for "
-                           + "\(Int(worn / 60)) hours")
+        // Measured first sample to last, not by summing buckets: HealthKit omits empty
+        // buckets, so a sum counts how densely the watch sampled rather than how long it
+        // was worn, and a perfectly normal sixteen-hour day was being flagged.
+        if let first = samples.map(\.start).min(), let last = samples.map(\.start).max() {
+            let worn = last.timeIntervalSince(first) / 60 + (samples.last?.minutes ?? 0)
+            if worn < minimumWornMinutes {
+                let hours = Int((worn / 60).rounded())
+                missing.append("Most of the day — your heart rate was only recorded for "
+                               + "\(hours) \(hours == 1 ? "hour" : "hours")")
+            }
         }
         if input.ageYears == nil { missing.append("Your age, so your maximum heart rate is assumed") }
         if input.restingHeartRate == nil { missing.append("Resting heart rate") }

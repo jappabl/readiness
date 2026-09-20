@@ -214,12 +214,17 @@ public enum SleepScore {
         }
 
         let missing = components.filter { $0.fraction == nil }.map(\.missingLabel)
+        // Most of the night unmeasured means the baselines are still being built, which
+        // is a different thing to say than "not counted today".
+        let measured = components.count - missing.count
+        let coverage: ScoreCoverage = missing.isEmpty
+            ? .full : (measured <= 2 ? .buildingBaseline : .partial)
         return SignalScore(
             kind: .sleep,
             value: value,
             band: .sleep(percent: value),
             contributors: rows.sorted { abs($0.magnitude) > abs($1.magnitude) },
-            coverage: missing.isEmpty ? .full : .partial,
+            coverage: coverage,
             missing: missing,
             neutral: perfect,
             modelVersion: modelVersion)
@@ -333,18 +338,18 @@ public enum SleepScore {
                                       : "You spent a fair bit of the night not asleep.")
                 }),
             Component(
-                id: "schedule", title: "Bed and wake times",
+                id: "schedule", title: "Bedtime",
                 fraction: schedule.fraction,
                 value: schedule.medianMinutes, unit: "min",
                 comparison: nil, comparisonLabel: nil,
-                explanation: "How close last night's bedtime and wake time were to the "
-                           + "ones you normally keep. Going to bed at the same time is "
-                           + "one of the few sleep levers that costs nothing to pull.",
-                missingLabel: "Seven nights of bed and wake times",
+                explanation: "How far last night's bedtime was from the one you normally "
+                           + "keep. Going to bed at the same time is one of the few sleep "
+                           + "levers that costs nothing to pull.",
+                missingLabel: "Seven nights of bedtimes",
                 symbol: "clock.fill",
                 note: schedule.medianMinutes.map {
-                    $0 < 20 ? "Right on the times you usually keep."
-                        : "About \(Int($0.rounded())) minutes off your usual times."
+                    $0 < 20 ? "Right on your usual bedtime."
+                        : "You went to bed about \(Int($0.rounded())) minutes off your usual time."
                 }),
             Component(
                 id: "deep", title: "Deep sleep",
@@ -374,7 +379,7 @@ public enum SleepScore {
                 note: remUsual.map { "A night this long usually gives you \(hours($0))." }),
             Component(
                 id: "awake", title: "Time awake",
-                fraction: relative(night?.awakeHours,
+                fraction: relative(staged ? night?.awakeHours : nil,
                                    input.history.map(\.awakeHours),
                                    floor: hoursDeviationFloor, higherIsBetter: false),
                 value: night.map { $0.awakeHours }, unit: "h",
@@ -390,7 +395,7 @@ public enum SleepScore {
                 id: dipContributorID, title: "Overnight heart rate drop",
                 fraction: dip.map { Swift.min(1, Swift.max(0, $0 / normalDip)) },
                 value: dip.map { $0 * 100 }, unit: "%",
-                comparison: fullDip * 100, comparisonLabel: nil,
+                comparison: normalDip * 100, comparisonLabel: nil,
                 explanation: "How far your heart rate fell overnight against your "
                            + "waking average. A large drop is the clearest sign the "
                            + "night was restorative rather than merely long.",
@@ -399,7 +404,8 @@ public enum SleepScore {
                 note: dip.map {
                     $0 >= fullDip ? "A big drop — your body settled properly."
                         : ($0 >= 0.10 ? "A normal drop."
-                                      : "Your heart rate stayed high for a night's rest.")
+                        : ($0 >= 0.05 ? "A smaller drop than usual."
+                                      : "Your heart rate stayed high for a night's rest."))
                 }),
         ]
     }

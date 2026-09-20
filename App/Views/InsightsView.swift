@@ -179,15 +179,17 @@ struct InsightsView: View {
         .accessibilityHint("Open for the trend and what this means")
     }
 
-    /// Which side of normal this landed on, as one glyph. Nil when the row has no normal
-    /// to be on a side of — a heart rate zone is neither high nor low, it is minutes.
+    /// How this row went, as one glyph — never which side of a number it landed on.
+    ///
+    /// It used to be the ratio of the value to its baseline, which meant the arrow and
+    /// the colour were computed from different things and could disagree: solid sleep at
+    /// 90% drew a green tile with a down arrow, and every overnight heart rate dip
+    /// between 12 and 15% did the same. Direction and colour now say one thing.
     private func direction(_ contributor: ScoreContributor) -> String? {
-        guard let value = contributor.value,
-              let comparison = contributor.comparison, comparison > 0 else { return nil }
-        switch value / comparison {
-        case ..<0.93: return "arrow.down"
-        case 1.07...: return "arrow.up"
-        default: return "equal"
+        switch contributor.state {
+        case .optimal: return "arrow.up"
+        case .payAttention: return "arrow.down"
+        case .fine: return nil
         }
     }
 
@@ -269,8 +271,19 @@ struct InsightsView: View {
     private func colour(_ state: ContributorState) -> Color {
         switch state {
         case .optimal: return Tokens.recoveryHigh
-        case .fine: return Tokens.accent
         case .payAttention: return Tokens.alert
+        // Not blue. Blue was a third meaning on a screen with two, and it left every
+        // ordinary row looking like an instruction. An unremarkable row wears the
+        // signal's own colour instead, which is also what stops the grid reading flat.
+        case .fine: return signalTint
+        }
+    }
+
+    private var signalTint: Color {
+        switch score.kind {
+        case .recovery: return Tokens.recoveryLow
+        case .sleep: return Tokens.sleepLow
+        case .strain: return Tokens.strainLow
         }
     }
 

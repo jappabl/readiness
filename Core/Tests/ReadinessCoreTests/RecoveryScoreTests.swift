@@ -5,8 +5,17 @@ import Testing
 // Pins the recovery transfer and the shared score structure.
 // See docs/superpowers/specs/2026-09-19-signal-scores-design.md.
 
-private func reading(_ kind: MetricKind, z: Double) -> MetricReading {
-    MetricReading(kind: kind, value: 0, baseline: 0, zScore: z, sampleCount: 30)
+private func reading(_ kind: MetricKind, z: Double, samples: Int = 30) -> MetricReading {
+    MetricReading(kind: kind, value: 0, baseline: 0, zScore: z, sampleCount: samples)
+}
+
+/// Confidence comes from how many samples each baseline rests on, not from how long the
+/// series is — a night of phone sleep is enough to lengthen the series while every heart
+/// metric is still judged against two readings.
+private func thinMorning(goodness: Double, samples: Int) -> [MetricReading] {
+    ReadinessEngine.weights.keys.map {
+        reading($0, z: goodness * $0.polarity, samples: samples)
+    }
 }
 
 /// A morning uniformly `goodness` standard deviations better than baseline, so the
@@ -234,7 +243,8 @@ struct ScoreCoverageTests {
     @Test("a short history is reported as building rather than hidden")
     func shortHistory() {
         let result = RecoveryScore.of(ReadinessEngine.evaluate(
-            ReadinessInput(readings: morning(goodness: 0.2), daysOfHistory: 5)))
+            ReadinessInput(readings: thinMorning(goodness: 0.2, samples: 5),
+                           daysOfHistory: 5)))
         #expect(result.coverage == .buildingBaseline)
         #expect(result.value != nil, "a building baseline still shows a number")
     }
@@ -355,9 +365,41 @@ struct ThinBaselineTests {
     @Test("a thin baseline outranks a missing stream in the coverage note")
     func thinBaselineWins() {
         let partial = ReadinessEngine.weights.keys.filter { $0 != .bloodOxygen }
-            .map { reading($0, z: 0) }
+            .map { reading($0, z: 0, samples: 5) }
         let result = RecoveryScore.of(ReadinessEngine.evaluate(
             ReadinessInput(readings: partial, daysOfHistory: 5)))
         #expect(result.coverage == .buildingBaseline)
+    }
+}
+
+@Suite("Confidence follows the baselines, not the calendar")
+struct ConfidenceSourceTests {
+
+    /// The commonest first-run profile there is: months of iPhone sleep, a watch bought
+    /// this week. The series is long, every heart baseline rests on two readings, and the
+    /// app used to present that morning with exactly the confidence of a sixtieth one.
+    @Test("a long series with thin baselines is still low confidence")
+    func longSeriesThinBaselines() {
+        let result = ReadinessEngine.evaluate(
+            ReadinessInput(readings: thinMorning(goodness: 0.3, samples: 2),
+                           daysOfHistory: 180))
+        #expect(result.confidence == .low)
+        #expect(RecoveryScore.of(result).coverage == .buildingBaseline)
+    }
+
+    /// One thin stream is enough to soften the whole call, because it votes like the rest.
+    @Test("the thinnest baseline decides")
+    func thinnestDecides() {
+        var readings = thinMorning(goodness: 0.3, samples: 60)
+        readings[0] = reading(readings[0].kind, z: 0.3 * readings[0].kind.polarity, samples: 3)
+        #expect(ReadinessEngine.evaluate(
+            ReadinessInput(readings: readings, daysOfHistory: 180)).confidence == .low)
+    }
+
+    @Test("well-established baselines read as normal confidence")
+    func establishedBaselines() {
+        #expect(ReadinessEngine.evaluate(
+            ReadinessInput(readings: thinMorning(goodness: 0.3, samples: 60),
+                           daysOfHistory: 60)).confidence == .normal)
     }
 }

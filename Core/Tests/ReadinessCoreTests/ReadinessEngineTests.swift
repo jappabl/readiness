@@ -1,8 +1,8 @@
 import Testing
 @testable import ReadinessCore
 
-private func reading(_ kind: MetricKind, z: Double) -> MetricReading {
-    MetricReading(kind: kind, value: 0, baseline: 0, zScore: z, sampleCount: 30)
+private func reading(_ kind: MetricKind, z: Double, samples: Int = 30) -> MetricReading {
+    MetricReading(kind: kind, value: 0, baseline: 0, zScore: z, sampleCount: samples)
 }
 
 /// A morning that is uniformly `goodness` standard deviations *better* than baseline.
@@ -218,10 +218,13 @@ struct ReadinessGateTests {
 @Suite("Readiness confidence")
 struct ReadinessConfidenceTests {
 
-    @Test("fewer than 14 days of history reports low confidence")
+    /// Reads the readings' sample counts now, not the length of the series: a long
+    /// series of phone-only days says nothing about how well a heart metric is known.
+    @Test("a thin baseline reports low confidence")
     func shortHistoryIsLowConfidence() {
+        let thin = ReadinessEngine.weights.keys.map { reading($0, z: 0, samples: 9) }
         let result = ReadinessEngine.evaluate(
-            ReadinessInput(readings: morning(goodness: 0), daysOfHistory: 9))
+            ReadinessInput(readings: thin, daysOfHistory: 9))
         #expect(result.confidence == .low)
     }
 

@@ -102,8 +102,16 @@ public enum ReadinessEngine {
     public static let zClamp: Double = 3.0
 
     public static func evaluate(_ input: ReadinessInput) -> ReadinessResult {
+        // From the readings' own sample counts, not the length of the series.
+        //
+        // The series counts any day with something in it, and a night of iPhone sleep is
+        // enough — so somebody with six months of phone data and a watch bought this week
+        // reported full confidence while every heart metric was judged against two
+        // samples. The calibration warning never fired for the commonest first-run
+        // profile there is. The thinnest baseline in the set is the one that decides.
+        let samples = input.readings.filter { weights[$0.kind] != nil }.map(\.sampleCount)
         let confidence: ReadinessConfidence =
-            input.daysOfHistory >= minimumConfidentDays ? .normal : .low
+            (samples.min() ?? 0) >= minimumConfidentDays ? .normal : .low
 
         let present = input.readings.filter { weights[$0.kind] != nil }
         let totalWeight = present.reduce(0.0) { $0 + (weights[$1.kind] ?? 0) }

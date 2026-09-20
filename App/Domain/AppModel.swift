@@ -549,7 +549,7 @@ final class AppModel {
     func strainScore(context: ModelContext?) -> SignalScore {
         let today = series.last { Calendar.current.isDateInToday($0.date) }
         return StrainScore.of(StrainInput(
-            samples: today?.heartRateSamples ?? [],
+            samples: Self.waking(today),
             restingHeartRate: baseline(.restingHeartRate) ?? today?.restingHeartRate,
             ageYears: healthProfile.ageYears(),
             biologicalSex: healthProfile.biologicalSex,
@@ -571,11 +571,26 @@ final class AppModel {
             Calendar.current.isDateInYesterday($0.date)
         }), !yesterday.heartRateSamples.isEmpty else { return nil }
         return StrainScore.of(StrainInput(
-            samples: yesterday.heartRateSamples,
+            samples: Self.waking(yesterday),
             restingHeartRate: baseline(.restingHeartRate),
             ageYears: healthProfile.ageYears(),
             biologicalSex: healthProfile.biologicalSex,
             observedMaxHeartRate: series.compactMap(\.heartRateMax).max())).value
+    }
+
+    /// The day's heart rate with the night cut out.
+    ///
+    /// Strain is what being awake cost. Leaving the night in did not move the number —
+    /// the everyday load saturates either way — but it put "Everyday movement, 1,440 min"
+    /// at the top of the breakdown on a rest day, under a sentence saying that was what
+    /// did most of it.
+    private static func waking(_ day: DailyPhysiology?) -> [HeartRateSample] {
+        guard let day else { return [] }
+        guard let start = day.sleep?.primarySleepStart,
+              let end = day.sleep?.primarySleepEnd, end > start else {
+            return day.heartRateSamples
+        }
+        return day.heartRateSamples.filter { $0.start < start || $0.start >= end }
     }
 
     private func hardSetsToday(context: ModelContext?) -> Int {
