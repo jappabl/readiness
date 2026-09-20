@@ -46,7 +46,13 @@ public enum StrainEngine {
     /// spike that was really just the start of a record.
     public static let minimumChronicDays = 2
 
-    public static func acwr(daily: [Double]) -> Double? {
+    /// `observedDays` is how long the app has actually been watching. The chronic mean
+    /// used to divide by a fixed twenty-eight regardless, so the window was padded with
+    /// days that predate the record — and a perfectly steady three-sessions-a-week
+    /// logger was told they had spiked on seven consecutive days, somewhere around their
+    /// second week. Raising the training-day count is the wrong lever: at six a
+    /// once-a-week trainer would be gated out permanently.
+    public static func acwr(daily: [Double], observedDays: Int? = nil) -> Double? {
         guard daily.count >= chronicDays else { return nil }
         let chronic = daily.suffix(chronicDays)
         guard chronic.filter({ $0 > 0 }).count >= minimumTrainingDays else { return nil }
@@ -54,7 +60,8 @@ public enum StrainEngine {
         let older = chronic.prefix(chronicDays - acuteDays)
         guard older.filter({ $0 > 0 }).count >= minimumChronicDays else { return nil }
 
-        let chronicMean = chronic.reduce(0, +) / Double(chronic.count)
+        let covered = Swift.max(1, Swift.min(chronicDays, observedDays ?? chronic.count))
+        let chronicMean = chronic.reduce(0, +) / Double(covered)
         guard chronicMean > 0 else { return nil }
         let acute = daily.suffix(acuteDays)
         let acuteMean = acute.reduce(0, +) / Double(acute.count)

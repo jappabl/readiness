@@ -611,14 +611,19 @@ final class AppModel {
         }
         return StrainScore.of(StrainInput(
             samples: Self.waking(day),
-            restingHeartRate: baseline(.restingHeartRate) ?? day?.restingHeartRate,
+            restingHeartRate: restingBaseline(upTo: date) ?? day?.restingHeartRate,
             ageYears: healthProfile.ageYears(),
             biologicalSex: healthProfile.biologicalSex,
-            observedMaxHeartRate: series.compactMap(\.heartRateMax).max(),
+            // As it stood on the day being shown. Taking the whole series meant an
+            // August peak retroactively widened a March day's reserve and cost it
+            // points for a beat it had not produced yet.
+            observedMaxHeartRate: series.filter { $0.date <= date }
+                .compactMap(\.heartRateMax).max(),
             hardSets: hardSets(on: date, context: context),
             // A past day is read whole; today is read part-way through.
             readAt: Calendar.current.isDateInToday(date)
                 ? Date() : Calendar.current.startOfDay(for: date).addingTimeInterval(86_399),
+            wokeAt: day?.sleep?.primarySleepEnd,
             fallback: DailyStrain.evaluate(days: activity, on: date)))
     }
 
@@ -640,6 +645,18 @@ final class AppModel {
             return day.heartRateSamples
         }
         return day.heartRateSamples.filter { $0.start < start || $0.start >= end }
+    }
+
+    /// The resting-rate baseline as it stood on a given day.
+    ///
+    /// `baseline(.restingHeartRate)` reads today's assembly, which is a different
+    /// quantity for a historical day and nil first thing in the morning before today has
+    /// synced — at which point every past day silently fell back to that day's single
+    /// reading, the exact thing `StrainInput.restingHeartRate` documents must not happen.
+    private func restingBaseline(upTo date: Date) -> Double? {
+        let cutoff = Calendar.current.startOfDay(for: date).addingTimeInterval(86_399)
+        let values = series.filter { $0.date <= cutoff }.compactMap(\.restingHeartRate)
+        return BaselineEngine.evaluate(series: values)?.mean
     }
 
     private func hardSets(on date: Date, context: ModelContext?) -> Int {
@@ -829,7 +846,13 @@ final class AppModel {
                 .reduce(0.0) { $0 + $1.load.volumeLoad }
             daily.append(volume)
         }
-        return StrainEngine.acwr(daily: daily)
+        // How long the app has been watching, so the chronic mean is not diluted by
+        // days that predate the record.
+        let first = sessions.map { calendar.startOfDay(for: $0.date) }.min()
+        let observed = first.map {
+            (calendar.dateComponents([.day], from: $0, to: today).day ?? 0) + 1
+        }
+        return StrainEngine.acwr(daily: daily, observedDays: observed)
     }
 
     /// Volume load per day for the last `days` days, oldest first. Drives the Load card.

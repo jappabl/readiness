@@ -33,6 +33,14 @@ public struct StrainInput: Sendable {
     /// hours is a complete record at nine in the morning and a third of a record at six
     /// in the evening, and without one the span test had nothing to compare against.
     public let readAt: Date
+    /// When the day started, so the check knows how much of it there was to miss.
+    ///
+    /// Measuring from the first sample instead looks right and is not: a watch put on
+    /// late produces a trace running from that moment to now, so its span IS the elapsed
+    /// time and `span < elapsed × share` can never fire however late it went on. Fifty-
+    /// six minutes of a sixteen-hour day reported a complete record, with a morning
+    /// session showing as nothing at all.
+    public let wokeAt: Date?
     /// What the ring showed before this engine existed. Used only when there is no
     /// cardiac trace at all, and always labelled.
     public let fallback: DailyStrainResult?
@@ -40,7 +48,8 @@ public struct StrainInput: Sendable {
     public init(samples: [HeartRateSample], restingHeartRate: Double?, ageYears: Int?,
                 biologicalSex: HealthProfile.BiologicalSex?,
                 observedMaxHeartRate: Double? = nil, hardSets: Int = 0,
-                readAt: Date = Date(), fallback: DailyStrainResult? = nil) {
+                readAt: Date = Date(), wokeAt: Date? = nil,
+                fallback: DailyStrainResult? = nil) {
         self.samples = samples
         self.restingHeartRate = restingHeartRate
         self.ageYears = ageYears
@@ -48,6 +57,7 @@ public struct StrainInput: Sendable {
         self.observedMaxHeartRate = observedMaxHeartRate
         self.hardSets = hardSets
         self.readAt = readAt
+        self.wokeAt = wokeAt
         self.fallback = fallback
     }
 }
@@ -359,7 +369,8 @@ public enum StrainScore {
             // every trace ever recorded. A watch worn from nine to one and read at
             // eleven at night reported a complete day, with the evening session that
             // was never recorded showing up as nothing at all.
-            let elapsed = Swift.max(1, input.readAt.timeIntervalSince(first) / 60)
+            let elapsed = Swift.max(1, input.readAt
+                .timeIntervalSince(input.wokeAt ?? first) / 60)
             let thin = span < Swift.min(minimumWornMinutes, elapsed * minimumSampledShare)
                 || sampled / Swift.max(1, span) < minimumSampledShare
             if thin {

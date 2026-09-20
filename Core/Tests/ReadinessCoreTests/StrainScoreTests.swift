@@ -425,8 +425,9 @@ struct ACWRGuardTests {
 @Suite("The wear check needs a clock")
 struct WearTimeClockTests {
 
+    /// Woke at seven, whatever time the watch went on.
     private func day(from startHour: Int, hours: Double, bpm: Double = 90,
-                     readAtHour: Int) -> StrainInput {
+                     readAtHour: Int, wokeAtHour: Int = 7) -> StrainInput {
         let midnight = Calendar.current.startOfDay(for: Date())
         let start = midnight.addingTimeInterval(Double(startHour) * 3600)
         let samples = (0..<Int(hours * 12)).map {
@@ -435,7 +436,8 @@ struct WearTimeClockTests {
         }
         return StrainInput(samples: samples, restingHeartRate: 55, ageYears: 30,
                            biologicalSex: .male, hardSets: 0,
-                           readAt: midnight.addingTimeInterval(Double(readAtHour) * 3600))
+                           readAt: midnight.addingTimeInterval(Double(readAtHour) * 3600),
+                           wokeAt: midnight.addingTimeInterval(Double(wokeAtHour) * 3600))
     }
 
     /// `elapsed` used to be derived from `span`, which made the test
@@ -461,5 +463,71 @@ struct WearTimeClockTests {
         let worn = Double(readAtHour - 7)
         let result = StrainScore.of(day(from: 7, hours: worn, readAtHour: readAtHour))
         #expect(result.coverage == .full, "flagged at \(readAtHour):00 after \(worn) h worn")
+    }
+
+    /// The mirror of the case above, and the one my first fix could not catch. Measuring
+    /// elapsed from the first sample meant a late-worn watch had a span equal to the
+    /// elapsed time, so the test was `span < span × share` — false however late it went
+    /// on. Fifty-six minutes of a sixteen-hour day reported a complete record.
+    /// 15:00 is excluded deliberately: eight hours of a sixteen-hour waking day is
+    /// exactly `minimumSampledShare`, which is the line by design rather than a case.
+    @Test("a watch put on late says so", arguments: [16, 17, 19, 21, 22])
+    func lateWearFlagged(onAtHour: Int) {
+        let result = StrainScore.of(day(from: onAtHour, hours: Double(23 - onAtHour),
+                                        readAtHour: 23))
+        #expect(result.coverage == .partial,
+                "watch on at \(onAtHour):00 of a day that started at 07:00 read as complete")
+    }
+
+    /// And a watch on a charger for the first couple of hours is not a missing day.
+    @Test("a short morning charge is not flagged")
+    func morningChargeIsSilent() {
+        #expect(StrainScore.of(day(from: 9, hours: 14, readAtHour: 23)).coverage == .full)
+    }
+}
+
+@Suite("Acute-to-chronic waits for a record")
+struct ACWRObservedDaysTests {
+
+    private func steady(sessionsPerWeek: Int, days: Int) -> [Double] {
+        let spacing = 7 / sessionsPerWeek
+        return (0..<StrainEngine.chronicDays).map { index in
+            let offset = StrainEngine.chronicDays - 1 - index
+            guard offset < days else { return 0 }
+            return offset % spacing == 0 ? 5000 : 0
+        }
+    }
+
+    /// The chronic mean divided by a fixed twenty-eight whether or not the app had been
+    /// watching, so the window was padded with days that predate the record. A perfectly
+    /// steady logger was told they had spiked on seven consecutive days around week two.
+    @Test("a steady habit never spikes, however new the record is",
+          arguments: [10, 12, 14, 16, 18, 21, 28])
+    func steadyHabitNeverSpikes(days: Int) {
+        let ratio = StrainEngine.acwr(daily: steady(sessionsPerWeek: 3, days: days),
+                                      observedDays: days)
+        if let ratio {
+            #expect(ratio <= ReadinessEngine.acwrGate,
+                    "day \(days) of a steady habit read as \(ratio)")
+        }
+    }
+
+    @Test("twice a week is the same story")
+    func twiceAWeek() {
+        for days in [13, 16, 19, 28] {
+            if let ratio = StrainEngine.acwr(daily: steady(sessionsPerWeek: 2, days: days),
+                                            observedDays: days) {
+                #expect(ratio <= ReadinessEngine.acwrGate, "day \(days) read as \(ratio)")
+            }
+        }
+    }
+
+    /// A genuine spike on a long record still has to fire.
+    @Test("a real spike on a real record still fires")
+    func realSpikeStillFires() throws {
+        var daily = steady(sessionsPerWeek: 3, days: StrainEngine.chronicDays)
+        for index in (daily.count - StrainEngine.acuteDays)..<daily.count { daily[index] = 5000 }
+        let ratio = try #require(StrainEngine.acwr(daily: daily, observedDays: 200))
+        #expect(ratio > ReadinessEngine.acwrGate, "a genuine spike read as \(ratio)")
     }
 }
