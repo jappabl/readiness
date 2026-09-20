@@ -203,10 +203,12 @@ Tuning, if it is wrong in practice: lengthen the refill for a quieter app (72 h 
 week), shorten it for a chattier one (36 h → ~4.7 a week). Capacity changes burstiness
 only, not the average.
 
-`BurstLimiter` must not be modified — the coach uses it with its own constants. The
-constants become parameters, or the notification budget gets its own type with the same
-algorithm. Implementation's choice; a pure-function shape with injected constants is
-preferred.
+`BurstLimiter` is not modified and not generalised. It guards a paying user's
+conversation with the coach, and no notification change should be able to reach it. The
+notification budget is its own type with the same arithmetic and its own constants —
+about twenty-five lines of deliberate duplication, which is the cheaper risk. The
+backwards-clock guard is duplicated too, and is pinned by its own test so the two cannot
+drift silently.
 
 ## Timing
 
@@ -229,7 +231,14 @@ quiet hours are their own stored preference, defaulting to the same window.
 
 ## Voice
 
-**Deterministic templates in Jett's voice, from `Copy.swift`. Never the proxy.**
+**Deterministic templates in Jett's voice, defined in Core beside the engine. Never the
+proxy.**
+
+The strings live in `ReadinessCore` rather than `App/Domain/Copy.swift` because the
+engine must be provable by `swift test`, and an App file is unreachable from there. Core
+already owns user-facing prose (`SignalScore.summary`, `ReadinessGate.explanation`), so
+the rule `Copy.swift` exists to enforce — one voice, kept together, never scattered
+through views — is preserved rather than broken. `Copy.swift` remains for view copy.
 
 Four reasons, in order of weight:
 
