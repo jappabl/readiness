@@ -52,14 +52,27 @@ struct RootView: View {
     @State private var askingJett = false
 
     var body: some View {
+        // QA: the home cards on their own, so a styling change can be looked at without
+        // a seeded database and a walk through onboarding. Reached only by launch
+        // argument, and the simulator's tap injection wedges often enough to need it.
+        if Self.cardGallery {
+            CardGallery()
         // Onboarding is not a tab. It replaces the app until it is done, because a tab
         // bar offers four destinations to someone who has not said what they want yet.
-        if model.needsOnboarding {
+        } else if model.needsOnboarding {
             OnboardingView()
         } else {
             main
         }
     }
+
+    private static let cardGallery: Bool = {
+        #if DEBUG
+        ProcessInfo.processInfo.arguments.contains("--card-gallery")
+        #else
+        false
+        #endif
+    }()
 
     private var main: some View {
         TabView(selection: $tab) {
@@ -132,6 +145,25 @@ final class Appearance {
             try? await Task.sleep(for: .seconds(seconds))
             guard !Task.isCancelled else { return }
             self?.refresh()
+        }
+    }
+}
+
+/// The home cards with fixed numbers, for looking at.
+private struct CardGallery: View {
+    var body: some View {
+        ZStack {
+            Tokens.canvas.ignoresSafeArea()
+            ScrollView {
+                VStack(spacing: 22) {
+                    NutritionCard(calories: 1840, protein: 132, carbs: 190, fat: 58) {}
+                    WeightTrendCard(latest: (date: Date(), kilograms: 74.2),
+                                    series: [75.1, 74.9, 75.0, 74.6, 74.4, 74.5, 74.2],
+                                    metric: true) {}
+                }
+                .padding(.horizontal, Tokens.screenMargin)
+                .padding(.vertical, 24)
+            }
         }
     }
 }

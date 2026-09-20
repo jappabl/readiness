@@ -145,4 +145,19 @@ extension View {
         self.font(.system(size: 18, weight: .bold))
             .foregroundStyle(Tokens.textPrimary)
     }
+
+    /// The verb that belongs to a section heading, sitting at the other end of its row.
+    ///
+    /// A plain tinted label rather than a filled capsule. A background is a container, and
+    /// a container claims to be its own object; these are the heading's verb, so a shape
+    /// around one puts two boxes on a row that holds one idea. Blue already says tappable.
+    ///
+    /// The padding stays. It is the hit target, which is the only thing the capsule was
+    /// honestly doing.
+    func sectionAction() -> some View {
+        self.buttonStyle(.plain)
+            .foregroundStyle(Tokens.accent)
+            .padding(.vertical, 6)
+            .contentShape(.rect)
+    }
 }

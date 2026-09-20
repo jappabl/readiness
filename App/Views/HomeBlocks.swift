@@ -15,8 +15,8 @@ struct NutritionCard: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text("Nutrition").sectionHeading(); Spacer()
-                Button(action: onLog) { Label("Log meal", systemImage: "camera.fill").font(.subheadline.weight(.semibold)) }
-                    .buttonStyle(.bordered).tint(Tokens.accent)
+                Button(action: onLog) { Label("Log meal", systemImage: "camera").font(.subheadline.weight(.semibold)) }
+                    .sectionAction()
             }
             VStack(alignment: .leading, spacing: 18) {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
@@ -55,7 +55,7 @@ struct WeightTrendCard: View {
             HStack {
                 Text("Weight").sectionHeading(); Spacer()
                 Button("Log weight", systemImage: "plus", action: onLog)
-                    .font(.subheadline.weight(.semibold)).buttonStyle(.bordered).tint(Tokens.accent)
+                    .font(.subheadline.weight(.semibold)).sectionAction()
             }
             VStack(alignment: .leading, spacing: 12) {
                 if let latest {
