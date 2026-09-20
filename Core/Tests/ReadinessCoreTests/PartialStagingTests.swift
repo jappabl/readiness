@@ -147,4 +147,37 @@ struct PartialStagingTests {
         let rem = try #require(result.contributor("rem")?.value)
         #expect(deep + rem <= 8.001)
     }
+
+    /// A night the watch did not finish labelling loses its stage rows, and each one is
+    /// charged a stand-in a shade under a good night. That stand-in is a constant, and
+    /// every constant sits above some nights and below others — so a gap is a small
+    /// penalty on a night better than your usual and a bonus on one worse than it.
+    /// Measured against a sleeper's own distribution: -2.0 well above usual, -1.6 at it,
+    /// +6.9 a little below, +8.0 clearly poor.
+    ///
+    /// It cannot be tuned away. The components are scored *self-relatively*, so "your
+    /// recent nights were poor" is not a thing this model can know — a consistently poor
+    /// sleeper scores near the top against their own history every night. The only stand-in
+    /// that never pays a bonus is one at the floor, which would penalise every gap instead.
+    /// What is pinned here is that the effect stays bounded and the night always says it
+    /// was not fully read.
+    @Test("a gap moves the score a little, and always says so")
+    func gapIsBoundedAndDisclosed() throws {
+        let history = (2...15).map { night($0, classified: 1) }
+        let measured = try #require(SleepScore.of(input(night(1, classified: 1),
+                                                        history: history)).value)
+        let unread = SleepScore.of(input(night(1, classified: 0.8), history: history))
+        #expect(abs(try #require(unread.value) - measured) < 10,
+                "a gap moved the score from \(measured) to \(unread.value as Any)")
+        #expect(unread.coverage != .full, "an unread night claimed a complete record")
+        #expect(unread.missing.contains { $0.localizedCaseInsensitiveContains("did not finish") },
+                "nothing said the watch had not finished: \(unread.missing)")
+    }
+
+    private func input(_ breakdown: SleepBreakdown,
+                       history: [SleepBreakdown]) -> SleepInput {
+        SleepInput(breakdown: breakdown, durationHours: breakdown.asleepHours,
+                   history: history, strain: nil, napHours: nil,
+                   sleepingHeartRate: nil, daytimeHeartRate: nil, calendar: calendar)
+    }
 }
