@@ -417,7 +417,13 @@ struct OnboardingView: View {
             model.startBackgroundDelivery()
             withAnimation(reduceMotion ? nil : .easeOut(duration: 0.24)) {
                 flow.finishReading(hasHealthData: model.hasOnboardingHealthData,
-                                   daysRead: model.series.count,
+                                   // Days that actually had something in them.
+                                   // `dailySeries` returns a row per day for all 180
+                                   // whether or not anything was recorded, so this was
+                                   // always exactly 180 — and everybody who granted
+                                   // access, including someone whose watch arrived
+                                   // yesterday, was told "180 nights, read".
+                                   daysRead: model.series.filter(\.hasReadinessData).count,
                                    profile: model.effectiveHealthProfile)
                 // The reading/done beat already supplied the pause. Replace it with
                 // Jett's reply together so the thread never jumps to an empty gap.

@@ -63,6 +63,13 @@ struct RootView: View {
             InsightsView(score: SampleScores.score(for: signal))
         } else if Self.whyHarness, let day = model.day, let recommendation = model.recommendation {
             WhyView(day: day, recommendation: recommendation)
+        } else if Self.revealHarness {
+            ScrollView {
+                BaselineReveal(series: model.series)
+                    .padding(.horizontal, Tokens.screenMargin)
+                    .padding(.top, 40)
+            }
+            .background(Tokens.canvas.ignoresSafeArea())
         } else if Self.cardGallery {
             CardGallery()
         // Onboarding is not a tab. It replaces the app until it is done, because a tab
@@ -110,6 +117,17 @@ struct RootView: View {
     private static let whyHarness: Bool = {
         #if DEBUG
         ProcessInfo.processInfo.arguments.contains("--why")
+        #else
+        false
+        #endif
+    }()
+
+    /// `--reveal`, for the last screen of onboarding. Pairs with `--demo-today`. It is the
+    /// one screen that only ever appeared once, in the middle of a flow, which is how it
+    /// came to render its claim over an empty space for everybody without a watch.
+    private static let revealHarness: Bool = {
+        #if DEBUG
+        ProcessInfo.processInfo.arguments.contains("--reveal")
         #else
         false
         #endif

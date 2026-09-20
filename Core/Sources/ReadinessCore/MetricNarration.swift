@@ -25,22 +25,31 @@ public enum MetricNarration {
     static let minimumWindow = 5
 
     public static func brief(reading: MetricReading, series: [Double]) -> String {
-        if let extreme = extremeNote(reading: reading, series: series) { return extreme }
-
-        guard abs(reading.zScore) >= usualBand else { return unremarkable }
-        return Self.capitalised(deviation(reading.zScore))
+        brief(value: reading.value, zScore: reading.zScore, series: series)
     }
 
-    private static func extremeNote(reading: MetricReading, series: [Double]) -> String? {
+    /// The same sentence for a quantity that is not one of the scored metrics. Nothing
+    /// here ever depended on the kind — only on where the value sits in its own history —
+    /// and requiring a `MetricKind` meant sleep duration could not be described at all.
+    public static func brief(value: Double, zScore: Double, series: [Double]) -> String {
+        if let extreme = extremeNote(value: value, zScore: zScore, series: series) {
+            return extreme
+        }
+        guard abs(zScore) >= usualBand else { return unremarkable }
+        return Self.capitalised(deviation(zScore))
+    }
+
+    private static func extremeNote(value: Double, zScore: Double,
+                                    series: [Double]) -> String? {
         guard series.count >= minimumWindow,
-              abs(reading.zScore) >= usualBand,
+              abs(zScore) >= usualBand,
               let low = series.min(), let high = series.max(),
               high > low else { return nil }
 
         // Compared against the drawn window, so the words match the picture.
         let tolerance = (high - low) * 0.02
-        if reading.value <= low + tolerance { return "Lowest in \(series.count) days" }
-        if reading.value >= high - tolerance { return "Highest in \(series.count) days" }
+        if value <= low + tolerance { return "Lowest in \(series.count) days" }
+        if value >= high - tolerance { return "Highest in \(series.count) days" }
         return nil
     }
 
