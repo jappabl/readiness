@@ -42,11 +42,13 @@ public enum ScoreBand: String, Sendable, Codable, Equatable {
         }
     }
 
+    /// The same boundaries as the old 0-21 scale, at round numbers: 10, 14 and 18 of 21
+    /// are 48, 67 and 86 of 100.
     public static func strain(value: Double) -> ScoreBand {
         switch value {
-        case 18...: return .allOut
-        case 14..<18: return .hard
-        case 10..<14: return .moderate
+        case 85...: return .allOut
+        case 70..<85: return .hard
+        case 50..<70: return .moderate
         default: return .light
         }
     }

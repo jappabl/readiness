@@ -18,7 +18,8 @@ struct SignalDetailView: View {
             SkyBackground(signal: signal)
             ScrollView {
                 VStack(spacing: 16) {
-                    HeroRing(signal: signal, percent: percent)
+                    HeroRing(signal: signal, percent: percent,
+                             stages: SleepStages(score: score))
                         .padding(.top, 8)
                         .padding(.bottom, 6)
                     HStack(spacing: Tokens.cardGap) { figures }
@@ -86,14 +87,14 @@ struct SignalDetailView: View {
             metricCard(.restingHeartRate, symbol: "heart", label: "Resting HR")
 
         case .sleep:
-            StatCard(symbol: "bed.double", label: "Duration",
+            StatCard(symbol: "bed.double", label: "Time asleep",
                      value: model.latestSleepHours.map {
                          $0.formatted(.number.precision(.fractionLength(1))) } ?? "—",
                      unit: "h")
-            StatCard(symbol: "moon.zzz", label: "Continuity",
-                     value: model.sleepScore.contributor("continuity")?.value
-                         .map { String(Int($0.rounded())) } ?? "—",
-                     unit: model.sleepScore.contributor("continuity") == nil ? nil : "%")
+            StatCard(symbol: "target", label: "Your need",
+                     value: score.contributor(SleepScore.durationContributorID)?.comparison
+                         .map { $0.formatted(.number.precision(.fractionLength(0...1))) } ?? "—",
+                     unit: "h")
 
         case .strain:
             StatCard(symbol: "flame", label: model.dailyStrain?.metric.label ?? "Activity today",

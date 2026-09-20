@@ -53,6 +53,13 @@ enum Tokens {
     static let recoveryHigh  = dynamic(light: 0x5FC22E, dark: 0x74D344)
     static let recoveryDeep  = dynamic(light: 0x2A9440, dark: 0x3FAF57)
 
+    /// The bottom band, on the two signals that carry a verdict. Amber already means
+    /// "hard" on strain, so reusing it for "pay attention" on recovery made the two
+    /// impossible to tell apart at a glance.
+    static let alertSoft     = dynamic(light: 0xF7A6A0, dark: 0xF9B7B2)
+    static let alert         = dynamic(light: 0xE8564B, dark: 0xF26B60)
+    static let alertDeep     = dynamic(light: 0xBE3227, dark: 0xD64437)
+
     static let sleepHigh     = dynamic(light: 0xC0B4FB, dark: 0xCCC2FC)
     static let sleepLow      = dynamic(light: 0x8B78F0, dark: 0xA694F7)
     static let sleepDeep     = dynamic(light: 0x5B3FC4, dark: 0x7659DC)

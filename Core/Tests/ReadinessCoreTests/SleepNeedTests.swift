@@ -42,8 +42,9 @@ struct SleepNeedTests {
 
     @Test("a hard day asks for more sleep")
     func strainRaisesNeed() {
-        let easy = SleepNeed.of(priorNights: Array(repeating: 8.0, count: 7), strain: 5)
-        let hard = SleepNeed.of(priorNights: Array(repeating: 8.0, count: 7), strain: 20)
+        // Strain is on 0...100 now, like the other two signals.
+        let easy = SleepNeed.of(priorNights: Array(repeating: 8.0, count: 7), strain: 20)
+        let hard = SleepNeed.of(priorNights: Array(repeating: 8.0, count: 7), strain: 95)
         #expect(hard.hours > easy.hours)
         #expect(easy.hours == SleepNeed.baselineHours, "an easy day adds nothing")
     }
@@ -64,7 +65,7 @@ struct SleepNeedTests {
     @Test("need stays inside a range a person can actually act on")
     func clamped() {
         let extreme = SleepNeed.of(priorNights: Array(repeating: 0.0, count: 7),
-                                   strain: 21, napHours: 0)
+                                   strain: 100, napHours: 0)
         #expect(extreme.hours <= SleepNeed.maximumHours)
         let minimal = SleepNeed.of(priorNights: Array(repeating: 12.0, count: 7), napHours: 3)
         #expect(minimal.hours >= SleepNeed.minimumHours)

@@ -148,6 +148,17 @@ final class AppModel {
             onboardingFinished = false
             phase = .needsOnboarding
         }
+        // Straight to a populated app, for looking at the whole thing at once. Pairs
+        // with --seed-health-fixture, which supplies the physiology.
+        if ProcessInfo.processInfo.arguments.contains("--demo-today") {
+            let profile = profileRow(in: context)
+            if TrainingGoal(rawValue: profile.goal) == nil {
+                profile.goal = TrainingGoal.buildMuscle.rawValue
+                try? context.save()
+            }
+            goal = storedGoal(from: context)
+            onboardingFinished = true
+        }
         #endif
     }
 
@@ -170,6 +181,32 @@ final class AppModel {
             FetchDescriptor<WorkoutTemplate>(sortBy: [SortDescriptor(\.order)]))) ?? []
         hasProgram = !templates.isEmpty
         goal = storedGoal(from: context)
+        #if DEBUG
+        // A whole populated app, without HealthKit and therefore without a permission
+        // sheet somebody has to tap. Seeding writes real samples and needs share
+        // access; this just hands the model a series.
+        if ProcessInfo.processInfo.arguments.contains("--demo-today") {
+            healthSeries = DemoPhysiology.series()
+            healthWeight = healthSeries.last.flatMap { day in
+                day.bodyMassKg.map { (date: day.date, kilograms: $0) }
+            }
+            healthProfile = DemoPhysiology.profile
+            mergeLocalLogs()
+            todayCheckIn = fetchTodayCheckIn(from: context)
+            acwr = computeACWR(from: context)
+            let usable = healthSeries.filter(\.hasReadinessData)
+            if let assembled = DayAssembler.assemble(series: usable) {
+                day = assembled
+                recommendation = RecommendationEngine.recommend(
+                    RecommendationInput(readiness: assembled.readiness,
+                                        checkIn: todayCheckIn, acwr: acwr))
+            }
+            hasOnboardingHealthData = true
+            phase = .ready
+            return
+        }
+        #endif
+
         if requestHealthAccess { UserDefaults.standard.set(false, forKey: Self.healthSkipKey) }
         if UserDefaults.standard.bool(forKey: Self.healthSkipKey) {
             healthSeries = []; healthWeight = nil; mergeLocalLogs(); day = nil; recommendation = nil; hasOnboardingHealthData = false

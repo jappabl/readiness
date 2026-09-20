@@ -141,7 +141,11 @@ public enum StrainScore {
     public static let curveShape = 20.0
     /// The day's load that reads as a full 21.
     public static let ceilingLoad = 650.0
-    public static let scaleMax = 21.0
+    /// Was 21, following Whoop, which takes it from Borg's 6-20 exertion scale. That is
+    /// Whoop's branding rather than a physical constant, and a third ring on a different
+    /// scale beside two percentages is a puzzle the reader has to solve every time. The
+    /// curve underneath is unchanged; only its top is.
+    public static let scaleMax = 100.0
 
     public static func strain(load: Double) -> Double {
         guard load.isFinite, load > 0 else { return 0 }

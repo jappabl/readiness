@@ -240,7 +240,7 @@ enum SampleScores {
         return SleepScore.of(SleepInput(
             breakdown: tonight, durationHours: 6.1, history: history,
             priorNights: [7.5, 6.8, 7.9, 6.2, 7.1, 6.6, 7.4],
-            strain: 15.2, sleepingHeartRate: 56, daytimeHeartRate: 68))
+            strain: 72, sleepingHeartRate: 56, daytimeHeartRate: 68))
     }
 
     /// An hour of intervals on top of an ordinary day on foot, plus a lifting session.
@@ -254,10 +254,12 @@ enum SampleScores {
                     minutes: 5, beatsPerMinute: bpm))
             }
         }
-        block(fromMinute: 480, count: 60, bpm: 78)    // five hours about the place
+        block(fromMinute: 0, count: 84, bpm: 52)      // seven hours asleep
+        block(fromMinute: 420, count: 120, bpm: 76)   // ten hours about the place
         block(fromMinute: 1020, count: 4, bpm: 128)   // twenty minutes warming up
         block(fromMinute: 1040, count: 6, bpm: 168)   // half an hour of intervals
         block(fromMinute: 1070, count: 3, bpm: 104)   // cooling down
+        block(fromMinute: 1085, count: 60, bpm: 71)   // five hours of evening
         return StrainScore.of(StrainInput(
             samples: samples, restingHeartRate: 52, ageYears: 29, biologicalSex: .male,
             hardSets: 11))

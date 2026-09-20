@@ -34,6 +34,21 @@ enum Signal: String, CaseIterable, Identifiable {
         }
     }
 
+    /// The ring's colours for a given score.
+    ///
+    /// Recovery and sleep carry a verdict, so they take it: a recovery of 13 used to
+    /// draw in the same green as a recovery of 90, which put a healthy-looking ring
+    /// directly above the words "keep it gentle today". Strain has no verdict — a hard
+    /// day is not a bad day — so it keeps its own ramp and says intensity instead.
+    func ring(forPercent percent: Int?) -> [Color] {
+        guard self != .strain, let percent else { return ring }
+        switch percent {
+        case 67...: return [Tokens.recoveryLow, Tokens.recoveryHigh, Tokens.recoveryDeep]
+        case 34..<67: return [Tokens.strainHigh, Tokens.strainLow, Tokens.strainDeep]
+        default: return [Tokens.alertSoft, Tokens.alert, Tokens.alertDeep]
+        }
+    }
+
     /// The figure's own colour inside the hero ring.
     var figure: Color {
         switch self {
@@ -113,7 +128,7 @@ struct RingGauge: View {
 
             Circle()
                 .trim(from: 0, to: animated ? fraction : 0)
-                .stroke(AngularGradient(colors: signal.ring, center: .center,
+                .stroke(AngularGradient(colors: signal.ring(forPercent: percent), center: .center,
                                         startAngle: .degrees(0),
                                         // Compress the ramp into the drawn arc, so a
                                         // short ring still reaches its deepest colour.
@@ -153,18 +168,29 @@ struct RingGauge: View {
 }
 
 /// The hero ring on a detail screen, seated on a raised white disc.
+///
+/// Sleep draws its night's stages around the ring rather than one plain arc. It is the
+/// one signal whose parts people actually want to see, and the shape was already there
+/// doing nothing with them.
 struct HeroRing: View {
     let signal: Signal
     let percent: Int?
+    var stages: SleepStages?
 
     var body: some View {
         ZStack {
             Circle()
                 .fill(Tokens.surface)
                 .shadow(color: .black.opacity(0.10), radius: 18, x: 0, y: 6)
-            RingGauge(signal: signal, percent: percent, lineWidth: 17,
-                      figureSize: 40, showsHeroWord: true)
-                .padding(11)
+            if let stages {
+                SleepStageRing(stages: stages, value: percent.map(Double.init),
+                               lineWidth: 17, figureSize: 40)
+                    .padding(11)
+            } else {
+                RingGauge(signal: signal, percent: percent, lineWidth: 17,
+                          figureSize: 40, showsHeroWord: true)
+                    .padding(11)
+            }
         }
         .frame(width: 196, height: 196)
     }

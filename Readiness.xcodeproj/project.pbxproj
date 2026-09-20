@@ -34,6 +34,7 @@
 		EE03F8BEDCD6A9A537C094A1 /* Haptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = D05CEB565B3FE57087B3DF2F /* Haptics.swift */; };
 		8B34409B561B864F27FC08B8 /* Tokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DC92FB9E866D08DA7B20B63 /* Tokens.swift */; };
 		D5DD1FF9090A37E50C8620A7 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8D4A3BC6412D0F227E7426E /* AppModel.swift */; };
+		6CF173F1EF544C1C8F301AEC /* DemoPhysiology.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AC211F10AAF4501965D0EC1 /* DemoPhysiology.swift */; };
 		3AE4AE04E96C4CA5A0ADA8BD /* LogSetsIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E370FDA10DB4D5587685970 /* LogSetsIntent.swift */; };
 		699DE0D93E6F4551A62F39B6 /* Subscriptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFC3C84970F1464F8574ABE3 /* Subscriptions.swift */; };
 		3637D17E12D76F9EAA126693 /* Copy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 727B333776AC76D5EAD1EBBA /* Copy.swift */; };
@@ -126,6 +127,7 @@
 		D05CEB565B3FE57087B3DF2F /* Haptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Haptics.swift"; sourceTree = "<group>"; };
 		0DC92FB9E866D08DA7B20B63 /* Tokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Tokens.swift"; sourceTree = "<group>"; };
 		A8D4A3BC6412D0F227E7426E /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppModel.swift"; sourceTree = "<group>"; };
+		2AC211F10AAF4501965D0EC1 /* DemoPhysiology.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DemoPhysiology.swift"; sourceTree = "<group>"; };
 		1E370FDA10DB4D5587685970 /* LogSetsIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "LogSetsIntent.swift"; sourceTree = "<group>"; };
 		FFC3C84970F1464F8574ABE3 /* Subscriptions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Subscriptions.swift"; sourceTree = "<group>"; };
 		727B333776AC76D5EAD1EBBA /* Copy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Copy.swift"; sourceTree = "<group>"; };
@@ -302,6 +304,7 @@
 			isa = PBXGroup;
 			children = (
 				A8D4A3BC6412D0F227E7426E /* AppModel.swift */,
+				2AC211F10AAF4501965D0EC1 /* DemoPhysiology.swift */,
 				1E370FDA10DB4D5587685970 /* LogSetsIntent.swift */,
 				FFC3C84970F1464F8574ABE3 /* Subscriptions.swift */,
 				727B333776AC76D5EAD1EBBA /* Copy.swift */,
@@ -488,6 +491,7 @@
 				EE03F8BEDCD6A9A537C094A1 /* Haptics.swift in Sources */,
 				8B34409B561B864F27FC08B8 /* Tokens.swift in Sources */,
 				D5DD1FF9090A37E50C8620A7 /* AppModel.swift in Sources */,
+				6CF173F1EF544C1C8F301AEC /* DemoPhysiology.swift in Sources */,
 				3AE4AE04E96C4CA5A0ADA8BD /* LogSetsIntent.swift in Sources */,
 				699DE0D93E6F4551A62F39B6 /* Subscriptions.swift in Sources */,
 				3637D17E12D76F9EAA126693 /* Copy.swift in Sources */,

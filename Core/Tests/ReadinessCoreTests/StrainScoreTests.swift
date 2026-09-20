@@ -123,31 +123,31 @@ struct StrainCurveTests {
     /// three-hour easy ride at 19.4 — "all out" — while a genuinely epic day clamped at
     /// the same 21 as a hard hour and a half.
     @Test("the anchors sit where the spec says", arguments: [
-        (0.0, 0.000), (20.0, 4.145), (40.0, 6.570), (100.0, 10.715),
-        (141.6, 12.495), (300.0, 16.581), (650.0, 21.000),
+        (0.0, 0.000), (20.0, 19.739), (40.0, 31.286), (100.0, 51.025),
+        (141.6, 59.501), (300.0, 78.956), (650.0, 100.000),
     ])
     func anchors(load: Double, expected: Double) {
         #expect(abs(StrainScore.strain(load: load) - expected) < 0.02,
                 "load \(load) gave \(StrainScore.strain(load: load))")
     }
 
-    @Test("the scale stops at 21 rather than running off the end")
+    @Test("the scale stops at its top rather than running off the end")
     func clamped() {
-        #expect(StrainScore.strain(load: 2000) == 21)
+        #expect(StrainScore.strain(load: 2000) == 100)
         #expect(StrainScore.strain(load: -5) == 0)
     }
 
     /// Non-linear on purpose: it costs far more to go from 16 to 17 than from 4 to 5.
     @Test("each point costs more than the one before it")
     func logarithmic() {
-        let early = StrainScore.load(strain: 5) - StrainScore.load(strain: 4)
-        let late = StrainScore.load(strain: 17) - StrainScore.load(strain: 16)
+        let early = StrainScore.load(strain: 25) - StrainScore.load(strain: 20)
+        let late = StrainScore.load(strain: 85) - StrainScore.load(strain: 80)
         #expect(late > early * 3)
     }
 
     @Test("bands follow the scale", arguments: [
-        (0.0, ScoreBand.light), (9.9, .light), (10.0, .moderate), (13.9, .moderate),
-        (14.0, .hard), (17.9, .hard), (18.0, .allOut), (21.0, .allOut),
+        (0.0, ScoreBand.light), (49.9, .light), (50.0, .moderate), (69.9, .moderate),
+        (70.0, .hard), (84.9, .hard), (85.0, .allOut), (100.0, .allOut),
     ])
     func bands(value: Double, expected: ScoreBand) {
         #expect(ScoreBand.strain(value: value) == expected)
@@ -170,7 +170,7 @@ struct MuscularLoadTests {
     @Test("a real lifting session reaches the middle of the scale")
     func liftingReachesModerate() throws {
         let value = try #require(StrainScore.of(input(hardSets: 20)).value)
-        #expect(value >= 10, "20 hard sets read as \(value)")
+        #expect(value >= 50, "20 hard sets read as \(value)")
         #expect(ScoreBand.strain(value: value) == .moderate)
     }
 
@@ -178,7 +178,7 @@ struct MuscularLoadTests {
     func liftingAlone() throws {
         let result = StrainScore.of(input(hardSets: 20))
         let value = try #require(result.value)
-        #expect(value > 5, "20 hard sets read as \(value)")
+        #expect(value > 25, "20 hard sets read as \(value)")
     }
 
     @Test("both loads are reported separately")
@@ -324,7 +324,7 @@ struct SedentaryDayTests {
     func sedentaryStaysLight(restingAverage: Double) throws {
         let result = StrainScore.of(input(wakingDay(at: restingAverage)))
         let value = try #require(result.value)
-        #expect(value < 6, "doing nothing at \(restingAverage) bpm read as \(value)")
+        #expect(value < 28, "doing nothing at \(restingAverage) bpm read as \(value)")
         #expect(result.band == .light)
     }
 
@@ -341,7 +341,7 @@ struct SedentaryDayTests {
     func exerciseMoves() throws {
         let idle = try #require(StrainScore.of(input(wakingDay())).value)
         let ran = try #require(StrainScore.of(input(wakingDay() + minutes(45, at: 145))).value)
-        #expect(ran - idle > 4, "a 45 minute run moved it \(ran - idle)")
+        #expect(ran - idle > 18, "a 45 minute run moved it \(ran - idle)")
     }
 
     /// Capping what being awake can cost must not cap what it can show.
@@ -358,6 +358,6 @@ struct SedentaryDayTests {
     func longRideIsNotAllOut() throws {
         let ride = wakingDay() + minutes(180, at: 140)
         let value = try #require(StrainScore.of(input(ride)).value)
-        #expect(value >= 14 && value < 18, "a 3 hour easy ride read as \(value)")
+        #expect(value >= 70 && value < 85, "a 3 hour easy ride read as \(value)")
     }
 }

@@ -64,29 +64,53 @@ struct InsightsView: View {
 
     // MARK: - Headline
 
+    /// A ring, not a wall of type.
+    ///
+    /// This was a 52-point number with a verdict beside it and two lines of prose
+    /// underneath — the densest text on a screen whose whole point was to stop being
+    /// text. The ring carries the number, its share of the scale and its colour in one
+    /// shape, which is the same job done without being read.
     private var headline: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .firstTextBaseline, spacing: 4) {
-                Text(score.value.map { headlineScore($0) } ?? "—")
-                    .font(.system(size: 52, weight: .semibold))
-                    .monospacedDigit()
-                    .foregroundStyle(Tokens.textPrimary)
-                if score.value != nil {
-                    Text(score.kind == .strain ? "of 21" : "%")
-                        .font(.system(size: 17, weight: .medium))
-                        .foregroundStyle(Tokens.textSecondary)
-                }
-                Spacer(minLength: 8)
+        HStack(alignment: .center, spacing: 18) {
+            // The sleep ring shows the night's architecture rather than a plain arc.
+            // Same shape, same number in the middle, and it answers the question people
+            // actually have about a night — how much of it was deep, how much REM —
+            // without spending a single word on it.
+            if let night = SleepStages(score: score) {
+                SleepStageRing(stages: night, value: score.value)
+                    .frame(width: 112, height: 112)
+            } else {
+                ScoreRing(value: score.value, tint: bandTint, trackHint: score.coverage)
+                    .frame(width: 112, height: 112)
+            }
+
+            VStack(alignment: .leading, spacing: 7) {
                 if let band = score.band { BandLabel(band: band) }
+                if let night = SleepStages(score: score) {
+                    SleepStageKey(stages: night)
+                } else if let lead = score.contributors.first, abs(lead.magnitude) >= 5 {
+                    Text(verdict(lead))
+                        .font(.system(size: 14))
+                        .foregroundStyle(Tokens.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
-            if let lead = score.contributors.first, abs(lead.magnitude) >= 1 {
-                Text(verdict(lead))
-                    .font(.system(size: 15))
-                    .foregroundStyle(Tokens.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
+            Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 4)
+    }
+
+    private var bandTint: Color {
+        guard let band = score.band else { return Tokens.textTertiary }
+        switch band {
+        case .green: return Tokens.recoveryHigh
+        case .yellow, .light: return Tokens.accent
+        case .red: return Tokens.alert
+        case .moderate: return Tokens.accent
+        case .hard: return Tokens.strainLow
+        case .allOut: return Tokens.strainDeep
+        }
     }
 
     // MARK: - One tile
@@ -203,13 +227,7 @@ struct InsightsView: View {
         value.formatted(.number.precision(.fractionLength(0)))
     }
 
-    /// Floored at 1 on the percent scales, because a measured 0 renders the same as no
-    /// measurement at all and the worst morning the model can produce is still a reading.
-    /// Strain is left alone: a day with the watch on and nothing done is a true zero.
-    private func headlineScore(_ value: Double) -> String {
-        guard score.kind != .strain, value > 0 else { return whole(value) }
-        return whole(Swift.max(1, value.rounded()))
-    }
+
 
     /// Up to one decimal, dropped when it is a zero. Rounding to whole numbers above ten
     /// put "15 br/min against your normal 14" on screen for 14.6 against 14.2 — a tenth
@@ -234,10 +252,13 @@ struct InsightsView: View {
         guard score.kind == .strain else { return colour(contributor.state) }
         guard let reserve = StrainScore.zones.first(where: { $0.id == contributor.id })?.lowerReserve
         else { return Tokens.accent }
+        // Thresholds track `StrainScore.zones`. When the first training zone dropped to
+        // 0.40 this ramp still started at 0.45, so "very light effort" — a brisk walk,
+        // the thing the change existed to surface — came out the same grey as sitting.
         switch reserve {
         case 0.85...: return Tokens.strainDeep
         case 0.75..<0.85: return Tokens.strainLow
-        case 0.45..<0.75: return Tokens.accent
+        case 0.35..<0.75: return Tokens.accent
         default: return Tokens.textSecondary
         }
     }
@@ -246,7 +267,7 @@ struct InsightsView: View {
         switch state {
         case .optimal: return Tokens.recoveryHigh
         case .fine: return Tokens.accent
-        case .payAttention: return Tokens.strainLow
+        case .payAttention: return Tokens.alert
         }
     }
 
@@ -435,9 +456,193 @@ struct BandLabel: View {
         switch band {
         case .green: return Tokens.recoveryHigh
         case .yellow, .light: return Tokens.textSecondary
-        case .red, .allOut: return Tokens.strainLow
+        case .red: return Tokens.alert
+        case .allOut: return Tokens.strainDeep
         case .moderate: return Tokens.accent
         case .hard: return Tokens.strainDeep
         }
+    }
+}
+
+/// The score as a ring: the number, its share of the scale, and its colour in one shape.
+///
+/// All three signals are percentages now, so one ring serves all of them. Floored at a
+/// sliver of arc when there is a score at all, because an empty ring and a ring at three
+/// percent are different facts and should not draw the same.
+struct ScoreRing: View {
+    let value: Double?
+    var tint: Color = Tokens.accent
+    var trackHint: ScoreCoverage = .full
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var drawn = false
+
+    private var fraction: Double {
+        guard let value else { return 0 }
+        return Swift.max(0.02, Swift.min(1, value / 100))
+    }
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .stroke(Tokens.ringTrack, style: StrokeStyle(lineWidth: 11, lineCap: .round))
+            // A thin baseline is drawn as a dashed remainder rather than a solid one, so
+            // the picture says "still learning" without needing the words underneath.
+            if trackHint == .buildingBaseline {
+                Circle()
+                    .trim(from: fraction, to: 1)
+                    .stroke(tint.opacity(0.35),
+                            style: StrokeStyle(lineWidth: 11, lineCap: .butt, dash: [1.6, 3.6]))
+                    .rotationEffect(.degrees(-90))
+            }
+            Circle()
+                .trim(from: 0, to: drawn || reduceMotion ? fraction : 0)
+                .stroke(tint, style: StrokeStyle(lineWidth: 11, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+
+            HStack(alignment: .firstTextBaseline, spacing: 1) {
+                Text(value.map { Swift.max(1, $0.rounded()).formatted(.number.precision(.fractionLength(0))) } ?? "—")
+                    .font(.system(size: 34, weight: .semibold))
+                    .monospacedDigit()
+                if value != nil {
+                    Text("%").font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(Tokens.textSecondary)
+                }
+            }
+            .foregroundStyle(Tokens.textPrimary)
+        }
+        .task {
+            guard !reduceMotion else { return }
+            withAnimation(.easeOut(duration: 0.65)) { drawn = true }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(value.map { "\(Int($0.rounded())) percent" } ?? "No score yet")
+    }
+}
+
+/// The four parts of a night, read straight off a sleep `SignalScore`.
+///
+/// Light is what is left once deep, REM and awake are taken out of the total — the
+/// engine never reports it separately because nothing scores it, but it is most of a
+/// night and leaving it out of the picture would make the other three look enormous.
+struct SleepStages {
+    let deep: Double
+    let rem: Double
+    let light: Double
+    let awake: Double
+
+    init?(score: SignalScore) {
+        guard score.kind == .sleep,
+              let asleep = score.contributor(SleepScore.durationContributorID)?.value,
+              asleep > 0,
+              let deep = score.contributor("deep")?.value,
+              let rem = score.contributor("rem")?.value else { return nil }
+        self.deep = deep
+        self.rem = rem
+        self.awake = score.contributor("awake")?.value ?? 0
+        self.light = max(0, asleep - deep - rem)
+    }
+
+    var total: Double { deep + rem + light + awake }
+
+    /// Drawn deepest first, so the ring reads from the bottom of the night outward.
+    var parts: [(id: String, title: String, hours: Double, colour: Color)] {
+        [("deep", "Deep", deep, Tokens.sleepDeep),
+         ("rem", "REM", rem, Tokens.sleepLow),
+         ("light", "Light", light, Tokens.sleepHigh),
+         // Not the track colour: awake drawn in the same grey as the empty ring was
+         // invisible, which is the one stage somebody is looking for.
+         ("awake", "Awake", awake, Tokens.textTertiary.opacity(0.55))]
+    }
+}
+
+/// A ring divided into the night's stages, with the score in the middle.
+struct SleepStageRing: View {
+    let stages: SleepStages
+    let value: Double?
+    var lineWidth: CGFloat = 11
+    var figureSize: CGFloat = 32
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var drawn = false
+
+    var body: some View {
+        ZStack {
+            Circle().stroke(Tokens.ringTrack, style: StrokeStyle(lineWidth: lineWidth))
+
+            // Each stage is an arc whose length is its share of the night, laid end to
+            // end around the circle. A one-degree gap keeps two dark stages apart.
+            ForEach(Array(segments.enumerated()), id: \.element.id) { _, segment in
+                Circle()
+                    .trim(from: segment.start, to: drawn || reduceMotion ? segment.end : segment.start)
+                    .stroke(segment.colour, style: StrokeStyle(lineWidth: lineWidth, lineCap: .butt))
+                    .rotationEffect(.degrees(-90))
+            }
+
+            HStack(alignment: .firstTextBaseline, spacing: 1) {
+                Text(value.map { Swift.max(1, $0.rounded()).formatted(.number.precision(.fractionLength(0))) } ?? "—")
+                    .font(.system(size: figureSize, weight: .semibold))
+                    .monospacedDigit()
+                if value != nil {
+                    Text("%").font(.system(size: figureSize * 0.44, weight: .medium))
+                        .foregroundStyle(Tokens.textSecondary)
+                }
+            }
+            .foregroundStyle(Tokens.textPrimary)
+        }
+        .task {
+            guard !reduceMotion else { return }
+            withAnimation(.easeOut(duration: 0.7)) { drawn = true }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibility)
+    }
+
+    private struct Segment { let id: String; let start: Double; let end: Double; let colour: Color }
+
+    private var segments: [Segment] {
+        let total = stages.total
+        guard total > 0 else { return [] }
+        var cursor = 0.0
+        return stages.parts.compactMap { part in
+            let share = part.hours / total
+            guard share > 0.001 else { return nil }
+            let start = cursor
+            cursor += share
+            // A hair of gap, taken off the end so the arcs still add to the whole.
+            return Segment(id: part.id, start: start,
+                           end: Swift.max(start, cursor - 0.004), colour: part.colour)
+        }
+    }
+
+    private var accessibility: String {
+        let parts = stages.parts
+            .filter { $0.hours > 0 }
+            .map { "\($0.title) \($0.hours.formatted(.number.precision(.fractionLength(0...1)))) hours" }
+        return ([value.map { "Sleep \(Int($0.rounded())) percent" }].compactMap { $0 } + parts)
+            .joined(separator: ", ")
+    }
+}
+
+/// What each colour in the ring is. The one place a word earns its keep on this screen.
+struct SleepStageKey: View {
+    let stages: SleepStages
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            ForEach(stages.parts.filter { $0.hours > 0.01 }, id: \.id) { part in
+                HStack(spacing: 6) {
+                    Circle().fill(part.colour).frame(width: 7, height: 7)
+                    Text(part.title)
+                        .font(.system(size: 12))
+                        .foregroundStyle(Tokens.textSecondary)
+                    Text(part.hours.formatted(.number.precision(.fractionLength(0...1))) + " h")
+                        .font(.system(size: 12, weight: .medium))
+                        .monospacedDigit()
+                        .foregroundStyle(Tokens.textPrimary)
+                }
+            }
+        }
+        .accessibilityHidden(true)
     }
 }

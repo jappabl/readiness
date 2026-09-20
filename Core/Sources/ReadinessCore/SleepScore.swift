@@ -27,8 +27,8 @@ public struct SleepNeed: Sendable, Equatable {
     /// How much of the outstanding debt one night is asked to repay.
     public static let repaymentFraction = 0.5
 
-    /// Strain below this costs nothing extra.
-    public static let strainThreshold = 10.0
+    /// Strain below this costs nothing extra. Half the scale.
+    public static let strainThreshold = 50.0
     /// The extra asked for at the very top of the strain scale.
     public static let strainExtraHours = 0.75
 
