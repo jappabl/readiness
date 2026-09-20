@@ -202,14 +202,23 @@ public struct SleepDebt: Sendable, Equatable {
     /// flattens only where further distinctions stop mattering.
     public static let hoursPerDeviation = 6.0
 
-    /// How far back it looks.
+    /// How much of yesterday's balance is still owed today.
     ///
-    /// A week. At a fortnight, against a reference floored at seven hours, the balance
-    /// saturated for anybody whose median was under 6.5 — so a six-hour sleeper who
-    /// genuinely improved to six and a half watched the card read the same number for
-    /// forty days, and that is precisely the group the floor exists to catch. A week
-    /// still registers a bad run inside a healthy habit at the cap.
-    public static let window = 7
+    /// Replaces a hard seven-night window, which had an edge: a night stopped counting
+    /// entirely on its eighth day. After a bad week that produced five mornings where
+    /// ideal sleep moved the recovery ring not at all, and then eighteen points across two
+    /// mornings as the worst night fell off the back — 32 / 32 / 32 / 32 / 32 / 41 / 50,
+    /// crossing a band, caused by nothing the sleeper did. Widening the window to a
+    /// fortnight smoothed it and pinned a short sleeper at the cap on 82% of days instead
+    /// of 29%, so neither width was right; the edge was the problem, not its position.
+    ///
+    /// Nights now fade instead of dropping. At 0.85 a night is half forgotten after about
+    /// four and a half, and effectively gone after a fortnight, which is close to the old
+    /// window's reach without its cliff. It also repairs something the window quietly got
+    /// wrong: against a fixed window, sleeping *exactly* your own median paid back nothing
+    /// at all, because the balance only moved when a night entered or left. Now a night
+    /// that adds nothing still lets what is owed decay.
+    public static let retention = 0.85
 
     /// A real ceiling rather than a scoring convenience. Past this the number stops
     /// being information and starts being an accusation.
@@ -258,11 +267,11 @@ public struct SleepDebt: Sendable, Equatable {
         // night apart. Re-learning it between the two made the arrow disagree with the
         // number above it on 66 days out of 70, and point the wrong way on 27.
         let against = reference(for: clean)
-        let balance = accumulate(Array(clean.suffix(window)), against: against)
-        let previous = accumulate(Array(clean.dropLast().suffix(window)), against: against)
+        let balance = accumulate(clean, against: against)
+        let previous = accumulate(Array(clean.dropLast()), against: against)
         return SleepDebt(hours: Swift.max(0, balance),
                          change: Swift.max(0, balance) - Swift.max(0, previous),
-                         nights: Swift.min(clean.count, window))
+                         nights: clean.count)
     }
 
     /// The balance as it ran, one point per night, ending with today's.
@@ -280,8 +289,11 @@ public struct SleepDebt: Sendable, Equatable {
         let clean = nights.filter { $0.isFinite && $0 >= 0 }
         guard !clean.isEmpty, points > 0 else { return [] }
         let against = reference(for: Array(clean.suffix(points)))
+        // The same span the row accumulates over, so the line ends exactly where the
+        // number says. With decay the starting point barely matters after a fortnight,
+        // but "barely" is not "exactly", and these two have disagreed before.
         let balances = clean.indices.map { end in
-            Swift.max(0, accumulate(Array(clean[...end].suffix(window)), against: against))
+            Swift.max(0, accumulate(Array(clean[...end].suffix(points)), against: against))
         }
         return Array(balances.suffix(points))
     }
@@ -291,7 +303,8 @@ public struct SleepDebt: Sendable, Equatable {
         var debt = 0.0
         for slept in nights {
             debt = Swift.min(maximumHours,
-                             Swift.max(-maximumCreditHours, debt + (reference - slept)))
+                             Swift.max(-maximumCreditHours,
+                                       debt * retention + (reference - slept)))
         }
         return debt
     }

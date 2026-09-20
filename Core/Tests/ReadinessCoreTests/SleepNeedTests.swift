@@ -113,7 +113,7 @@ struct SleepDebtTests {
 
     @Test("but credit does not accumulate without bound")
     func creditBounded() {
-        #expect(SleepDebt.of(nights: settled(8.0, 7) + Array(repeating: 11.0, count: 14)).hours == 0)
+        #expect(SleepDebt.of(nights: settled(8.0, 7) + Array(repeating: 11.0, count: 14)).hours < 1.0)
     }
 
     @Test("the balance is capped")
@@ -142,10 +142,42 @@ struct SleepDebtTests {
         #expect(SleepDebt.of(nights: dug + [4.0]).change > 0)
     }
 
-    @Test("it only looks back over its own window")
-    func windowed() {
-        let ancient = [1.0] + settled(8.0, SleepDebt.window + 2)
-        #expect(SleepDebt.of(nights: ancient).hours < 0.01)
+    /// A night stops mattering by fading, not by falling off an edge. The edge was the
+    /// problem: it produced eighteen points of recovery across two mornings when nothing
+    /// the sleeper did had changed.
+    @Test("an old night stops counting")
+    func ancientNightForgotten() {
+        #expect(SleepDebt.of(nights: [1.0] + settled(8.0, 14)).hours < 1.0)
+        #expect(SleepDebt.of(nights: [1.0] + settled(8.0, 30)).hours < 0.1)
+    }
+
+    /// And it fades rather than vanishing. The settled nights before it hold the
+    /// reference still, so every step below is the decay and nothing else.
+    @Test("a bad night fades instead of dropping out")
+    func badNightFades() {
+        let balances = (0...12).map { after in
+            SleepDebt.of(nights: settled(7.5, 20) + [3.0] + settled(7.5, after)).hours
+        }
+        #expect(balances[0] > 4, "the bad night barely registered: \(balances[0])")
+        #expect(zip(balances, balances.dropFirst()).allSatisfy { $1 < $0 },
+                "not monotonic: \(balances)")
+        // No single morning may carry more than a fifth of the recovery, which is the
+        // whole complaint about the hard window: it delivered the lot in two.
+        let steps = zip(balances, balances.dropFirst()).map { $0 - $1 }
+        #expect(steps.max()! < balances[0] * 0.2,
+                "one morning moved \(steps.max()!) of \(balances[0]): \(balances)")
+    }
+
+    /// The other thing the window got wrong: against a fixed edge, sleeping exactly your
+    /// own median paid back nothing, because the balance only moved when a night entered
+    /// or left it.
+    @Test("sleeping your own normal pays the balance down")
+    func normalNightsPayDown() {
+        let after = SleepDebt.of(nights: settled(7.5, 20) + [3.0] + settled(7.5, 3))
+        let before = SleepDebt.of(nights: settled(7.5, 20) + [3.0])
+        #expect(after.hours < before.hours * 0.7,
+                "three ordinary nights moved it from \(before.hours) to \(after.hours)")
+        #expect(after.change < 0, "the card would show no progress")
     }
 
     @Test("nonsense nights are dropped rather than carried")

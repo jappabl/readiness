@@ -340,7 +340,7 @@ public enum RecoveryScore {
         // for exactly this two lines above; the note was not.
         guard let hours else { return nil }
         let formatted = hours.formatted(.number.precision(.fractionLength(0...1)))
-        return "About \(formatted) hours behind over your last seven nights of sleep."
+        return "About \(formatted) hours behind on recent sleep."
     }
 
     private static func contributors(_ result: ReadinessResult, ungated: Double, value: Double,

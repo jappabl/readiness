@@ -52,14 +52,14 @@ struct MetricExplanationTests {
     func debtExplanationTracksTheModel() {
         let text = MetricKind.sleepDebt.explanation.lowercased()
 
-        #expect(SleepDebt.window == 7,
-                "the window moved; this explanation and this test both need rewording")
-        #expect(!text.contains("two weeks") && !text.contains("fortnight"),
-                "says a fortnight, but the balance looks back \(SleepDebt.window) nights")
-        // "The last week" was itself wrong, if more subtly: the window counts *recorded*
-        // nights, so at four nights of watch wear a week it spans twelve calendar days.
-        #expect(text.contains("seven nights"), "never says how far back it looks")
-        #expect(!text.contains("last week"), "counts nights, not days")
+        // Every fixed span this sentence has named has been wrong. It said a fortnight
+        // after the window became a week; "the last week" then counted *recorded* nights,
+        // which at four nights of wear a week spans twelve calendar days; and the window
+        // is now a decay with no edge at all. So it must not name a span.
+        #expect(!text.contains("two weeks") && !text.contains("fortnight"))
+        #expect(!text.contains("seven nights") && !text.contains("last week"),
+                "names a fixed span, and the balance no longer has one")
+        #expect(text.contains("fade"), "never says that old nights stop counting")
 
         // `SleepDebt.reference(for:)` is the median floored at `learnedFloorHours`.
         // `SleepNeed`'s upper-percentile need is a different quantity for a different
