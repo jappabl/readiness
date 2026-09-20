@@ -195,7 +195,14 @@ public struct OnboardingConversation: Sendable {
             let nights = daysRead == 1 ? "1 night" : "\(daysRead) nights"
             // The payoff for every question they just answered: their own history,
             // read back to them, with the chart that proves it.
-            say("\(nights), read. That's your normal now, and I'll tell you when it moves.",
+            //
+            // Only claimed once there is enough to draw. `BaselineSummary` needs seven
+            // readings before it will place anybody in their own range, so below that the
+            // reveal under this sentence renders nothing at all — and "that's your normal
+            // now" landed over an empty space for every watch bought this week.
+            say(daysRead >= BaselineSummary.minimumReadings
+                    ? "\(nights), read. That's your normal now, and I'll tell you when it moves."
+                    : "\(nights) so far. I need about a week before I can call it your normal.",
                 chart: .hrv)
         }
         routeHealthDetails(profile, today: today, skipped: false, hasHealthData: hasHealthData)

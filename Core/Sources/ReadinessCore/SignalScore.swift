@@ -433,7 +433,13 @@ public enum RecoveryScore {
             let debtLevel = 1 - Swift.min(1, debtZ / cappedZ)
             return ScoreContributor(
                 id: contribution.kind.rawValue,
-                title: owesNothing ? "Sleep" : contribution.kind.displayName,
+                // "Sleep debt" even at zero. Titling it "Sleep" avoided the phrase
+                // "0 h of debt", but the insights tile is a symbol, a title, a number and
+                // a bar with no sentence anywhere — so it drew a bed, the word "Sleep" and
+                // the number 0 h, every single morning for the best-behaved user. "Sleep
+                // debt 0 h" under a full bar and an up arrow is the less wrong of the two
+                // on a tile that cannot explain itself.
+                title: contribution.kind.displayName,
                 value: owesNothing ? 0 : reading?.value,
                 unit: contribution.kind.unit,
                 comparison: isDebt ? nil : reading?.baseline,

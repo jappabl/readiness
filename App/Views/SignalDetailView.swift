@@ -117,10 +117,17 @@ struct SignalDetailView: View {
     @ViewBuilder
     private func metricCard(_ kind: MetricKind, symbol: String, label: String) -> some View {
         if let reading = model.reading(kind) {
+            // The arrow points the way the *reading* moved; the colour says whether that
+            // was good news. `trendFavourable` exists for exactly this and had no caller,
+            // so it defaulted to true and every arrow on this screen was green — a resting
+            // heart rate ten beats above baseline drew a green arrow here and a red one on
+            // the two screens that show the same row.
+            let favourable = reading.zScore * kind.polarity >= 0
             StatCard(symbol: symbol, label: label,
                      value: reading.value.formatted(.number.precision(.fractionLength(1))),
                      unit: reading.kind.unit,
-                     trend: reading.zScore * kind.polarity >= 0 ? .up : .down)
+                     trend: reading.zScore >= 0 ? .up : .down,
+                     trendFavourable: favourable)
         } else {
             StatCard(symbol: symbol, label: label, value: "—")
         }

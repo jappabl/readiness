@@ -252,4 +252,25 @@ struct OnboardingRevealTests {
         // The reveal is not skipped just because something else needs asking.
         #expect(flow.turns.contains { $0.chart != nil })
     }
+
+    /// The reveal under this sentence needs seven readings before it can place anybody in
+    /// their own range, so below that it renders nothing — and "that's your normal now"
+    /// landed over an empty space for every watch bought this week.
+    @Test("a normal is only claimed once there is one to show",
+          arguments: [1, 3, 6])
+    func noNormalClaimedTooEarly(days: Int) {
+        var flow = atReading(days: days)
+        flow.finishReading(hasHealthData: true, daysRead: days)
+        let said = flow.turns.map(\.text).joined(separator: " ")
+        #expect(!said.contains("That's your normal now"),
+                "claimed a normal off \(days) days")
+        #expect(said.contains("\(days)"), "never said how much it had")
+    }
+
+    @Test("and is claimed once there is", arguments: [7, 30, 180])
+    func normalClaimedWhenEarned(days: Int) {
+        var flow = atReading(days: days)
+        flow.finishReading(hasHealthData: true, daysRead: days)
+        #expect(flow.turns.map(\.text).joined().contains("That's your normal now"))
+    }
 }
