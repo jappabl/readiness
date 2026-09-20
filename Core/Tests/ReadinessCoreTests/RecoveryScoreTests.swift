@@ -403,3 +403,121 @@ struct ConfidenceSourceTests {
                            daysOfHistory: 60)).confidence == .normal)
     }
 }
+
+@Suite("Sleep debt is judged against zero")
+struct SleepDebtScoringTests {
+
+    private func debtReading(_ hours: Double) -> MetricReading {
+        MetricReading(kind: .sleepDebt, value: hours, baseline: 0,
+                      zScore: hours / SleepDebt.hoursPerDeviation, sampleCount: 14)
+    }
+
+    private func recovery(debtHours: Double) -> Double {
+        let readings = ReadinessEngine.weights.keys.map {
+            $0 == .sleepDebt ? debtReading(debtHours) : reading($0, z: 0)
+        }
+        return RecoveryScore.of(ReadinessEngine.evaluate(
+            ReadinessInput(readings: readings, daysOfHistory: 60))).value ?? -1
+    }
+
+    /// The defect this replaced. Scored against its own rolling average, a stock whose
+    /// deviation is minutes made being eight hours down read as *good news* — it sat
+    /// below an elevated normal — and for a chronic case pinned at the cap the deviation
+    /// was exactly zero, so thirty per cent of recovery's weight stopped voting.
+    @Test("more debt is always worse, and owing nothing is never bad")
+    func monotoneAndAnchored() {
+        var previous = 101.0
+        for hours in stride(from: 0.0, through: 12.0, by: 0.5) {
+            let score = recovery(debtHours: hours)
+            #expect(score <= previous, "debt of \(hours) h scored above \(hours - 0.5) h")
+            previous = score
+        }
+        #expect(recovery(debtHours: 0) >= 50, "owing nothing read as bad news")
+    }
+
+    /// The inversion, stated as a property: no amount of debt may read as a positive.
+    @Test("being in the hole is never good news")
+    func neverOptimal() {
+        for hours in [1.0, 3.0, 6.0, 9.0, 12.0] {
+            let readings = ReadinessEngine.weights.keys.map {
+                $0 == .sleepDebt ? debtReading(hours) : reading($0, z: 0)
+            }
+            let row = RecoveryScore.of(ReadinessEngine.evaluate(
+                ReadinessInput(readings: readings, daysOfHistory: 60)))
+                .contributor(MetricKind.sleepDebt.rawValue)
+            #expect(row?.state != .optimal, "\(hours) h of debt reported as optimal")
+            #expect((row?.magnitude ?? 0) <= 0.001, "\(hours) h of debt pushed the score up")
+        }
+    }
+
+    /// A chronically indebted sleeper is exactly who the metric is for. Pinned at the
+    /// cap it used to have zero deviation and vote on nothing at all.
+    @Test("a capped balance still votes")
+    func cappedStillVotes() {
+        #expect(recovery(debtHours: SleepDebt.maximumHours) < 34,
+                "a maximum balance left recovery in the middle band")
+    }
+
+    /// The grading the step function lost: an hour either side of the line has to mean
+    /// something. It used to be a 36-point switch on whether last night beat 7.2 hours.
+    /// It used to be a 36-point switch on whether last night beat about 7.2 hours, with
+    /// four hours of sleep scoring no worse than six and a half. It has to grade across
+    /// the range that distinguishes people — which runs out where the per-input clamp
+    /// bites, at roughly seven hours behind.
+    @Test("it grades rather than switching")
+    func graded() {
+        let steps = stride(from: 0.0, through: 6.0, by: 1.5).map { recovery(debtHours: $0) }
+        let jumps = zip(steps, steps.dropFirst()).map { $0 - $1 }
+        #expect(jumps.allSatisfy { $0 < 20 },
+                "a single step moved the score by \(jumps.max() ?? 0) points")
+        #expect(jumps.allSatisfy { $0 > 0.5 },
+                "a step moved it by only \(jumps.min() ?? 0) points")
+    }
+
+    /// The range the clamp leaves has to be wide enough to be worth having.
+    @Test("a serious hole reads clearly worse than a small one")
+    func rangeIsUseful() {
+        #expect(recovery(debtHours: 1) - recovery(debtHours: 6) > 12,
+                "one hour behind and six read within 12 points of each other")
+    }
+}
+
+@Suite("A sensor switching on does not move the score")
+struct ClampContinuityTests {
+
+    /// The clamp used to switch on at three streams, so a metric simply starting to
+    /// report — at exactly its own average, saying nothing — moved the score by up to
+    /// seventeen points.
+    @Test("adding a stream that says nothing barely moves it")
+    func addingANeutralStream() throws {
+        for z in [-3.0, -2.0, -1.0, 1.0, 2.0] {
+            let two = [reading(.hrv, z: z), reading(.restingHeartRate, z: -z)]
+            let three = two + [reading(.bloodOxygen, z: 0)]
+            let before = try #require(RecoveryScore.of(ReadinessEngine.evaluate(
+                ReadinessInput(readings: two, daysOfHistory: 60))).value)
+            let after = try #require(RecoveryScore.of(ReadinessEngine.evaluate(
+                ReadinessInput(readings: three, daysOfHistory: 60))).value)
+            #expect(abs(after - before) < 10,
+                    "a silent third stream moved z \(z) from \(before) to \(after)")
+        }
+    }
+
+    /// And the range must not depend on how many sensors somebody owns.
+    @Test("the reachable range is about the same whatever the panel")
+    func rangeIsStable() throws {
+        func span(_ kinds: [MetricKind]) throws -> Double {
+            let worst = try #require(RecoveryScore.of(ReadinessEngine.evaluate(
+                ReadinessInput(readings: kinds.map { reading($0, z: -3 * $0.polarity) },
+                               daysOfHistory: 60))).value)
+            let best = try #require(RecoveryScore.of(ReadinessEngine.evaluate(
+                ReadinessInput(readings: kinds.map { reading($0, z: 3 * $0.polarity) },
+                               daysOfHistory: 60))).value)
+            return best - worst
+        }
+        let all = Array(ReadinessEngine.weights.keys)
+        let spans = [try span([.hrv]), try span([.hrv, .restingHeartRate]),
+                     try span(Array(all.prefix(3))), try span(all)]
+        #expect((spans.max() ?? 0) - (spans.min() ?? 0) < 25,
+                "reachable spans by panel size: \(spans.map { Int($0) })")
+    }
+}

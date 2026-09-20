@@ -58,9 +58,12 @@ public enum MetricKind: String, CaseIterable, Sendable, Codable {
                  + "worth noticing. It tends to go up when you are still recovering "
                  + "from hard training, under-slept, drinking, or fighting something off."
         case .sleepDebt:
-            return "How far short of eight hours you fell. It accumulates: three nights "
-                 + "an hour short adds up to the same debt as one very bad night. Lower "
-                 + "is better, and zero means you met the target."
+            return "How far behind you are over the last two weeks, against what your "
+                 + "own longest nights say you need. It accumulates and it is paid back "
+                 + "the same way: three nights an hour short is the same hole as one "
+                 + "very bad night, and a long night takes some of it off. Zero is the "
+                 + "target, and unlike everything else here that target is the same for "
+                 + "everybody."
         case .respiratoryRate:
             return "Breaths per minute while you sleep. It barely moves night to night, "
                  + "so even a small rise stands out. It usually goes up before you feel "

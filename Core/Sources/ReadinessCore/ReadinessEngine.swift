@@ -145,15 +145,16 @@ public enum ReadinessEngine {
             // The scoring z, not the displayed one: HRV is weighed on its trend.
             let clamped = Swift.min(Swift.max(reading.scoringZ, -zClamp), zClamp)
             let aligned = clamped * reading.kind.polarity
-            // No single input may leave the middle band on its own — but only where
-            // there are other inputs for it to overrule. Applied to a one- or two-stream
-            // panel the clamp capped the scale itself rather than any one voice: an
-            // iPhone-only user's ring could read 32 to 68 and nothing else, never red.
-            let raw = weight * aligned
-            let points = present.count >= 3
-                ? Swift.min(Swift.max(raw, -RecoveryScore.contributionClamp),
-                            RecoveryScore.contributionClamp)
-                : raw
+            // No single input may leave the middle band on its own — but the limit has
+            // to scale with how many inputs there are, or it bounds the scale rather
+            // than any one voice. Switching it on at three streams made a sensor simply
+            // starting to report move the score by up to seventeen points on unchanged
+            // physiology; applying it flat left an iPhone-only ring able to read 32 to
+            // 68 and nothing else, never red. Held so the reachable range is the same
+            // whatever the panel, and the clamp only ever restrains a minority voice.
+            let limit = RecoveryScore.contributionClamp
+                * Double(weights.count) / Double(Swift.max(1, present.count))
+            let points = Swift.min(Swift.max(weight * aligned, -limit), limit)
             return InputContribution(kind: reading.kind, zScore: reading.zScore,
                                      weight: weight, points: points, alignedZ: aligned)
         }

@@ -21,15 +21,25 @@ enum DayAssembler {
     /// one dynamic in `SleepScore`, and they were both on screen at once.
     static let sleepNeedHours: Double = SleepNeed.baselineHours
 
-    /// The outstanding balance as it stood on each day of the series, so the metric has
-    /// a history to be scored against rather than a single value.
-    private static func runningDebt(_ series: [DailyPhysiology]) -> [Double?] {
-        var nights: [Double] = []
-        return series.map { day in
-            guard let hours = day.sleepHours else { return nil }
-            nights.append(hours)
-            return SleepDebt.of(nights: nights).hours
-        }
+    /// The debt reading, scored against zero rather than against the sleeper's own
+    /// average debt.
+    ///
+    /// Every other metric here is a fluctuating measurement with a meaningful personal
+    /// normal, and a z-score is the right tool for those. Debt is neither: it is a slow
+    /// stock whose rolling deviation is minutes, and it has a true zero that means the
+    /// same thing for everybody. Scored relatively it inverted — being eight hours down
+    /// read as good news because it sat under an elevated mean — and for a chronic case
+    /// pinned at the cap its deviation was exactly zero, so it stopped voting entirely.
+    private static func debtReading(_ series: [DailyPhysiology]) -> MetricReading? {
+        let nights = series.compactMap(\.sleepHours)
+        guard nights.count >= 2 else { return nil }
+        let debt = SleepDebt.of(nights: nights)
+        return MetricReading(kind: .sleepDebt,
+                             value: debt.hours,
+                             // Owing nothing is the target, for everybody.
+                             baseline: 0,
+                             zScore: debt.hours / SleepDebt.hoursPerDeviation,
+                             sampleCount: debt.nights)
     }
 
     static func assemble(series: [DailyPhysiology], acwr: Double? = nil) -> AssembledDay? {
@@ -62,10 +72,11 @@ enum DayAssembler {
 
         add(.hrv, series.map(\.hrvSDNN))
         add(.restingHeartRate, series.map(\.restingHeartRate))
-        // The running balance, not one night's shortfall. A stock is what "how far
-        // behind am I" means, and it is the thing that was making the sleep score
-        // unreadable when it lived there instead.
-        add(.sleepDebt, runningDebt(series))
+        // The running balance, on its own absolute scale — see `debtReading`.
+        if let debt = debtReading(series) {
+            readings.append(debt)
+            trendReadings.append(debt)
+        }
         add(.respiratoryRate, series.map(\.respiratoryRate))
         add(.bloodOxygen, series.map(\.bloodOxygenPercent))
 

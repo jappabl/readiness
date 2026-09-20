@@ -496,17 +496,26 @@ final class AppModel {
         let cutoff = Calendar.current.startOfDay(for: date).addingTimeInterval(86_399)
         let recent = Array(series.filter { $0.date <= cutoff }.suffix(days))
         var out: [MetricKind: [Double]] = [:]
+        var nights: [Double] = []
+        out[.sleepDebt] = recent.compactMap { day -> Double? in
+            guard let hours = day.sleepHours else { return nil }
+            nights.append(hours)
+            return SleepDebt.of(nights: nights).hours
+        }
         for kind in MetricKind.allCases {
             let values = recent.compactMap { day -> Double? in
                 switch kind {
                 case .hrv: return day.hrvSDNN
                 case .restingHeartRate: return day.restingHeartRate
-                case .sleepDebt: return day.sleepHours.map { DayAssembler.sleepNeedHours - $0 }
+                // The balance as it stood, matching the number the row shows. It used
+                // to be last night's shortfall — a different quantity on a different
+                // scale, drawn under a reference line taken from the other one.
+                case .sleepDebt: return nil
                 case .respiratoryRate: return day.respiratoryRate
                 case .bloodOxygen: return day.bloodOxygenPercent
                 }
             }
-            if !values.isEmpty { out[kind] = values }
+            if !values.isEmpty, out[kind] == nil { out[kind] = values }
         }
         return out
     }
@@ -524,7 +533,12 @@ final class AppModel {
     func recoveryScore(on date: Date) -> SignalScore {
         let calendar = Calendar.current
         let upToDate = series.filter { $0.date <= calendar.startOfDay(for: date).addingTimeInterval(86_399) }
-        guard let assembled = DayAssembler.assemble(series: upToDate.filter(\.hasReadinessData), acwr: acwr),
+        // Dated, like everything else on this path. Passing today's ratio meant one live
+        // spike capped every past day in the calendar at 66 and hung a contributor row
+        // on each of them about a spike that had not happened yet.
+        let ratio = context.flatMap { computeACWR(from: $0, on: date) }
+        guard let assembled = DayAssembler.assemble(series: upToDate.filter(\.hasReadinessData),
+                                                    acwr: ratio),
               calendar.isDate(assembled.date, inSameDayAs: date) else {
             return SignalScore(kind: .recovery, value: nil, band: nil, contributors: [],
                                coverage: .unavailable, missing: ["Health data"],
@@ -788,12 +802,12 @@ final class AppModel {
 
     // MARK: - Derived load
 
-    private func computeACWR(from context: ModelContext) -> Double? {
+    private func computeACWR(from context: ModelContext, on date: Date = Date()) -> Double? {
         let sessions = (try? context.fetch(FetchDescriptor<WorkoutSession>())) ?? []
         guard !sessions.isEmpty else { return nil }
 
         let calendar = Calendar.current
-        let today = calendar.startOfDay(for: Date())
+        let today = calendar.startOfDay(for: date)
         var daily: [Double] = []
         for offset in stride(from: StrainEngine.chronicDays - 1, through: 0, by: -1) {
             guard let date = calendar.date(byAdding: .day, value: -offset, to: today) else { continue }

@@ -324,6 +324,14 @@ public enum RecoveryScore {
         }
     }
 
+    /// Debt speaks in hours behind, not in distance from a personal normal.
+    private static func debtNote(isDebt: Bool, owesNothing: Bool, hours: Double) -> String? {
+        guard isDebt else { return nil }
+        guard !owesNothing else { return "You are not down on sleep." }
+        let formatted = hours.formatted(.number.precision(.fractionLength(0...1)))
+        return "About \(formatted) hours behind over the last two weeks."
+    }
+
     private static func contributors(_ result: ReadinessResult, ungated: Double, value: Double,
                                      readings: [MetricReading],
                                      history: [MetricKind: [Double]]) -> [ScoreContributor] {
@@ -345,17 +353,18 @@ public enum RecoveryScore {
             let reading = readings.first { $0.kind == contribution.kind }
             let aligned = contribution.zScore * contribution.kind.polarity
             let scoringAligned = contribution.alignedZ ?? aligned
-            // Sleep debt is hours short of the target, so a well-rested person's is
-            // negative — and a tile reading "-0.9 h" under the word "debt" is a puzzle,
-            // not a measurement. Shown as none owed, and titled for what it is.
-            let owesNothing = contribution.kind == .sleepDebt && (reading?.value ?? 0) <= 0
+            // Debt is judged against zero rather than against a personal normal, so
+            // there is no baseline to mark and "your normal" would be a lie. A balance
+            // of nothing is titled for what it is rather than shown as "0 h of debt".
+            let isDebt = contribution.kind == .sleepDebt
+            let owesNothing = isDebt && (reading?.value ?? 0) < 0.25
             return ScoreContributor(
                 id: contribution.kind.rawValue,
                 title: owesNothing ? "Sleep" : contribution.kind.displayName,
                 value: owesNothing ? 0 : reading?.value,
                 unit: contribution.kind.unit,
-                comparison: owesNothing ? nil : reading?.baseline,
-                comparisonLabel: reading == nil || owesNothing ? nil : "your normal",
+                comparison: isDebt ? nil : reading?.baseline,
+                comparisonLabel: reading == nil || isDebt ? nil : "your normal",
                 // Both read the z the engine actually weighed, not today's raw one.
                 // For HRV — the only metric scored on its trend — those differ, and the
                 // row could show an alarming red dot beside a magnitude saying it barely
@@ -365,7 +374,8 @@ public enum RecoveryScore {
                 symbol: contribution.kind.symbol,
                 magnitude: contribution.points * ratio,
                 explanation: contribution.kind.explanation,
-                note: owesNothing ? "You are not down on sleep." : nil,
+                note: debtNote(isDebt: isDebt, owesNothing: owesNothing,
+                               hours: reading?.value ?? 0),
                 history: history[contribution.kind] ?? [])
         }
         // Clamped inputs tie on magnitude exactly, so without a second key the leading

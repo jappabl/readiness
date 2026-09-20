@@ -379,3 +379,45 @@ struct SedentaryDayTests {
         #expect(value >= 70 && value < 85, "a 3 hour easy ride read as \(value)")
     }
 }
+
+@Suite("Acute-to-chronic needs a real chronic window")
+struct ACWRGuardTests {
+
+    /// One volume per day, most recent last.
+    private func days(sessionsOn offsets: [Int]) -> [Double] {
+        (0..<StrainEngine.chronicDays).map { index in
+            let offset = StrainEngine.chronicDays - 1 - index
+            return offsets.contains(offset) ? 1000 : 0
+        }
+    }
+
+    /// The guard's own comment says one session against twenty-seven rest days is
+    /// arithmetically a 4.0 spike and tells you nothing. Three sessions crammed into the
+    /// most recent week against twenty-one empty ones is the same 4.0, and it capped
+    /// every good morning of a new logger's first fortnight.
+    @Test("a first week of logging is not a spike")
+    func firstWeekIsNotASpike() {
+        #expect(StrainEngine.acwr(daily: days(sessionsOn: [1, 3, 5])) == nil)
+        #expect(StrainEngine.acwr(daily: days(sessionsOn: [0, 2, 4, 6])) == nil)
+    }
+
+    @Test("neither is a first week back after a lay-off")
+    func returningIsNotASpike() {
+        #expect(StrainEngine.acwr(daily: days(sessionsOn: [1, 3, 5])) == nil)
+    }
+
+    /// But a genuine spike, on top of a real habit, still has to register.
+    @Test("a real spike on a real history still fires")
+    func realSpikeFires() throws {
+        let habit = Array(stride(from: 8, through: 27, by: 3))
+        let ratio = try #require(StrainEngine.acwr(daily: days(sessionsOn: habit + [0, 1, 2, 3, 4, 5, 6])))
+        #expect(ratio > ReadinessEngine.acwrGate, "a genuine spike read as \(ratio)")
+    }
+
+    @Test("and a steady habit does not")
+    func steadyIsClear() throws {
+        let steady = Array(stride(from: 0, through: 27, by: 3))
+        let ratio = try #require(StrainEngine.acwr(daily: days(sessionsOn: steady)))
+        #expect(ratio <= ReadinessEngine.acwrGate, "a steady habit read as \(ratio)")
+    }
+}

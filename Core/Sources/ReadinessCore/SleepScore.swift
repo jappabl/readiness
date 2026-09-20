@@ -124,6 +124,28 @@ public struct SleepDebt: Sendable, Equatable {
     public let change: Double
     public let nights: Int
 
+    /// How many hours in the hole count as one standard deviation of bad news.
+    ///
+    /// Debt is scored absolutely rather than against the sleeper's own rolling average,
+    /// which is the whole point of the constant existing. A stock has almost no
+    /// day-to-day variance to divide by — measured over sixty days its deviation was
+    /// minutes, and for a chronically short sleeper pinned at the cap it was exactly
+    /// zero, leaving thirty per cent of recovery's weight inert. Worse, scoring an
+    /// absolute-bad quantity against its own mean inverts it: sitting at eight hours
+    /// down read as *good news* because it was slightly below an elevated normal.
+    ///
+    /// Owing nothing is good for everybody, so zero is the anchor and the scale is
+    /// stated.
+    ///
+    /// Six hours, not three, because of where the per-input clamp bites: debt carries a
+    /// weight of 0.30 against a limit of 0.35, so it saturates at about 1.17 standard
+    /// deviations however the scale is drawn. At three hours per deviation that put the
+    /// ceiling at three and a half hours behind — twelve hours in the hole scored no
+    /// worse — and the metric graded over a range narrower than a single bad week. At
+    /// six it grades across the seven hours that actually distinguish people, and
+    /// flattens only where further distinctions stop mattering.
+    public static let hoursPerDeviation = 6.0
+
     /// How far back it looks. Longer than the old seven-night window, because a balance
     /// that forgets last Tuesday is not a balance.
     public static let window = 14
