@@ -34,7 +34,6 @@ struct SignalDetailView: View {
                               accessory: (label: "View insights", symbol: "sparkles"),
                               action: { showingWhy = true })
                     timeline
-                    trends
                 }
                 .padding(.horizontal, Tokens.screenMargin)
                 .padding(.bottom, 16)
@@ -206,44 +205,6 @@ struct SignalDetailView: View {
             }
             guard let value, value.isFinite, value >= 0 else { return nil }
             return (date: day.date, value: value)
-        }
-    }
-
-    // MARK: - Trends
-
-    private var trends: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Trends").sectionHeading()
-            Group {
-                switch signal {
-                case .recovery:
-                    Sparkline(values: model.compositeHistory(), tint: Tokens.recoveryHigh)
-                        .frame(height: 96)
-                case .sleep:
-                    Sparkline(values: model.sleepHoursSeries(), tint: Tokens.sleepLow)
-                        .frame(height: 96)
-                case .strain:
-                    let observations = strainObservations
-                    if observations.isEmpty {
-                        Text("No activity history for this measure")
-                            .font(.system(size: 13)).foregroundStyle(Tokens.textSecondary)
-                            .frame(height: 96)
-                    } else {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("\(model.dailyStrain?.metric.label ?? "Activity") · \(model.dailyStrain?.metric.unit ?? "")")
-                                .font(.caption).foregroundStyle(Tokens.textSecondary)
-                            Chart(observations, id: \.date) { observation in
-                                BarMark(x: .value("Day", observation.date, unit: .day),
-                                        y: .value("Recorded activity", observation.value))
-                                    .foregroundStyle(Tokens.strainLow.opacity(0.85))
-                            }
-                            .chartXAxis(.hidden)
-                            .frame(height: 96)
-                        }
-                    }
-                }
-            }
-            .bevelCard(padding: 14)
         }
     }
 }

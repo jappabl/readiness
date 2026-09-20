@@ -501,8 +501,9 @@ final class AppModel {
     var recoveryPercent: Int? { recoveryScore.value.map { max(1, Int($0.rounded())) } }
 
     /// The trailing values behind each contributor, for the chart its row expands to.
-    private func metricHistory(days: Int = 28) -> [MetricKind: [Double]] {
-        let recent = Array(series.suffix(days))
+    private func metricHistory(days: Int = 28, endingOn date: Date = Date()) -> [MetricKind: [Double]] {
+        let cutoff = Calendar.current.startOfDay(for: date).addingTimeInterval(86_399)
+        let recent = Array(series.filter { $0.date <= cutoff }.suffix(days))
         var out: [MetricKind: [Double]] = [:]
         for kind in MetricKind.allCases {
             let values = recent.compactMap { day -> Double? in
@@ -519,10 +520,35 @@ final class AppModel {
         return out
     }
 
-    /// Last night against what it needed to be, with the structure that adjusted it.
-    var sleepScore: SignalScore {
+    /// The three scores for any day the series covers.
+    ///
+    /// Every accessor below used to hard-code "today", which meant the app could only
+    /// ever describe this morning. The engines never cared — each one reads a series
+    /// ending at the day in question — so a calendar is a matter of passing a date.
+    func scores(on date: Date, context: ModelContext? = nil)
+    -> (recovery: SignalScore, sleep: SignalScore, strain: SignalScore) {
+        (recoveryScore(on: date), sleepScore(on: date), strainScore(on: date, context: context))
+    }
+
+    func recoveryScore(on date: Date) -> SignalScore {
         let calendar = Calendar.current
-        let today = calendar.startOfDay(for: Date())
+        let upToDate = series.filter { $0.date <= calendar.startOfDay(for: date).addingTimeInterval(86_399) }
+        guard let assembled = DayAssembler.assemble(series: upToDate.filter(\.hasReadinessData)),
+              calendar.isDate(assembled.date, inSameDayAs: date) else {
+            return SignalScore(kind: .recovery, value: nil, band: nil, contributors: [],
+                               coverage: .unavailable, missing: ["Health data"],
+                               modelVersion: ReadinessEngine.modelVersion)
+        }
+        return RecoveryScore.of(assembled.readiness, readings: assembled.readings,
+                                history: metricHistory(endingOn: date))
+    }
+
+    /// Last night against what it needed to be, with the structure that adjusted it.
+    var sleepScore: SignalScore { sleepScore(on: Date()) }
+
+    func sleepScore(on date: Date) -> SignalScore {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: date)
         let current = series.last { calendar.isDate($0.date, inSameDayAs: today) }
         let cutoff = calendar.date(byAdding: .day, value: -28, to: today)!
         let past = series.filter { $0.date >= cutoff && $0.date < today }
@@ -533,7 +559,8 @@ final class AppModel {
             priorNights: Array(past.compactMap(\.sleepHours).suffix(SleepNeed.debtWindow)),
             // Yesterday's load is what tonight has to recover from, not today's, which
             // has not happened yet when the score is read in the morning.
-            strain: yesterdayStrain,
+            strain: strainScore(on: calendar.date(byAdding: .day, value: -1, to: today) ?? today,
+                                context: nil).value,
             sleepingHeartRate: current?.sleepingHeartRate,
             daytimeHeartRate: current?.wakingHeartRate))
     }
@@ -547,15 +574,26 @@ final class AppModel {
     }
 
     func strainScore(context: ModelContext?) -> SignalScore {
-        let today = series.last { Calendar.current.isDateInToday($0.date) }
+        strainScore(on: Date(), context: context)
+    }
+
+    func strainScore(on date: Date, context: ModelContext?) -> SignalScore {
+        let calendar = Calendar.current
+        let day = series.last { calendar.isDate($0.date, inSameDayAs: date) }
+        let activity = series.map {
+            DailyActivity(date: $0.date, activeEnergyKcal: $0.activeEnergyKcal,
+                          exerciseMinutes: $0.exerciseMinutes, steps: $0.steps,
+                          workoutEnergyKcal: $0.workoutEnergyKcal,
+                          workoutMinutes: $0.workoutMinutes)
+        }
         return StrainScore.of(StrainInput(
-            samples: Self.waking(today),
-            restingHeartRate: baseline(.restingHeartRate) ?? today?.restingHeartRate,
+            samples: Self.waking(day),
+            restingHeartRate: baseline(.restingHeartRate) ?? day?.restingHeartRate,
             ageYears: healthProfile.ageYears(),
             biologicalSex: healthProfile.biologicalSex,
             observedMaxHeartRate: series.compactMap(\.heartRateMax).max(),
-            hardSets: hardSetsToday(context: context),
-            fallback: dailyStrain))
+            hardSets: hardSets(on: date, context: context),
+            fallback: DailyStrain.evaluate(days: activity, on: date)))
     }
 
     var strainScore: SignalScore { strainScore(context: context) }
@@ -563,22 +601,7 @@ final class AppModel {
         strainScore(context: context).value.map { Int($0.rounded()) }
     }
 
-    /// Yesterday's strain, for tonight's sleep need. Read from the recorded heart rate
-    /// alone: the lifting log is keyed to sessions rather than to the physiology series,
-    /// and a missing session should not silently lower what the night is asked for.
-    private var yesterdayStrain: Double? {
-        guard let yesterday = series.last(where: {
-            Calendar.current.isDateInYesterday($0.date)
-        }), !yesterday.heartRateSamples.isEmpty else { return nil }
-        return StrainScore.of(StrainInput(
-            samples: Self.waking(yesterday),
-            restingHeartRate: baseline(.restingHeartRate),
-            ageYears: healthProfile.ageYears(),
-            biologicalSex: healthProfile.biologicalSex,
-            observedMaxHeartRate: series.compactMap(\.heartRateMax).max())).value
-    }
-
-    /// The day's heart rate with the night cut out.
+    /// A day's heart rate with the night cut out.
     ///
     /// Strain is what being awake cost. Leaving the night in did not move the number —
     /// the everyday load saturates either way — but it put "Everyday movement, 1,440 min"
@@ -593,11 +616,11 @@ final class AppModel {
         return day.heartRateSamples.filter { $0.start < start || $0.start >= end }
     }
 
-    private func hardSetsToday(context: ModelContext?) -> Int {
+    private func hardSets(on date: Date, context: ModelContext?) -> Int {
         guard let context,
               let sessions = try? context.fetch(FetchDescriptor<WorkoutSession>()) else { return 0 }
         return sessions
-            .filter { Calendar.current.isDateInToday($0.date) }
+            .filter { Calendar.current.isDate($0.date, inSameDayAs: date) }
             .reduce(0) { $0 + $1.load.hardSetsByMuscle.values.reduce(0, +) }
     }
 

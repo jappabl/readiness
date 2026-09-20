@@ -53,10 +53,10 @@
 		F7A13A0A58D5EA34A47F332E /* ProgramViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1B13F77AD2D8F94F4953163 /* ProgramViews.swift */; };
 		03F7423240A620AD290DA7E0 /* SessionViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D172633C7AC91EFD03D370B /* SessionViews.swift */; };
 		F4DA05AA778706DA63AA2EA5 /* SignalDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8EC7DE941CACCBD1BF749F9 /* SignalDetailView.swift */; };
+		70D07957F0C74B5AA46BAF1C /* CalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4F3EA3EBE864EF391B7D9AD /* CalendarView.swift */; };
 		CF0AA57D606C48A894B2CB5E /* InsightsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D16EF9A0AB8846CEB4E6FA31 /* InsightsView.swift */; };
 		541C59ABE797C87E4BBA51A8 /* TodayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 413893742ACAB1BB14BDF3DD /* TodayView.swift */; };
 		C46266E031749544D0DF6C53 /* TrainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC32141384EFB7AF34329A9C /* TrainView.swift */; };
-		9B326C3D7DDEF1C10DE1ED1D /* TrendsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 416383B0D43FF50A3203AA60 /* TrendsView.swift */; };
 		D085794618AE538D4BE3D478 /* WhyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2B0A795BF9B08D14DCEB342 /* WhyView.swift */; };
 		D072615FEFD249E88D115417 /* PaywallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C95AB93C82A34BC0B01D62C5 /* PaywallView.swift */; };
 		A70E92D1032C41FEBC942B02 /* PaywallDemo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AD2DCC0F47C4BD8A3688C09 /* PaywallDemo.swift */; };
@@ -146,10 +146,10 @@
 		D1B13F77AD2D8F94F4953163 /* ProgramViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProgramViews.swift"; sourceTree = "<group>"; };
 		5D172633C7AC91EFD03D370B /* SessionViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SessionViews.swift"; sourceTree = "<group>"; };
 		A8EC7DE941CACCBD1BF749F9 /* SignalDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SignalDetailView.swift"; sourceTree = "<group>"; };
+		A4F3EA3EBE864EF391B7D9AD /* CalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CalendarView.swift"; sourceTree = "<group>"; };
 		D16EF9A0AB8846CEB4E6FA31 /* InsightsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "InsightsView.swift"; sourceTree = "<group>"; };
 		413893742ACAB1BB14BDF3DD /* TodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TodayView.swift"; sourceTree = "<group>"; };
 		BC32141384EFB7AF34329A9C /* TrainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TrainView.swift"; sourceTree = "<group>"; };
-		416383B0D43FF50A3203AA60 /* TrendsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TrendsView.swift"; sourceTree = "<group>"; };
 		E2B0A795BF9B08D14DCEB342 /* WhyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WhyView.swift"; sourceTree = "<group>"; };
 		C95AB93C82A34BC0B01D62C5 /* PaywallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PaywallView.swift"; sourceTree = "<group>"; };
 		0AD2DCC0F47C4BD8A3688C09 /* PaywallDemo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PaywallDemo.swift"; sourceTree = "<group>"; };
@@ -338,10 +338,10 @@
 				D1B13F77AD2D8F94F4953163 /* ProgramViews.swift */,
 				5D172633C7AC91EFD03D370B /* SessionViews.swift */,
 				A8EC7DE941CACCBD1BF749F9 /* SignalDetailView.swift */,
+				A4F3EA3EBE864EF391B7D9AD /* CalendarView.swift */,
 				D16EF9A0AB8846CEB4E6FA31 /* InsightsView.swift */,
 				413893742ACAB1BB14BDF3DD /* TodayView.swift */,
 				BC32141384EFB7AF34329A9C /* TrainView.swift */,
-				416383B0D43FF50A3203AA60 /* TrendsView.swift */,
 				E2B0A795BF9B08D14DCEB342 /* WhyView.swift */,
 				C95AB93C82A34BC0B01D62C5 /* PaywallView.swift */,
 				0AD2DCC0F47C4BD8A3688C09 /* PaywallDemo.swift */,
@@ -510,10 +510,10 @@
 				F7A13A0A58D5EA34A47F332E /* ProgramViews.swift in Sources */,
 				03F7423240A620AD290DA7E0 /* SessionViews.swift in Sources */,
 				F4DA05AA778706DA63AA2EA5 /* SignalDetailView.swift in Sources */,
+				70D07957F0C74B5AA46BAF1C /* CalendarView.swift in Sources */,
 				CF0AA57D606C48A894B2CB5E /* InsightsView.swift in Sources */,
 				541C59ABE797C87E4BBA51A8 /* TodayView.swift in Sources */,
 				C46266E031749544D0DF6C53 /* TrainView.swift in Sources */,
-				9B326C3D7DDEF1C10DE1ED1D /* TrendsView.swift in Sources */,
 				D085794618AE538D4BE3D478 /* WhyView.swift in Sources */,
 				D072615FEFD249E88D115417 /* PaywallView.swift in Sources */,
 				A70E92D1032C41FEBC942B02 /* PaywallDemo.swift in Sources */,

@@ -55,7 +55,9 @@ struct RootView: View {
         // QA: the home cards on their own, so a styling change can be looked at without
         // a seeded database and a walk through onboarding. Reached only by launch
         // argument, and the simulator's tap injection wedges often enough to need it.
-        if let signal = Self.detailHarness {
+        if Self.calendarHarness {
+            NavigationStack { CalendarView() }
+        } else if let signal = Self.detailHarness {
             NavigationStack { SignalDetailView(signal: signal) }
         } else if let signal = Self.insightsHarness {
             InsightsView(score: SampleScores.score(for: signal))
@@ -73,6 +75,15 @@ struct RootView: View {
     private static let cardGallery: Bool = {
         #if DEBUG
         ProcessInfo.processInfo.arguments.contains("--card-gallery")
+        #else
+        false
+        #endif
+    }()
+
+    /// `--calendar`, for the month grid. Pairs with `--demo-today`.
+    private static let calendarHarness: Bool = {
+        #if DEBUG
+        ProcessInfo.processInfo.arguments.contains("--calendar")
         #else
         false
         #endif
@@ -108,7 +119,7 @@ struct RootView: View {
         TabView(selection: $tab) {
             NavigationStack { TodayView() }.hidingSystemTabBar().tag(0)
             NavigationStack { TrainView() }.hidingSystemTabBar().tag(1)
-            NavigationStack { TrendsView() }.hidingSystemTabBar().tag(2)
+            NavigationStack { CalendarView() }.hidingSystemTabBar().tag(2)
             NavigationStack { ProfileView() }.hidingSystemTabBar().tag(3)
         }
         .task {

@@ -10,6 +10,7 @@ struct TodayView: View {
     @State private var pickingProgram = false
     @State private var showingAdjust = false
     @State private var showingWhy = false
+    @State private var pastDay: DayKey?
     @State private var activeSession: WorkoutSession?
     @State private var loggingWeight = false
     @State private var loggingMeal = false
@@ -41,15 +42,45 @@ struct TodayView: View {
                 WhyView(day: day, recommendation: rec)
             }
         }
+        .sheet(item: $pastDay) { DayDetailView(date: $0.date) }
+    }
+
+    /// The last six days that have anything recorded on them. Today is the screen you
+    /// are already on, so it is not in the list.
+    private var recentDays: [Date] {
+        let calendar = Calendar.current
+        return model.series
+            .map { calendar.startOfDay(for: $0.date) }
+            .filter { !calendar.isDateInToday($0) && $0 < Date() }
+            .suffix(6)
+            .reversed()
     }
 
     private var header: some View {
         HStack {
-            HStack(spacing: 5) {
-                Text("Today, ") + Text(Date(), format: .dateTime.month(.wide).day())
+            // The date is a way back into the week, not a label. A shortcut for the
+            // last few days, with the calendar behind it for anything older.
+            Menu {
+                ForEach(recentDays, id: \.self) { day in
+                    Button {
+                        Haptics.light()
+                        pastDay = DayKey(date: day)
+                    } label: {
+                        Label(day.formatted(.dateTime.weekday(.wide).month(.abbreviated).day()),
+                              systemImage: Calendar.current.isDateInYesterday(day)
+                                  ? "clock.arrow.circlepath" : "calendar")
+                    }
+                }
+            } label: {
+                HStack(spacing: 5) {
+                    Text("Today, ") + Text(Date(), format: .dateTime.month(.wide).day())
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Tokens.textSecondary)
+                }
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(Tokens.textPrimary)
             }
-            .font(.system(size: 17, weight: .semibold))
-            .foregroundStyle(Tokens.textPrimary)
             Spacer()
             // The profile button, not a sleep affordance. It was purple because purple
             // was to hand, which is exactly the decoration the icon rule exists to stop.
@@ -215,19 +246,27 @@ struct TodayView: View {
     private var checkInPrompt: some View {
         if model.todayCheckIn == nil {
             Button { showingCheckIn = true } label: {
-                HStack(spacing: 12) {
+                HStack(spacing: 11) {
+                    // The one coloured icon left outside a ring, and it earns it: this
+                    // is a single call to action rather than a row in a grid of
+                    // readings, and a sunrise the colour of one says "morning" before
+                    // the words are read.
                     Image(systemName: "sun.horizon.fill")
-                        .font(.system(size: 15))
-                        .foregroundStyle(Tokens.accent)
+                        .font(.system(size: 17, weight: .medium))
+                        .foregroundStyle(Tokens.strainLow)
                     Text("How are you feeling?")
                         .font(.body.weight(.semibold)).foregroundStyle(Tokens.textPrimary)
                     Spacer(minLength: 0)
-                    Image(systemName: "arrow.right")
-                        .font(.system(size: 13))
-                        .foregroundStyle(Tokens.textSecondary)
                 }
-                .padding(18).frame(minHeight: 62)
-                .background(Tokens.accent.opacity(0.09), in: RoundedRectangle(cornerRadius: Tokens.cardRadius))
+                .padding(.horizontal, 16).padding(.vertical, 16).frame(minHeight: 58)
+                // Outlined, not filled, and no arrow. A tinted slab and an arrow were
+                // two ways of saying the same thing, and the slab made the smallest
+                // question on the screen its loudest object. A border reads as a
+                // control on its own; the press does the rest.
+                .background {
+                    RoundedRectangle(cornerRadius: Tokens.cardRadius, style: .continuous)
+                        .strokeBorder(Tokens.textPrimary.opacity(0.14), lineWidth: 1)
+                }
                 .contentShape(Rectangle())
             }
             .buttonStyle(PressableStyle())
