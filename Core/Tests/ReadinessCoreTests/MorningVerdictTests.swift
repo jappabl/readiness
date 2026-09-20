@@ -89,6 +89,21 @@ struct MorningVerdictTests {
         #expect(sentence != recoveryScore.summary)
     }
 
+    @Test("the sentence comes from whichever signal moved further, even when recovery is worse")
+    func worseRecoveryWins() {
+        // Mirrors worseSignalWins with the roles swapped: recovery is the more negative
+        // of two qualifying signals. A worstNews that always favored one parameter
+        // regardless of which one actually moved further would pass every other test in
+        // this file — none of them has recovery as the worse of two candidates that both
+        // clear the interruption threshold — and only be caught here.
+        let recoveryScore = score(.recovery, value: 30, magnitude: -14, title: "Heart rate variability")
+        let sleepScore = score(.sleep, value: 55, magnitude: -6, title: "Deep sleep")
+        let sentence = MorningVerdict.sentence(
+            recovery: recoveryScore, sleep: sleepScore, recentSleepScores: ordinaryHistory)
+        #expect(sentence == recoveryScore.summary)
+        #expect(sentence != sleepScore.summary)
+    }
+
     @Test("an ordinary good night stays quiet")
     func goodNightIsSilent() {
         #expect(MorningVerdict.sentence(
@@ -121,6 +136,21 @@ struct MorningVerdictTests {
             sleep: score(.sleep, value: 96, magnitude: 6),
             recentSleepScores: Array(repeating: 94.0, count: 14))
         #expect(sentence == "Your best night in two weeks.")
+    }
+
+    @Test("a best only has to beat the last three weeks, not all of history")
+    func bestIgnoresHistoryOlderThanTheWindow() {
+        // 40 nights: the oldest 19 are a 99 no recent night can beat, the most recent 21
+        // are 94s that tonight's 96 does beat. Every other fixture in this file is
+        // bestWindow (21) or fewer, so `.suffix(bestWindow)` never actually trims
+        // anything in them — deleting it, or swapping it for `.prefix`, changes none of
+        // their outcomes. This is the one history long enough to tell the difference.
+        let longHistory = Array(repeating: 99.0, count: 19) + Array(repeating: 94.0, count: 21)
+        let sentence = MorningVerdict.sentence(
+            recovery: score(.recovery, value: 82, magnitude: 8),
+            sleep: score(.sleep, value: 96, magnitude: 6),
+            recentSleepScores: longHistory)
+        #expect(sentence == "Your best night in three weeks.")
     }
 
     @Test("a score the app does not have says nothing")
