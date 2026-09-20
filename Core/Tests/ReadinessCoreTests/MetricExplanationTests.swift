@@ -56,7 +56,10 @@ struct MetricExplanationTests {
                 "the window moved; this explanation and this test both need rewording")
         #expect(!text.contains("two weeks") && !text.contains("fortnight"),
                 "says a fortnight, but the balance looks back \(SleepDebt.window) nights")
-        #expect(text.contains("week"), "never says how far back it looks")
+        // "The last week" was itself wrong, if more subtly: the window counts *recorded*
+        // nights, so at four nights of watch wear a week it spans twelve calendar days.
+        #expect(text.contains("seven nights"), "never says how far back it looks")
+        #expect(!text.contains("last week"), "counts nights, not days")
 
         // `SleepDebt.reference(for:)` is the median floored at `learnedFloorHours`.
         // `SleepNeed`'s upper-percentile need is a different quantity for a different

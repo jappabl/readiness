@@ -332,11 +332,15 @@ public enum RecoveryScore {
     }
 
     /// Debt speaks in hours behind, not in distance from a personal normal.
-    private static func debtNote(isDebt: Bool, owesNothing: Bool, hours: Double) -> String? {
+    private static func debtNote(isDebt: Bool, owesNothing: Bool, hours: Double?) -> String? {
         guard isDebt else { return nil }
         guard !owesNothing else { return "You are not down on sleep." }
+        // Absence is not a balance of nothing. With the reading missing this said "About
+        // 0 hours behind" beside an empty bar and a red arrow. `owesNothing` was fixed
+        // for exactly this two lines above; the note was not.
+        guard let hours else { return nil }
         let formatted = hours.formatted(.number.precision(.fractionLength(0...1)))
-        return "About \(formatted) hours behind over the last week."
+        return "About \(formatted) hours behind over your last seven nights of sleep."
     }
 
     private static func contributors(_ result: ReadinessResult, ungated: Double, value: Double,
@@ -399,7 +403,7 @@ public enum RecoveryScore {
                 magnitude: contribution.points * ratio,
                 explanation: contribution.kind.explanation,
                 note: debtNote(isDebt: isDebt, owesNothing: owesNothing,
-                               hours: reading?.value ?? 0),
+                               hours: reading?.value),
                 history: history[contribution.kind] ?? [])
         }
         // Clamped inputs tie on magnitude exactly, so without a second key the leading

@@ -106,14 +106,14 @@ struct SleepQualityCard: View {
                         }
                     }
                     Text(summary).font(.footnote).foregroundStyle(.secondary)
-                    if night.deepHours + night.remHours + night.coreHours > 0 {
-                    stages(night)
-                    HStack(spacing: 14) {
-                        stageLegend("Deep", night.deepHours, Tokens.sleepDeep)
-                        stageLegend("REM", night.remHours, Tokens.sleepLow)
-                        stageLegend("Core", night.coreHours, Tokens.sleepHigh)
-                        Spacer(minLength: 0)
-                    }
+                    if let split = night.reconciledStages {
+                        stages(split, of: night.asleepHours)
+                        HStack(spacing: 14) {
+                            stageLegend("Deep", split.deep, Tokens.sleepDeep)
+                            stageLegend("REM", split.rem, Tokens.sleepLow)
+                            stageLegend("Core", split.core, Tokens.sleepHigh)
+                            Spacer(minLength: 0)
+                        }
                     }
                 }
                 .bevelCard()
@@ -124,14 +124,22 @@ struct SleepQualityCard: View {
     }
 
     /// Deep first: it is the part people are actually asking about.
-    private func stages(_ night: SleepBreakdown) -> some View {
-        let total = max(night.asleepHours, 0.01)
+    ///
+    /// Drawn from `reconciledStages`, which is the same split the engine scores and the
+    /// ring draws. This card was the last place still dividing the raw staged hours by the
+    /// night, and two devices each unioning their own samples stage more of a night than it
+    /// held: measured on a 7.5-hour night, the bar ran to 153% of its track — past the card
+    /// edge, since `bevelCard` does not clip — under a 7h 30m headline, with a legend
+    /// summing to 11.5 hours. Three sources reached 233%.
+    private func stages(_ split: (deep: Double, rem: Double, core: Double),
+                        of asleepHours: Double) -> some View {
+        let total = max(asleepHours, 0.01)
         return GeometryReader { geometry in
             let width = geometry.size.width
             HStack(spacing: 2) {
-                segment(width * night.deepHours / total, Tokens.sleepDeep)
-                segment(width * night.remHours / total, Tokens.sleepLow)
-                segment(width * night.coreHours / total, Tokens.sleepHigh)
+                segment(width * split.deep / total, Tokens.sleepDeep)
+                segment(width * split.rem / total, Tokens.sleepLow)
+                segment(width * split.core / total, Tokens.sleepHigh)
             }
         }
         .frame(height: 12)

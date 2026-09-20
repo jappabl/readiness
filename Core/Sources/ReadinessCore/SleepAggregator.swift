@@ -49,6 +49,35 @@ public struct SleepBreakdown: Sendable, Equatable {
 
     public init() {}
 
+    /// How much of the night has to carry a stage before the record is describing its
+    /// structure at all.
+    ///
+    /// A night can be recorded as asleep without being classified — an `unspecified` run
+    /// from a second source, or a watch that only staged part of it. Asking merely whether
+    /// *any* stage was recorded made one labelled sample stand for the whole night and
+    /// charged every unclassified hour to the stages as a zero, so the app named a stage
+    /// the device never classified as the night's worst component. That is verbatim the
+    /// failure this predicate exists to prevent, arriving from the other side.
+    public static let minimumStagedShare = 0.75
+
+    /// Hours that carry a stage. May exceed `asleepHours` when two devices each union
+    /// their own samples and the totals are then summed.
+    public var stagedHours: Double { deepHours + remHours + coreHours }
+
+    /// The staged hours mapped onto the night that actually held them, or nil when too
+    /// little of it was classified to say what it was made of.
+    ///
+    /// One scale, both directions. Two devices over-count and are scaled down; a partly
+    /// classified night is scaled up, which assumes the unlabelled part looked like the
+    /// labelled part — a stated assumption, and a far better one than charging it to the
+    /// stages as zeros, which made measuring *less* of a night score it *higher*.
+    public var reconciledStages: (deep: Double, rem: Double, core: Double)? {
+        guard asleepHours > 0, stagedHours > 0,
+              stagedHours >= asleepHours * Self.minimumStagedShare else { return nil }
+        let scale = asleepHours / stagedHours
+        return (deepHours * scale, remHours * scale, coreHours * scale)
+    }
+
     /// Shorter than this and the longest episode of the day was a nap, not a night.
     public static let minimumNightHours = 4.0
 

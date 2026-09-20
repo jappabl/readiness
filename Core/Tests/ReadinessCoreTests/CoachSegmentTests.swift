@@ -44,8 +44,11 @@ struct CoachSegmentTests {
 
     @Test("two charts both survive")
     func twoCharts() {
-        let parsed = CoachSegments.parse("[chart:hrv] and [chart:sleepDebt]")
-        #expect(parsed == [.chart(.hrv), .text("and"), .chart(.sleepDebt)])
+        // Two names the app can actually draw. This used to pin `sleepDebt`, which the
+        // chart card can no longer render — a balance is not a per-day value — so a test
+        // called "two charts both survive" was guaranteeing a segment that draws nothing.
+        let parsed = CoachSegments.parse("[chart:hrv] and [chart:restingHeartRate]")
+        #expect(parsed == [.chart(.hrv), .text("and"), .chart(.restingHeartRate)])
     }
 
     @Test("an opening bracket that is not a marker is left alone")

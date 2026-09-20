@@ -598,7 +598,13 @@ final class AppModel {
     var sleepDebt: SleepDebt { sleepDebt(on: Date()) }
 
     func sleepDebt(on date: Date) -> SleepDebt {
-        SleepDebt.of(nights: sleepNights(upTo: date))
+        let nights = sleepNights(upTo: date)
+        // One night cannot have a change since the night before it. `SleepDebt.of`
+        // accumulates an empty list for `previous`, so a first-day user at six hours saw
+        // "1.0 h behind, up 1.0 h since yesterday" against a yesterday with nothing in it.
+        // `DayAssembler.debtReading` has always guarded this; the card did not.
+        guard nights.count >= 2 else { return SleepDebt(hours: 0, change: 0, nights: 0) }
+        return SleepDebt.of(nights: nights)
     }
 
     /// The one night list both the score and the debt card learn from.

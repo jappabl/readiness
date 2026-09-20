@@ -58,7 +58,8 @@ public enum MetricKind: String, CaseIterable, Sendable, Codable {
                  + "worth noticing. It tends to go up when you are still recovering "
                  + "from hard training, under-slept, drinking, or fighting something off."
         case .sleepDebt:
-            return "How far behind you are over the last week, measured against the "
+            return "How far behind you are over your last seven nights of sleep, "
+                 + "measured against the "
                  + "middle of your own recent nights, with a floor at seven hours so a "
                  + "long habit of short sleep cannot quietly become the target. It accumulates "
                  + "and it is paid back the same way: three nights an hour short is the "

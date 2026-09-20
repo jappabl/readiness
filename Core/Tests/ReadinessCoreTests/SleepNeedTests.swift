@@ -463,9 +463,9 @@ struct LearnedSleepNeedTests {
     /// applied to a person rather than learned from them.
     @Test("too little history falls back to the population figure")
     func needsHistory() {
-        #expect(SleepNeed.baseline(from: Array(repeating: 7.2, count: 5))
+        #expect(SleepNeed.baseline(from: Array(repeating: 7.2, count: 5)).hours
                 == SleepNeed.baselineHours)
-        #expect(SleepNeed.baseline(from: []) == SleepNeed.baselineHours)
+        #expect(SleepNeed.baseline(from: []).hours == SleepNeed.baselineHours)
     }
 
     /// The trap the estimator has to avoid: scoring somebody against their own median
@@ -473,14 +473,14 @@ struct LearnedSleepNeedTests {
     @Test("a genuinely short sleeper is not marked down for it")
     func shortSleeper() {
         let nights = Array(repeating: 7.2, count: 30)
-        let need = SleepNeed.baseline(from: nights)
+        let need = SleepNeed.baseline(from: nights).hours
         #expect(need < SleepNeed.baselineHours)
         #expect(need >= SleepNeed.learnedFloorHours)
     }
 
     @Test("a long sleeper is held to their own longer need")
     func longSleeper() {
-        #expect(SleepNeed.baseline(from: Array(repeating: 9.1, count: 30)) > 9)
+        #expect(SleepNeed.baseline(from: Array(repeating: 9.1, count: 30)).hours > 9)
     }
 
     /// Somebody restricted on weekdays and free at weekends has told us what they take
@@ -488,7 +488,7 @@ struct LearnedSleepNeedTests {
     @Test("the estimate follows the unrestricted nights, not the average one")
     func weekendsCount() {
         let weeks = (0..<5).flatMap { _ in [6.0, 6.0, 6.0, 6.0, 6.0, 9.4, 9.4] }
-        let need = SleepNeed.baseline(from: weeks)
+        let need = SleepNeed.baseline(from: weeks).hours
         #expect(need > 8.5, "learned \(need) from a week of six-hour nights and long weekends")
     }
 
@@ -499,14 +499,14 @@ struct LearnedSleepNeedTests {
     @Test("no relief anywhere falls back rather than ratifying the deprivation")
     func chronicallyRestricted() {
         let nights = Array(repeating: 5.8, count: 40)
-        #expect(SleepNeed.baseline(from: nights) == SleepNeed.baselineHours)
+        #expect(SleepNeed.baseline(from: nights).hours == SleepNeed.baselineHours)
     }
 
     @Test("the estimate is bounded at both ends")
     func bounded() {
-        #expect(SleepNeed.baseline(from: Array(repeating: 12.0, count: 30))
+        #expect(SleepNeed.baseline(from: Array(repeating: 12.0, count: 30)).hours
                 == SleepNeed.learnedCeilingHours)
-        #expect(SleepNeed.baseline(from: Array(repeating: 2.0, count: 30))
+        #expect(SleepNeed.baseline(from: Array(repeating: 2.0, count: 30)).hours
                 == SleepNeed.baselineHours)
     }
 
@@ -531,23 +531,23 @@ struct LearnedNeedRampTests {
     @Test("a habitually short sleeper is still held to the population figure",
           arguments: [6.0, 6.5, 6.8, 6.9, 7.0])
     func shortSleeperNotLetOff(hours: Double) {
-        #expect(SleepNeed.baseline(from: Array(repeating: hours, count: 40))
+        #expect(SleepNeed.baseline(from: Array(repeating: hours, count: 40)).hours
                 == SleepNeed.baselineHours,
                 "a flat \(hours) h sleeper was handed their own shortage as a target")
     }
 
     @Test("but somebody who genuinely sleeps less is")
     func genuinelyShortIsLearned() {
-        let need = SleepNeed.baseline(from: Array(repeating: 7.6, count: 40))
+        let need = SleepNeed.baseline(from: Array(repeating: 7.6, count: 40)).hours
         #expect(need < SleepNeed.baselineHours && need > 7.2)
     }
 
     /// Continuous, which is the property the ramp exists for.
     @Test("nothing steps")
     func continuous() {
-        var previous = SleepNeed.baseline(from: Array(repeating: 6.0, count: 40))
+        var previous = SleepNeed.baseline(from: Array(repeating: 6.0, count: 40)).hours
         for tenths in stride(from: 6.0, through: 9.6, by: 0.05) {
-            let need = SleepNeed.baseline(from: Array(repeating: tenths, count: 40))
+            let need = SleepNeed.baseline(from: Array(repeating: tenths, count: 40)).hours
             #expect(abs(need - previous) < 0.35, "a step at \(tenths) h: \(previous) -> \(need)")
             previous = need
         }
@@ -559,7 +559,7 @@ struct LearnedNeedRampTests {
     func learningIsGradual() {
         var previous = SleepNeed.baselineHours
         for count in SleepNeed.learningNights...(SleepNeed.learningNights * 2 + 4) {
-            let need = SleepNeed.baseline(from: Array(repeating: 7.6, count: count))
+            let need = SleepNeed.baseline(from: Array(repeating: 7.6, count: count)).hours
             #expect(abs(need - previous) < 0.1,
                     "night \(count) moved the need \(previous) -> \(need)")
             previous = need

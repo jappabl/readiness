@@ -19,11 +19,26 @@ import Foundation
 /// Debt is a stock and a night is a flow. The stock lives in `SleepDebt` now, where it
 /// can be shown as a balance with a direction, and it feeds recovery — which is the
 /// question it actually answers.
+/// A need estimated from somebody's own nights, and how much of it really was theirs.
+public struct LearnedNeed: Sendable, Equatable {
+    public let hours: Double
+    /// 0 when the answer is entirely the population figure, 1 when entirely their own.
+    public let confidence: Double
+}
+
 public struct SleepNeed: Sendable, Equatable {
     public let hours: Double
     public let baseline: Double
     public let strainAdjustment: Double
     public let napCredit: Double
+    /// How much of `baseline` was learned from this sleeper rather than assumed.
+    ///
+    /// `baseline(from:)` returns a blend of their own estimate and the population figure,
+    /// and the sentence explaining the need used to credit the whole of it to "what your
+    /// own longest nights take". For somebody 28 nights into a 7.05 h habit that named
+    /// 7.9 hours as theirs when only 7.05 of it was, and every user with a non-8.0
+    /// estimate passes through about a fortnight of it on the way up.
+    public let learnedShare: Double
 
     /// The nightly requirement when nothing better is known.
     ///
@@ -68,9 +83,11 @@ public struct SleepNeed: Sendable, Equatable {
     /// how constrained they are rather than of what they need. Leaving them on the
     /// population average is the harsher answer and the honest one — the alternative
     /// quietly lowers the bar for exactly the person who is furthest from clearing it.
-    public static func baseline(from nights: [Double]) -> Double {
+    public static func baseline(from nights: [Double]) -> LearnedNeed {
         let usable = nights.filter { $0.isFinite && $0 > 0 }.sorted()
-        guard usable.count >= learningNights else { return baselineHours }
+        guard usable.count >= learningNights else {
+            return LearnedNeed(hours: baselineHours, confidence: 0)
+        }
 
         // A band rather than a single index. On a weekday/weekend record the
         // distribution is two clusters with nothing between them, so a point estimate
@@ -95,7 +112,8 @@ public struct SleepNeed: Sendable, Equatable {
                                 / Double(learningNights))
         let confidence = trust * settled
         let blended = confidence * estimate + (1 - confidence) * baselineHours
-        return Swift.min(blended, learnedCeilingHours)
+        return LearnedNeed(hours: Swift.min(blended, learnedCeilingHours),
+                           confidence: confidence)
     }
 
     /// How wide a slice of the distribution the estimate averages over.
@@ -123,7 +141,7 @@ public struct SleepNeed: Sendable, Equatable {
     /// Yesterday's load is a property of the night that had to repair it, not a running
     /// balance, so it stays. It is capped at three quarters of an hour, which is small
     /// enough that it cannot park anybody on a band edge.
-    public static func of(baseline: Double = baselineHours,
+    public static func of(baseline: Double = baselineHours, learnedShare: Double = 0,
                           strain: Double? = nil, napHours: Double? = nil) -> SleepNeed {
         let baseline = baseline.isFinite
             ? Swift.min(Swift.max(baseline, minimumHours), maximumHours) : baselineHours
@@ -134,7 +152,8 @@ public struct SleepNeed: Sendable, Equatable {
         let nap = Swift.min(Swift.max(0, napHours ?? 0), maximumNapCreditHours)
         return SleepNeed(hours: clamp(baseline + adjustment - nap),
                          baseline: baseline,
-                         strainAdjustment: adjustment, napCredit: nap)
+                         strainAdjustment: adjustment, napCredit: nap,
+                         learnedShare: Swift.min(1, Swift.max(0, learnedShare)))
     }
 
     private static func clamp(_ hours: Double) -> Double {
@@ -365,7 +384,8 @@ public enum SleepScore {
                                neutral: perfect, modelVersion: modelVersion)
         }
 
-        let need = SleepNeed.of(baseline: SleepNeed.baseline(from: input.priorNights),
+        let learned = SleepNeed.baseline(from: input.priorNights)
+        let need = SleepNeed.of(baseline: learned.hours, learnedShare: learned.confidence,
                                 strain: input.strain, napHours: input.napHours)
         let performance = Swift.min(1, hours / need.hours)
 
@@ -480,7 +500,7 @@ public enum SleepScore {
         /// `HealthSource` already refuses to split but the scorer did not: one probe drew
         /// a ring reading "Deep 7.0 h" on a seven-hour night, arcs summing to 129% of it.
         func isStaged(_ night: SleepBreakdown) -> Bool {
-            night.deepHours + night.remHours + night.coreHours > 0
+            night.reconciledStages != nil
         }
         /// What the shares are taken against.
         ///
@@ -490,15 +510,14 @@ public enum SleepScore {
         /// — of tonight AND of the whole history — so a second tracker cost nine points
         /// and a "still learning your normal" notice that never resolved. Scaling to fit
         /// keeps the proportions, which is the part that was ever being scored.
-        func stageTotal(_ night: SleepBreakdown) -> Double {
-            Swift.max(night.asleepHours,
-                      night.deepHours + night.remHours + night.coreHours)
-        }
         let staged = night.map(isStaged) ?? false
 
+        /// A stage as a share of the night it belonged to. The denominator is what
+        /// carried a stage, not the night, so the same night with less of it labelled
+        /// gives the same shares.
         func share(_ keyPath: KeyPath<SleepBreakdown, Double>) -> Double? {
-            guard let night, asleep > 0, staged else { return nil }
-            return night[keyPath: keyPath] / stageTotal(night)
+            guard let night, asleep > 0, staged, night.stagedHours > 0 else { return nil }
+            return night[keyPath: keyPath] / night.stagedHours
         }
 
         /// The same stage hours the scoring above used, for publishing.
@@ -512,10 +531,9 @@ public enum SleepScore {
         /// Note that `awakeHours` is deliberately not reconciled: it sits outside
         /// `asleepHours` and outside this denominator, and it is already scored raw.
         func reconciled(_ keyPath: KeyPath<SleepBreakdown, Double>) -> Double? {
-            guard let night else { return nil }
-            let total = stageTotal(night)
-            guard total > 0 else { return night[keyPath: keyPath] }
-            return night[keyPath: keyPath] * Swift.min(1, night.asleepHours / total)
+            guard let night, night.reconciledStages != nil, night.stagedHours > 0
+            else { return nil }
+            return night[keyPath: keyPath] * (night.asleepHours / night.stagedHours)
         }
 
         /// Where tonight's value sits in this sleeper's own distribution, as 0...1.
@@ -542,7 +560,7 @@ public enum SleepScore {
 
         let historicShares = { (keyPath: KeyPath<SleepBreakdown, Double>) -> [Double] in
             stagedHistory.compactMap { past in
-                past.asleepHours > 0 ? past[keyPath: keyPath] / stageTotal(past) : nil
+                past.stagedHours > 0 ? past[keyPath: keyPath] / past.stagedHours : nil
             }
         }
 
@@ -667,11 +685,20 @@ public enum SleepScore {
     }
 
     private static func needExplanation(_ need: SleepNeed) -> String {
-        let learned = abs(need.baseline - SleepNeed.baselineHours) > 0.05
+        // Three states, because the baseline has three: assumed, still settling, and
+        // learned. It used to have two, and called a blend "what your own nights take".
+        let source: String
+        switch need.learnedShare {
+        case ..<0.05:
+            source = "as a starting point until your own nights say otherwise"
+        case 0.95...:
+            source = "from what your own longest nights take"
+        default:
+            source = "still easing from the eight-hour starting point toward what your "
+                   + "own longest nights take"
+        }
         var parts = ["Your need last night was \(format(need.hours)) hours: "
-                     + "\(format(need.baseline)) "
-                     + (learned ? "from what your own longest nights take"
-                                : "as a starting point until your own nights say otherwise")]
+                     + "\(format(need.baseline)) " + source]
         if need.strainAdjustment > 0 {
             parts.append("plus \(format(need.strainAdjustment)) for how hard yesterday was")
         }
