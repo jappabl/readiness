@@ -38,6 +38,30 @@ public struct ReadinessResult: Sendable, Equatable, Codable {
     public let confidence: ReadinessConfidence
     public let gateApplied: ReadinessGate?
     public let modelVersion: String
+
+    /// The score before any gate caps it, on the 0...100 scale the ring shows.
+    ///
+    /// Carried rather than recomputed downstream, because it is not always a function of
+    /// the composite alone: when every input that voted is one-sided the night stands in
+    /// for what cannot be measured, and the state, the gates and the session advice all
+    /// have to be looking at the same number the ring is. They were not — the load-spike
+    /// gate keys off the state, the state came off the composite, and a one-sided
+    /// composite cannot reach the threshold that arms the gate, so a sleep-only user could
+    /// be shown a green ring on a genuine 2.0 training spike with nothing to cap it.
+    public var ungatedPercent: Double = 50
+
+    public init(state: ReadinessState, composite: Double,
+                contributions: [InputContribution], confidence: ReadinessConfidence,
+                gateApplied: ReadinessGate?, modelVersion: String,
+                ungatedPercent: Double = 50) {
+        self.state = state
+        self.composite = composite
+        self.contributions = contributions
+        self.confidence = confidence
+        self.gateApplied = gateApplied
+        self.modelVersion = modelVersion
+        self.ungatedPercent = ungatedPercent
+    }
 }
 
 public enum ReadinessGate: String, Sendable, Codable, Equatable {
@@ -71,13 +95,17 @@ public struct ReadinessInput: Sendable {
     public let wristTemperatureDeviationC: Double?
     public let acwr: Double?
     public let daysOfHistory: Int
+    /// Last night's sleep score, used only when nothing two-sided voted. See
+    /// `ReadinessResult.ungatedPercent`.
+    public let nightScore: Double?
 
     public init(readings: [MetricReading], wristTemperatureDeviationC: Double? = nil,
-                acwr: Double? = nil, daysOfHistory: Int) {
+                acwr: Double? = nil, daysOfHistory: Int, nightScore: Double? = nil) {
         self.readings = readings
         self.wristTemperatureDeviationC = wristTemperatureDeviationC
         self.acwr = acwr
         self.daysOfHistory = daysOfHistory
+        self.nightScore = nightScore
     }
 }
 
@@ -160,7 +188,10 @@ public enum ReadinessEngine {
         }
 
         let composite = contributions.reduce(0) { $0 + $1.points }
-        var state = state(for: composite)
+        let ungated = RecoveryScore.standIn(percent: RecoveryScore.percent(composite: composite),
+                                            readings: input.readings,
+                                            night: input.nightScore)
+        var state = state(forPercent: ungated)
         var gate: ReadinessGate?
 
         // An acute load spike may cancel an upgrade, but never rescues a poor morning.
@@ -178,7 +209,8 @@ public enum ReadinessEngine {
 
         return ReadinessResult(state: state, composite: composite,
                                contributions: contributions, confidence: confidence,
-                               gateApplied: gate, modelVersion: modelVersion)
+                               gateApplied: gate, modelVersion: modelVersion,
+                               ungatedPercent: ungated)
     }
 
     /// Four states, read off the same scale the ring shows.
@@ -189,7 +221,12 @@ public enum ReadinessEngine {
     /// wellBelowBaseline arrived in practice only through the temperature gate. Deriving
     /// both from the score means the ring and the advice under it cannot drift apart.
     static func state(for composite: Double) -> ReadinessState {
-        switch RecoveryScore.percent(composite: composite) {
+        state(forPercent: RecoveryScore.percent(composite: composite))
+    }
+
+    /// Off the score the ring actually shows, so the two cannot drift apart.
+    static func state(forPercent percent: Double) -> ReadinessState {
+        switch percent {
         case 67...: return .aboveBaseline
         case 34..<67: return .atBaseline
         case 10..<34: return .belowBaseline

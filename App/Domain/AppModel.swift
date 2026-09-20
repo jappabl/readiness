@@ -208,7 +208,8 @@ final class AppModel {
             // Dense by calendar day. Filtering the empty days out is what turned
               // "the last sixty days" into "the last sixty readings".
               let usable = healthSeries
-            if let assembled = DayAssembler.assemble(series: usable, acwr: acwr) {
+            if let assembled = DayAssembler.assemble(series: usable, acwr: acwr,
+                                                     nightScore: sleepScore.value) {
                 day = assembled
                 recommendation = RecommendationEngine.recommend(
                     RecommendationInput(readiness: assembled.readiness,
@@ -276,7 +277,8 @@ final class AppModel {
             todayCheckIn = fetchTodayCheckIn(from: context)
             acwr = computeACWR(from: context)
             guard let latest = recorded.last, Calendar.current.isDateInToday(latest.date),
-                  let assembled = DayAssembler.assemble(series: usable, acwr: acwr),
+                  let assembled = DayAssembler.assemble(series: usable, acwr: acwr,
+                                                        nightScore: sleepScore.value),
                   recorded.count >= 2,
                   !assembled.readings.isEmpty else {
                 day = nil
@@ -491,7 +493,7 @@ final class AppModel {
                                modelVersion: ReadinessEngine.modelVersion)
         }
         return RecoveryScore.of(day.readiness, readings: day.readings,
-                                history: metricHistory(), sleep: sleepScore)
+                                history: metricHistory())
     }
 
     /// Floored at 1: a measured zero and a missing measurement must not render alike.
@@ -560,16 +562,15 @@ final class AppModel {
         // spike capped every past day in the calendar at 66 and hung a contributor row
         // on each of them about a spike that had not happened yet.
         let ratio = context.flatMap { computeACWR(from: $0, on: date) }
-        guard let assembled = DayAssembler.assemble(series: upToDate,
-                                                    acwr: ratio),
+        guard let assembled = DayAssembler.assemble(series: upToDate, acwr: ratio,
+                                                    nightScore: sleepScore(on: date).value),
               calendar.isDate(assembled.date, inSameDayAs: date) else {
             return SignalScore(kind: .recovery, value: nil, band: nil, contributors: [],
                                coverage: .unavailable, missing: ["Health data"],
                                modelVersion: ReadinessEngine.modelVersion)
         }
         return RecoveryScore.of(assembled.readiness, readings: assembled.readings,
-                                history: metricHistory(endingOn: date),
-                                sleep: sleepScore(on: date))
+                                history: metricHistory(endingOn: date))
     }
 
     /// Last night against what it needed to be, with the structure that adjusted it.

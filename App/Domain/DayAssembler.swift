@@ -51,7 +51,8 @@ enum DayAssembler {
                              sampleCount: recorded.count)
     }
 
-    static func assemble(series: [DailyPhysiology], acwr: Double? = nil) -> AssembledDay? {
+    static func assemble(series: [DailyPhysiology], acwr: Double? = nil,
+                         nightScore: Double? = nil) -> AssembledDay? {
         guard let today = series.last, today.hasReadinessData else { return nil }
 
         var readings: [MetricReading] = []
@@ -109,7 +110,11 @@ enum DayAssembler {
             ReadinessInput(readings: readings,
                            wristTemperatureDeviationC: wristDeviation,
                            acwr: acwr,
-                           daysOfHistory: daysOfHistory))
+                           daysOfHistory: daysOfHistory,
+                           // Only used when nothing two-sided voted, and applied inside the
+                           // engine so the state, the gates and the session advice are all
+                           // looking at the number the ring shows.
+                           nightScore: nightScore))
 
         return AssembledDay(date: today.date, readiness: readiness, readings: readings,
                             wristTemperatureDeviationC: wristDeviation,

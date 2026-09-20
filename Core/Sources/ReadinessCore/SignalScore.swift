@@ -279,10 +279,39 @@ public enum RecoveryScore {
     /// neutral however well somebody slept.
     static let oneSidedKinds: Set<MetricKind> = [.sleepDebt]
 
+    /// The score with the night standing in for what could not be measured.
+    ///
+    /// When every input that voted is one-sided the composite can only ever say how far
+    /// *down* the day has been pulled, so the ring is capped at its own neutral however
+    /// well somebody slept. The best read on how recovered they are, from what they have
+    /// actually shared, is then the night itself — so the night is the starting point and
+    /// the balance moves it from there.
+    ///
+    /// The handover is by how much two-sided evidence exists, not by whether any does. A
+    /// hard switch made acquiring a watch a cliff: on the second morning of HRV the
+    /// baseline holds one sample, so it has no spread, so its z is forced to zero — and
+    /// that empty vote was enough to turn the fallback off, taking a settled sleep-only
+    /// user from 97 to 50 overnight on unchanged sleep. Each input counts for its weight
+    /// scaled by how far its own baseline is established, so a one-sample stream buys
+    /// almost nothing and a settled panel retires the stand-in entirely.
+    static func standIn(percent weighed: Double, readings: [MetricReading],
+                        night: Double?) -> Double {
+        guard let night else { return weighed }
+        let evidence = readings
+            .filter { !oneSidedKinds.contains($0.kind) }
+            .reduce(0.0) { total, reading in
+                let settled = Swift.min(1, Double(reading.sampleCount)
+                                        / Double(ReadinessEngine.minimumConfidentDays))
+                return total + (ReadinessEngine.weights[reading.kind] ?? 0) * settled
+            }
+        let share = 1 - Swift.min(1, evidence / minimumConfidentWeight)
+        guard share > 0 else { return weighed }
+        return Swift.min(100, Swift.max(1, neutral + share * (night - neutral) + weighed - neutral))
+    }
+
     public static func of(_ result: ReadinessResult,
                           readings: [MetricReading] = [],
-                          history: [MetricKind: [Double]] = [:],
-                          sleep: SignalScore? = nil) -> SignalScore {
+                          history: [MetricKind: [Double]] = [:]) -> SignalScore {
         guard !result.contributions.isEmpty else {
             return SignalScore(kind: .recovery, value: nil, band: nil, contributors: [],
                                coverage: .unavailable,
@@ -299,33 +328,9 @@ public enum RecoveryScore {
         // given us, is the night itself — so the night is the starting point and the
         // balance still moves it from there, instead of moving it down from a middle it
         // can never climb above.
-        // How much two-sided evidence there actually is, not whether any exists.
-        //
-        // A hard switch made acquiring a watch a cliff: on the second morning of HRV the
-        // baseline holds one sample, so it has no spread, so its z is forced to zero — and
-        // that empty vote was enough to turn the fallback off. A settled sleep-only user
-        // went 97 to 50 overnight on unchanged sleep, and any later morning where every
-        // heart stream happened to be missing turned it back on again.
-        //
-        // The night's influence fades as real evidence accrues instead: each two-sided
-        // input counts for its weight scaled by how far its own baseline has been
-        // established, so a one-sample stream buys almost nothing and a settled panel
-        // retires the fallback entirely.
-        let evidence = readings
-            .filter { !oneSidedKinds.contains($0.kind) }
-            .reduce(0.0) { total, reading in
-                let settled = Swift.min(1, Double(reading.sampleCount)
-                                        / Double(ReadinessEngine.minimumConfidentDays))
-                return total + (ReadinessEngine.weights[reading.kind] ?? 0) * settled
-            }
-        let nightShare = 1 - Swift.min(1, evidence / minimumConfidentWeight)
-        let base = nightShare > 0 ? sleep?.value.map { neutral + nightShare * ($0 - neutral) } : nil
-        // What the inputs themselves say, on their own scale. The rows are attributed
-        // against this and nothing else; the night is a separate row carrying its own
-        // distance from neutral, so the two still sum to the headline exactly.
         let weighed = percent(composite: result.composite)
-        let ungated = base.map { Swift.min(100, Swift.max(1, $0 + weighed - neutral)) } ?? weighed
-        let value = result.gateApplied.map { min(ungated, ceiling(for: $0)) } ?? ungated
+        let ungated = result.ungatedPercent
+        let value = result.gateApplied.map { Swift.min(ungated, ceiling(for: $0)) } ?? ungated
         let gateDelta = value - ungated
 
         let voted = Set(result.contributions.map(\.kind))
