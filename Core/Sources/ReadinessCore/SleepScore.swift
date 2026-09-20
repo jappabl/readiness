@@ -371,7 +371,7 @@ public enum SleepScore {
                 explanation: "The share of the night spent in deep sleep, measured "
                            + "against your own nights rather than an ideal. There is no "
                            + "agreed correct amount, and anybody who tells you there is "
-                           + "made it up — but a night well below your own usual is "
+                           + "made it up. But a night well below your own usual is "
                            + "worth knowing about.",
                 missingLabel: "Seven nights of stage data for deep sleep",
                 symbol: "moon.fill",
@@ -413,7 +413,7 @@ public enum SleepScore {
                 missingLabel: "Overnight and daytime heart rate",
                 symbol: "arrow.down.heart.fill",
                 note: dip.map {
-                    $0 >= fullDip ? "A big drop — your body settled properly."
+                    $0 >= fullDip ? "A big drop: your body settled properly."
                         : ($0 >= 0.10 ? "A normal drop."
                         : ($0 >= 0.05 ? "A smaller drop than usual."
                                       : "Your heart rate stayed high for a night's rest."))

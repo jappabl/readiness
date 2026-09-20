@@ -137,7 +137,7 @@ struct RingGauge: View {
                 .rotationEffect(.degrees(-90))
 
             VStack(spacing: -1) {
-                Text(percent.map { "\($0)" } ?? "—")
+                Text(percent.map { "\($0)" } ?? "–")
                     .font(.system(size: figureSize, weight: .semibold))
                     .monospacedDigit()
                     .foregroundStyle(showsHeroWord ? signal.figure : Tokens.textPrimary)

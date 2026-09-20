@@ -85,8 +85,8 @@ struct MorningVerdictTests {
         let sleepScore = score(.sleep, value: 40, magnitude: -14, title: "Deep sleep")
         let sentence = MorningVerdict.sentence(
             recovery: recoveryScore, sleep: sleepScore, recentSleepScores: ordinaryHistory)
-        #expect(sentence == sleepScore.summary)
-        #expect(sentence != recoveryScore.summary)
+        #expect(sentence?.contains(sleepScore.summary) == true)
+        #expect(sentence?.contains(recoveryScore.summary) != true)
     }
 
     @Test("the sentence comes from whichever signal moved further, even when recovery is worse")
@@ -100,8 +100,8 @@ struct MorningVerdictTests {
         let sleepScore = score(.sleep, value: 55, magnitude: -6, title: "Deep sleep")
         let sentence = MorningVerdict.sentence(
             recovery: recoveryScore, sleep: sleepScore, recentSleepScores: ordinaryHistory)
-        #expect(sentence == recoveryScore.summary)
-        #expect(sentence != sleepScore.summary)
+        #expect(sentence?.contains(recoveryScore.summary) == true)
+        #expect(sentence?.contains(sleepScore.summary) != true)
     }
 
     @Test("an ordinary good night stays quiet")
@@ -118,7 +118,7 @@ struct MorningVerdictTests {
             recovery: score(.recovery, value: 82, magnitude: 8),
             sleep: score(.sleep, value: 96, magnitude: 6),
             recentSleepScores: ordinaryHistory)
-        #expect(sentence == "Your best night in three weeks.")
+        #expect(sentence == "✨ Your best night in three weeks.")
     }
 
     @Test("a best is not claimed without enough nights to claim it against")
@@ -135,7 +135,7 @@ struct MorningVerdictTests {
             recovery: score(.recovery, value: 82, magnitude: 8),
             sleep: score(.sleep, value: 96, magnitude: 6),
             recentSleepScores: Array(repeating: 94.0, count: 14))
-        #expect(sentence == "Your best night in two weeks.")
+        #expect(sentence == "✨ Your best night in two weeks.")
     }
 
     @Test("a best only has to beat the last three weeks, not all of history")
@@ -150,7 +150,7 @@ struct MorningVerdictTests {
             recovery: score(.recovery, value: 82, magnitude: 8),
             sleep: score(.sleep, value: 96, magnitude: 6),
             recentSleepScores: longHistory)
-        #expect(sentence == "Your best night in three weeks.")
+        #expect(sentence == "✨ Your best night in three weeks.")
     }
 
     @Test("a score the app does not have says nothing")

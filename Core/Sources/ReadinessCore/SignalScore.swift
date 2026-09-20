@@ -196,10 +196,10 @@ public struct SignalScore: Sendable, Equatable, Codable {
         if let measured = lead.value {
             let formatted = measured.formatted(.number.precision(.fractionLength(0...1)))
             if let comparison = lead.comparison, let label = lead.comparisonLabel {
-                detail = " — \(formatted)\(lead.unit.isEmpty ? "" : " " + lead.unit) against "
+                detail = ": \(formatted)\(lead.unit.isEmpty ? "" : " " + lead.unit) against "
                        + "\(label) of \(comparison.formatted(.number.precision(.fractionLength(0...1))))"
             } else {
-                detail = " — \(formatted)\(lead.unit.isEmpty ? "" : " " + lead.unit)"
+                detail = ": \(formatted)\(lead.unit.isEmpty ? "" : " " + lead.unit)"
             }
         } else {
             detail = ""

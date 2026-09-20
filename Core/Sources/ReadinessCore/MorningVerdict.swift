@@ -19,10 +19,45 @@ public enum MorningVerdict {
     public static let bestWindow = 21
 
     /// The sentence to send, or nil when this morning is not worth interrupting for.
+    ///
+    /// Not `SignalScore.summary` on its own, which is written for a screen. In the app
+    /// that sentence sits under a large labelled number, so "pulled it down most" has an
+    /// obvious antecedent. On a lock screen there is nothing for "it" to refer to, and
+    /// the reader is left asking pulled *what* down. So the signal and its number are
+    /// stated first, and `summary` then explains them.
     public static func sentence(recovery: SignalScore, sleep: SignalScore,
                                 recentSleepScores: [Double]) -> String? {
-        if let bad = worstNews(recovery: recovery, sleep: sleep) { return bad.summary }
+        if let bad = worstNews(recovery: recovery, sleep: sleep) {
+            return [marker(for: bad.kind), heading(for: bad), bad.summary]
+                .compactMap { $0 }
+                .joined(separator: " ")
+        }
         return bestNight(sleep: sleep, recent: recentSleepScores)
+    }
+
+    /// One glyph, leading, as a category marker rather than decoration.
+    ///
+    /// A lock screen is read in a glance and sorted before it is read at all. The glyph
+    /// says which of three things this is faster than any word can, which is the one job
+    /// worth giving it. It never appears mid-sentence and never stands in for a word.
+    static func marker(for kind: SignalKind) -> String {
+        switch kind {
+        case .recovery: return "\u{1F50B}"
+        case .sleep: return "\u{1F634}"
+        case .strain: return "\u{1F525}"
+        }
+    }
+
+    /// "Recovery 41." The antecedent the rest of the sentence needs.
+    private static func heading(for score: SignalScore) -> String? {
+        guard let value = score.value else { return nil }
+        let name: String
+        switch score.kind {
+        case .recovery: name = "Recovery"
+        case .sleep: name = "Sleep"
+        case .strain: name = "Strain"
+        }
+        return "\(name) \(Int(value.rounded()))."
     }
 
     /// Whichever signal moved furthest down, provided it moved far enough to interrupt.
@@ -51,7 +86,7 @@ public enum MorningVerdict {
         let window = Array(recent.suffix(bestWindow))
         guard window.count >= minimumHistoryForBest,
               let best = window.max(), value > best else { return nil }
-        return "Your best night in \(weeks(window.count)) weeks."
+        return "\u{2728} Your best night in \(weeks(window.count)) weeks."
     }
 
     /// Named for what it actually beat. Claiming three weeks off fourteen nights is a

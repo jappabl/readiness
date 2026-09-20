@@ -298,7 +298,7 @@ public enum StrainScore {
                 magnitude: muscular * share,
                 explanation: "Sets taken within about three reps of failure. A heavy "
                            + "triple barely moves your heart rate, so lifting is close "
-                           + "to invisible to a cardiac measure — it is counted "
+                           + "to invisible to a cardiac measure. It is counted "
                            + "separately rather than missed."))
         }
 
@@ -314,7 +314,7 @@ public enum StrainScore {
             let worn = last.timeIntervalSince(first) / 60 + (samples.last?.minutes ?? 0)
             if worn < minimumWornMinutes {
                 let hours = Int((worn / 60).rounded())
-                missing.append("Most of the day — your heart rate was only recorded for "
+                missing.append("Most of the day, your heart rate was only recorded for "
                                + "\(hours) \(hours == 1 ? "hour" : "hours")")
             }
         }
@@ -380,8 +380,8 @@ public enum StrainScore {
         switch zone.id {
         case "zone0":
             return "Below the first training zone. Walking about, standing, everything "
-                 + "that is not a session. It is not nothing — a long day on your feet "
-                 + "accumulates here — but each minute is worth very little."
+                 + "that is not a session. It is not nothing: a long day on your feet "
+                 + "accumulates here, but each minute is worth very little."
         case "zone1", "zone2":
             return "Easy aerobic work, the pace you could hold a conversation at. Most "
                  + "endurance training should live here, and it costs little to recover from."

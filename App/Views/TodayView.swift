@@ -318,7 +318,7 @@ struct TodayView: View {
                     Text(value, format: .number.precision(.fractionLength(1))).font(.headline).monospacedDigit()
                     Text(kind.unit).font(.caption2).foregroundStyle(.secondary)
                 }
-            } else { Text("—").foregroundStyle(.secondary) }
+            } else { Text("–").foregroundStyle(.secondary) }
         }.padding(.vertical, 12)
     }
 }

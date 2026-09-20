@@ -56,7 +56,7 @@ public enum ReadinessGate: String, Sendable, Codable, Equatable {
         case .elevatedWristTemperature:
             return "Your sleeping wrist temperature was well above your own normal. "
                  + "That is the earliest sign the body gives that it is fighting "
-                 + "something, and it outranks every other reading here — a strong HRV "
+                 + "something, and it outranks every other reading here. A strong HRV "
                  + "on a morning like this is not the news it looks like."
         case .acuteLoadSpike:
             return "The last week of training is well above what the last month has "

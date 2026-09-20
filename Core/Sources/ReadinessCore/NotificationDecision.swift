@@ -69,7 +69,7 @@ public enum NotificationDecision {
     /// does not exist on a lock screen), and never states the instruction this
     /// notification IS: don't train hard today.
     private static let illnessGateBody =
-        "Your temperature was up overnight. Don't train hard today."
+        "🌡️ Your temperature was up overnight. Don't train hard today."
 
     private static func illnessGate(_ input: Input) -> Outcome? {
         guard input.recovery.gate == .elevatedWristTemperature,
@@ -120,7 +120,8 @@ public enum NotificationDecision {
         guard var record = spend(input.record, moment: .newInsight, now: input.now)
         else { return nil }
         record.lastInsight = insight
-        return Outcome(moment: .newInsight, body: insight, record: record)
+        // The bulb marks the category. The finding is already a whole sentence.
+        return Outcome(moment: .newInsight, body: "💡 \(insight)", record: record)
     }
 
     /// Nil when the bucket is empty for a moment that draws from it.

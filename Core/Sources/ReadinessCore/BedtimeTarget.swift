@@ -30,8 +30,8 @@ public enum BedtimeTarget {
         // Whichever of the two actually drove it. Naming the smaller one would be the
         // app explaining itself with the wrong reason.
         let because = need.strainAdjustment >= need.debt * SleepNeed.repaymentFraction
-            ? "Yesterday was hard"
-            : "You are behind on sleep"
-        return "\(because) — tonight needs about \(hours) hours."
+            ? "Yesterday was hard."
+            : "You are behind on sleep."
+        return "🌙 \(because) Tonight needs about \(hours) hours."
     }
 }

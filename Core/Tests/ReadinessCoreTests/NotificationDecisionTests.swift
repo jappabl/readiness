@@ -354,7 +354,7 @@ struct NotificationDecisionTests {
         let outcome = NotificationDecision.next(
             input(recovery: score(.recovery, value: 8, magnitude: -30,
                                   gate: .elevatedWristTemperature)))
-        #expect(outcome?.body == "Your temperature was up overnight. Don't train hard today.")
+        #expect(outcome?.body == "🌡️ Your temperature was up overnight. Don't train hard today.")
         #expect((outcome?.body.count ?? .max) < 110)
     }
 

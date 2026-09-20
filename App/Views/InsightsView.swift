@@ -196,7 +196,7 @@ struct InsightsView: View {
 
     /// Percent joins its number; everything else keeps its unit beside it.
     private func headlineValue(_ contributor: ScoreContributor) -> String {
-        guard let value = contributor.value else { return "—" }
+        guard let value = contributor.value else { return "–" }
         return contributor.unit == "%" ? whole(value) + "%" : formatted(value)
     }
 
@@ -220,10 +220,10 @@ struct InsightsView: View {
             return "\(lead.title) did more than anything else today."
         }
         guard let comparison = lead.comparison, comparison > 0 else {
-            return "\(lead.title) did most of it — \(measured(value, lead.unit))."
+            return "\(lead.title) did most of it: \(measured(value, lead.unit))."
         }
         let side = value < comparison ? "down at" : "up at"
-        return "\(lead.title) \(direction) most — \(side) \(measured(value, lead.unit)) "
+        return "\(lead.title) \(direction) most: \(side) \(measured(value, lead.unit)) "
              + "against \(lead.comparisonLabel ?? "your normal") of \(measured(comparison, lead.unit))."
     }
 
@@ -527,7 +527,7 @@ struct ScoreRing: View {
                 .stroke(tint, style: StrokeStyle(lineWidth: 11, lineCap: .round))
                 .rotationEffect(.degrees(-90))
 
-            Text(value.map { Swift.max(1, $0.rounded()).formatted(.number.precision(.fractionLength(0))) } ?? "—")
+            Text(value.map { Swift.max(1, $0.rounded()).formatted(.number.precision(.fractionLength(0))) } ?? "–")
                 .font(.system(size: 34, weight: .semibold))
                 .monospacedDigit()
                 .foregroundStyle(Tokens.textPrimary)
@@ -607,7 +607,7 @@ struct SleepStageRing: View {
             }
 
             HStack(alignment: .firstTextBaseline, spacing: 1) {
-                Text(value.map { Swift.max(1, $0.rounded()).formatted(.number.precision(.fractionLength(0))) } ?? "—")
+                Text(value.map { Swift.max(1, $0.rounded()).formatted(.number.precision(.fractionLength(0))) } ?? "–")
                     .font(.system(size: figureSize, weight: .semibold))
                     .monospacedDigit()
             }

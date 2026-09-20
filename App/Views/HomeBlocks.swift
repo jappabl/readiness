@@ -20,7 +20,7 @@ struct NutritionCard: View {
             }
             VStack(alignment: .leading, spacing: 18) {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text(calories.map { $0.formatted(.number.precision(.fractionLength(0))) } ?? "—")
+                    Text(calories.map { $0.formatted(.number.precision(.fractionLength(0))) } ?? "–")
                         .font(.system(size: 32, weight: .semibold)).monospacedDigit()
                     Text("kcal logged").font(.subheadline).foregroundStyle(.secondary)
                     Spacer()
@@ -37,7 +37,7 @@ struct NutritionCard: View {
     private func macro(_ name: String, _ value: Double?) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(name).font(.caption).foregroundStyle(.secondary)
-            Text(value.map { "\($0.formatted(.number.precision(.fractionLength(0)))) g" } ?? "—")
+            Text(value.map { "\($0.formatted(.number.precision(.fractionLength(0)))) g" } ?? "–")
                 .font(.headline).monospacedDigit()
         }.frame(maxWidth: .infinity, alignment: .leading).padding(.leading, name == "Protein" ? 0 : 16)
     }
@@ -167,7 +167,7 @@ struct MovementCard: View {
             VStack(alignment: .leading, spacing: 20) {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
                     Image(systemName: "flame.fill").foregroundStyle(Tokens.textPrimary)
-                    Text(activeEnergy.map { $0.formatted(.number.precision(.fractionLength(0))) } ?? "—")
+                    Text(activeEnergy.map { $0.formatted(.number.precision(.fractionLength(0))) } ?? "–")
                         .font(.system(size: 30, weight: .semibold)).monospacedDigit()
                     Text("active kcal").font(.subheadline).foregroundStyle(.secondary)
                 }
