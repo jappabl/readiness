@@ -76,7 +76,8 @@ public enum NotificationDecision {
               !input.record.alreadySentToday(.illnessGate, now: input.now,
                                              calendar: input.calendar)
         else { return nil }
-        var record = input.record
+        guard var record = spend(input.record, moment: .illnessGate, now: input.now)
+        else { return nil }
         record.lastIllnessGate = input.now
         // The gate IS this morning's verdict. Without this the verdict fires on the very
         // next refresh, restating the same fact in weaker words.
@@ -91,7 +92,8 @@ public enum NotificationDecision {
                                                  sleep: input.sleep,
                                                  recentSleepScores: input.recentSleepScores)
         else { return nil }
-        var record = input.record
+        guard var record = spend(input.record, moment: .morningVerdict, now: input.now)
+        else { return nil }
         record.lastMorningVerdict = input.now
         return Outcome(moment: .morningVerdict, body: body, record: record)
     }
@@ -105,7 +107,8 @@ public enum NotificationDecision {
         else { return nil }
         // The coin is spent last, so a moment that was going to be skipped anyway costs
         // nothing and the allowance survives for the day that needs it.
-        guard var record = spend(input.record, now: input.now) else { return nil }
+        guard var record = spend(input.record, moment: .bedtimeTarget, now: input.now)
+        else { return nil }
         record.lastBedtimeTarget = input.now
         return Outcome(moment: .bedtimeTarget, body: body, record: record)
     }
@@ -114,13 +117,23 @@ public enum NotificationDecision {
         guard let insight = input.insight, !insight.isEmpty,
               insight != input.record.lastInsight
         else { return nil }
-        guard var record = spend(input.record, now: input.now) else { return nil }
+        guard var record = spend(input.record, moment: .newInsight, now: input.now)
+        else { return nil }
         record.lastInsight = insight
         return Outcome(moment: .newInsight, body: insight, record: record)
     }
 
-    /// Nil when the bucket is empty, which is the whole of the refusal.
-    private static func spend(_ record: NotificationRecord, now: Date) -> NotificationRecord? {
+    /// Nil when the bucket is empty for a moment that draws from it.
+    ///
+    /// `NotificationMoment.spendsBudget` is the single source of truth for which moments
+    /// cost a token. This used to be stated a second time here, structurally, by which
+    /// of the four helpers simply never called `spend` at all — so the two could drift
+    /// silently if a helper's wiring changed without touching the enum. Every helper
+    /// calls this now, and a moment for which `spendsBudget` is false passes through
+    /// unchanged and can never be refused, regardless of the bucket's state.
+    private static func spend(_ record: NotificationRecord, moment: NotificationMoment,
+                              now: Date) -> NotificationRecord? {
+        guard moment.spendsBudget else { return record }
         let decision = NotificationBudget.consume(record.budget, now: now)
         guard decision.allowed else { return nil }
         var spent = record
