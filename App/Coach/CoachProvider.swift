@@ -26,7 +26,7 @@ enum CoachError: LocalizedError {
         case .sharingNotAllowed:
             return "Allow sharing to chat with Jett. You can change this in Profile."
         case .notConfigured:
-            return "Add an Anthropic API key in Profile to turn the coach on."
+            return "Add a DeepSeek API key in Profile to turn the coach on."
         case .declined(let reason):
             return reason
         case .transport(let message):

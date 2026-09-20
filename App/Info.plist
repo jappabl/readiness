@@ -27,7 +27,7 @@
 	<key>NSCameraUsageDescription</key>
 	<string>Take a meal photo to review and log its estimated calories and macros.</string>
 	<key>NSHealthShareUsageDescription</key>
-	<string>Coach Jett reads sleep, heart and breathing metrics, temperature, activity, workouts, height, date of birth, biological sex, body measurements, nutrition (including caffeine and alcohol), and mindful sessions to show trends and guide training, sleep, and recovery. You choose which data to allow. With separate permission, derived summaries are shared with Anthropic for AI coaching.</string>
+	<string>Coach Jett reads sleep, heart and breathing metrics, temperature, activity, workouts, height, date of birth, biological sex, body measurements, nutrition (including caffeine and alcohol), and mindful sessions to show trends and guide training, sleep, and recovery. You choose which data to allow. With separate permission, derived summaries are shared with DeepSeek for AI coaching.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>Save weight measurements and meals you choose to add to Apple Health.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>

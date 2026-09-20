@@ -1,14 +1,17 @@
 import Foundation
 
-/// Talks to the Messages API over URLSession. Swift has no first-party Anthropic SDK,
+/// Talks to the Messages API over URLSession. Swift has no first-party SDK for this,
 /// so this is the documented raw HTTP shape.
 struct ClaudeCoachProvider: CoachProvider {
 
     /// Jett explains a decision the rules engine already made and occasionally calls one
     /// small tool. That is not frontier reasoning, and Opus costs a multiple of Sonnet
     /// per token for it. Flip this one constant back if the writing ever feels thin.
-    static let model = "claude-sonnet-5"
-    static let endpoint = URL(string: "https://api.anthropic.com/v1/messages")!
+    static let model = "deepseek-v4-pro"
+    /// DeepSeek's Anthropic-compatible base, which is why the wire format below and the
+    /// `anthropic-version` header are unchanged: the protocol is Anthropic's, the provider
+    /// is not. The meal estimator has spoken to this same base all along.
+    static let endpoint = URL(string: "https://api.deepseek.com/anthropic/v1/messages")!
     /// Rounds of tool use before the loop gives up, so a confused model cannot spin.
     static let maximumToolRounds = 3
     /// How much conversation travels with each request. Everything before this is
@@ -247,6 +250,8 @@ struct ClaudeCoachProvider: CoachProvider {
 /// The key is the user's own credential and belongs in the Keychain, not in UserDefaults
 /// and not in the source.
 enum Keychain {
+    // Deliberately unchanged. It is an opaque keychain identifier, and renaming it would
+    // orphan whatever is stored under the old one without telling anybody.
     private static let service = "com.coachjett.ios.anthropic"
     private static let account = "api-key"
 

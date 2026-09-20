@@ -195,7 +195,7 @@ struct ProfileView: View {
             heading("Coach")
             ListCard {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Anthropic API key").microLabel()
+                    Text("DeepSeek API key").microLabel()
                     SecureField("sk-ant-…", text: $apiKey)
                         .font(.system(size: 15))
                         .textContentType(.password)

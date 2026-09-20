@@ -11,8 +11,10 @@ compatibility_flags = ["nodejs_compat"]
 [vars]
 # Which provider answers each surface. Changing these is a deploy, not an App Review,
 # which is most of why this server exists.
-COACH_PROVIDER = "anthropic"
-COACH_MODEL = "claude-sonnet-5"
+COACH_PROVIDER = "deepseek"
+# Pro rather than Flash: the coach reasons over the whole data block. It has no vision,
+# which the coach does not need — meal photos stay on Flash below for exactly that reason.
+COACH_MODEL = "deepseek-v4-pro"
 MEAL_PROVIDER = "deepseek"
 MEAL_MODEL = "deepseek-flash"
 # App Attest stays off until `identify()` can actually verify an attestation. The team
