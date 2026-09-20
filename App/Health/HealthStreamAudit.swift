@@ -6,7 +6,7 @@ import os
 /// easy to write and easy to have silently return nothing.
 enum HealthStreamAudit {
 
-    private static let log = Logger(subsystem: "com.coachjett.app", category: "health")
+    private static let log = Logger(subsystem: "com.coachjett.ios", category: "health")
 
     static func report(_ series: [DailyPhysiology]) {
         guard let latest = series.last else {

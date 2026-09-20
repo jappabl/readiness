@@ -61,7 +61,7 @@ variable override it:
 ```
 SIMCTL_CHILD_JETT_PROXY_URL=http://localhost:8787 \
 SIMCTL_CHILD_JETT_DEV_SECRET=local-dev-secret \
-  xcrun simctl launch booted com.coachjett.app
+  xcrun simctl launch booted com.coachjett.ios
 ```
 
 App Transport Security blocks plain HTTP, so add `NSAppTransportSecurity` with

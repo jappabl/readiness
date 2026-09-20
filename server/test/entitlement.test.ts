@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest"
 import { checkClaims, decodeJWSPayload, entitlement, PRODUCT_IDS } from "../src/entitlement"
 
-const BUNDLE = "com.coachjett.app"
+const BUNDLE = "com.coachjett.ios"
 const NOW = 1_700_000_000_000
 
 function jws(payload: unknown): string {
@@ -32,7 +32,7 @@ describe("the claims that decide entitlement", () => {
   })
 
   test("a product we do not sell is not", () => {
-    expect(checkClaims({ ...live, productId: "com.coachjett.app.pro.lifetime" }, BUNDLE, NOW).subscriber).toBe(false)
+    expect(checkClaims({ ...live, productId: "com.coachjett.ios.pro.lifetime" }, BUNDLE, NOW).subscriber).toBe(false)
   })
 
   test("an expired subscription is not, including exactly at the boundary", () => {

@@ -69,7 +69,7 @@ enum MealPhotoEstimator {
 
 /// A device credential, never a shared secret embedded in a distributable app.
 enum MealPhotoKey {
-    private static let service = "com.coachjett.app.deepseek"
+    private static let service = "com.coachjett.ios.deepseek"
     static func read() -> String? {
         let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service, kSecAttrAccount as String: "api-key",

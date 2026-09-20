@@ -9,8 +9,8 @@
  */
 
 export const PRODUCT_IDS = [
-  "com.coachjett.app.pro.monthly",
-  "com.coachjett.app.pro.yearly",
+  "com.coachjett.ios.pro.monthly",
+  "com.coachjett.ios.pro.yearly",
 ] as const
 
 export interface TransactionPayload {

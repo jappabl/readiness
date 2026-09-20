@@ -35,7 +35,7 @@
               "locale": "en_US"
             }
           ],
-          "productID": "com.coachjett.app.pro.monthly",
+          "productID": "com.coachjett.ios.pro.monthly",
           "recurringSubscriptionPeriod": "P1M",
           "referenceName": "Pro Monthly",
           "subscriptionGroupID": "21500001",
@@ -60,7 +60,7 @@
               "locale": "en_US"
             }
           ],
-          "productID": "com.coachjett.app.pro.yearly",
+          "productID": "com.coachjett.ios.pro.yearly",
           "recurringSubscriptionPeriod": "P1Y",
           "referenceName": "Pro Yearly",
           "subscriptionGroupID": "21500001",

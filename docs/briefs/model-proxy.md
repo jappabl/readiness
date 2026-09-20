@@ -59,7 +59,7 @@ x-api-key: <MealPhotoKey.read()>, anthropic-version: 2023-06-01
 content: [ {type:image, base64 jpeg ≤1280px, q0.8}, {type:text, portion notes} ]
 ```
 - Not streaming. Single request, JSON object back, decoded by `MealEstimate.decode`.
-- Key lives in the Keychain under service `com.coachjett.app.deepseek`, written **only**
+- Key lives in the Keychain under service `com.coachjett.ios.deepseek`, written **only**
   by a DEBUG environment variable `JETT_DEEPSEEK_API_KEY` in `App/ReadinessApp.swift`.
   There is deliberately no UI for it and you should not add one.
 
@@ -73,12 +73,12 @@ BurstLimiter.refillInterval = 12  // seconds per token
 
 ### Entitlement — `App/Domain/Subscriptions.swift`
 ```swift
-static let monthlyID = "com.coachjett.app.pro.monthly"
-static let yearlyID  = "com.coachjett.app.pro.yearly"
+static let monthlyID = "com.coachjett.ios.pro.monthly"
+static let yearlyID  = "com.coachjett.ios.pro.yearly"
 private(set) var isSubscribed  // from Transaction.currentEntitlements
 ```
 
-Bundle id is `com.coachjett.app`.
+Bundle id is `com.coachjett.ios`.
 
 ## Prerequisite you will hit immediately
 

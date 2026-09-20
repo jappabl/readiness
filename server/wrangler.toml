@@ -19,7 +19,7 @@ MEAL_MODEL = "deepseek-flash"
 # attestation payload is validated against <teamID>.<bundleID>.
 REQUIRE_ATTESTATION = "false"
 APPLE_TEAM_ID = ""
-BUNDLE_ID = "com.coachjett.app"
+BUNDLE_ID = "com.coachjett.ios"
 
 [[durable_objects.bindings]]
 name = "BUCKET"
