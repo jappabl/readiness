@@ -16,7 +16,7 @@ enum Tokens {
     /// What you said, in Jett's colour rather than iMessage's. Also gains a dark
     /// variant it did not have: the old value was the same in both schemes and glared
     /// against the dark canvas.
-    static let messageOutgoing = dynamic(light: 0x6B5CF5, dark: 0x8A7DFF)
+    static let messageOutgoing = dynamic(light: 0x0A7AFF, dark: 0x4C9CFF)
     static let messageOnOutgoing = Color.white
 
     // Surfaces
@@ -42,17 +42,18 @@ enum Tokens {
     static let recoveryHigh  = dynamic(light: 0x5FC22E, dark: 0x74D344)
     static let recoveryDeep  = dynamic(light: 0x2A9440, dark: 0x3FAF57)
 
-    static let sleepHigh     = dynamic(light: 0xA9B6F7, dark: 0xB8C2FA)
-    static let sleepLow      = dynamic(light: 0x6472DA, dark: 0x8290E8)
-    static let sleepDeep     = dynamic(light: 0x3F45A8, dark: 0x5A62C4)
+    static let sleepHigh     = dynamic(light: 0xC0B4FB, dark: 0xCCC2FC)
+    static let sleepLow      = dynamic(light: 0x8B78F0, dark: 0xA694F7)
+    static let sleepDeep     = dynamic(light: 0x5B3FC4, dark: 0x7659DC)
 
     // Meaning
-    /// Jett's colour, and the app's. It was green, which collided with nothing but
-    /// also meant nothing: green is what a fitness app reaches for by default. Purple
-    /// is the one hue no metric already owns — sleep is indigo, recovery green, strain
-    /// amber — so it can mean "this is an action, or this is Jett" without ever being
-    /// mistaken for a reading.
-    static let accent        = dynamic(light: 0x6B5CF5, dark: 0x8A7DFF)
+    /// Jett's colour, and the app's.
+    ///
+    /// Was green, then purple. Purple read bold at any size and sat a hue away from
+    /// sleep's indigo, so the two were never properly distinct. Sleep took the purple
+    /// instead, which suits it, and the brand took blue, which is calmer under a face
+    /// that is meant to coach rather than impress. Nothing else in the app is blue now.
+    static let accent        = dynamic(light: 0x0A7AFF, dark: 0x4C9CFF)
     static let onAccent      = dynamic(light: 0xFFFFFF, dark: 0x0E0E10)
 
     /// The thing you tap.

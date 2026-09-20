@@ -29,6 +29,7 @@
 		8EB8022FAEB8B072A5B48D87 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0BCBBC313CD0F4786FBECC8 /* Components.swift */; };
 		3847AA30AB8B469E81244BA6 /* JettRive.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75C97A7B460546DC971F8390 /* JettRive.swift */; };
 		E7724AD2681E446B9260669B /* OnboardingArt.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFD5C176B063417C9E31F066 /* OnboardingArt.swift */; };
+		08BC2C2260F6488DA1191880 /* BaselineReveal.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD53D5156C694E33A13228A0 /* BaselineReveal.swift */; };
 		EE03F8BEDCD6A9A537C094A1 /* Haptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = D05CEB565B3FE57087B3DF2F /* Haptics.swift */; };
 		8B34409B561B864F27FC08B8 /* Tokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DC92FB9E866D08DA7B20B63 /* Tokens.swift */; };
 		D5DD1FF9090A37E50C8620A7 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8D4A3BC6412D0F227E7426E /* AppModel.swift */; };
@@ -69,6 +70,7 @@
 		C2EEBD2B38B7452FB79C5D8F /* MetricNarration.swift in Sources */ = {isa = PBXBuildFile; fileRef = A920EAAEF0324D28A36B6EAB /* MetricNarration.swift */; };
 		9D93635E6446433A997C4F2D /* BurstLimiter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18C11DE58B6F4C719E3E018F /* BurstLimiter.swift */; };
 		3FD94C8E64C14DE69AD81372 /* Paywall.swift in Sources */ = {isa = PBXBuildFile; fileRef = F45D316905EB425A9AB06DAB /* Paywall.swift */; };
+		DC0F2F7CE79C418F889C57D4 /* BaselineSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 863E215B852B4F9F8410D01E /* BaselineSummary.swift */; };
 		A649253F09D9460196E0FCDF /* CoachSegments.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFB6097ADC3E4ABBB1EDB905 /* CoachSegments.swift */; };
 		30B915DB9F5846B0B986099F /* CoachAnswer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7C873BD22BE4E43A743AABB /* CoachAnswer.swift */; };
 		0A675C7B69414B43AB8BD494 /* CoachRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6586C8628D44B985A05027 /* CoachRequest.swift */; };
@@ -113,6 +115,7 @@
 		49A1D7FFCBF64F3A8A42C5E3 /* RiveRuntime.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = RiveRuntime.xcframework; path = Frameworks/RiveRuntime.xcframework; sourceTree = SOURCE_ROOT; };
 		75C97A7B460546DC971F8390 /* JettRive.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "JettRive.swift"; sourceTree = "<group>"; };
 		EFD5C176B063417C9E31F066 /* OnboardingArt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OnboardingArt.swift"; sourceTree = "<group>"; };
+		FD53D5156C694E33A13228A0 /* BaselineReveal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BaselineReveal.swift"; sourceTree = "<group>"; };
 		0F4B1A7BEA4E4BB28065BC11 /* Jett.riv */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Jett.riv"; path = "App/Jett.riv"; sourceTree = SOURCE_ROOT; };
 		D05CEB565B3FE57087B3DF2F /* Haptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Haptics.swift"; sourceTree = "<group>"; };
 		0DC92FB9E866D08DA7B20B63 /* Tokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Tokens.swift"; sourceTree = "<group>"; };
@@ -155,6 +158,7 @@
 		18C11DE58B6F4C719E3E018F /* BurstLimiter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BurstLimiter.swift"; sourceTree = "<group>"; };
 		BCEE1D3EF7944F4BB5157CB5 /* Readiness.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = "Readiness.storekit"; sourceTree = SOURCE_ROOT; };
 		F45D316905EB425A9AB06DAB /* Paywall.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Paywall.swift"; sourceTree = "<group>"; };
+		863E215B852B4F9F8410D01E /* BaselineSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BaselineSummary.swift"; sourceTree = "<group>"; };
 		AFB6097ADC3E4ABBB1EDB905 /* CoachSegments.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CoachSegments.swift"; sourceTree = "<group>"; };
 		A7C873BD22BE4E43A743AABB /* CoachAnswer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CoachAnswer.swift"; sourceTree = "<group>"; };
 		4D6586C8628D44B985A05027 /* CoachRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CoachRequest.swift"; sourceTree = "<group>"; };
@@ -275,6 +279,7 @@
 				F0BCBBC313CD0F4786FBECC8 /* Components.swift */,
 				75C97A7B460546DC971F8390 /* JettRive.swift */,
 				EFD5C176B063417C9E31F066 /* OnboardingArt.swift */,
+				FD53D5156C694E33A13228A0 /* BaselineReveal.swift */,
 				D05CEB565B3FE57087B3DF2F /* Haptics.swift */,
 				0DC92FB9E866D08DA7B20B63 /* Tokens.swift */,
 			);
@@ -351,6 +356,7 @@
 				BCEE1D3EF7944F4BB5157CB5 /* Readiness.storekit */,
 				18C11DE58B6F4C719E3E018F /* BurstLimiter.swift */,
 				F45D316905EB425A9AB06DAB /* Paywall.swift */,
+				863E215B852B4F9F8410D01E /* BaselineSummary.swift */,
 				AFB6097ADC3E4ABBB1EDB905 /* CoachSegments.swift */,
 				A7C873BD22BE4E43A743AABB /* CoachAnswer.swift */,
 				4D6586C8628D44B985A05027 /* CoachRequest.swift */,
@@ -462,6 +468,7 @@
 				8EB8022FAEB8B072A5B48D87 /* Components.swift in Sources */,
 				3847AA30AB8B469E81244BA6 /* JettRive.swift in Sources */,
 				E7724AD2681E446B9260669B /* OnboardingArt.swift in Sources */,
+				08BC2C2260F6488DA1191880 /* BaselineReveal.swift in Sources */,
 				EE03F8BEDCD6A9A537C094A1 /* Haptics.swift in Sources */,
 				8B34409B561B864F27FC08B8 /* Tokens.swift in Sources */,
 				D5DD1FF9090A37E50C8620A7 /* AppModel.swift in Sources */,
@@ -506,6 +513,7 @@
 				C2EEBD2B38B7452FB79C5D8F /* MetricNarration.swift in Sources */,
 				9D93635E6446433A997C4F2D /* BurstLimiter.swift in Sources */,
 				3FD94C8E64C14DE69AD81372 /* Paywall.swift in Sources */,
+				DC0F2F7CE79C418F889C57D4 /* BaselineSummary.swift in Sources */,
 				A649253F09D9460196E0FCDF /* CoachSegments.swift in Sources */,
 				30B915DB9F5846B0B986099F /* CoachAnswer.swift in Sources */,
 				0A675C7B69414B43AB8BD494 /* CoachRequest.swift in Sources */,
