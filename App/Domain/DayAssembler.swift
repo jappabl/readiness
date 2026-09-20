@@ -21,7 +21,18 @@ enum DayAssembler {
     /// one dynamic in `SleepScore`, and they were both on screen at once.
     static let sleepNeedHours: Double = SleepNeed.baselineHours
 
-    static func assemble(series: [DailyPhysiology]) -> AssembledDay? {
+    /// The outstanding balance as it stood on each day of the series, so the metric has
+    /// a history to be scored against rather than a single value.
+    private static func runningDebt(_ series: [DailyPhysiology]) -> [Double?] {
+        var nights: [Double] = []
+        return series.map { day in
+            guard let hours = day.sleepHours else { return nil }
+            nights.append(hours)
+            return SleepDebt.of(nights: nights).hours
+        }
+    }
+
+    static func assemble(series: [DailyPhysiology], acwr: Double? = nil) -> AssembledDay? {
         guard let today = series.last else { return nil }
 
         var readings: [MetricReading] = []
@@ -51,7 +62,10 @@ enum DayAssembler {
 
         add(.hrv, series.map(\.hrvSDNN))
         add(.restingHeartRate, series.map(\.restingHeartRate))
-        add(.sleepDebt, series.map { $0.sleepHours.map { sleepNeedHours - $0 } })
+        // The running balance, not one night's shortfall. A stock is what "how far
+        // behind am I" means, and it is the thing that was making the sleep score
+        // unreadable when it lived there instead.
+        add(.sleepDebt, runningDebt(series))
         add(.respiratoryRate, series.map(\.respiratoryRate))
         add(.bloodOxygen, series.map(\.bloodOxygenPercent))
 
@@ -73,7 +87,7 @@ enum DayAssembler {
         let readiness = ReadinessEngine.evaluate(
             ReadinessInput(readings: readings,
                            wristTemperatureDeviationC: wristDeviation,
-                           acwr: nil,
+                           acwr: acwr,
                            daysOfHistory: daysOfHistory))
 
         return AssembledDay(date: today.date, readiness: readiness, readings: readings,

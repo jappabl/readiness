@@ -198,3 +198,56 @@ struct EmptyBlock: View {
             .bevelCard()
     }
 }
+
+// MARK: - Sleep debt
+
+/// What you are down on sleep, and which way it went.
+///
+/// This used to live inside the sleep score, where it made two identical nights score
+/// differently for a reason nobody could act on that night — and measured over sixty
+/// nights it flipped a constant sleeper's band on 44% of them. A stock does not belong
+/// inside a flow. Here it is what it actually is: a balance with a direction.
+struct SleepDebtCard: View {
+    let debt: SleepDebt
+
+    /// Silent when there is nothing owed and nothing moved. A card that says "0 h, no
+    /// change" every morning teaches people to stop reading cards.
+    private var worthShowing: Bool { debt.hours >= 0.25 || abs(debt.change) >= 0.25 }
+
+    var body: some View {
+        if worthShowing {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Sleep debt").sectionHeading()
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text(hours(debt.hours))
+                        .font(.system(size: 32, weight: .semibold)).monospacedDigit()
+                        .foregroundStyle(Tokens.textPrimary)
+                    Text("h behind").font(.subheadline).foregroundStyle(.secondary)
+                    Spacer(minLength: 8)
+                    if abs(debt.change) >= 0.05 { delta }
+                }
+                .bevelCard()
+            }
+        }
+    }
+
+    /// Down is good here, which is the opposite of everywhere else in the app — so the
+    /// arrow points the way the number moved and the colour says whether that was good.
+    private var delta: some View {
+        let paidDown = debt.change < 0
+        return HStack(spacing: 3) {
+            Image(systemName: paidDown ? "arrow.down" : "arrow.up")
+                .font(.system(size: 13, weight: .bold))
+            Text(hours(abs(debt.change)) + " h")
+                .font(.system(size: 15, weight: .semibold)).monospacedDigit()
+        }
+        .foregroundStyle(paidDown ? Tokens.recoveryHigh : Tokens.alert)
+        .accessibilityLabel(paidDown
+            ? "Down \(hours(abs(debt.change))) hours since yesterday"
+            : "Up \(hours(abs(debt.change))) hours since yesterday")
+    }
+
+    private func hours(_ value: Double) -> String {
+        value.formatted(.number.precision(.fractionLength(0...1)))
+    }
+}

@@ -368,7 +368,14 @@ public enum RecoveryScore {
                 note: owesNothing ? "You are not down on sleep." : nil,
                 history: history[contribution.kind] ?? [])
         }
-        .sorted { abs($0.magnitude) > abs($1.magnitude) }
+        // Clamped inputs tie on magnitude exactly, so without a second key the leading
+        // row — and the sentence naming it — was decided by the order the metrics happen
+        // to be declared in. The reading furthest from its own baseline breaks the tie.
+        .sorted {
+            let (a, b) = (abs($0.magnitude), abs($1.magnitude))
+            if abs(a - b) > 1e-9 { return a > b }
+            return abs(($0.level ?? 0.5) - 0.5) > abs(($1.level ?? 0.5) - 0.5)
+        }
 
         // The gate earns its own row, carrying whatever distance it moved the score that
         // the weighted inputs did not. Without it the rows would describe the morning the

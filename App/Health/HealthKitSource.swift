@@ -305,9 +305,24 @@ final class HealthKitSource: HealthSource, @unchecked Sendable {
 
     // MARK: - Intraday heart rate
 
-    /// How long each bucket covers. Five minutes is 288 a day — enough to separate forty
-    /// hard minutes from a long walk, few enough that a month is a few thousand rows.
-    static let heartRateBucketMinutes = 5.0
+    /// How finely the day is bucketed.
+    ///
+    /// Was five minutes, which averaged a hard minute into four quiet ones before the
+    /// load model saw it. TRIMP is convex in heart rate, so averaging first and scoring
+    /// after systematically under-counts anything intermittent: measured, an hour of
+    /// badminton lost 19% of its load, a gym circuit 22%, and a single hard minute
+    /// inside a quiet bucket lost 58% of its own. Steady work was unaffected, which is
+    /// exactly the signature of the averaging rather than of anything physiological.
+    static let heartRateBucketMinutes = 1.0
+
+    /// How long one reading is allowed to stand for when the next is missing.
+    ///
+    /// A watch samples every few minutes at rest and continuously during a workout, so
+    /// at one-minute buckets most resting minutes have no reading of their own. Each
+    /// bucket therefore covers the gap to the next one — which is what the heart was
+    /// actually doing — rather than a fixed minute, or a quiet day would lose four
+    /// fifths of itself. Capped, so a watch left on a charger stays a gap.
+    static let heartRateCarryMinutes = 10.0
 
     /// The day's heart rate, bucketed.
     ///
@@ -332,16 +347,27 @@ final class HealthKitSource: HealthSource, @unchecked Sendable {
 
             query.initialResultsHandler = { _, results, error in
                 if let error { continuation.resume(throwing: error); return }
-                var out: [Date: [HeartRateSample]] = [:]
+                // A bucket with no samples is a gap in coverage, not a bucket at zero.
+                // Absent, so the load model never counts a drawer as rest.
+                var readings: [(start: Date, bpm: Double)] = []
                 results?.enumerateStatistics(from: start, to: dayAfterEnd) { stat, _ in
-                    // A bucket with no samples is a gap in coverage, not a bucket at
-                    // zero. Absent, so the load model never counts a drawer as rest.
                     guard let average = stat.averageQuantity()?
                         .doubleValue(for: .beatsPerMinute), average > 0 else { return }
-                    out[calendar.startOfDay(for: stat.startDate), default: []].append(
-                        HeartRateSample(start: stat.startDate,
-                                        minutes: Self.heartRateBucketMinutes,
-                                        beatsPerMinute: average))
+                    readings.append((stat.startDate, average))
+                }
+
+                // Each reading stands until the next one, capped. See
+                // `heartRateCarryMinutes`.
+                var out: [Date: [HeartRateSample]] = [:]
+                for (index, reading) in readings.enumerated() {
+                    let nextStart = index + 1 < readings.count ? readings[index + 1].start : nil
+                    let gap = nextStart.map { $0.timeIntervalSince(reading.start) / 60 }
+                        ?? Self.heartRateBucketMinutes
+                    let minutes = min(max(gap, Self.heartRateBucketMinutes),
+                                      Self.heartRateCarryMinutes)
+                    out[calendar.startOfDay(for: reading.start), default: []].append(
+                        HeartRateSample(start: reading.start, minutes: minutes,
+                                        beatsPerMinute: reading.bpm))
                 }
                 continuation.resume(returning: out)
             }
@@ -355,8 +381,10 @@ final class HealthKitSource: HealthSource, @unchecked Sendable {
         guard let start = night?.primarySleepStart, let end = night?.primarySleepEnd,
               end > start else { return nil }
         let inside = samples.filter { $0.start >= start && $0.start < end }
-        guard !inside.isEmpty else { return nil }
-        return inside.reduce(0) { $0 + $1.beatsPerMinute } / Double(inside.count)
+        let minutes = inside.reduce(0) { $0 + $1.minutes }
+        guard minutes > 0 else { return nil }
+        // Weighted by how long each reading stood for, now that they cover unequal spans.
+        return inside.reduce(0) { $0 + $1.beatsPerMinute * $1.minutes } / minutes
     }
 
     /// The waking average, with the night cut out and the busiest quarter of the day

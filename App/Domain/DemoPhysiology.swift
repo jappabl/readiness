@@ -90,7 +90,7 @@ enum DemoPhysiology {
             for step in 0..<count {
                 out.append(HeartRateSample(
                     start: midnight.addingTimeInterval(Double(minute + step * 5) * 60),
-                    minutes: 5,
+                    minutes: 5,   // each reading stands until the next, as the real source does
                     beatsPerMinute: bpm + random.nextGaussian() * jitter))
             }
         }

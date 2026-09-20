@@ -181,7 +181,13 @@ public enum StrainScore {
         Zone(id: "zone0", title: "Everyday movement", lowerReserve: 0.0, symbol: "figure.walk"),
     ]
 
-    /// The most that being awake can contribute, in load.
+    /// How much load being awake saturates towards, before the training ramp.
+    ///
+    /// Not a hard ceiling on the everyday zone any more, and the distinction matters:
+    /// the ramp begins at 0.30 reserve while zone 0 runs to 0.40, so buckets in between
+    /// earn partial training credit that is filed under zone 0 and bypasses this.
+    /// Sixteen hours sustained at 0.399 reserve is eight times this figure — not an
+    /// ordinary day, but not what the old wording promised either.
     ///
     /// The bug this exists for: sixteen waking hours at an unremarkable 70 bpm is 87
     /// load, which on the old curve was a strain of 10 out of 21 — "moderate" — for a
@@ -215,11 +221,37 @@ public enum StrainScore {
     /// normal case and should not be flagged.
     public static let minimumWornMinutes = 720.0
 
+    /// How much of the worn span has to carry samples before the trace is a record
+    /// rather than a sketch. Two readings twelve hours apart span a day and describe
+    /// none of it.
+    public static let minimumSampledShare = 0.5
+
     static func zone(forReserve reserve: Double) -> Zone {
         zones.first { reserve >= $0.lowerReserve } ?? zones[zones.count - 1]
     }
 
     public static let muscularContributorID = "muscular"
+
+    // MARK: - Target
+
+    /// What today is worth doing, given how recovered you are.
+    ///
+    /// Deliberately never stated in words anywhere — it is a tick on the ring. A target
+    /// written as a sentence is an instruction, and a coach who issues a number every
+    /// morning is a spreadsheet. As a mark you are heading towards it is a suggestion,
+    /// and passing it is allowed.
+    ///
+    /// The floor matters as much as the slope: even a wrecked morning has a target above
+    /// nothing, because doing nothing is rarely the right answer and a target of zero
+    /// would say it is.
+    public static let targetFloor = 30.0
+    public static let targetCeiling = 85.0
+
+    public static func target(recovery: Double?) -> Double? {
+        guard let recovery, recovery.isFinite else { return nil }
+        let share = Swift.min(1, Swift.max(0, recovery / 100))
+        return targetFloor + (targetCeiling - targetFloor) * share
+    }
 
     // MARK: - Scoring
 
@@ -307,14 +339,21 @@ public enum StrainScore {
         // A watch worn for four hours produces a real number from a fifth of a day, and
         // said nothing about it. Either the session was caught and everything around it
         // was not, or the session was missed and a hard day reads as a rest day.
-        // Measured first sample to last, not by summing buckets: HealthKit omits empty
-        // buckets, so a sum counts how densely the watch sampled rather than how long it
-        // was worn, and a perfectly normal sixteen-hour day was being flagged.
+        // Span AND density, which are different questions. Summing bucket minutes
+        // measured only density and flagged normal days; the span alone reported two
+        // samples twelve hours apart as a complete record. And the flag is judged
+        // against how much of the day has actually happened — against a fixed twelve
+        // hours it fired every morning and afternoon, which is most of when the card
+        // gets opened.
         if let first = samples.map(\.start).min(), let last = samples.map(\.start).max() {
-            let worn = last.timeIntervalSince(first) / 60 + (samples.last?.minutes ?? 0)
-            if worn < minimumWornMinutes {
-                let hours = Int((worn / 60).rounded())
-                missing.append("Most of the day — your heart rate was only recorded for "
+            let span = last.timeIntervalSince(first) / 60 + (samples.first?.minutes ?? 0)
+            let sampled = samples.reduce(0) { $0 + $1.minutes }
+            let elapsed = Swift.max(1, span)
+            let thin = span < Swift.min(minimumWornMinutes, elapsed)
+                || sampled / elapsed < minimumSampledShare
+            if thin {
+                let hours = Int((sampled / 60).rounded())
+                missing.append("Part of the day — your heart rate was recorded for about "
                                + "\(hours) \(hours == 1 ? "hour" : "hours")")
             }
         }

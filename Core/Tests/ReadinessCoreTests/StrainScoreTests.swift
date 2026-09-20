@@ -289,11 +289,29 @@ struct StrainCoverageTests {
     /// used to claim it had everything it wanted. Either the session was caught and
     /// nothing around it was, or the session was missed and a hard day reads as a rest
     /// day — silently, in both directions.
+    /// Was one 240-minute sample, which is not what a sparse day looks like — under the
+    /// span-and-density check that reads as four hours fully covered, which it is.
+    /// A real thin trace is a few readings spread across the day.
     @Test("a barely worn watch says so")
     func shortWearTime() {
-        let result = StrainScore.of(input(minutes(240, at: 120)))
+        let sparse = (0..<4).map {
+            HeartRateSample(start: Date().addingTimeInterval(Double($0) * 3600),
+                            minutes: 5, beatsPerMinute: 120)
+        }
+        let result = StrainScore.of(input(sparse))
         #expect(result.coverage == .partial)
-        #expect(result.missing.contains { $0.localizedCaseInsensitiveContains("most of the day") })
+        #expect(result.missing.contains { $0.localizedCaseInsensitiveContains("part of the day") })
+    }
+
+    /// The other half: a span alone said nothing about whether the day was described.
+    @Test("two readings twelve hours apart are not a record of a day")
+    func spanWithoutDensity() {
+        let bookends = [
+            HeartRateSample(start: Date(), minutes: 5, beatsPerMinute: 70),
+            HeartRateSample(start: Date().addingTimeInterval(12 * 3600),
+                            minutes: 5, beatsPerMinute: 70),
+        ]
+        #expect(StrainScore.of(input(bookends)).coverage == .partial)
     }
 
     @Test("nonsense samples are ignored rather than poisoning the total")

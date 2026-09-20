@@ -195,7 +195,7 @@ final class AppModel {
             todayCheckIn = fetchTodayCheckIn(from: context)
             acwr = computeACWR(from: context)
             let usable = healthSeries.filter(\.hasReadinessData)
-            if let assembled = DayAssembler.assemble(series: usable) {
+            if let assembled = DayAssembler.assemble(series: usable, acwr: acwr) {
                 day = assembled
                 recommendation = RecommendationEngine.recommend(
                     RecommendationInput(readiness: assembled.readiness,
@@ -258,7 +258,7 @@ final class AppModel {
             todayCheckIn = fetchTodayCheckIn(from: context)
             acwr = computeACWR(from: context)
             guard let latest = usable.last, Calendar.current.isDateInToday(latest.date),
-                  let assembled = DayAssembler.assemble(series: usable), usable.count >= 2,
+                  let assembled = DayAssembler.assemble(series: usable, acwr: acwr), usable.count >= 2,
                   !assembled.readings.isEmpty else {
                 day = nil
                 recommendation = nil
@@ -451,17 +451,6 @@ final class AppModel {
         Array(series.compactMap(\.sleepHours).suffix(days))
     }
 
-    /// Re-runs the readiness model for each of the last `days` days, so the Readiness card
-    /// can show a trend rather than a single number with no context.
-    func compositeHistory(days: Int = 14) -> [Double] {
-        guard series.count > 1 else { return [] }
-        let start = max(1, series.count - days)
-        return (start..<series.count).compactMap { end in
-            guard let assembled = DayAssembler.assemble(series: Array(series[0..<end + 1])), !assembled.readings.isEmpty else { return nil }
-            return assembled.readiness.composite
-        }
-    }
-
     var latestSleepHours: Double? { series.last.flatMap { Calendar.current.isDateInToday($0.date) ? $0.sleepHours : nil } }
 
     func sleepHours(on date: Date) -> Double? {
@@ -489,7 +478,9 @@ final class AppModel {
     /// worst mornings unreachable. `RecoveryScore` owns the transfer now, and the
     /// readiness state and the session advice are read off the same scale.
     var recoveryScore: SignalScore {
-        guard let day else {
+        // Dated, like the other two. Left open past midnight the app used to show
+        // yesterday's recovery beside a sleep ring that had already gone to a dash.
+        guard let day, Calendar.current.isDateInToday(day.date) else {
             return SignalScore(kind: .recovery, value: nil, band: nil, contributors: [],
                                coverage: .unavailable, missing: ["Health data"],
                                modelVersion: ReadinessEngine.modelVersion)
@@ -533,7 +524,7 @@ final class AppModel {
     func recoveryScore(on date: Date) -> SignalScore {
         let calendar = Calendar.current
         let upToDate = series.filter { $0.date <= calendar.startOfDay(for: date).addingTimeInterval(86_399) }
-        guard let assembled = DayAssembler.assemble(series: upToDate.filter(\.hasReadinessData)),
+        guard let assembled = DayAssembler.assemble(series: upToDate.filter(\.hasReadinessData), acwr: acwr),
               calendar.isDate(assembled.date, inSameDayAs: date) else {
             return SignalScore(kind: .recovery, value: nil, band: nil, contributors: [],
                                coverage: .unavailable, missing: ["Health data"],
@@ -556,7 +547,6 @@ final class AppModel {
             breakdown: current?.sleep,
             durationHours: current?.sleepHours,
             history: past.compactMap(\.sleep),
-            priorNights: Array(past.compactMap(\.sleepHours).suffix(SleepNeed.debtWindow)),
             // Yesterday's load is what tonight has to recover from, not today's, which
             // has not happened yet when the score is read in the morning.
             strain: strainScore(on: calendar.date(byAdding: .day, value: -1, to: today) ?? today,
@@ -565,6 +555,14 @@ final class AppModel {
             daytimeHeartRate: current?.wakingHeartRate))
     }
     var sleepPercent: Int? { sleepScore.value.map { max(1, Int($0.rounded())) } }
+
+    /// The running balance, as its own thing rather than folded into the night's score.
+    var sleepDebt: SleepDebt { sleepDebt(on: Date()) }
+
+    func sleepDebt(on date: Date) -> SleepDebt {
+        let cutoff = Calendar.current.startOfDay(for: date).addingTimeInterval(86_399)
+        return SleepDebt.of(nights: series.filter { $0.date <= cutoff }.compactMap(\.sleepHours))
+    }
 
     /// Kept as the labelled fallback for anybody without a heart rate trace.
     var dailyStrain: DailyStrainResult? {
@@ -598,7 +596,7 @@ final class AppModel {
 
     var strainScore: SignalScore { strainScore(context: context) }
     func strainPercent(context: ModelContext) -> Int? {
-        strainScore(context: context).value.map { Int($0.rounded()) }
+        strainScore(context: context).value.map { max(1, Int($0.rounded())) }
     }
 
     /// A day's heart rate with the night cut out.

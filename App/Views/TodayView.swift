@@ -210,7 +210,10 @@ struct TodayView: View {
             SignalDetailView(signal: signal)
         } label: {
             VStack(spacing: 9) {
-                RingGauge(signal: signal, percent: percent, lineWidth: 9, figureSize: 23)
+                RingGauge(signal: signal, percent: percent,
+                          target: signal == .strain
+                              ? StrainScore.target(recovery: model.recoveryScore.value) : nil,
+                          lineWidth: 9, figureSize: 23)
                     .frame(width: 78, height: 78)
                 Text(signal.title)
                     .font(.system(size: 13))
@@ -308,6 +311,8 @@ struct TodayView: View {
                 metric: model.onboarding.unitsAreMetric, onLog: { loggingWeight = true })
         case .sleepQuality:
             SleepQualityCard(night: today?.sleep, summary: model.sleepScore.summary)
+        case .sleepDebt:
+            SleepDebtCard(debt: model.sleepDebt)
         case .movement:
             MovementCard(activeEnergy: today?.activeEnergyKcal, steps: today?.steps, exerciseMinutes: today?.exerciseMinutes)
         case .healthMonitor:

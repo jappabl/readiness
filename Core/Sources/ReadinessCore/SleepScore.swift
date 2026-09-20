@@ -6,31 +6,27 @@ import Foundation
 /// a hard week as it does to somebody who has slept nine every night on holiday. Whoop's
 /// model is the one worth copying here: a baseline the body has, plus what you still owe,
 /// plus what today cost you, minus what you already took back in a nap.
+/// How much sleep last night had to be.
+///
+/// Deliberately NOT debt-adjusted, which is a reversal. Folding a running balance into a
+/// nightly score meant two identical nights scored differently for a reason nobody could
+/// act on that night — and measured over sixty nights it made a constant 7h30 sleeper
+/// change band on 44% of them, because the debt cap parked almost everybody's need on
+/// exactly the same number and left them a fraction of a point from a boundary. It also
+/// put a hard ceiling on anyone habitually under 7h26m: green was unreachable at any
+/// quality.
+///
+/// Debt is a stock and a night is a flow. The stock lives in `SleepDebt` now, where it
+/// can be shown as a balance with a direction, and it feeds recovery — which is the
+/// question it actually answers.
 public struct SleepNeed: Sendable, Equatable {
     public let hours: Double
     public let baseline: Double
-    public let debt: Double
     public let strainAdjustment: Double
     public let napCredit: Double
 
-    /// The nightly requirement before anything else applies. Unchanged from the fixed
-    /// target it replaces, because the target was never the problem — its fixedness was.
+    /// The nightly requirement before anything else applies.
     public static let baselineHours = 8.0
-
-    /// How many nights of shortfall are carried.
-    public static let debtWindow = 7
-
-    /// The most debt that can be outstanding.
-    ///
-    /// Was 3, which pinned the need at its 9.5-hour maximum for anybody averaging under
-    /// about 7h34m — so a 7h30 sleeper could never reach green no matter what they did,
-    /// and was told every morning that they needed nine and a half hours. At 1.5 the
-    /// mechanism still does its job (a 6-hour week asks for 8h45m) without handing out
-    /// advice nobody can take.
-    public static let maximumDebtHours = 1.5
-
-    /// How much of the outstanding debt one night is asked to repay.
-    public static let repaymentFraction = 0.5
 
     /// Strain below this costs nothing extra. Half the scale.
     public static let strainThreshold = 50.0
@@ -42,40 +38,60 @@ public struct SleepNeed: Sendable, Equatable {
     public static let minimumHours = 6.0
     public static let maximumHours = 11.0
 
-    /// `priorNights` is hours actually slept, oldest first. Only the last
-    /// `debtWindow` nights are read.
-    public static func of(priorNights: [Double], strain: Double? = nil,
-                          napHours: Double? = nil) -> SleepNeed {
-        let nights = priorNights.filter { $0.isFinite && $0 >= 0 }.suffix(debtWindow)
-
-        // Net, against the flat baseline, and a long night pays some of it back.
-        //
-        // This used to measure each night's shortfall against that night's own escalating
-        // need and never subtract, which made it a ratchet: debt only rose, and because
-        // the need rose with it, it compounded about half an hour a night. Six ten-hour
-        // nights could not repay one three-hour one. Anything habitually under 7 h 54 m
-        // pinned at the maximum, so a 7.9-hour sleeper and a 5-hour sleeper were told the
-        // same thing — and ordinary night-to-night variance was enough to do it, which
-        // put somebody averaging eight and a half hours in the yellow.
-        var debt = 0.0
-        for slept in nights {
-            debt = Swift.min(maximumDebtHours, Swift.max(0, debt + (baselineHours - slept)))
-        }
-
+    /// Yesterday's load is a property of the night that had to repair it, not a running
+    /// balance, so it stays. It is capped at three quarters of an hour, which is small
+    /// enough that it cannot park anybody on a band edge.
+    public static func of(strain: Double? = nil, napHours: Double? = nil) -> SleepNeed {
         let adjustment = strain.map {
             Swift.max(0, ($0 - strainThreshold) / (StrainScore.scaleMax - strainThreshold))
                 * strainExtraHours
         } ?? 0
         let nap = Swift.min(Swift.max(0, napHours ?? 0), maximumNapCreditHours)
-
-        return SleepNeed(
-            hours: clamp(baselineHours + debt * repaymentFraction + adjustment - nap),
-            baseline: baselineHours, debt: debt,
-            strainAdjustment: adjustment, napCredit: nap)
+        return SleepNeed(hours: clamp(baselineHours + adjustment - nap),
+                         baseline: baselineHours,
+                         strainAdjustment: adjustment, napCredit: nap)
     }
 
     private static func clamp(_ hours: Double) -> Double {
         Swift.min(maximumHours, Swift.max(minimumHours, hours))
+    }
+}
+
+/// What you are down on sleep, as a running balance.
+///
+/// A stock, not a score: the interesting number is which way it moved. It is shown on its
+/// own card with that direction, and it feeds recovery, where "how far behind am I" is
+/// the question being asked.
+public struct SleepDebt: Sendable, Equatable {
+    /// Outstanding hours, never negative — sleeping extra pays the hole down and then
+    /// stops. Being twelve hours "ahead" is not a thing anybody can spend.
+    public let hours: Double
+    /// Signed change from the night before. Negative is progress.
+    public let change: Double
+    public let nights: Int
+
+    /// How far back it looks. Longer than the old seven-night window, because a balance
+    /// that forgets last Tuesday is not a balance.
+    public static let window = 14
+
+    /// A real ceiling rather than a scoring convenience. Past this the number stops
+    /// being information and starts being an accusation.
+    public static let maximumHours = 12.0
+
+    /// `nights` is hours slept, oldest first, ending with last night.
+    public static func of(nights: [Double]) -> SleepDebt {
+        let usable = nights.filter { $0.isFinite && $0 >= 0 }.suffix(window)
+        let balance = accumulate(Array(usable))
+        let previous = accumulate(Array(usable.dropLast()))
+        return SleepDebt(hours: balance, change: balance - previous, nights: usable.count)
+    }
+
+    private static func accumulate(_ nights: [Double]) -> Double {
+        var debt = 0.0
+        for slept in nights {
+            debt = Swift.min(maximumHours, Swift.max(0, debt + (SleepNeed.baselineHours - slept)))
+        }
+        return debt
     }
 }
 
@@ -84,9 +100,7 @@ public struct SleepInput: Sendable {
     public let durationHours: Double?
     /// Trailing nights, for judging tonight's structure against this sleeper's own.
     public let history: [SleepBreakdown]
-    /// Hours slept on each of the previous nights, oldest first, for the debt.
-    public let priorNights: [Double]
-    /// Yesterday's strain, 0...21.
+    /// Yesterday's strain, 0...100.
     public let strain: Double?
     public let napHours: Double?
     public let sleepingHeartRate: Double?
@@ -95,14 +109,13 @@ public struct SleepInput: Sendable {
     public let calendar: Calendar
 
     public init(breakdown: SleepBreakdown?, durationHours: Double?,
-                history: [SleepBreakdown] = [], priorNights: [Double] = [],
+                history: [SleepBreakdown] = [],
                 strain: Double? = nil, napHours: Double? = nil,
                 sleepingHeartRate: Double? = nil, daytimeHeartRate: Double? = nil,
                 calendar: Calendar = .current) {
         self.breakdown = breakdown
         self.durationHours = durationHours
         self.history = history
-        self.priorNights = priorNights
         self.strain = strain
         self.napHours = napHours
         self.sleepingHeartRate = sleepingHeartRate
@@ -151,6 +164,11 @@ public enum SleepScore {
     static let shareDeviationFloor = 0.01
     static let hoursDeviationFloor = 0.1
 
+    /// Below this, being awake is stirring rather than an awakening. The stage ring
+    /// already hid it; the tile beside it was still printing it, so three parts of the
+    /// screen disagreed about whether the person woke up.
+    public static let minimumReportedAwakeHours = 0.25
+
     public static let durationContributorID = "duration"
     public static let dipContributorID = "dip"
 
@@ -162,8 +180,7 @@ public enum SleepScore {
                                neutral: perfect, modelVersion: modelVersion)
         }
 
-        let need = SleepNeed.of(priorNights: input.priorNights, strain: input.strain,
-                                napHours: input.napHours)
+        let need = SleepNeed.of(strain: input.strain, napHours: input.napHours)
         let performance = Swift.min(1, hours / need.hours)
 
         // A component nobody measured counts as an ordinary one, never as a perfect one.
@@ -267,11 +284,20 @@ public enum SleepScore {
         let night = input.breakdown
         let asleep = night?.asleepHours ?? 0
 
-        // A night recorded as plain "asleep" has no stages, and that is not the same as
-        // a night with no deep sleep in it. Without this the app told somebody whose
-        // watch was on the charger that they got zero hours of REM, and ranked it as the
-        // leading reason their night was poor.
-        let staged = (night.map { $0.deepHours + $0.remHours + $0.coreHours } ?? 0) > 0
+        /// Whether a night's stages can be trusted.
+        ///
+        /// Two ways they cannot. A night recorded as plain "asleep" has no stages at all,
+        /// and that is not the same as a night with no deep sleep in it — the app used to
+        /// tell somebody whose watch was on the charger that they got zero hours of REM
+        /// and rank it as the reason their night was poor. And a phone and a watch both
+        /// recording can report more staged hours than the night contained, which
+        /// `HealthSource` already refuses to split but the scorer did not: one probe drew
+        /// a ring reading "Deep 7.0 h" on a seven-hour night, arcs summing to 129% of it.
+        func isStaged(_ night: SleepBreakdown) -> Bool {
+            let stages = night.deepHours + night.remHours + night.coreHours
+            return stages > 0 && stages <= night.asleepHours + 0.01
+        }
+        let staged = night.map(isStaged) ?? false
 
         func share(_ keyPath: KeyPath<SleepBreakdown, Double>) -> Double? {
             guard let night, asleep > 0, staged else { return nil }
@@ -296,8 +322,12 @@ public enum SleepScore {
             return Swift.min(1, 2 * Percentile.fromZ(higherIsBetter ? z : -z))
         }
 
+        // Only nights whose stages are trustworthy may set the baseline the current
+        // night is judged against.
+        let stagedHistory = input.history.filter(isStaged)
+
         let historicShares = { (keyPath: KeyPath<SleepBreakdown, Double>) -> [Double] in
-            input.history.compactMap { past in
+            stagedHistory.compactMap { past in
                 past.asleepHours > 0 ? past[keyPath: keyPath] / past.asleepHours : nil
             }
         }
@@ -329,7 +359,7 @@ public enum SleepScore {
         let continuityFraction = night?.recordedContinuity
         let deepUsual = usualHours(\.deepHours)
         let remUsual = usualHours(\.remHours)
-        let awakeUsual = BaselineSummary.of(input.history.map(\.awakeHours),
+        let awakeUsual = BaselineSummary.of(stagedHistory.map(\.awakeHours),
                                             minimumDeviation: hoursDeviationFloor)?.mean
 
         return [
@@ -391,9 +421,10 @@ public enum SleepScore {
             Component(
                 id: "awake", title: "Time awake",
                 fraction: relative(staged ? night?.awakeHours : nil,
-                                   input.history.map(\.awakeHours),
+                                   stagedHistory.map(\.awakeHours),
                                    floor: hoursDeviationFloor, higherIsBetter: false),
-                value: night.map { $0.awakeHours }, unit: "h",
+                value: night.map { $0.awakeHours < minimumReportedAwakeHours ? 0 : $0.awakeHours },
+                unit: "h",
                 comparison: awakeUsual, comparisonLabel: "your usual",
                 explanation: "Time spent awake between falling asleep and getting up, "
                            + "against how much you normally lose. Everybody surfaces "
@@ -422,12 +453,8 @@ public enum SleepScore {
     }
 
     private static func needExplanation(_ need: SleepNeed) -> String {
-        var parts = ["Your need tonight was \(format(need.hours)) hours: "
+        var parts = ["Your need last night was \(format(need.hours)) hours: "
                      + "\(format(need.baseline)) as a baseline"]
-        if need.debt > 0 {
-            parts.append("plus \(format(need.debt * SleepNeed.repaymentFraction)) to pay "
-                         + "back part of the \(format(need.debt)) hours you are down")
-        }
         if need.strainAdjustment > 0 {
             parts.append("plus \(format(need.strainAdjustment)) for how hard yesterday was")
         }

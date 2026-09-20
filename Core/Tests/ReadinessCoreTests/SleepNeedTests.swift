@@ -8,85 +8,110 @@ import Testing
 @Suite("Sleep need")
 struct SleepNeedTests {
 
-    @Test("a rested week needs the baseline and nothing more")
-    func noDebt() {
-        let need = SleepNeed.of(priorNights: Array(repeating: 8.0, count: 7))
-        #expect(need.hours == SleepNeed.baselineHours)
-        #expect(need.debt == 0)
-    }
-
-    /// Debt accumulates: three nights an hour short is the same hole as one very bad
-    /// night, which is the whole argument for tracking it rather than judging each
-    /// night alone.
-    @Test("short nights accumulate into a debt")
-    func debtAccumulates() {
-        let need = SleepNeed.of(priorNights: Array(repeating: 7.0, count: 3) + Array(repeating: 8.0, count: 4))
-        #expect(need.debt > 0)
-        #expect(need.hours > SleepNeed.baselineHours)
-    }
-
-    /// A night repays part of the hole, not all of it. Asking somebody to sleep
-    /// fourteen hours to clear a week of five-hour nights is advice nobody can take.
-    @Test("one night is not asked to repay the whole debt")
-    func partialRepayment() {
-        let need = SleepNeed.of(priorNights: Array(repeating: 5.0, count: 7))
-        #expect(need.hours < SleepNeed.baselineHours + need.debt)
-        #expect(need.hours <= SleepNeed.maximumHours)
-    }
-
-    @Test("debt is capped so a terrible month cannot demand a whole night extra")
-    func debtCapped() {
-        let need = SleepNeed.of(priorNights: Array(repeating: 2.0, count: 7))
-        #expect(need.debt <= SleepNeed.maximumDebtHours)
+    /// The redesign: debt no longer moves the need. It used to, and over sixty nights it
+    /// made a constant 7h30 sleeper change band on 44% of them — the cap parked almost
+    /// every need on the same number and left people a fraction of a point from a
+    /// boundary. It also put a hard ceiling on anyone habitually under 7h26m. The stock
+    /// lives in `SleepDebt` now and feeds recovery, which is the question it answers.
+    @Test("a run of short nights does not raise tonight's need")
+    func debtDoesNotMoveTheNeed() {
+        #expect(SleepNeed.of().hours == SleepNeed.baselineHours)
+        #expect(SleepNeed.of(strain: 0).hours == SleepNeed.baselineHours)
     }
 
     @Test("a hard day asks for more sleep")
     func strainRaisesNeed() {
-        // Strain is on 0...100 now, like the other two signals.
-        let easy = SleepNeed.of(priorNights: Array(repeating: 8.0, count: 7), strain: 20)
-        let hard = SleepNeed.of(priorNights: Array(repeating: 8.0, count: 7), strain: 95)
+        let easy = SleepNeed.of(strain: 20)
+        let hard = SleepNeed.of(strain: 95)
         #expect(hard.hours > easy.hours)
         #expect(easy.hours == SleepNeed.baselineHours, "an easy day adds nothing")
     }
 
+    /// Small enough that it cannot park anybody on a band edge, which is the failure the
+    /// debt term produced.
+    @Test("the hard-day adjustment is bounded")
+    func strainBounded() {
+        #expect(SleepNeed.of(strain: 100).strainAdjustment == SleepNeed.strainExtraHours)
+        #expect(SleepNeed.of(strain: 100).hours
+                <= SleepNeed.baselineHours + SleepNeed.strainExtraHours)
+    }
+
     @Test("a nap is credited against tonight")
     func napCredit() {
-        let without = SleepNeed.of(priorNights: Array(repeating: 8.0, count: 7))
-        let with = SleepNeed.of(priorNights: Array(repeating: 8.0, count: 7), napHours: 1)
-        #expect(with.hours < without.hours)
+        #expect(SleepNeed.of(napHours: 1).hours < SleepNeed.of().hours)
     }
 
     @Test("a three hour nap is not credited as three hours")
     func napCapped() {
-        let need = SleepNeed.of(priorNights: Array(repeating: 8.0, count: 7), napHours: 3)
-        #expect(need.napCredit <= SleepNeed.maximumNapCreditHours)
+        #expect(SleepNeed.of(napHours: 3).napCredit <= SleepNeed.maximumNapCreditHours)
     }
 
     @Test("need stays inside a range a person can actually act on")
     func clamped() {
-        let extreme = SleepNeed.of(priorNights: Array(repeating: 0.0, count: 7),
-                                   strain: 100, napHours: 0)
-        #expect(extreme.hours <= SleepNeed.maximumHours)
-        let minimal = SleepNeed.of(priorNights: Array(repeating: 12.0, count: 7), napHours: 3)
-        #expect(minimal.hours >= SleepNeed.minimumHours)
+        #expect(SleepNeed.of(strain: 100).hours <= SleepNeed.maximumHours)
+        #expect(SleepNeed.of(napHours: 3).hours >= SleepNeed.minimumHours)
     }
 
-    @Test("no history at all is the baseline, not a guess")
-    func noHistory() {
-        #expect(SleepNeed.of(priorNights: []).hours == SleepNeed.baselineHours)
+    @Test("nonsense inputs do not move it")
+    func nonsense() {
+        #expect(SleepNeed.of(strain: .nan).hours == SleepNeed.baselineHours)
+        #expect(SleepNeed.of(napHours: -5).hours == SleepNeed.baselineHours)
+    }
+}
+
+@Suite("Sleep debt")
+struct SleepDebtTests {
+
+    @Test("a rested week owes nothing")
+    func noDebt() {
+        #expect(SleepDebt.of(nights: Array(repeating: 8.0, count: 14)).hours == 0)
     }
 
-    /// Was written when each night's shortfall was measured against that night's own
-    /// escalating need. It is measured against the flat baseline now — that escalation
-    /// was the ratchet — but the property it was really asserting still holds: a week of
-    /// short nights owes more than a single short night.
-    @Test("a short week owes more than a single short night")
-    func recursiveNeed() {
-        // Kept under the cap on both sides, or the property is untestable: with the cap
-        // at 1.5 hours a single six-hour night already reaches it.
-        let flat = SleepNeed.of(priorNights: [8, 8, 8, 8, 8, 8, 7.5])
-        let compounding = SleepNeed.of(priorNights: [7.5, 7.5, 7.5, 8, 8, 8, 8])
-        #expect(compounding.debt > flat.debt)
+    @Test("short nights accumulate")
+    func accumulates() {
+        let debt = SleepDebt.of(nights: Array(repeating: 6.0, count: 5))
+        #expect(debt.hours > 0)
+    }
+
+    /// The property the old ratchet did not have. A long night pays the hole down.
+    @Test("a long night repays")
+    func surplusRepays() {
+        #expect(SleepDebt.of(nights: [4, 10, 10]).hours == 0)
+        #expect(SleepDebt.of(nights: [4]).hours == 4)
+    }
+
+    /// Being ahead is not a thing anybody can spend, so the balance floors at zero
+    /// rather than running negative.
+    @Test("sleeping extra does not build credit")
+    func noCredit() {
+        #expect(SleepDebt.of(nights: Array(repeating: 10.0, count: 14)).hours == 0)
+    }
+
+    @Test("the balance is capped")
+    func capped() {
+        #expect(SleepDebt.of(nights: Array(repeating: 1.0, count: 14)).hours
+                == SleepDebt.maximumHours)
+    }
+
+    /// What the card shows: which way it moved. Negative is progress.
+    @Test("the change is signed and reads as progress or not")
+    func change() {
+        #expect(SleepDebt.of(nights: [6, 6]).change == 2)
+        #expect(SleepDebt.of(nights: [6, 6, 10]).change == -2)
+        #expect(SleepDebt.of(nights: [8, 8, 8]).change == 0)
+    }
+
+    @Test("it only looks back over its own window")
+    func windowed() {
+        let ancient = [2.0] + Array(repeating: 8.0, count: SleepDebt.window)
+        #expect(SleepDebt.of(nights: ancient).hours == 0,
+                "a bad night older than the window still counted")
+    }
+
+    @Test("nonsense nights are dropped rather than carried")
+    func nonsense() {
+        #expect(SleepDebt.of(nights: [.nan, 8, .infinity, 8]).hours == 0)
+        #expect(SleepDebt.of(nights: []).hours == 0)
     }
 }
 
@@ -125,11 +150,10 @@ struct SleepScoreCalculationTests {
     }
 
     func input(_ breakdown: SleepBreakdown?, hours: Double?, history: [SleepBreakdown] = [],
-               priorNights: [Double] = Array(repeating: 8.0, count: 7),
                strain: Double? = nil, napHours: Double? = nil,
                sleepingHeartRate: Double? = nil, daytimeHeartRate: Double? = nil) -> SleepInput {
         SleepInput(breakdown: breakdown, durationHours: hours, history: history,
-                   priorNights: priorNights, strain: strain, napHours: napHours,
+                   strain: strain, napHours: napHours,
                    sleepingHeartRate: sleepingHeartRate, daytimeHeartRate: daytimeHeartRate,
                    calendar: calendar)
     }
@@ -143,12 +167,16 @@ struct SleepScoreCalculationTests {
 
     /// The point of a need-relative score: the same eight hours is not the same result
     /// when you are six hours in the hole.
-    @Test("the same night scores lower against a larger need")
+    /// Was "the same night scores lower against a larger need", which is the behaviour
+    /// the redesign removed — a running debt balance no longer moves the need, because
+    /// it made identical nights score differently for a reason nobody could act on that
+    /// night. What remains is yesterday's load, which really is a property of the night
+    /// that had to repair it.
+    @Test("a night after a hard day is judged against a larger need")
     func needMovesTheScore() throws {
-        let rested = SleepScore.of(input(night(19), hours: 8, history: history()))
-        let indebted = SleepScore.of(input(night(19), hours: 8, history: history(),
-                                           priorNights: Array(repeating: 5.0, count: 7)))
-        #expect(try #require(indebted.value) < #require(rested.value))
+        let easy = SleepScore.of(input(night(19), hours: 8, history: history(), strain: 20))
+        let hard = SleepScore.of(input(night(19), hours: 8, history: history(), strain: 100))
+        #expect(try #require(hard.value) < #require(easy.value))
     }
 
     @Test("half your need is nowhere near half a good night's score")
@@ -251,7 +279,6 @@ struct SleepContributionTests {
     func input(_ hours: Double) -> SleepInput {
         SleepInput(breakdown: night(19, hours: hours), durationHours: hours,
                    history: (1...14).map { night($0 + 1) },
-                   priorNights: Array(repeating: 8.0, count: 7),
                    calendar: calendar)
     }
 
@@ -293,7 +320,7 @@ struct SleepCoverageTests {
     @Test("duration alone still produces a labelled score")
     func durationOnly() {
         let result = SleepScore.of(SleepInput(breakdown: nil, durationHours: 7,
-                                              priorNights: Array(repeating: 8.0, count: 7)))
+                                              history: []))
         #expect(result.value != nil)
         // Duration alone leaves every structural component unmeasured, which is a
         // baseline still being built rather than one thing not counted today.
@@ -320,61 +347,9 @@ struct SleepCoverageTests {
     @Test("a component with too little history is excluded and named")
     func thinHistory() {
         let result = SleepScore.of(SleepInput(breakdown: nil, durationHours: 8,
-                                              history: [], priorNights: [8, 8, 8]))
+                                              history: []))
         #expect(result.coverage != .full)
         #expect(!result.missing.isEmpty)
-    }
-}
-
-@Suite("Sleep debt is not a ratchet")
-struct SleepDebtRepaymentTests {
-
-    /// The defect this suite exists for. Debt used to be measured against each night's
-    /// own escalating need and could only ever rise, so it compounded about half an hour
-    /// a night and nothing repaid it.
-    @Test("a run of long nights repays a bad one")
-    func surplusRepays() {
-        let need = SleepNeed.of(priorNights: [3, 10, 10, 10, 10, 10, 10])
-        #expect(need.debt == 0, "six ten-hour nights left a debt of \(need.debt)")
-        #expect(need.hours == SleepNeed.baselineHours)
-    }
-
-    /// Six minutes of habitual sleep used to cost sixteen points and a band: 8.0 h gave
-    /// a need of 8.0 and 7.9 h gave the maximum 9.5, so a 7.9-hour sleeper and a 5-hour
-    /// sleeper were told exactly the same thing.
-    @Test("there is no cliff just under eight hours")
-    func noCliff() {
-        let eight = SleepNeed.of(priorNights: Array(repeating: 8.0, count: 7))
-        let justUnder = SleepNeed.of(priorNights: Array(repeating: 7.9, count: 7))
-        #expect(justUnder.hours - eight.hours < 0.5,
-                "7.9h asked for \(justUnder.hours), 8.0h asked for \(eight.hours)")
-    }
-
-    /// Ordinary night-to-night variance was enough to pin the need at its maximum, which
-    /// put somebody averaging eight and a half hours in the yellow.
-    @Test("a normal week that averages enough owes nothing", arguments: [
-        [7.5, 8.5, 7.8, 8.2, 7.6, 8.4, 8.0],
-        [7.5, 9.5, 7.5, 9.5, 7.5, 9.5, 8.5],
-        [5.0, 8.5, 8.5, 8.5, 8.5, 8.5, 8.5],
-    ])
-    func varianceIsNotDebt(nights: [Double]) {
-        #expect(SleepNeed.of(priorNights: nights).debt < 0.01)
-    }
-
-    /// The same seven numbers in a different order used to give a different answer.
-    @Test("the order of a week does not change what it owes")
-    func orderIndependent() {
-        let week = [6.0, 9.0, 7.0, 9.5, 6.5, 8.5, 7.5]
-        #expect(SleepNeed.of(priorNights: week).debt
-                == SleepNeed.of(priorNights: week.reversed()).debt)
-    }
-
-    /// Still has to work: genuine chronic shortfall is what the mechanism is for.
-    @Test("a genuinely short week still owes")
-    func realDebtSurvives() {
-        let need = SleepNeed.of(priorNights: Array(repeating: 6.0, count: 7))
-        #expect(need.debt == SleepNeed.maximumDebtHours)
-        #expect(need.hours > SleepNeed.baselineHours)
     }
 }
 
@@ -406,7 +381,6 @@ struct SleepCoverageFairnessTests {
     func score(_ breakdown: SleepBreakdown?, staged: Bool = true) -> SignalScore {
         SleepScore.of(SleepInput(breakdown: breakdown, durationHours: 8,
                                  history: (1...14).map { night($0 + 1, staged: staged) },
-                                 priorNights: Array(repeating: 8.0, count: 7),
                                  sleepingHeartRate: 56, daytimeHeartRate: 66,
                                  calendar: calendar))
     }
@@ -417,8 +391,7 @@ struct SleepCoverageFairnessTests {
     func blindDoesNotWin() throws {
         let measured = try #require(score(night(19)).value)
         let unmeasured = try #require(
-            SleepScore.of(SleepInput(breakdown: nil, durationHours: 8,
-                                     priorNights: Array(repeating: 8.0, count: 7))).value)
+            SleepScore.of(SleepInput(breakdown: nil, durationHours: 8)).value)
         #expect(unmeasured <= measured,
                 "measuring nothing scored \(unmeasured), measuring everything scored \(measured)")
     }

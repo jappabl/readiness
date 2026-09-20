@@ -19,6 +19,8 @@ struct SignalDetailView: View {
             ScrollView {
                 VStack(spacing: 16) {
                     HeroRing(signal: signal, percent: percent,
+                             target: signal == .strain
+                                 ? StrainScore.target(recovery: model.recoveryScore.value) : nil,
                              stages: SleepStages(score: score))
                         .padding(.top, 8)
                         .padding(.bottom, 6)

@@ -35,7 +35,6 @@ struct SleepSampleTests {
                history: [SleepBreakdown] = []) -> SignalScore {
         SleepScore.of(SleepInput(breakdown: breakdown, durationHours: hours,
                                  history: history,
-                                 priorNights: Array(repeating: 8.0, count: 7),
                                  calendar: calendar))
     }
     func continuity(_ result: SignalScore) -> Double? {

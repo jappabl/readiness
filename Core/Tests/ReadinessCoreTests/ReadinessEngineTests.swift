@@ -247,13 +247,14 @@ struct ReadinessConfidenceTests {
         let result = ReadinessEngine.evaluate(
             ReadinessInput(readings: [reading(.hrv, z: -2.0)], daysOfHistory: 60))
         #expect(result.contributions.count == 1)
-        // Was wellBelowBaseline. One metric alone is now damped and clamped, on purpose:
-        // renormalising to full weight handed the four absent streams' votes to whoever
-        // showed up, and a lone reading could order a rest day by itself. It still has to
-        // read the day rather than dilute toward zero, which is what this now asserts.
-        #expect(result.state == .belowBaseline,
+        // The per-input clamp exists to stop one metric of several overruling the rest.
+        // With one metric there are no others, and applying it there capped the scale
+        // itself — an iPhone-only user's ring could read 32 to 68 and nothing else. So a
+        // lone stream can reach the bottom again, while the weight floor still damps it:
+        // two readings do not speak for five.
+        #expect(result.state == .wellBelowBaseline,
                 "with only HRV present it should still read the day, not dilute toward zero")
-        #expect(result.composite < -0.2)
+        #expect(result.composite < -0.5)
     }
 
     @Test("no readings at all is low confidence and at baseline rather than a crash")

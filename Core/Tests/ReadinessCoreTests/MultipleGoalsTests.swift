@@ -106,13 +106,17 @@ struct MultipleGoalsTests {
 
     @Test func mixedGoalsContributeHomeCardsWithoutDuplicates() {
         let blocks = HomeComposition.blocks(for: Set([TrainingGoal.buildMuscle, .loseFat, .feelBetter]), hasProgram: false)
-        #expect(blocks == [.programPrompt, .nutrition, .weightTrend, .sleepQuality, .movement, .healthMonitor])
+        // Sleep debt joins every goal: it is a standing balance rather than something
+        // one kind of training cares about, and the card shows nothing when there is
+        // nothing owed.
+        #expect(blocks == [.programPrompt, .nutrition, .weightTrend, .sleepDebt,
+                           .sleepQuality, .movement, .healthMonitor])
         let withProgram = HomeComposition.blocks(for: Set([TrainingGoal.getStronger, .buildMuscle]), hasProgram: true)
-        #expect(withProgram == [.session, .nutrition, .weightTrend, .healthMonitor])
+        #expect(withProgram == [.session, .sleepDebt, .nutrition, .weightTrend, .healthMonitor])
     }
 
     @Test func nonliftingHomeDoesNotAddAProgramPrompt() {
         let blocks = HomeComposition.blocks(for: Set([TrainingGoal.loseFat, .feelBetter]), hasProgram: false)
-        #expect(blocks == [.nutrition, .weightTrend, .sleepQuality, .movement, .healthMonitor])
+        #expect(blocks == [.nutrition, .weightTrend, .sleepDebt, .sleepQuality, .movement, .healthMonitor])
     }
 }

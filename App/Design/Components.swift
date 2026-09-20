@@ -41,7 +41,11 @@ enum Signal: String, CaseIterable, Identifiable {
     /// directly above the words "keep it gentle today". Strain has no verdict — a hard
     /// day is not a bad day — so it keeps its own ramp and says intensity instead.
     func ring(forPercent percent: Int?) -> [Color] {
-        guard self != .strain, let percent else { return ring }
+        // Sleep is always purple. It is the signal with the strongest identity in the
+        // app and recolouring it by verdict cost more in recognition than it bought in
+        // information — the number is right there. Strain keeps its own ramp because a
+        // hard day is not a bad day. Recovery is the one that carries a verdict.
+        guard self == .recovery, let percent else { return ring }
         switch percent {
         case 67...: return [Tokens.recoveryLow, Tokens.recoveryHigh, Tokens.recoveryDeep]
         case 34..<67: return [Tokens.strainHigh, Tokens.strainLow, Tokens.strainDeep]
@@ -98,6 +102,9 @@ struct RingGauge: View {
     let signal: Signal
     /// nil means not enough history to say, which is not the same as zero.
     let percent: Int?
+    /// Where today is worth getting to, 0...100. Drawn as a mark on the track and never
+    /// said in words — see `StrainScore.target(recovery:)`.
+    var target: Double?
     var lineWidth: CGFloat = 11
     var figureSize: CGFloat = 22
     var showsHeroWord = false
@@ -124,6 +131,18 @@ struct RingGauge: View {
                             style: StrokeStyle(lineWidth: lineWidth, lineCap: .butt,
                                                dash: [1.6, 3.4]))
                     .rotationEffect(.degrees(-90))
+            }
+
+            if let target, (0...100).contains(target) {
+                GeometryReader { geometry in
+                    let side = min(geometry.size.width, geometry.size.height)
+                    Capsule()
+                        .fill(Tokens.textPrimary.opacity(0.28))
+                        .frame(width: 2, height: lineWidth + 5)
+                        .offset(y: -(side - lineWidth) / 2)
+                        .rotationEffect(.degrees(360 * target / 100))
+                        .frame(width: geometry.size.width, height: geometry.size.height)
+                }
             }
 
             Circle()
@@ -176,6 +195,7 @@ struct RingGauge: View {
 struct HeroRing: View {
     let signal: Signal
     let percent: Int?
+    var target: Double?
     var stages: SleepStages?
 
     var body: some View {
@@ -188,8 +208,8 @@ struct HeroRing: View {
                                lineWidth: 17, figureSize: 40)
                     .padding(11)
             } else {
-                RingGauge(signal: signal, percent: percent, lineWidth: 17,
-                          figureSize: 40, showsHeroWord: true)
+                RingGauge(signal: signal, percent: percent, target: target,
+                          lineWidth: 17, figureSize: 40, showsHeroWord: true)
                     .padding(11)
             }
         }

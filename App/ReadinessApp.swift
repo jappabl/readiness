@@ -265,7 +265,6 @@ enum SampleScores {
         }
         return SleepScore.of(SleepInput(
             breakdown: tonight, durationHours: 6.1, history: history,
-            priorNights: [7.5, 6.8, 7.9, 6.2, 7.1, 6.6, 7.4],
             strain: 72, sleepingHeartRate: 56, daytimeHeartRate: 68))
     }
 

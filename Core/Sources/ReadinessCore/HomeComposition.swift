@@ -53,6 +53,11 @@ public enum HomeBlock: String, Sendable, Equatable, CaseIterable {
     case nutrition
     case weightTrend
     case sleepQuality
+    /// A standing balance rather than a reading, which is why it is its own card and
+    /// not a line inside the sleep score. The card renders nothing when there is
+    /// nothing owed and nothing changed — a row saying "0 h, no change" every morning
+    /// is how a card teaches people to stop looking at it.
+    case sleepDebt
     case movement
     case healthMonitor
 }
@@ -84,15 +89,15 @@ public enum HomeComposition {
         let body: [HomeBlock]
         switch goal {
         case .getStronger:
-            body = [lead]
+            body = [lead, .sleepDebt]
         case .buildMuscle:
-            body = [lead, .nutrition, .weightTrend]
+            body = [lead, .nutrition, .weightTrend, .sleepDebt]
         case .loseFat:
             // Keep calories and macros together, without inferring a deficit from an incomplete log.
             // The session stays, below it, so training does not quietly disappear.
-            body = [.nutrition, .weightTrend, .session]
+            body = [.nutrition, .weightTrend, .session, .sleepDebt]
         case .feelBetter:
-            body = [.sleepQuality, .movement, .session]
+            body = [.sleepQuality, .sleepDebt, .movement, .session]
         }
 
         // A promised session with no programme behind it is a broken promise.
