@@ -85,10 +85,11 @@ struct InsightsView: View {
             }
 
             VStack(alignment: .leading, spacing: 7) {
-                if let band = score.band { BandLabel(band: band) }
+                // No band word. "Pay attention" above a 56 is the number repeated in
+                // adjectives, and the ring's own colour already says it without one.
                 if let night = SleepStages(score: score) {
                     SleepStageKey(stages: night)
-                } else if let lead = score.contributors.first, abs(lead.magnitude) >= 5 {
+                } else if let lead = score.contributors.first, abs(lead.magnitude) >= 2 {
                     Text(verdict(lead))
                         .font(.system(size: 14))
                         .foregroundStyle(Tokens.textSecondary)
@@ -163,7 +164,7 @@ struct InsightsView: View {
             .lineLimit(1)
             .minimumScaleFactor(0.65)
 
-            ComparisonBar(contributor: contributor, tint: colour(contributor))
+            ComparisonBar(contributor: contributor)
                 .padding(.top, 10)
         }
         .padding(14)
@@ -390,7 +391,12 @@ struct ContributorDetail: View {
 /// as the worst thing on the screen.
 struct ComparisonBar: View {
     let contributor: ScoreContributor
-    var tint: Color = Tokens.accent
+    /// Deliberately one neutral colour.
+    ///
+    /// Tinting the bar as well meant three things on a tile were saying the same thing,
+    /// and a grid of coloured bars is a wall of colour that draws the eye everywhere and
+    /// therefore nowhere. The bar carries how much; the arrow carries how it went.
+    var tint: Color = Tokens.textPrimary.opacity(0.55)
 
     private let height: CGFloat = 7
 
@@ -415,12 +421,17 @@ struct ComparisonBar: View {
         .frame(height: height + 6)
     }
 
-    /// A row judged against a normal gets the normal marked. A heart rate zone has no
-    /// normal to mark, so it is a plain bar.
-    private var hasBaseline: Bool { (contributor.comparison ?? 0) > 0 }
+    /// Only rows whose level really is a percentile of the sleeper's own history get a
+    /// "normal" tick at the halfway mark.
+    ///
+    /// It used to be drawn for anything with a comparison, but several rows report level
+    /// as a share of a target rather than a percentile — time asleep against need, the
+    /// heart rate dip against a strong one — and on those, half the bar is not the
+    /// normal. The tick was claiming a fact the bar could not support.
+    private var hasBaseline: Bool { contributor.comparisonLabel != nil }
 
-    /// Where "your normal" sits on the track. Half, because `level` is a share and a
-    /// typical reading lands in the middle of its own distribution.
+    /// Where "your normal" sits on the track. Half, because a typical reading lands in
+    /// the middle of its own distribution.
     static let baselinePosition = 0.5
 
     private var fill: Double {
@@ -516,16 +527,10 @@ struct ScoreRing: View {
                 .stroke(tint, style: StrokeStyle(lineWidth: 11, lineCap: .round))
                 .rotationEffect(.degrees(-90))
 
-            HStack(alignment: .firstTextBaseline, spacing: 1) {
-                Text(value.map { Swift.max(1, $0.rounded()).formatted(.number.precision(.fractionLength(0))) } ?? "—")
-                    .font(.system(size: 34, weight: .semibold))
-                    .monospacedDigit()
-                if value != nil {
-                    Text("%").font(.system(size: 15, weight: .medium))
-                        .foregroundStyle(Tokens.textSecondary)
-                }
-            }
-            .foregroundStyle(Tokens.textPrimary)
+            Text(value.map { Swift.max(1, $0.rounded()).formatted(.number.precision(.fractionLength(0))) } ?? "—")
+                .font(.system(size: 34, weight: .semibold))
+                .monospacedDigit()
+                .foregroundStyle(Tokens.textPrimary)
         }
         .task {
             guard !reduceMotion else { return }
@@ -605,10 +610,6 @@ struct SleepStageRing: View {
                 Text(value.map { Swift.max(1, $0.rounded()).formatted(.number.precision(.fractionLength(0))) } ?? "—")
                     .font(.system(size: figureSize, weight: .semibold))
                     .monospacedDigit()
-                if value != nil {
-                    Text("%").font(.system(size: figureSize * 0.44, weight: .medium))
-                        .foregroundStyle(Tokens.textSecondary)
-                }
             }
             .foregroundStyle(Tokens.textPrimary)
         }

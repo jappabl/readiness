@@ -20,9 +20,14 @@ public struct SleepNeed: Sendable, Equatable {
     /// How many nights of shortfall are carried.
     public static let debtWindow = 7
 
-    /// The most debt that can be outstanding. Without a cap a bad month asks for
-    /// fourteen hours, which is not advice, it is an accusation.
-    public static let maximumDebtHours = 3.0
+    /// The most debt that can be outstanding.
+    ///
+    /// Was 3, which pinned the need at its 9.5-hour maximum for anybody averaging under
+    /// about 7h34m — so a 7h30 sleeper could never reach green no matter what they did,
+    /// and was told every morning that they needed nine and a half hours. At 1.5 the
+    /// mechanism still does its job (a 6-hour week asks for 8h45m) without handing out
+    /// advice nobody can take.
+    public static let maximumDebtHours = 1.5
 
     /// How much of the outstanding debt one night is asked to repay.
     public static let repaymentFraction = 0.5
@@ -179,7 +184,13 @@ public enum SleepScore {
         // from a full night, so they sum to the distance below one hundred.
         let durationLoss = perfect * (1 - performance)
         let qualityLoss = perfect * performance * (1 - qualityFactor)
-        let shortfalls = components.map { $0.fraction.map { 1 - $0 } ?? 0 }
+        // Only measured components can be blamed for the loss. The stand-in charge for
+        // the ones nobody recorded is real, but attributing it to a measured row put a
+        // 99% night's headline on its single good component.
+        let shortfalls = components.map { component -> Double in
+            guard let fraction = component.fraction else { return 0 }
+            return 1 - fraction
+        }
         let totalShortfall = shortfalls.reduce(0, +)
 
         var rows = [ScoreContributor(

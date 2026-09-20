@@ -160,6 +160,14 @@ public struct SignalScore: Sendable, Equatable, Codable {
     public let gate: ReadinessGate?
     public let modelVersion: String
 
+    /// How much a row has to have moved before it is worth naming.
+    ///
+    /// One point of recovery is three minutes of sleep, so a lower bar had the sentence
+    /// leading on noise. Five was too high for sleep, where a structural row can never
+    /// exceed 2.5 — the home card said "nothing stood out" while the breakdown behind it
+    /// named a row.
+    public static let notableMagnitude = 2.0
+
     public func contributor(_ id: String) -> ScoreContributor? {
         contributors.first { $0.id == id }
     }
@@ -179,7 +187,7 @@ public struct SignalScore: Sendable, Equatable, Codable {
         // Five points, not one. One point of recovery is three minutes of sleep or a
         // tenth of a beat, so the sentence used to lead on pure noise — "heart rate
         // variability pushed it up most" off a 0.8 ms wobble.
-        guard let lead = contributors.first, abs(lead.magnitude) >= 5 else {
+        guard let lead = contributors.first, abs(lead.magnitude) >= Self.notableMagnitude else {
             return gate.map { "\($0.displayName) is what matters today." }
                 ?? "Nothing stood out today."
         }
@@ -336,17 +344,18 @@ public enum RecoveryScore {
         var rows = result.contributions.map { contribution in
             let reading = readings.first { $0.kind == contribution.kind }
             let aligned = contribution.zScore * contribution.kind.polarity
-            // `points` is already weighted and clamped, so dividing back out recovers
-            // the aligned z the engine used.
-            let scoringAligned = contribution.weight > 0
-                ? contribution.points / contribution.weight : aligned
+            let scoringAligned = contribution.alignedZ ?? aligned
+            // Sleep debt is hours short of the target, so a well-rested person's is
+            // negative — and a tile reading "-0.9 h" under the word "debt" is a puzzle,
+            // not a measurement. Shown as none owed, and titled for what it is.
+            let owesNothing = contribution.kind == .sleepDebt && (reading?.value ?? 0) <= 0
             return ScoreContributor(
                 id: contribution.kind.rawValue,
-                title: contribution.kind.displayName,
-                value: reading?.value,
+                title: owesNothing ? "Sleep" : contribution.kind.displayName,
+                value: owesNothing ? 0 : reading?.value,
                 unit: contribution.kind.unit,
-                comparison: reading?.baseline,
-                comparisonLabel: reading == nil ? nil : "your normal",
+                comparison: owesNothing ? nil : reading?.baseline,
+                comparisonLabel: reading == nil || owesNothing ? nil : "your normal",
                 // Both read the z the engine actually weighed, not today's raw one.
                 // For HRV — the only metric scored on its trend — those differ, and the
                 // row could show an alarming red dot beside a magnitude saying it barely
@@ -356,6 +365,7 @@ public enum RecoveryScore {
                 symbol: contribution.kind.symbol,
                 magnitude: contribution.points * ratio,
                 explanation: contribution.kind.explanation,
+                note: owesNothing ? "You are not down on sleep." : nil,
                 history: history[contribution.kind] ?? [])
         }
         .sorted { abs($0.magnitude) > abs($1.magnitude) }

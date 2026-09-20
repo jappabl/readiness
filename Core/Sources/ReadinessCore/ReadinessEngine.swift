@@ -17,6 +17,18 @@ public struct InputContribution: Sendable, Equatable, Codable {
     public let zScore: Double
     public let weight: Double
     public let points: Double
+    /// The aligned z the engine actually weighed, before clamping. Optional because
+    /// these are persisted as evidence and older rows predate it.
+    public var alignedZ: Double?
+
+    public init(kind: MetricKind, zScore: Double, weight: Double, points: Double,
+                alignedZ: Double? = nil) {
+        self.kind = kind
+        self.zScore = zScore
+        self.weight = weight
+        self.points = points
+        self.alignedZ = alignedZ
+    }
 }
 
 public struct ReadinessResult: Sendable, Equatable, Codable {
@@ -137,7 +149,7 @@ public enum ReadinessEngine {
             let points = Swift.min(Swift.max(weight * aligned, -RecoveryScore.contributionClamp),
                                    RecoveryScore.contributionClamp)
             return InputContribution(kind: reading.kind, zScore: reading.zScore,
-                                     weight: weight, points: points)
+                                     weight: weight, points: points, alignedZ: aligned)
         }
 
         let composite = contributions.reduce(0) { $0 + $1.points }

@@ -141,7 +141,8 @@ struct RingGauge: View {
                     .font(.system(size: figureSize, weight: .semibold))
                     .monospacedDigit()
                     .foregroundStyle(showsHeroWord ? signal.figure : Tokens.textPrimary)
-                + Text(percent == nil ? "" : "%")
+                // No percent sign. It is a score, not a proportion of anything.
+                + Text("")
                     .font(.system(size: figureSize * 0.62, weight: .semibold))
                     .foregroundStyle(showsHeroWord ? signal.figure : Tokens.textPrimary)
 

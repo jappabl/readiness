@@ -82,8 +82,10 @@ struct SleepNeedTests {
     /// short nights owes more than a single short night.
     @Test("a short week owes more than a single short night")
     func recursiveNeed() {
-        let flat = SleepNeed.of(priorNights: [8, 8, 8, 8, 8, 8, 6])
-        let compounding = SleepNeed.of(priorNights: [6, 6, 6, 6, 6, 6, 6])
+        // Kept under the cap on both sides, or the property is untestable: with the cap
+        // at 1.5 hours a single six-hour night already reaches it.
+        let flat = SleepNeed.of(priorNights: [8, 8, 8, 8, 8, 8, 7.5])
+        let compounding = SleepNeed.of(priorNights: [7.5, 7.5, 7.5, 8, 8, 8, 8])
         #expect(compounding.debt > flat.debt)
     }
 }

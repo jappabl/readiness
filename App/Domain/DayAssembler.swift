@@ -13,9 +13,13 @@ struct AssembledDay {
 /// own rolling baseline. The only place the two engines are composed.
 enum DayAssembler {
 
-    /// Hours of sleep treated as the nightly requirement. A rolling personal estimate
-    /// is a v0.2 refinement; a fixed need is honest and inspectable for v0.1.
-    static let sleepNeedHours: Double = 8.0
+    /// Hours of sleep treated as the nightly requirement for the readiness model's
+    /// sleep-debt input.
+    ///
+    /// Deliberately `SleepNeed.baselineHours` rather than a second constant: the app had
+    /// two different answers to "how much sleep do you need", one fixed at eight here and
+    /// one dynamic in `SleepScore`, and they were both on screen at once.
+    static let sleepNeedHours: Double = SleepNeed.baselineHours
 
     static func assemble(series: [DailyPhysiology]) -> AssembledDay? {
         guard let today = series.last else { return nil }
