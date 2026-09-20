@@ -178,8 +178,13 @@ final class HealthKitSource: HealthSource, @unchecked Sendable {
         async let sleep = dailySleep(from: start, to: end)
         async let workouts = dailyWorkouts(from: start, to: end)
         async let mindful = dailyCategoryMinutes(.mindfulSession, from: start, to: end)
+        async let heartRate = intradayHeartRate(from: start, to: end)
 
         let (values, nights, sessions, mindfulMinutes) = try await (quantities, sleep, workouts, mindful)
+        // Never fatal. A watchless phone has no intraday trace and the load model has a
+        // labelled fallback for exactly that; failing the whole refresh over it would
+        // take the other twenty streams down with it.
+        let buckets = (try? await heartRate) ?? [:]
 
         return (0..<days).compactMap { offset in
             guard let date = calendar.date(byAdding: .day, value: offset, to: start) else { return nil }
@@ -225,6 +230,9 @@ final class HealthKitSource: HealthSource, @unchecked Sendable {
                 waterLiters: value("water"),
                 caffeineMg: value("caffeine"),
                 alcoholicDrinks: value("alcohol"),
+                heartRateSamples: buckets[day] ?? [],
+                sleepingHeartRate: Self.average(buckets[day] ?? [], within: night),
+                wakingHeartRate: Self.wakingAverage(buckets[day] ?? [], night: night),
                 workoutCount: session?.count,
                 workoutMinutes: session?.minutes,
                 workoutEnergyKcal: session?.kcal,
@@ -293,6 +301,80 @@ final class HealthKitSource: HealthSource, @unchecked Sendable {
             }
             store.execute(query)
         }
+    }
+
+    // MARK: - Intraday heart rate
+
+    /// How long each bucket covers. Five minutes is 288 a day — enough to separate forty
+    /// hard minutes from a long walk, few enough that a month is a few thousand rows.
+    static let heartRateBucketMinutes = 5.0
+
+    /// The day's heart rate, bucketed.
+    ///
+    /// An average and a maximum cannot measure load: the same daily average covers an
+    /// easy two hours and a savage twenty minutes, and those are not the same day. This
+    /// is the one query the strain model genuinely needs, and the sleeping and waking
+    /// averages fall out of it for free.
+    private func intradayHeartRate(from start: Date, to end: Date) async throws -> [Date: [HeartRateSample]] {
+        guard let type = HKQuantityType.quantityType(forIdentifier: .heartRate),
+              let dayAfterEnd = Calendar.current.date(byAdding: .day, value: 1, to: end)
+        else { return [:] }
+        let calendar = Calendar.current
+        let predicate = HKQuery.predicateForSamples(withStart: start, end: dayAfterEnd,
+                                                    options: .strictStartDate)
+        return try await withCheckedThrowingContinuation { continuation in
+            let query = HKStatisticsCollectionQuery(
+                quantityType: type,
+                quantitySamplePredicate: predicate,
+                options: .discreteAverage,
+                anchorDate: start,
+                intervalComponents: DateComponents(minute: Int(Self.heartRateBucketMinutes)))
+
+            query.initialResultsHandler = { _, results, error in
+                if let error { continuation.resume(throwing: error); return }
+                var out: [Date: [HeartRateSample]] = [:]
+                results?.enumerateStatistics(from: start, to: dayAfterEnd) { stat, _ in
+                    // A bucket with no samples is a gap in coverage, not a bucket at
+                    // zero. Absent, so the load model never counts a drawer as rest.
+                    guard let average = stat.averageQuantity()?
+                        .doubleValue(for: .beatsPerMinute), average > 0 else { return }
+                    out[calendar.startOfDay(for: stat.startDate), default: []].append(
+                        HeartRateSample(start: stat.startDate,
+                                        minutes: Self.heartRateBucketMinutes,
+                                        beatsPerMinute: average))
+                }
+                continuation.resume(returning: out)
+            }
+            store.execute(query)
+        }
+    }
+
+    /// The mean rate inside the night's own sleep window.
+    private static func average(_ samples: [HeartRateSample],
+                                within night: SleepBreakdown?) -> Double? {
+        guard let start = night?.primarySleepStart, let end = night?.primarySleepEnd,
+              end > start else { return nil }
+        let inside = samples.filter { $0.start >= start && $0.start < end }
+        guard !inside.isEmpty else { return nil }
+        return inside.reduce(0) { $0 + $1.beatsPerMinute } / Double(inside.count)
+    }
+
+    /// The waking average, with the night cut out and the busiest quarter of the day
+    /// trimmed off the top.
+    ///
+    /// The dip is meant to compare sleep against ordinary waking life, so a training
+    /// session in the mean would flatter every athlete's night. Trimming the top quarter
+    /// is cruder than classifying activity and does not need another query.
+    private static func wakingAverage(_ samples: [HeartRateSample],
+                                      night: SleepBreakdown?) -> Double? {
+        var waking = samples
+        if let start = night?.primarySleepStart, let end = night?.primarySleepEnd, end > start {
+            waking = waking.filter { $0.start < start || $0.start >= end }
+        }
+        guard waking.count >= 4 else { return nil }
+        let sorted = waking.map(\.beatsPerMinute).sorted()
+        let quiet = sorted.prefix(max(1, sorted.count * 3 / 4))
+        return quiet.reduce(0, +) / Double(quiet.count)
     }
 
     // MARK: - Sleep
