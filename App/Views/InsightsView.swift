@@ -558,18 +558,20 @@ struct SleepStages {
               asleep > 0,
               let deep = score.contributor("deep")?.value,
               let rem = score.contributor("rem")?.value else { return nil }
-        // Scaled by the engine's own denominator — max(asleep, deep + rem + core) —
-        // rather than a second formula of the view's own. Two devices each unioning
-        // their own samples can report more staged hours than the night held, and the
-        // two scalings drew different nights: on a 186% record the ring said deep 3.0 /
-        // REM 3.5 / light 0.5 where the engine had scored 1.6 / 1.9 / 3.5.
-        let core = max(0, asleep - deep - rem)
-        let staged = deep + rem + core
-        let scale = staged > asleep && staged > 0 ? asleep / staged : 1
-        self.deep = deep * scale
-        self.rem = rem * scale
+        // No scaling here, and no denominator of the view's own. The engine publishes the
+        // stage hours it actually scored, already reconciled against the night when two
+        // devices between them staged more of it than it held.
+        //
+        // Deriving it again here was the bug, and the previous attempt at fixing it was a
+        // no-op: core was *reconstructed* as asleep - deep - rem rather than read, which
+        // makes the denominator identically max(deep + rem, asleep). That engages only
+        // when deep and REM alone exceed the whole night — a sixth of the nights the
+        // engine scales — so on the rest the ring drew, and the key printed, up to an hour
+        // of deep sleep that did not happen.
+        self.deep = deep
+        self.rem = rem
         self.awake = score.contributor("awake")?.value ?? 0
-        self.light = max(0, asleep - (deep + rem) * scale)
+        self.light = max(0, asleep - deep - rem)
     }
 
     /// Below this, being awake is stirring rather than an awakening, and listing it

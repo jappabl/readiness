@@ -480,6 +480,23 @@ public enum SleepScore {
             return night[keyPath: keyPath] / stageTotal(night)
         }
 
+        /// The same stage hours the scoring above used, for publishing.
+        ///
+        /// A stage row used to score a reconciled share and then report the raw hours
+        /// beside it, which is two different nights in one row: the ring drew 3.0 hours
+        /// of deep sleep where 1.96 had been scored, and the key printed it. It also made
+        /// a row read "REM 1.65 h, your usual 1.65 h" and rank itself the night's worst
+        /// component, because `comparison` is a share of the night and `value` was not.
+        ///
+        /// Note that `awakeHours` is deliberately not reconciled: it sits outside
+        /// `asleepHours` and outside this denominator, and it is already scored raw.
+        func reconciled(_ keyPath: KeyPath<SleepBreakdown, Double>) -> Double? {
+            guard let night else { return nil }
+            let total = stageTotal(night)
+            guard total > 0 else { return night[keyPath: keyPath] }
+            return night[keyPath: keyPath] * Swift.min(1, night.asleepHours / total)
+        }
+
         /// Where tonight's value sits in this sleeper's own distribution, as 0...1.
         /// Higher is better, so an inverted quantity is flipped before it is read.
         /// Recentred so that being typical is not a penalty.
@@ -572,7 +589,7 @@ public enum SleepScore {
                 id: "deep", title: "Deep sleep",
                 fraction: relative(share(\.deepHours), historicShares(\.deepHours),
                                    floor: shareDeviationFloor),
-                value: night.map { $0.deepHours }, unit: "h",
+                value: reconciled(\.deepHours), unit: "h",
                 comparison: deepUsual, comparisonLabel: "your usual",
                 explanation: "The share of the night spent in deep sleep, measured "
                            + "against your own nights rather than an ideal. There is no "
@@ -586,7 +603,7 @@ public enum SleepScore {
                 id: "rem", title: "REM sleep",
                 fraction: relative(share(\.remHours), historicShares(\.remHours),
                                    floor: shareDeviationFloor),
-                value: night.map { $0.remHours }, unit: "h",
+                value: reconciled(\.remHours), unit: "h",
                 comparison: remUsual, comparisonLabel: "your usual",
                 explanation: "The share of the night spent in REM, against your own "
                            + "nights. It is the stage most easily cut short by alcohol "
