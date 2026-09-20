@@ -54,6 +54,16 @@ enum Tokens {
     /// mistaken for a reading.
     static let accent        = dynamic(light: 0x6B5CF5, dark: 0x8A7DFF)
     static let onAccent      = dynamic(light: 0xFFFFFF, dark: 0x0E0E10)
+
+    /// The thing you tap.
+    ///
+    /// No hue at all, and inverted between schemes so a primary action is never a grey
+    /// slab on a black screen. Separating the action colour from the brand colour is
+    /// what lets the accent stay saturated without a full-width button shouting: purple
+    /// then appears only where it means something, and is the only colour on the screen
+    /// when it does.
+    static let action        = dynamic(light: 0x1C1C1E, dark: 0xF2F2F5)
+    static let onAction      = dynamic(light: 0xFFFFFF, dark: 0x0E0E10)
     static let positive      = dynamic(light: 0x34A853, dark: 0x5BD45B)
     static let negative      = dynamic(light: 0xE9573F, dark: 0xF07A64)
 

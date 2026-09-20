@@ -285,9 +285,9 @@ struct MealLogView: View {
                     Text(busy ? "Saving" : "Log meal")
                         .font(.system(size: 17, weight: .semibold))
                 }
-                .foregroundStyle(Tokens.onAccent)
+                .foregroundStyle(Tokens.onAction)
                 .frame(maxWidth: .infinity, minHeight: 52)
-                .background(canSave ? Tokens.accent : Color.primary.opacity(0.14),
+                .background(canSave ? Tokens.action : Color.primary.opacity(0.14),
                             in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             }
             .buttonStyle(.plain)

@@ -14,7 +14,10 @@ struct CheckInView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                SkyBackground(signal: .recovery)
+                // Plain canvas, not a sky. The skies belong behind the metric detail
+                // screens where the colour means which metric you are reading; this is
+                // an input form, so the same gradient here is a third hue for nothing.
+                Tokens.canvas.ignoresSafeArea()
                 ScrollView {
                     VStack(spacing: 14) {
                         scale("Soreness", value: $soreness, low: "Wrecked", high: "Fresh",
@@ -60,13 +63,13 @@ struct CheckInView: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 6) {
                 Image(systemName: symbol).font(.system(size: 12))
-                    .foregroundStyle(Tokens.recoveryHigh)
+                    .foregroundStyle(Tokens.accent)
                 Text(title).font(.system(size: 15, weight: .medium))
                     .foregroundStyle(Tokens.textPrimary)
                 Spacer()
                 Text("\(value.wrappedValue)")
                     .font(.system(size: 20, weight: .semibold)).monospacedDigit()
-                    .foregroundStyle(Tokens.recoveryHigh)
+                    .foregroundStyle(Tokens.accent)
             }
             Picker(title, selection: value) {
                 ForEach(1...5, id: \.self) { Text("\($0)").tag($0) }

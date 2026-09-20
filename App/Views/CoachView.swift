@@ -211,9 +211,9 @@ struct CoachSheet: View {
                 } label: {
                     Text("Apply")
                         .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(Tokens.onAccent)
+                        .foregroundStyle(Tokens.onAction)
                         .frame(maxWidth: .infinity, minHeight: 42)
-                        .background(Tokens.accent, in: Capsule())
+                        .background(Tokens.action, in: Capsule())
                 }
                 .buttonStyle(PressableStyle())
 

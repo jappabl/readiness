@@ -399,7 +399,9 @@ struct ListCard<Content: View>: View {
 struct PrimaryButton: View {
     let label: String
     var symbol: String?
-    var tint: Color = Tokens.accent
+    /// Ink by default, not the accent. A full-width fill in a saturated brand colour
+    /// reads as shouting; the same colour on an icon beside it reads as expensive.
+    var tint: Color = Tokens.action
     var enabled = true
     let action: () -> Void
 
@@ -409,11 +411,12 @@ struct PrimaryButton: View {
                 if let symbol { Image(systemName: symbol).font(.subheadline.weight(.semibold)) }
                 Text(label).font(.body.weight(.semibold))
             }
-            .foregroundStyle(Tokens.onAccent)
+            .foregroundStyle(Tokens.onAction)
             .frame(maxWidth: .infinity, minHeight: 50)
             .background(enabled ? tint : Tokens.ringTrack,
                         in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-            .shadow(color: enabled ? tint.opacity(0.26) : .clear, radius: 10, x: 0, y: 4)
+            // No coloured glow under an ink button; the contrast is the emphasis.
+            .shadow(color: .black.opacity(enabled ? 0.16 : 0), radius: 10, x: 0, y: 4)
         }
         .buttonStyle(.plain)
         .disabled(!enabled)
