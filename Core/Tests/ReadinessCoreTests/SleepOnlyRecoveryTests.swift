@@ -93,4 +93,50 @@ struct SleepOnlyRecoveryTests {
         let without = RecoveryScore.of(result, readings: readings)
         #expect(withSleep.value == without.value)
     }
+
+    private func withHRV(samples: Int, sleepScore: Double = 97) -> SignalScore {
+        // The morning after a watch arrives: HRV is present and utterly ordinary, and its
+        // baseline holds `samples` readings.
+        let inputs = [
+            MetricReading(kind: .sleepDebt, value: 0, baseline: 0, zScore: 0, sampleCount: 30),
+            MetricReading(kind: .hrv, value: 60, baseline: 60, zScore: 0, sampleCount: samples),
+        ]
+        return RecoveryScore.of(
+            ReadinessEngine.evaluate(ReadinessInput(readings: inputs, daysOfHistory: 60)),
+            readings: inputs, sleep: sleep(sleepScore))
+    }
+
+    /// Buying a watch must not be a cliff. On the second morning of HRV its baseline holds
+    /// one sample, so it has no spread and its z is forced to zero — and that empty vote
+    /// used to be enough to switch the fallback off, taking a settled sleeper from 97 to
+    /// 50 overnight on sleep that had not changed.
+    @Test("acquiring a sensor does not move the ring on its own")
+    func noCliffOnNewSensor() throws {
+        let before = try #require(recovery(sleep: 97, debt: 0).value)
+        let firstMorning = try #require(withHRV(samples: 1).value)
+        #expect(abs(firstMorning - before) < 5,
+                "one empty HRV reading moved the ring from \(before) to \(firstMorning)")
+    }
+
+    /// And the handover is gradual, not a step somewhere else along the way.
+    @Test("the night hands over as evidence accrues")
+    func handoverIsGradual() throws {
+        let values = try (0...20).map { try #require(withHRV(samples: $0).value) }
+        let steps = zip(values, values.dropFirst()).map { abs($1 - $0) }
+        #expect(steps.max()! < 5, "a \(steps.max()!)-point step: \(values)")
+        #expect(values.last! < values.first!, "the night never let go: \(values)")
+    }
+
+    /// The breakdown has to explain the headline at the bottom of the scale too, which is
+    /// the one morning it matters most. Three hours asleep, seven in the hole.
+    @Test("the rows still account for a floored number")
+    func rowsSumAtTheFloor() throws {
+        for sleepScore in [33.0, 25, 10] {
+            let result = recovery(sleep: sleepScore, debt: SleepDebt.maximumHours)
+            let value = try #require(result.value)
+            let summed = result.contributors.reduce(0) { $0 + $1.magnitude }
+            #expect(abs(summed - (value - RecoveryScore.neutral)) < 0.01,
+                    "sleep \(sleepScore): rows \(summed) against \(value - RecoveryScore.neutral)")
+        }
+    }
 }

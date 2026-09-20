@@ -299,9 +299,27 @@ public enum RecoveryScore {
         // given us, is the night itself — so the night is the starting point and the
         // balance still moves it from there, instead of moving it down from a middle it
         // can never climb above.
-        let voted = Set(result.contributions.map(\.kind))
-        let oneSidedOnly = !voted.isEmpty && voted.isSubset(of: oneSidedKinds)
-        let base = oneSidedOnly ? sleep?.value : nil
+        // How much two-sided evidence there actually is, not whether any exists.
+        //
+        // A hard switch made acquiring a watch a cliff: on the second morning of HRV the
+        // baseline holds one sample, so it has no spread, so its z is forced to zero — and
+        // that empty vote was enough to turn the fallback off. A settled sleep-only user
+        // went 97 to 50 overnight on unchanged sleep, and any later morning where every
+        // heart stream happened to be missing turned it back on again.
+        //
+        // The night's influence fades as real evidence accrues instead: each two-sided
+        // input counts for its weight scaled by how far its own baseline has been
+        // established, so a one-sample stream buys almost nothing and a settled panel
+        // retires the fallback entirely.
+        let evidence = readings
+            .filter { !oneSidedKinds.contains($0.kind) }
+            .reduce(0.0) { total, reading in
+                let settled = Swift.min(1, Double(reading.sampleCount)
+                                        / Double(ReadinessEngine.minimumConfidentDays))
+                return total + (ReadinessEngine.weights[reading.kind] ?? 0) * settled
+            }
+        let nightShare = 1 - Swift.min(1, evidence / minimumConfidentWeight)
+        let base = nightShare > 0 ? sleep?.value.map { neutral + nightShare * ($0 - neutral) } : nil
         // What the inputs themselves say, on their own scale. The rows are attributed
         // against this and nothing else; the night is a separate row carrying its own
         // distance from neutral, so the two still sum to the headline exactly.
@@ -310,6 +328,7 @@ public enum RecoveryScore {
         let value = result.gateApplied.map { min(ungated, ceiling(for: $0)) } ?? ungated
         let gateDelta = value - ungated
 
+        let voted = Set(result.contributions.map(\.kind))
         let missing = ReadinessEngine.weights.keys
             .filter { !voted.contains($0) }
             .map(\.displayName)
@@ -331,7 +350,7 @@ public enum RecoveryScore {
             kind: .recovery,
             value: value,
             band: .recovery(percent: value),
-            contributors: nightRow(base)
+            contributors: nightRow(ungated - weighed)
                 + contributors(result, ungated: weighed, value: weighed + gateDelta,
                                readings: readings, history: history),
             coverage: coverage,
@@ -362,19 +381,23 @@ public enum RecoveryScore {
     /// which is the failure `WhyView` was rebuilt to stop. Its magnitude is the distance
     /// the night moved the score from neutral, so the rows still sum to `value - neutral`
     /// exactly, with the balance's own rows carrying the rest.
-    private static func nightRow(_ base: Double?) -> [ScoreContributor] {
-        guard let base else { return [] }
+    /// `moved` is the distance the night actually shifted the headline, taken after the
+    /// 1...100 clamp rather than before it. Attributing it before meant the rows stopped
+    /// summing exactly where the breakdown matters most: three hours asleep and seven in
+    /// the hole left 23.5 points unexplained under a ring reading 1.
+    private static func nightRow(_ moved: Double) -> [ScoreContributor] {
+        guard abs(moved) > 1e-9 else { return [] }
         return [ScoreContributor(
             id: "night",
             title: "Last night",
-            value: base,
+            value: neutral + moved,
             unit: "",
             comparison: nil,
             comparisonLabel: nil,
-            state: .from(alignedZ: (base - neutral) / 25),
-            level: Swift.min(1, Swift.max(0, base / 100)),
+            state: .from(alignedZ: moved / 25),
+            level: Swift.min(1, Swift.max(0, (neutral + moved) / 100)),
             symbol: "bed.double.fill",
-            magnitude: base - neutral,
+            magnitude: moved,
             explanation: "With no heart data shared, how well you slept is the best read "
                        + "on how recovered you are — so the night is where this starts, "
                        + "and the standing balance moves it from there.")]
