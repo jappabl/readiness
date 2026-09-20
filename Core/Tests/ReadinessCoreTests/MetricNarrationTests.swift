@@ -15,7 +15,9 @@ struct MetricNarrationTests {
     func usualIsCalledUsual() {
         let flat = Array(repeating: 50.0, count: 14)
         let line = MetricNarration.brief(reading: reading(0.2, value: 50), series: flat)
-        #expect(line.localizedCaseInsensitiveContains("usual"))
+        // The wording is the constant's business; what matters here is that a reading on
+        // its baseline produces the null result and not a claim about movement.
+        #expect(line == MetricNarration.unremarkable)
     }
 
     @Test("today being the lowest of the window is the most useful thing to say")

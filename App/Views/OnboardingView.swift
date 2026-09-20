@@ -152,13 +152,12 @@ struct OnboardingView: View {
                 // Talk goes in a bubble; a chart is content and runs full width under
                 // it. This is the one turn in onboarding that carries one, and it is
                 // the user's own history rather than an illustration of it.
-                if let kind = turn.chart {
+                if turn.chart != nil {
                     // Not CoachChartCard: that one tints by today's reading and writes
                     // its narration from it, and at the end of onboarding there is no
                     // today yet, so it renders grey and silent. This shows the baseline
                     // instead, which is what the sentence above it actually claims.
-                    BaselineReveal(kind: kind,
-                                   values: model.series.compactMap { $0.value(for: kind) })
+                    BaselineReveal(series: model.series)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }

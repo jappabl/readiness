@@ -11,6 +11,14 @@ import Foundation
 /// person can check against the picture in front of them.
 public enum MetricNarration {
 
+    /// What a metric sitting on its own baseline is called.
+    ///
+    /// Was "Sitting where it usually does", which is eleven syllables to say nothing
+    /// happened. Exposed as a constant so callers can recognise the null result and
+    /// decline to print it, which is usually the right move: a dot resting on the
+    /// baseline tick has already said this.
+    public static let unremarkable = "Normal for you"
+
     /// Below this, a reading is close enough to baseline to call it usual.
     static let usualBand = 0.6
     /// Fewer points than this and an extreme means nothing.
@@ -19,7 +27,7 @@ public enum MetricNarration {
     public static func brief(reading: MetricReading, series: [Double]) -> String {
         if let extreme = extremeNote(reading: reading, series: series) { return extreme }
 
-        guard abs(reading.zScore) >= usualBand else { return "Sitting where it usually does" }
+        guard abs(reading.zScore) >= usualBand else { return unremarkable }
         return Self.capitalised(deviation(reading.zScore))
     }
 
