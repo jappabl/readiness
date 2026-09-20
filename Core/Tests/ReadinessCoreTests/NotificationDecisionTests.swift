@@ -357,4 +357,23 @@ struct NotificationDecisionTests {
         #expect(outcome?.body == "Your temperature was up overnight. Don't train hard today.")
         #expect((outcome?.body.count ?? .max) < 110)
     }
+
+    // IMPORTANT 6, ruling from the controller: the spec's "`.unavailable` coverage
+    // produces no notification of any kind" was written about today's data driving
+    // today's messages (morning verdict, illness gate, bedtime target). An insight is
+    // derived from session history, not today's scores, so it stays true — and worth
+    // sending — on a day the watch was not worn. No guard was added; this test pins
+    // that the exemption is deliberate rather than an oversight.
+    @Test("an insight still speaks when today's scores are unavailable")
+    func insightSpeaksEvenWhenTodayIsUnavailable() {
+        let unavailable = SignalScore(kind: .recovery, value: nil, band: nil,
+                                      contributors: [], coverage: .unavailable,
+                                      modelVersion: "test")
+        let unavailableSleep = SignalScore(kind: .sleep, value: nil, band: nil,
+                                           contributors: [], coverage: .unavailable,
+                                           modelVersion: "test")
+        let outcome = NotificationDecision.next(input(
+            recovery: unavailable, sleep: unavailableSleep, insight: "Something new."))
+        #expect(outcome?.moment == .newInsight)
+    }
 }
