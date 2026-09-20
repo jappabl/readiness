@@ -82,7 +82,7 @@ enum CoachPrompt {
 
         Showing a chart. Write [chart:name] on its own line and the app draws that \
         metric's last few weeks from data it already holds. Names: hrv, \
-        restingHeartRate, sleepDebt, respiratoryRate, bloodOxygen. Use one for each \
+        restingHeartRate, respiratoryRate, bloodOxygen. Use one for each \
         metric that genuinely drove the call, up to three, when the shape of the trend \
         is the point. If two or three things moved together, show them together: that \
         is the whole argument, and it is far more convincing than a sentence listing \

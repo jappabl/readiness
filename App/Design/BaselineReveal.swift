@@ -17,7 +17,14 @@ struct BaselineReveal: View {
 
     /// The three the readiness call leans on hardest. Deliberately not all five: a
     /// reveal that lists everything is a table, and a table is what this replaced.
-    private static let shown: [MetricKind] = [.hrv, .restingHeartRate, .sleepDebt]
+    ///
+    /// Not sleep debt, though it is weighted higher than any of these. Every row here is
+    /// a value placed against the middle of the user's own distribution, and debt is the
+    /// one input in the app that is deliberately scored against an absolute zero instead,
+    /// because its own average ratifies whatever habit produced it. Shown this way it
+    /// inverted: a chronic six-hour sleeper's first word from the app about their sleep
+    /// debt was a green dot sitting on their own baseline tick, at the cap.
+    private static let shown: [MetricKind] = [.hrv, .restingHeartRate, .respiratoryRate]
 
     private struct Row: Identifiable {
         let id: MetricKind
@@ -95,7 +102,7 @@ struct BaselineReveal: View {
 
     private func precision(_ kind: MetricKind) -> Int {
         switch kind {
-        case .hrv, .bloodOxygen, .sleepDebt: return 1
+        case .hrv, .bloodOxygen, .respiratoryRate: return 1
         default: return 0
         }
     }

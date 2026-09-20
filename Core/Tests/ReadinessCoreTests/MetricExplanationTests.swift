@@ -40,4 +40,28 @@ struct MetricExplanationTests {
                     "\(kind.rawValue) never says what a move means")
         }
     }
+
+    /// The popover beside "Sleep debt" describes how the balance is built, and it has
+    /// twice gone on describing a model that had been replaced underneath it: it claimed
+    /// a fortnight after the window became a week, and it claimed the reference was the
+    /// top of your own distribution after that reference became a median floored at
+    /// seven hours. Both are checkable claims, and a user who checks finds the number on
+    /// the card disagrees with the sentence explaining it — a weekday-6.5/weekend-9
+    /// sleeper's "longest nights" imply roughly 22 hours owed against a card reading 0.
+    @Test("the sleep-debt explanation describes the model that is actually running")
+    func debtExplanationTracksTheModel() {
+        let text = MetricKind.sleepDebt.explanation.lowercased()
+
+        #expect(SleepDebt.window == 7,
+                "the window moved; this explanation and this test both need rewording")
+        #expect(!text.contains("two weeks") && !text.contains("fortnight"),
+                "says a fortnight, but the balance looks back \(SleepDebt.window) nights")
+        #expect(text.contains("week"), "never says how far back it looks")
+
+        // `SleepDebt.reference(for:)` is the median floored at `learnedFloorHours`.
+        // `SleepNeed`'s upper-percentile need is a different quantity for a different
+        // question, and the two were conflated here.
+        #expect(!text.contains("longest night"),
+                "claims an upper-percentile reference; the balance accrues against a median")
+    }
 }

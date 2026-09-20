@@ -75,7 +75,11 @@ struct DailyPhysiology: Sendable, Equatable {
 extension DailyPhysiology {
     /// Sleep and the other available signals remain useful without HRV or resting HR.
     var hasReadinessData: Bool {
-        MetricKind.allCases.contains { value(for: $0) != nil } || wristTemperatureC != nil
+        MetricKind.allCases.contains { value(for: $0) != nil }
+            // Named rather than reached through `value(for: .sleepDebt)`, which no longer
+            // answers: sleep is most of the time the only stream an iPhone-only user has,
+            // and it still has to count as having data.
+            || sleepHours != nil || wristTemperatureC != nil
     }
 
     /// The scored metrics, by kind, so a chart can be drawn for whichever one the coach
@@ -86,7 +90,13 @@ extension DailyPhysiology {
         case .restingHeartRate: return restingHeartRate
         case .respiratoryRate:  return respiratoryRate
         case .bloodOxygen:      return bloodOxygenPercent
-        case .sleepDebt:        return sleepHours.map { DayAssembler.sleepNeedHours - $0 }
+        // A balance is a property of a run of nights, not of any one of them, so this
+        // accessor cannot answer for it and no longer pretends to. It used to return
+        // `8 - last night`: a different quantity, on a different scale, with a different
+        // zero. Drawn under the title "Sleep debt" it told a chronic six-hour sleeper
+        // they were two hours down and sitting exactly on their own normal, which reads
+        // as nothing to see. `SleepDebt.of(nights:)` is the only thing that knows.
+        case .sleepDebt:        return nil
         }
     }
 }
