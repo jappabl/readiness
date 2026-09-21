@@ -35,15 +35,20 @@ struct CoachSheet: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
+        @Bindable var model = model
+        return VStack(spacing: 0) {
             CoachContactHeader(onBack: { dismiss() },
                                isThinking: isStreaming && (messages.last?.text.isEmpty ?? true),
                                isSpeaking: isStreaming && !(messages.last?.text.isEmpty ?? true))
-            if messages.isEmpty && errorMessage == nil {
-                suggestions
-            } else {
-                transcript
+            // The flash belongs over the conversation, not over Jett's own face.
+            Group {
+                if messages.isEmpty && errorMessage == nil {
+                    suggestions
+                } else {
+                    transcript
+                }
             }
+            .memoryFlash($model.memoryFlash)
             if allowance.showsRemaining, let left = allowance.remaining {
                 Button { showingPaywall = true } label: {
                     Text(left == 0
@@ -136,7 +141,11 @@ struct CoachSheet: View {
                         CoachStepRow(label: step, isRunning: proposal == nil)
                             .transition(.opacity.combined(with: .move(edge: .top)))
                     }
-                    if let proposal { proposalCard(proposal) }
+                    // Only a session change has a card. A memory has already happened
+                    // by the time anything is drawn, and says so in passing instead.
+                    if let proposal, let adjustment = proposal.adjustment {
+                        proposalCard(proposal, adjustment)
+                    }
                     if let appliedNote {
                         Label(appliedNote, systemImage: "checkmark.circle.fill")
                             .font(.subheadline)
@@ -181,7 +190,8 @@ struct CoachSheet: View {
 
     /// Jett proposes; the user decides. The original session is never overwritten
     /// without an explicit tap.
-    private func proposalCard(_ call: CoachToolCall) -> some View {
+    private func proposalCard(_ call: CoachToolCall,
+                              _ adjustment: SessionAdjustment) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Label("Jett suggests", systemImage: "sparkle")
                 .font(.system(size: 12, weight: .medium))
@@ -189,7 +199,7 @@ struct CoachSheet: View {
                 .tracking(0.5)
                 .foregroundStyle(Tokens.accent)
 
-            Text(Copy.describe(call.adjustment))
+            Text(Copy.describe(adjustment))
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundStyle(Tokens.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -204,7 +214,7 @@ struct CoachSheet: View {
             HStack(spacing: 8) {
                 Button {
                     Haptics.committed()
-                    model.coachAdjustment = call.adjustment
+                    model.coachAdjustment = adjustment
                     model.record(.modified)
                     appliedNote = "Applied to today's session"
                     proposal = nil
@@ -290,14 +300,23 @@ struct CoachSheet: View {
                     context: coachContext,
                     applyTool: { call in
                         await MainActor.run {
-                            toolStep = "Adjusting today's session"
-                            proposal = call
-                            Haptics.decided()
+                            switch call.intent {
+                            case .adjust(let adjustment):
+                                toolStep = "Adjusting today's session"
+                                proposal = call
+                                Haptics.decided()
+                                // Jett is told it was proposed, not applied, so it
+                                // describes the change as a suggestion, not a done deal.
+                                return "Shown to the user as a suggestion: "
+                                    + "\(Copy.describe(adjustment)). Awaiting their approval."
+                            case .remember, .forget:
+                                // Applied at once. A memory is a sentence they already
+                                // said, and asking permission to keep it would be more
+                                // intrusive than keeping it — what protects them is that
+                                // the list is visible and deletable in Profile.
+                                return model.applyMemory(call.intent)
+                            }
                         }
-                        // Jett is told it was proposed, not applied, so it describes the
-                        // change as a suggestion rather than a done deal.
-                        return "Shown to the user as a suggestion: "
-                            + "\(Copy.describe(call.adjustment)). Awaiting their approval."
                     })
 
                 for try await event in events {

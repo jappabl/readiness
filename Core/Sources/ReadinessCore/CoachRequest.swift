@@ -51,7 +51,7 @@ public enum CoachRequest {
             "fallbacks": "default",
             "messages": messages,
         ]
-        if offersTools { body["tools"] = [CoachTools.schema] }
+        if offersTools { body["tools"] = CoachTools.schemas }
         return body
     }
 }

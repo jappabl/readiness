@@ -7,21 +7,11 @@ import Testing
 @Suite("Composing the home screen for a goal")
 struct HomeCompositionTests {
 
-    @Test("the health monitor closes every screen, whatever the goal")
-    func monitorAlwaysLast() {
-        for goal in TrainingGoal.allCases {
-            for hasProgram in [true, false] {
-                let blocks = HomeComposition.blocks(for: goal, hasProgram: hasProgram)
-                #expect(blocks.last == .healthMonitor, "\(goal) with program \(hasProgram)")
-            }
-        }
-    }
-
     @Test("no goal produces an empty screen")
     func neverEmpty() {
         for goal in TrainingGoal.allCases {
             #expect(HomeComposition.blocks(for: goal, hasProgram: false).count > 1,
-                    "\(goal) needs something above the monitor")
+                    "\(goal) needs something on it")
         }
     }
 

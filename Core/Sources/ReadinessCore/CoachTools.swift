@@ -8,6 +8,8 @@ import Foundation
 public enum CoachTools {
 
     public static let adjustSession = "adjust_session"
+    public static let remember = "remember"
+    public static let forget = "forget"
 
     /// Bounds the model cannot argue with.
     public static let setReductionRange = 5...50
@@ -42,6 +44,52 @@ public enum CoachTools {
             // coach ends up doing something nobody asked for.
             return nil
         }
+    }
+
+    /// Every schema handed to the model, on the direct path. The proxy keeps its own
+    /// copy in `server/src/prompt.ts`; the two must not drift.
+    public static var schemas: [[String: Any]] { [schema, rememberSchema, forgetSchema] }
+
+    public static var rememberSchema: [String: Any] {
+        [
+            "name": remember,
+            "description": "Write one short fact about this person down so it is still "
+                + "there in a month. Only for what the data block does not already carry: "
+                + "an injury mentioned in conversation, a constraint with an end date, a "
+                + "standing preference, or a commitment you made. Never their scores, load, "
+                + "sleep, programme, goal or equipment — those arrive fresh every message. "
+                + "Most messages need no call at all.",
+            "input_schema": [
+                "type": "object",
+                "properties": [
+                    "note": [
+                        "type": "string",
+                        "description": "The fact in one short line, written about them "
+                            + "rather than to them. For example \"Left shoulder clicks on "
+                            + "overhead press\".",
+                    ],
+                ],
+                "required": ["note"],
+            ],
+        ]
+    }
+
+    public static var forgetSchema: [String: Any] {
+        [
+            "name": forget,
+            "description": "Drop a fact from the list because it is out of date or wrong. "
+                + "Name it in its own words, copied from the list in the block.",
+            "input_schema": [
+                "type": "object",
+                "properties": [
+                    "note": [
+                        "type": "string",
+                        "description": "The note to drop, as it appears in the list.",
+                    ],
+                ],
+                "required": ["note"],
+            ],
+        ]
     }
 
     /// The JSON schema handed to the model.

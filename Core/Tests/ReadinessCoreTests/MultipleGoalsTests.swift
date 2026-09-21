@@ -110,13 +110,13 @@ struct MultipleGoalsTests {
         // one kind of training cares about, and the card shows nothing when there is
         // nothing owed.
         #expect(blocks == [.programPrompt, .nutrition, .weightTrend, .sleepDebt,
-                           .sleepQuality, .movement, .healthMonitor])
+                           .sleepQuality, .movement])
         let withProgram = HomeComposition.blocks(for: Set([TrainingGoal.getStronger, .buildMuscle]), hasProgram: true)
-        #expect(withProgram == [.session, .sleepDebt, .nutrition, .weightTrend, .healthMonitor])
+        #expect(withProgram == [.session, .sleepDebt, .nutrition, .weightTrend])
     }
 
     @Test func nonliftingHomeDoesNotAddAProgramPrompt() {
         let blocks = HomeComposition.blocks(for: Set([TrainingGoal.loseFat, .feelBetter]), hasProgram: false)
-        #expect(blocks == [.nutrition, .weightTrend, .sleepDebt, .sleepQuality, .movement, .healthMonitor])
+        #expect(blocks == [.nutrition, .weightTrend, .sleepDebt, .sleepQuality, .movement])
     }
 }

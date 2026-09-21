@@ -140,6 +140,7 @@ struct ClaudeCoachProvider: CoachProvider {
         var usage = CoachUsage()
         var text = ""
         var toolID = ""
+        var toolName = CoachTools.adjustSession
         var toolJSON = ""
         var currentIsTool = false
 
@@ -163,6 +164,7 @@ struct ClaudeCoachProvider: CoachProvider {
                 currentIsTool = (block?["type"] as? String) == "tool_use"
                 if currentIsTool {
                     toolID = block?["id"] as? String ?? ""
+                    toolName = block?["name"] as? String ?? CoachTools.adjustSession
                     toolJSON = ""
                 }
 
@@ -175,7 +177,9 @@ struct ClaudeCoachProvider: CoachProvider {
                 if let partial = delta?["partial_json"] as? String { toolJSON += partial }
 
             case "content_block_stop":
-                if currentIsTool { turn.toolCall = parse(id: toolID, json: toolJSON) }
+                if currentIsTool {
+                    turn.toolCall = parse(id: toolID, name: toolName, json: toolJSON)
+                }
                 currentIsTool = false
 
             case "message_delta":
@@ -205,7 +209,7 @@ struct ClaudeCoachProvider: CoachProvider {
             turn.assistantBlocks.append([
                 "type": "tool_use",
                 "id": toolID,
-                "name": CoachTools.adjustSession,
+                "name": toolName,
                 "input": (try? JSONSerialization.jsonObject(with: Data(toolJSON.utf8)))
                     as? [String: Any] ?? [:],
             ])
@@ -234,16 +238,31 @@ struct ClaudeCoachProvider: CoachProvider {
     }
 
     /// The model's input is untrusted. Anything it cannot justify is dropped.
-    private func parse(id: String, json: String) -> CoachToolCall? {
+    private func parse(id: String, name: String, json: String) -> CoachToolCall? {
         guard let data = json.data(using: .utf8),
-              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let action = object["action"] as? String,
-              let adjustment = CoachTools.adjustment(action: action,
-                                                     percent: object["percent"] as? Int,
-                                                     rir: object["rir"] as? Int)
+              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
         else { return nil }
-        return CoachToolCall(id: id, adjustment: adjustment,
-                             reason: (object["reason"] as? String) ?? "")
+
+        func call(_ intent: CoachToolCall.Intent) -> CoachToolCall {
+            CoachToolCall(id: id, name: name, intent: intent,
+                          reason: (object["reason"] as? String) ?? "")
+        }
+
+        switch name {
+        case CoachTools.remember:
+            guard let note = object["note"] as? String else { return nil }
+            return call(.remember(note))
+        case CoachTools.forget:
+            guard let note = object["note"] as? String else { return nil }
+            return call(.forget(note))
+        default:
+            guard let action = object["action"] as? String,
+                  let adjustment = CoachTools.adjustment(action: action,
+                                                         percent: object["percent"] as? Int,
+                                                         rir: object["rir"] as? Int)
+            else { return nil }
+            return call(.adjust(adjustment))
+        }
     }
 }
 

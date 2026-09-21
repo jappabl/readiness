@@ -126,6 +126,74 @@ final class AppModel {
     /// engine's own adjustments — the coach adds to the call, it does not replace it.
     var coachAdjustment: SessionAdjustment?
 
+    /// The short list of things Jett has been told, and what it most recently wrote.
+    ///
+    /// Kept as one small JSON blob rather than a SwiftData model: it is capped at twenty
+    /// short lines, it is always read and written whole, and nothing ever queries it.
+    private(set) var coachMemory = AppModel.loadMemory() {
+        didSet { Self.persist(coachMemory) }
+    }
+
+    /// Set the moment Jett writes or drops a note, so the UI can say so and then let it
+    /// go. Nil again as soon as it has been shown.
+    var memoryFlash: MemoryFlash?
+
+    struct MemoryFlash: Equatable, Identifiable {
+        enum Kind: Equatable { case remembered, forgot }
+        let id = UUID()
+        let kind: Kind
+        let text: String
+    }
+
+    /// Applies what the coach asked for and returns what to tell it back.
+    ///
+    /// The result string is the coach's only feedback, so it has to be honest: a note
+    /// that was merged into an existing one, or a forget that matched nothing, both read
+    /// differently here, or the model writes it again next message.
+    @discardableResult
+    func applyMemory(_ intent: CoachToolCall.Intent, now: Date = .now) -> String {
+        switch intent {
+        case .remember(let note):
+            var memory = coachMemory
+            guard let written = memory.remember(note, on: now) else {
+                return "Nothing to remember."
+            }
+            coachMemory = memory
+            memoryFlash = MemoryFlash(kind: .remembered, text: written.text)
+            return "Remembered: \(written.text)"
+        case .forget(let note):
+            var memory = coachMemory
+            guard let dropped = memory.forget(matching: note) else {
+                return "Nothing on the list matched that."
+            }
+            coachMemory = memory
+            memoryFlash = MemoryFlash(kind: .forgot, text: dropped.text)
+            return "Forgotten: \(dropped.text)"
+        case .adjust:
+            return "Shown to the user for approval."
+        }
+    }
+
+    func forgetMemory(id: UUID) {
+        var memory = coachMemory
+        memory.forget(id: id)
+        coachMemory = memory
+    }
+
+    private static let memoryKey = "coach.memory"
+
+    private static func persist(_ memory: CoachMemory) {
+        guard let data = try? JSONEncoder().encode(memory) else { return }
+        UserDefaults.standard.set(data, forKey: memoryKey)
+    }
+
+    static func loadMemory() -> CoachMemory {
+        guard let data = UserDefaults.standard.data(forKey: memoryKey),
+              let memory = try? JSONDecoder().decode(CoachMemory.self, from: data)
+        else { return CoachMemory() }
+        return memory
+    }
+
     private let healthKit = HealthKitSource()
     private var context: ModelContext?
 
@@ -949,6 +1017,7 @@ final class AppModel {
             result.profile = CoachProfileSummary(health: effectiveHealthProfile, answers: onboarding, limitations: profile?.limitations)
             result.scores = onScreen
             result.sleepNeedHours = need
+            result.memory = coachMemory.brief(asOf: Date())
             return result
         }
         var result = CoachContextBuilder.build(
@@ -961,6 +1030,7 @@ final class AppModel {
         result.profile = CoachProfileSummary(health: effectiveHealthProfile, answers: onboarding, limitations: profile?.limitations)
         result.scores = onScreen
         result.sleepNeedHours = need
+        result.memory = coachMemory.brief(asOf: Date())
         return result
     }
 

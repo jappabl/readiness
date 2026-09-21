@@ -35,11 +35,29 @@ enum CoachError: LocalizedError {
     }
 }
 
-/// A change the coach asked for. Already validated against what the engine accepts.
+/// Something the coach asked for. Already validated against what the app accepts.
+///
+/// The three are deliberately not equal. A session change is a proposal the user taps to
+/// accept; a memory write happens immediately, because asking permission to remember a
+/// sentence somebody just said would be worse than the thing it protects against. The
+/// protection there is that the list is visible and deletable instead.
 struct CoachToolCall: Identifiable, Equatable, Sendable {
+    enum Intent: Equatable, Sendable {
+        case adjust(SessionAdjustment)
+        case remember(String)
+        case forget(String)
+    }
+
     let id: String
-    let adjustment: SessionAdjustment
+    /// The provider's own tool name, replayed verbatim when the turn continues.
+    let name: String
+    let intent: Intent
     let reason: String
+
+    var adjustment: SessionAdjustment? {
+        if case let .adjust(adjustment) = intent { return adjustment }
+        return nil
+    }
 }
 
 enum CoachEvent: Sendable {
@@ -119,6 +137,27 @@ enum CoachPrompt {
         emphasis and they are filler.
         - Remember what they have told you in this conversation and use it. Asking again \
         is what a form does.
+
+        Memory. You have two tools, remember and forget, and when the list is not \
+        empty it is in the block under "what you have been told about this person".
+        - Almost nothing belongs on it. The block already carries their scores, their \
+        load, their sleep, their programme, their goal, their limitations and their \
+        equipment, rebuilt fresh every single message. Writing any of that down would \
+        only make a second copy that goes stale and contradicts the real one.
+        - Four kinds of thing are worth keeping: an injury or niggle that came up in \
+        conversation, a constraint with an end date ("exams until the 15th", "no gym \
+        until March"), a standing preference ("do not bring up weight"), and a \
+        commitment you made ("we agreed to deload next week").
+        - Most messages need no call at all. The test is whether it will still matter \
+        in a month and whether anything else in the app records it. If you are unsure, \
+        do not write it: a wrong memory quietly shapes every answer for months and they \
+        will never work out why.
+        - One short line, a fact about them, no second person. "Left shoulder clicks on \
+        overhead press", not "You told me your shoulder has been hurting".
+        - Forget anything on the list that is out of date or wrong, naming it in its \
+        own words. A constraint whose end date has passed is out of date.
+        - Never announce it. Do not write "I'll remember that" and do not mention the \
+        list unless they ask about it. The app tells them.
 
         Showing a chart. Write [chart:name] on its own line and the app draws that \
         metric's last few weeks from data it already holds. Names: hrv, \

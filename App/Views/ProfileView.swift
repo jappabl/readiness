@@ -10,8 +10,6 @@ struct ProfileView: View {
     @Environment(\.modelContext) private var context
     @Query private var profiles: [UserProfile]
 
-    @State private var apiKey = ""
-    @State private var keySaved = false
     @State private var showingPaywall = false
     @State private var showingSharing = false
 
@@ -29,10 +27,10 @@ struct ProfileView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     about
+                    memory
                     subscription
                     baselines
                     weights
-                    coach
                     look
                     atTheGym
                     privacy
@@ -44,7 +42,6 @@ struct ProfileView: View {
         }
         .navigationTitle("Profile")
         .toolbarBackground(Tokens.canvas, for: .navigationBar)
-        .onAppear { apiKey = Keychain.apiKey ?? "" }
         .sheet(isPresented: $showingSharing) {
             CoachSharingSheet(onAllow: {
                 model.coachSharingAllowed = true
@@ -56,8 +53,8 @@ struct ProfileView: View {
         }
     }
 
-    private func heading(_ title: String) -> some View {
-        Text(title).sectionHeading()
+    private func heading(_ title: String, info: String? = nil) -> some View {
+        SectionHeadingRow(title: title, info: info)
     }
 
     private func footnote(_ text: String) -> some View {
@@ -92,10 +89,6 @@ struct ProfileView: View {
                         .accessibilityAddTraits(selected ? .isSelected : [])
                         .accessibilityHint(selected && model.goals.count == 1 ? "Keep at least one goal" : "")
                     }
-                    Text("Pick one or more. Your home screen and coaching reflect all your goals.")
-                        .font(.system(size: 13))
-                        .foregroundStyle(Tokens.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
                 }
                 .padding(14)
                 Divider().overlay(Tokens.hairline)
@@ -111,9 +104,23 @@ struct ProfileView: View {
         }
     }
 
+    /// One card, not a section of rows. Everything else in Profile is something they
+    /// told the app; this is the only thing the app wrote about them, and it earns being
+    /// its own object rather than a line between goals and billing.
+    private var memory: some View {
+        NavigationLink { MemoryView() } label: {
+            MemoryCard(notes: model.coachMemory.notes)
+        }
+        .buttonStyle(PressableStyle())
+    }
+
     private var subscription: some View {
         VStack(alignment: .leading, spacing: 12) {
-            heading("Coach Jett")
+            heading("Coach Jett", info: store.isSubscribed
+                    ? "Unlimited answers. There is a burst limit to stop runaway usage, "
+                      + "which a conversation never reaches."
+                    : "Everything the app measures is free. Jett is the part with a "
+                      + "cost every time you ask.")
             ListCard {
                 if store.isSubscribed {
                     FieldRow(label: "Plan") {
@@ -140,11 +147,6 @@ struct ProfileView: View {
                     }
                 }
             }
-            footnote(store.isSubscribed
-                     ? "Unlimited answers. There is a burst limit to stop runaway usage, "
-                       + "which a conversation never reaches."
-                     : "Everything the app measures is free. Jett is the part with a "
-                       + "cost every time you ask.")
         }
     }
 
@@ -190,37 +192,12 @@ struct ProfileView: View {
         }
     }
 
-    private var coach: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            heading("Coach")
-            ListCard {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("DeepSeek API key").microLabel()
-                    SecureField("sk-ant-…", text: $apiKey)
-                        .font(.system(size: 15))
-                        .textContentType(.password)
-                        .autocorrectionDisabled()
-                        .textInputAutocapitalization(.never)
-                }
-                .padding(14)
-                Divider().overlay(Tokens.hairline)
-                AccessoryRow(symbol: keySaved ? "checkmark.circle.fill" : "key",
-                             label: keySaved ? "Saved to Keychain" : "Save key",
-                             tint: apiKey.isEmpty ? Tokens.textSecondary : Tokens.accent) {
-                    guard !apiKey.isEmpty else { return }
-                    Keychain.setAPIKey(apiKey.trimmingCharacters(in: .whitespacesAndNewlines))
-                    keySaved = true
-                }
-            }
-        }
-    }
-
     /// Off until asked for. The permission this needs is the one people are most
     /// suspicious of, so the reason sits directly above the switch rather than in a
     /// dialog they have already dismissed.
     private var atTheGym: some View {
         VStack(alignment: .leading, spacing: 12) {
-            heading("At the gym")
+            heading("At the gym", info: gymFootnote)
             ListCard {
                 // The whole row is the control. A bare Toggle only responds on the
                 // switch itself outside a List, which is a 50pt target on the far edge.
@@ -251,7 +228,6 @@ struct ProfileView: View {
                     }
                 }
             }
-            footnote(gymFootnote)
         }
     }
 

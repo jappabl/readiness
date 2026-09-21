@@ -37,10 +37,26 @@ struct RehearsalCoachProvider: CoachProvider {
                 let asksForChange = messages.last?.text.localizedCaseInsensitiveContains("easier") == true
                     || messages.last?.text.localizedCaseInsensitiveContains("legs") == true
 
+                // The memory path needs rehearsing too, or the only way to see the
+                // flash is to have a key and say the right thing to a live model.
+                if let said = messages.last?.text,
+                   said.localizedCaseInsensitiveContains("shoulder")
+                    || said.localizedCaseInsensitiveContains("remember") {
+                    let call = CoachToolCall(
+                        id: "rehearsal-memory",
+                        name: CoachTools.remember,
+                        intent: .remember("Left shoulder clicks on overhead press"),
+                        reason: "")
+                    continuation.yield(.toolCall(call))
+                    _ = await applyTool(call)
+                    try? await Task.sleep(for: .milliseconds(300))
+                }
+
                 if asksForChange {
                     let call = CoachToolCall(
                         id: "rehearsal",
-                        adjustment: .reduceLoad(percent: 15),
+                        name: CoachTools.adjustSession,
+                        intent: .adjust(.reduceLoad(percent: 15)),
                         reason: "HRV is 2.5 SD below your baseline and resting heart rate is up.")
                     continuation.yield(.toolCall(call))
                     _ = await applyTool(call)

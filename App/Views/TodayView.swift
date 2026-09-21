@@ -310,8 +310,6 @@ struct TodayView: View {
             SleepDebtCard(debt: model.sleepDebt)
         case .movement:
             MovementCard(activeEnergy: today?.activeEnergyKcal, steps: today?.steps, exerciseMinutes: today?.exerciseMinutes)
-        case .healthMonitor:
-            healthMonitor
         }
     }
 
@@ -324,40 +322,4 @@ struct TodayView: View {
         }
     }
 
-    // MARK: - Health monitor
-
-    private var healthMonitor: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Health Monitor").sectionHeading()
-            VStack(spacing: 0) {
-                metricRow(.respiratoryRate, symbol: "lungs", label: "Breathing rate")
-                Divider().padding(.leading, 44)
-                metricRow(.restingHeartRate, symbol: "heart", label: "Resting heart rate")
-                Divider().padding(.leading, 44)
-                metricRow(.hrv, symbol: "waveform.path.ecg", label: "Heart rate variability")
-                Divider().padding(.leading, 44)
-                metricRow(.bloodOxygen, symbol: "drop", label: "Blood oxygen")
-            }.bevelCard(padding: 16)
-        }
-    }
-
-    private func metricRow(_ kind: MetricKind, symbol: String, label: String) -> some View {
-        let raw = model.series.last { Calendar.current.isDateInToday($0.date) }?.value(for: kind)
-        let reading = model.reading(kind)
-        return HStack(spacing: 12) {
-            Image(systemName: symbol).font(.body).foregroundStyle(Tokens.textSecondary).frame(width: 24)
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 5) { Text(label).font(.subheadline); InfoButton(kind) }
-                Text(reading.map { Copy.position($0.zScore) } ?? (raw == nil ? "No reading today" : "Learning your usual range"))
-                    .font(.caption).foregroundStyle(.secondary)
-            }
-            Spacer(minLength: 8)
-            if let value = raw {
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text(value, format: .number.precision(.fractionLength(1))).font(.headline).monospacedDigit()
-                    Text(kind.unit).font(.caption2).foregroundStyle(.secondary)
-                }
-            } else { Text("—").foregroundStyle(.secondary) }
-        }.padding(.vertical, 12)
-    }
 }

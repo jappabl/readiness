@@ -59,7 +59,12 @@ public enum HomeBlock: String, Sendable, Equatable, CaseIterable {
     /// is how a card teaches people to stop looking at it.
     case sleepDebt
     case movement
-    case healthMonitor
+    // There used to be a `healthMonitor` here: breathing rate, resting heart rate, HRV
+    // and blood oxygen as four raw numbers closing every screen. Nobody knows what to do
+    // with any of them, and each row carried its own little information button, which is
+    // the tell that the row was not saying anything on its own. All four still exist in
+    // the insights behind each ring, where they come with a bar, a direction and a
+    // sentence explaining what moved.
 }
 
 public enum HomeComposition {
@@ -69,11 +74,11 @@ public enum HomeComposition {
         var result: [HomeBlock] = []
         for goal in TrainingGoal.allCases where goals.contains(goal) {
             for block in blocks(for: goal, hasProgram: hasProgram)
-                where block != .healthMonitor && !result.contains(block) {
+                where !result.contains(block) {
                 result.append(block)
             }
         }
-        return result + [.healthMonitor]
+        return result
     }
 
 
@@ -101,6 +106,6 @@ public enum HomeComposition {
         }
 
         // A promised session with no programme behind it is a broken promise.
-        return body.filter { $0 != .session || hasProgram } + [.healthMonitor]
+        return body.filter { $0 != .session || hasProgram }
     }
 }

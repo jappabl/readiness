@@ -670,6 +670,56 @@ struct JettFace: View {
 ///
 /// The coach sits in the bar rather than over it because it is a destination like any
 /// other, not something hovering in front of your reading.
+/// A section heading with the explanation tucked behind it.
+///
+/// A paragraph under a control is a paragraph everybody scrolls past to reach the thing
+/// itself, and if it only restates what the control obviously does it should not exist
+/// at all. What survives that test is usually a promise the UI cannot make on its own —
+/// where data goes, what the app will not do — and that belongs one tap away, not in
+/// everybody's way.
+struct InfoDot: View {
+    let text: String
+    @State private var showing = false
+
+    var body: some View {
+        Button { showing = true } label: {
+            Image(systemName: "info.circle")
+                .font(.system(size: 13, weight: .medium))
+                // Neutral, like every other icon. Nothing here is good or bad news.
+                .foregroundStyle(Tokens.textSecondary)
+                .frame(width: 30, height: 30)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("About this")
+        .popover(isPresented: $showing) {
+            Text(text)
+                .font(.system(size: 15))
+                .lineSpacing(3)
+                .foregroundStyle(Tokens.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: 292, alignment: .leading)
+                .padding(.horizontal, 22)
+                .padding(.vertical, 20)
+                .presentationCompactAdaptation(.popover)
+        }
+    }
+}
+
+/// A heading, optionally with one of those.
+struct SectionHeadingRow: View {
+    let title: String
+    var info: String?
+
+    var body: some View {
+        HStack(spacing: 2) {
+            Text(title).sectionHeading()
+            if let info, !info.isEmpty { InfoDot(text: info) }
+            Spacer(minLength: 0)
+        }
+    }
+}
+
 struct FloatingTabBar: View {
     @Binding var selection: Int
     var onAsk: () -> Void

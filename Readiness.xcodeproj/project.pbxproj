@@ -59,6 +59,8 @@
 		541C59ABE797C87E4BBA51A8 /* TodayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 413893742ACAB1BB14BDF3DD /* TodayView.swift */; };
 		C46266E031749544D0DF6C53 /* TrainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC32141384EFB7AF34329A9C /* TrainView.swift */; };
 		A873098868149F5B8C0F29FA /* DictationViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3FB61FCBDEDB39A386D7C86 /* DictationViews.swift */; };
+		8DDD8DFB34D7B46DA181F760 /* MemoryFlashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 601EF366A0B65F6103BFDF7C /* MemoryFlashView.swift */; };
+		A4D439D48DA5C1737E16D1A2 /* MemoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271144131A51A1F443A8F8F7 /* MemoryView.swift */; };
 		D085794618AE538D4BE3D478 /* WhyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2B0A795BF9B08D14DCEB342 /* WhyView.swift */; };
 		D072615FEFD249E88D115417 /* PaywallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C95AB93C82A34BC0B01D62C5 /* PaywallView.swift */; };
 		A70E92D1032C41FEBC942B02 /* PaywallDemo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AD2DCC0F47C4BD8A3688C09 /* PaywallDemo.swift */; };
@@ -68,6 +70,7 @@
 		57CD27898124823DCEA4C6C9 /* BaselineEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6A79D73CD5C27838C71B31C /* BaselineEngine.swift */; };
 		BDB82120DDB718BC9BA82964 /* CoachContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C35BF053373C3F1604BD3E8 /* CoachContext.swift */; };
 		2668963A7801D51A4F36BC01 /* CoachTools.swift in Sources */ = {isa = PBXBuildFile; fileRef = 005C7AE9F186267BD0DC0210 /* CoachTools.swift */; };
+		5C83B70C4E8900E1459B40E3 /* CoachMemory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FE67681E7A0F1A3A54B0A76 /* CoachMemory.swift */; };
 		9788F82F4037D6919392FD8D /* InsightEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B442940C409958B4371E3044 /* InsightEngine.swift */; };
 		B9D4082452FF35C638BB6CAC /* Metrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCD9613FE7E08C6AFA956056 /* Metrics.swift */; };
 		A90006729218FFE9BEF0D890 /* Percentile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2EF8D6020D810536E232D51A /* Percentile.swift */; };
@@ -155,6 +158,8 @@
 		413893742ACAB1BB14BDF3DD /* TodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TodayView.swift"; sourceTree = "<group>"; };
 		BC32141384EFB7AF34329A9C /* TrainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TrainView.swift"; sourceTree = "<group>"; };
 		C3FB61FCBDEDB39A386D7C86 /* DictationViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DictationViews.swift"; sourceTree = "<group>"; };
+		601EF366A0B65F6103BFDF7C /* MemoryFlashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MemoryFlashView.swift"; sourceTree = "<group>"; };
+		271144131A51A1F443A8F8F7 /* MemoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MemoryView.swift"; sourceTree = "<group>"; };
 		E2B0A795BF9B08D14DCEB342 /* WhyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WhyView.swift"; sourceTree = "<group>"; };
 		C95AB93C82A34BC0B01D62C5 /* PaywallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PaywallView.swift"; sourceTree = "<group>"; };
 		0AD2DCC0F47C4BD8A3688C09 /* PaywallDemo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PaywallDemo.swift"; sourceTree = "<group>"; };
@@ -164,6 +169,7 @@
 		F6A79D73CD5C27838C71B31C /* BaselineEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BaselineEngine.swift"; sourceTree = "<group>"; };
 		3C35BF053373C3F1604BD3E8 /* CoachContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CoachContext.swift"; sourceTree = "<group>"; };
 		005C7AE9F186267BD0DC0210 /* CoachTools.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CoachTools.swift"; sourceTree = "<group>"; };
+		1FE67681E7A0F1A3A54B0A76 /* CoachMemory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CoachMemory.swift"; sourceTree = "<group>"; };
 		B442940C409958B4371E3044 /* InsightEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "InsightEngine.swift"; sourceTree = "<group>"; };
 		CCD9613FE7E08C6AFA956056 /* Metrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Metrics.swift"; sourceTree = "<group>"; };
 		2EF8D6020D810536E232D51A /* Percentile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Percentile.swift"; sourceTree = "<group>"; };
@@ -350,6 +356,8 @@
 				413893742ACAB1BB14BDF3DD /* TodayView.swift */,
 				BC32141384EFB7AF34329A9C /* TrainView.swift */,
 				C3FB61FCBDEDB39A386D7C86 /* DictationViews.swift */,
+				601EF366A0B65F6103BFDF7C /* MemoryFlashView.swift */,
+				271144131A51A1F443A8F8F7 /* MemoryView.swift */,
 				E2B0A795BF9B08D14DCEB342 /* WhyView.swift */,
 				C95AB93C82A34BC0B01D62C5 /* PaywallView.swift */,
 				0AD2DCC0F47C4BD8A3688C09 /* PaywallDemo.swift */,
@@ -371,6 +379,7 @@
 				C4680AA374AB4DFE8829A364 /* HealthProfile.swift */,
 				3C35BF053373C3F1604BD3E8 /* CoachContext.swift */,
 				005C7AE9F186267BD0DC0210 /* CoachTools.swift */,
+				1FE67681E7A0F1A3A54B0A76 /* CoachMemory.swift */,
 				B442940C409958B4371E3044 /* InsightEngine.swift */,
 				CCD9613FE7E08C6AFA956056 /* Metrics.swift */,
 				2EF8D6020D810536E232D51A /* Percentile.swift */,
@@ -525,6 +534,8 @@
 				541C59ABE797C87E4BBA51A8 /* TodayView.swift in Sources */,
 				C46266E031749544D0DF6C53 /* TrainView.swift in Sources */,
 				A873098868149F5B8C0F29FA /* DictationViews.swift in Sources */,
+				8DDD8DFB34D7B46DA181F760 /* MemoryFlashView.swift in Sources */,
+				A4D439D48DA5C1737E16D1A2 /* MemoryView.swift in Sources */,
 				D085794618AE538D4BE3D478 /* WhyView.swift in Sources */,
 				D072615FEFD249E88D115417 /* PaywallView.swift in Sources */,
 				A70E92D1032C41FEBC942B02 /* PaywallDemo.swift in Sources */,
@@ -538,6 +549,7 @@
 				BA31BDF8D0C94CDF8989E7BD /* HealthProfile.swift in Sources */,
 				BDB82120DDB718BC9BA82964 /* CoachContext.swift in Sources */,
 				2668963A7801D51A4F36BC01 /* CoachTools.swift in Sources */,
+				5C83B70C4E8900E1459B40E3 /* CoachMemory.swift in Sources */,
 				9788F82F4037D6919392FD8D /* InsightEngine.swift in Sources */,
 				B9D4082452FF35C638BB6CAC /* Metrics.swift in Sources */,
 				A90006729218FFE9BEF0D890 /* Percentile.swift in Sources */,

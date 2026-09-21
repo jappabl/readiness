@@ -81,6 +81,9 @@ public struct CoachContext: Codable, Equatable, Sendable {
     /// What the sleep score measured last night against, in hours. The rules tell the
     /// model the need is learned "which the block states", so the block has to state it.
     public var sleepNeedHours: Double?
+    /// The short list of things Jett has been told before, already rendered. A field
+    /// rather than text spliced into `brief`, so the JSON form carries the same facts.
+    public var memory: String = ""
     public var health: HealthContext?
     public var profile: CoachProfileSummary?
 
@@ -168,6 +171,11 @@ public struct CoachContext: Codable, Equatable, Sendable {
                              + "\(exercise.sets)x\(exercise.reps) @\(exercise.weight) | "
                              + "rir \(exercise.rir)")
             }
+        }
+
+        if !memory.isEmpty {
+            lines.append("")
+            lines.append(memory)
         }
 
         if !proposedAdjustments.isEmpty {
