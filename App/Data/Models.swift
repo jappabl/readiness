@@ -286,6 +286,54 @@ extension WorkoutSession {
     static let unnamed = "Logged by voice"
 }
 
+/// A line of the conversation, kept.
+///
+/// It used to live in `@State` inside the sheet, which meant closing Jett threw the whole
+/// conversation away: come back an hour later and you are introducing yourself again. The
+/// history is the cheap part — ten messages a day for three years is a few megabytes, and
+/// nothing here is ever queried, only read in order from the end.
+///
+/// What is expensive is sending it, so almost none of it is sent. Anything older than the
+/// last few exchanges that still matters has been written to `CoachMemory` instead, which
+/// is a dozen lines rather than a transcript.
+@Model
+final class CoachTurn {
+    var at: Date
+    var roleRaw: String
+    var text: String
+    var reactionRaw: String
+
+    init(at: Date = Date(), role: String, text: String, reaction: String = "") {
+        self.at = at
+        self.roleRaw = role
+        self.text = text
+        self.reactionRaw = reaction
+    }
+
+    /// How much of the transcript is ever loaded. Beyond this nobody scrolls, and the
+    /// point of remembering is served by `CoachMemory`, not by a longer scrollback.
+    static let readable = 200
+
+    static func recent(in context: ModelContext) -> [CoachTurn] {
+        var descriptor = FetchDescriptor<CoachTurn>(sortBy: [SortDescriptor(\.at, order: .reverse)])
+        descriptor.fetchLimit = readable
+        return ((try? context.fetch(descriptor)) ?? []).reversed()
+    }
+
+    var message: CoachMessage {
+        CoachMessage(role: CoachMessage.Role(rawValue: roleRaw) ?? .assistant,
+                     text: text,
+                     reaction: CoachReaction(rawValue: reactionRaw))
+    }
+
+    static func clear(in context: ModelContext) {
+        for turn in (try? context.fetch(FetchDescriptor<CoachTurn>())) ?? [] {
+            context.delete(turn)
+        }
+        try? context.save()
+    }
+}
+
 enum Store {
     static let container: ModelContainer = {
         do {
@@ -293,7 +341,8 @@ enum Store {
                 for: WorkoutTemplate.self, TemplateExercise.self,
                      WorkoutSession.self, LoggedSet.self,
                      CheckInRow.self, DailyMetricRow.self,
-                     RecommendationRow.self, UserProfile.self, WeightLog.self, MealLog.self)
+                     RecommendationRow.self, UserProfile.self, WeightLog.self, MealLog.self,
+                     CoachTurn.self)
         } catch {
             fatalError("Could not create the local store: \(error)")
         }

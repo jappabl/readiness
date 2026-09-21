@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 /// The card in Profile, and the page behind it.
 ///
@@ -74,11 +75,14 @@ struct MemoryCard: View {
 /// and nobody would ever work out why.
 struct MemoryView: View {
     @Environment(AppModel.self) private var model
+    @Environment(\.modelContext) private var context
+    @Query(sort: \CoachTurn.at) private var turns: [CoachTurn]
+    @State private var clearing = false
 
     var body: some View {
         ZStack {
             Tokens.canvas.ignoresSafeArea()
-            if model.coachMemory.notes.isEmpty {
+            if model.coachMemory.notes.isEmpty && turns.isEmpty {
                 ContentUnavailableView(
                     "Nothing kept yet",
                     systemImage: "brain.head.profile",
@@ -87,6 +91,7 @@ struct MemoryView: View {
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 16) {
+                        if !model.coachMemory.notes.isEmpty {
                         ListCard {
                             // Newest first: a wrong one is almost always a recent one.
                             ForEach(Array(model.coachMemory.notes.reversed().enumerated()),
@@ -97,6 +102,8 @@ struct MemoryView: View {
                                 row(note)
                             }
                         }
+                        }
+                        conversation
                     }
                     .padding(.horizontal, Tokens.screenMargin)
                     .padding(.vertical, 16)
@@ -110,6 +117,40 @@ struct MemoryView: View {
                 InfoDot(text: "Jett keeps a few things between conversations. Your scores, "
                         + "sleep and today's session are not on this list, because those "
                         + "are read fresh every time you talk.")
+            }
+        }
+    }
+
+    /// The transcript is kept, and so is the way out of keeping it.
+    ///
+    /// Separate from the notes above on purpose: deleting a memory changes what Jett
+    /// believes, while this only clears what you can scroll back through. Someone who
+    /// wants the history gone usually wants it gone without losing the shoulder.
+    @ViewBuilder
+    private var conversation: some View {
+        if !turns.isEmpty {
+            ListCard {
+                Button(role: .destructive) {
+                    Haptics.decided()
+                    clearing = true
+                } label: {
+                    HStack {
+                        Text("Clear conversation")
+                            .font(.system(size: 16)).foregroundStyle(Tokens.alert)
+                        Spacer()
+                        Text(Copy.count(turns.count, "message"))
+                            .font(.system(size: 14)).foregroundStyle(Tokens.textSecondary)
+                    }
+                    .padding(16).contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+            .confirmationDialog("Clear the conversation?", isPresented: $clearing,
+                                titleVisibility: .visible) {
+                Button("Clear", role: .destructive) { CoachTurn.clear(in: context) }
+                Button("Keep it", role: .cancel) {}
+            } message: {
+                Text("What Jett remembers above stays. Only the messages go.")
             }
         }
     }

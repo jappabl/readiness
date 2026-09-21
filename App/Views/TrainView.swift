@@ -193,18 +193,36 @@ struct LiveWorkoutView: View {
             .navigationTitle(session.templateName)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) {
+                    // Closing the sheet leaves the session open, so the activity stays:
+                    // that is the whole point of it being on the Lock Screen.
+                    Button("Close") { dismiss() }
+                }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Finish") { showingFinish = true }.fontWeight(.semibold)
                         .disabled(session.sets.isEmpty)
                 }
             }
             .tint(Tokens.accent)
-            .onAppear(perform: prepareSet)
+            .onAppear {
+                prepareSet()
+                // The phone spends most of a workout face down on a bench, so the Lock
+                // Screen is the only surface the app has during the part it is for.
+                if let current {
+                    WorkoutActivity.start(template: session.templateName,
+                                          exercise: current.name,
+                                          setsPlanned: current.targetSets)
+                }
+            }
             .onChange(of: exerciseIndex) { _, _ in prepareSet() }
             .onDisappear { stopTimer(); dictation.stop() }
+            .onChange(of: exerciseIndex) { _, _ in showActivity() }
             .sheet(isPresented: $showingFinish) {
-                FinishSessionView(session: session) { stopTimer(); dismiss() }
+                FinishSessionView(session: session) {
+                    stopTimer()
+                    WorkoutActivity.end()
+                    dismiss()
+                }
             }
             .alert("Set wasn’t saved", isPresented: $saveError) {
                 Button("OK", role: .cancel) {}
@@ -214,10 +232,20 @@ struct LiveWorkoutView: View {
 
     private func working(_ exercise: TemplateExercise) -> some View {
         VStack(alignment: .leading, spacing: 16) {
-            VStack(alignment: .leading, spacing: 5) {
-                Text(exercise.name).font(.title2.weight(.bold)).foregroundStyle(Tokens.textPrimary)
-                Text(setsLogged < exercise.targetSets ? "Set \(setsLogged + 1) of \(exercise.targetSets)" : "Set \(setsLogged + 1)")
-                    .font(.subheadline).foregroundStyle(Tokens.textSecondary)
+            HStack(alignment: .center, spacing: 6) {
+                step(-1, symbol: "chevron.left", label: "Previous exercise",
+                     enabled: exerciseIndex > 0)
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(exercise.name).font(.title2.weight(.bold))
+                        .foregroundStyle(Tokens.textPrimary)
+                    Text(setsLogged < exercise.targetSets
+                         ? "Set \(setsLogged + 1) of \(exercise.targetSets)"
+                         : "Set \(setsLogged + 1)")
+                        .font(.subheadline).foregroundStyle(Tokens.textSecondary)
+                }
+                Spacer(minLength: 4)
+                step(1, symbol: "chevron.right", label: "Next exercise",
+                     enabled: exerciseIndex < exercises.count - 1)
             }
             ListCard {
                 FieldRow(label: "Weight (\(unit))") {
@@ -241,7 +269,15 @@ struct LiveWorkoutView: View {
                     Label("Rest \(restRemaining)s", systemImage: "timer")
                         .font(.body.monospacedDigit()).foregroundStyle(Tokens.textSecondary)
                     Spacer()
-                    Button("Skip rest", action: stopTimer).font(.subheadline)
+                    Button(action: stopTimer) {
+                        Image(systemName: "forward.end.fill")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(Tokens.textPrimary)
+                            .frame(width: 44, height: 44)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Skip rest")
                 }
                 .frame(minHeight: 44)
             }
@@ -255,14 +291,6 @@ struct LiveWorkoutView: View {
                 Text("Hold Jett’s face to log a set out loud from anywhere.")
                     .font(.caption).foregroundStyle(Tokens.textSecondary)
             }
-            HStack {
-                Button("Previous exercise") { exerciseIndex -= 1 }
-                    .disabled(exerciseIndex == 0)
-                Spacer()
-                Button("Next exercise") { exerciseIndex += 1 }
-                    .disabled(exerciseIndex >= exercises.count - 1)
-            }
-            .font(.subheadline).frame(minHeight: 44)
             if !session.orderedSets.isEmpty {
                 VStack(alignment: .leading, spacing: 10) {
                     Text("Logged sets").font(.headline)
@@ -278,6 +306,26 @@ struct LiveWorkoutView: View {
             }
         }
         .padding(.horizontal, Tokens.screenMargin).padding(.vertical, 16)
+    }
+
+    /// One colour whatever it does, because moving to the next lift is neither good news
+    /// nor bad. Dimmed rather than hidden at the ends, so the row never changes shape.
+    private func step(_ delta: Int, symbol: String, label: String,
+                      enabled: Bool) -> some View {
+        Button {
+            guard enabled else { return }
+            Haptics.light()
+            exerciseIndex += delta
+        } label: {
+            Image(systemName: symbol)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(enabled ? Tokens.textPrimary : Tokens.textSecondary.opacity(0.35))
+                .frame(width: 40, height: 44)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(!enabled)
+        .accessibilityLabel(label)
     }
 
     /// Tap to talk, tap to stop. Held-down buttons are the wrong shape for this: you
@@ -357,6 +405,19 @@ struct LiveWorkoutView: View {
         startRest(seconds: planned?.restSeconds ?? exercise.restSeconds)
     }
 
+    /// Pushed after anything that changes what somebody would want to read at arm's
+    /// length: a set landing, a rest starting or being skipped, a change of lift.
+    private func showActivity() {
+        guard let current else { return }
+        WorkoutActivity.update(
+            exercise: current.name,
+            setsDone: setsLogged,
+            setsPlanned: current.targetSets,
+            restEnds: restRemaining > 0
+                ? Date().addingTimeInterval(TimeInterval(restRemaining)) : nil,
+            totalSets: session.sets.count)
+    }
+
     private func prepareSet() {
         guard let current else { return }
         let last = session.orderedSets.last { $0.exerciseName == current.name }
@@ -392,6 +453,7 @@ struct LiveWorkoutView: View {
     private func startRest(seconds: Int) {
         stopTimer()
         restRemaining = seconds
+        showActivity()
         restTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { timer in
             Task { @MainActor in
                 if restRemaining > 0 {
@@ -402,9 +464,13 @@ struct LiveWorkoutView: View {
         }
     }
     private func stopTimer() {
+        let wasResting = restRemaining > 0
         restTimer?.invalidate()
         restTimer = nil
         restRemaining = 0
+        // Only when a rest was actually cut short. Called on the way out of the screen
+        // too, where pushing an update to an activity about to end is wasted work.
+        if wasResting { showActivity() }
     }
 }
 

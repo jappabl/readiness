@@ -21,6 +21,7 @@ struct CoachSheet: View {
     @State private var appliedNote: String?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var continuesOnboarding = false
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     /// With no key configured, a debug build rehearses instead of failing — the UI is
     /// the thing being worked on far more often than the model is.
@@ -75,6 +76,9 @@ struct CoachSheet: View {
             }, onCancel: { showingSharing = false })
         }
         .task {
+            if messages.isEmpty {
+                messages = CoachTurn.recent(in: context).map(\.message)
+            }
             guard let pending = model.pendingCoachMessage else { return }
             // Clear before sending so view recreation cannot submit a second request.
             model.pendingCoachMessage = nil
@@ -88,40 +92,64 @@ struct CoachSheet: View {
         }
     }
 
+    /// The opening, which is already the conversation.
+    ///
+    /// It used to be four grey rows with a sparkle and an arrow on each: a menu bolted
+    /// to the top of a chat, in a style that appears nowhere else in the app. Jett says
+    /// hello in his own bubble instead and the questions sit under it as choices, the
+    /// same shape onboarding uses, so the first screen looks like the second one.
     private var suggestions: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            ForEach(Self.starters, id: \.self) { prompt in
-                Button { send(prompt) } label: {
-                    HStack(spacing: 12) {
-                        Image(systemName: "sparkle")
-                            .font(.subheadline)
-                            .foregroundStyle(Tokens.jettTint)
-                        Text(prompt)
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundStyle(Tokens.textPrimary)
-                            .multilineTextAlignment(.leading)
-                        Spacer(minLength: 8)
-                        Image(systemName: "arrow.up.right")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(Tokens.textSecondary)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                CoachTurnView(message: CoachMessage(role: .assistant, text: Self.opener),
+                              revealsWords: !reduceMotion)
+                LazyVGrid(columns: columns, spacing: 10) {
+                    ForEach(Self.starters, id: \.self) { prompt in
+                        starter(prompt)
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 15)
-                    .background(Color.primary.opacity(0.05),
-                                in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .strokeBorder(Color.primary.opacity(0.06), lineWidth: 0.5))
-                    .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 }
-                .buttonStyle(PressableStyle())
             }
-            // The room below belongs to the conversation, and dismisses on a tap.
-            Color.clear
-                .contentShape(Rectangle())
-                .onTapGesture { dismiss() }
+            .padding(.horizontal, Tokens.screenMargin)
+            .padding(.top, 14)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(.horizontal, 20)
+        .scrollBounceBehavior(.basedOnSize)
+        .defaultScrollAnchor(.top)
     }
+
+    /// The same two columns onboarding uses, and the same chip, down to the border.
+    /// The last thing somebody saw before the app opened was this exact grid.
+    private var columns: [GridItem] {
+        Array(repeating: GridItem(.flexible(), spacing: 10),
+              count: typeSize.isAccessibilitySize ? 1 : 2)
+    }
+
+    private func starter(_ prompt: String) -> some View {
+        Button {
+            Haptics.decided()
+            send(prompt)
+        } label: {
+            HStack(spacing: 0) {
+                Text(prompt)
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(Tokens.textPrimary)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 13)
+            .frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
+            .background(Tokens.surface, in: RoundedRectangle(cornerRadius: 16))
+            .overlay(RoundedRectangle(cornerRadius: 16)
+                .strokeBorder(Tokens.messageOutgoing.opacity(0.30), lineWidth: 1))
+            .contentShape(RoundedRectangle(cornerRadius: 16))
+        }
+        .buttonStyle(.plain)
+    }
+
+    /// Short, and open, because most people do not arrive with one of the four in mind.
+    static let opener = "Hey. What's up?"
 
     static let starters = OnboardingConversation.starterQuestions
 
@@ -250,6 +278,19 @@ struct CoachSheet: View {
         CoachComposer(draft: $draft, isStreaming: isStreaming, onSend: send)
     }
 
+    /// How many past turns travel with a question. The server allows sixteen; a
+    /// conversation does not need them, and every one is paid for on every message.
+    static let turnsSent = 8
+
+    private func keep(_ message: CoachMessage) {
+        // Onboarding's opening turns are staged in memory before anything is sent, and
+        // writing them here would replay the whole script on the next launch.
+        guard !continuesOnboarding else { return }
+        context.insert(CoachTurn(role: message.role.rawValue, text: message.text,
+                                 reaction: message.reaction?.rawValue ?? ""))
+        try? context.save()
+    }
+
     private var allowance: CoachAllowance {
         Paywall.allowance(used: model.coachMessagesUsed, isSubscribed: store.isSubscribed)
     }
@@ -261,9 +302,11 @@ struct CoachSheet: View {
             showingSharing = true
             return
         }
+        let asked = CoachMessage(role: .user, text: text)
         withAnimation(reduceMotion ? nil : .easeOut(duration: 0.24)) {
-            messages.append(CoachMessage(role: .user, text: text))
+            messages.append(asked)
         }
+        keep(asked)
         // The wall lands where the value is, not before it: five real answers first.
         guard allowance.isAllowed else {
             Haptics.light()
@@ -296,7 +339,7 @@ struct CoachSheet: View {
         Task {
             do {
                 let events = provider.stream(
-                    messages: messages.dropLast().map { $0 },
+                    messages: Array(messages.dropLast().suffix(Self.turnsSent)),
                     context: coachContext,
                     applyTool: { call in
                         await MainActor.run {
@@ -340,6 +383,7 @@ struct CoachSheet: View {
                 errorMessage = error.localizedDescription
             }
             messages.removeAll { $0.id == reply.id && $0.text.isEmpty }
+            if let answered = messages.first(where: { $0.id == reply.id }) { keep(answered) }
             isStreaming = false
             if hasSpoken { Haptics.replyEnded() }
         }

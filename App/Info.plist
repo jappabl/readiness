@@ -32,6 +32,8 @@
 	<string>Save weight measurements and meals you choose to add to Apple Health.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>Coach Jett notices when you have been at your gym for a few minutes so Jett can offer to take the session down while you rest. Your location is only ever compared against gyms you have named yourself, and never leaves this device.</string>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Say what you just lifted and Coach Jett writes the set down, so you never have to type between sets.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>

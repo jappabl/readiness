@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		D861650683AAF8377BAFF83D /* WorkoutActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AFBE96A16678168D0CF670A /* WorkoutActivityAttributes.swift */; };
+		F2A3F489783E79461DCCE732 /* WorkoutActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AFBE96A16678168D0CF670A /* WorkoutActivityAttributes.swift */; };
+		B1296E2518366AD1BF9D9F06 /* JettWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70E95DA7F3A738FDB02639DD /* JettWidgets.swift */; };
+		7B556357EA57E28B025220D9 /* JettWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = CAADC2998A055EAE9316756B /* JettWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		A48C14F35B074FB29DC926D1 /* DailyStrain.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1453BC247AC4FBFB2B245E8 /* DailyStrain.swift */; };
 		AE2D561E76F545B195BE919A /* SleepScore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68F3AB85F79946D3BBC4A7E8 /* SleepScore.swift */; };
 		AFECC2FD73F74759B378CC25 /* FoodLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D8BB139FB4C4604BDDD7DD5 /* FoodLog.swift */; };
@@ -36,6 +40,7 @@
 		D5DD1FF9090A37E50C8620A7 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8D4A3BC6412D0F227E7426E /* AppModel.swift */; };
 		6CF173F1EF544C1C8F301AEC /* DemoPhysiology.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AC211F10AAF4501965D0EC1 /* DemoPhysiology.swift */; };
 		3AE4AE04E96C4CA5A0ADA8BD /* LogSetsIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E370FDA10DB4D5587685970 /* LogSetsIntent.swift */; };
+		335F9DF08713FF65C894B3DE /* WorkoutActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19A155AAA5E0F604903D1AA9 /* WorkoutActivity.swift */; };
 		26EC5CA84A95FA981E6FE1E4 /* Dictation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1AEA8A75DC789A0395CD19D1 /* Dictation.swift */; };
 		699DE0D93E6F4551A62F39B6 /* Subscriptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFC3C84970F1464F8574ABE3 /* Subscriptions.swift */; };
 		3637D17E12D76F9EAA126693 /* Copy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 727B333776AC76D5EAD1EBBA /* Copy.swift */; };
@@ -105,6 +110,10 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		3AFBE96A16678168D0CF670A /* WorkoutActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WorkoutActivityAttributes.swift"; sourceTree = "<group>"; };
+		70E95DA7F3A738FDB02639DD /* JettWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "JettWidgets.swift"; sourceTree = "<group>"; };
+		AD6FE2087A536CF3CC781DF7 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Info.plist"; sourceTree = "<group>"; };
+		CAADC2998A055EAE9316756B /* JettWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "JettWidgets.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
 		B1453BC247AC4FBFB2B245E8 /* DailyStrain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "DailyStrain.swift"; path = "Core/Sources/ReadinessCore/DailyStrain.swift"; sourceTree = SOURCE_ROOT; };
 		68F3AB85F79946D3BBC4A7E8 /* SleepScore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "SleepScore.swift"; path = "Core/Sources/ReadinessCore/SleepScore.swift"; sourceTree = SOURCE_ROOT; };
 		3D8BB139FB4C4604BDDD7DD5 /* FoodLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "FoodLog.swift"; path = "Core/Sources/ReadinessCore/FoodLog.swift"; sourceTree = SOURCE_ROOT; };
@@ -135,6 +144,7 @@
 		A8D4A3BC6412D0F227E7426E /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppModel.swift"; sourceTree = "<group>"; };
 		2AC211F10AAF4501965D0EC1 /* DemoPhysiology.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DemoPhysiology.swift"; sourceTree = "<group>"; };
 		1E370FDA10DB4D5587685970 /* LogSetsIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "LogSetsIntent.swift"; sourceTree = "<group>"; };
+		19A155AAA5E0F604903D1AA9 /* WorkoutActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WorkoutActivity.swift"; sourceTree = "<group>"; };
 		1AEA8A75DC789A0395CD19D1 /* Dictation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Dictation.swift"; sourceTree = "<group>"; };
 		FFC3C84970F1464F8574ABE3 /* Subscriptions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Subscriptions.swift"; sourceTree = "<group>"; };
 		727B333776AC76D5EAD1EBBA /* Copy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Copy.swift"; sourceTree = "<group>"; };
@@ -205,6 +215,17 @@
 /* End PBXFileReference section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		9EDDCC0519945B94AF16C40C /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				7B556357EA57E28B025220D9 /* JettWidgets.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		7DC60644219E4E9B9063586E /* Embed Frameworks */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -219,6 +240,13 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		86D88A46A16D01E752111510 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		25AA648F3681889018A23852 = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -230,6 +258,17 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		1B288008ED15D00DC01A4A82 /* LiveActivity */ = {
+			isa = PBXGroup;
+			children = (
+				3AFBE96A16678168D0CF670A /* WorkoutActivityAttributes.swift */,
+				70E95DA7F3A738FDB02639DD /* JettWidgets.swift */,
+				AD6FE2087A536CF3CC781DF7 /* Info.plist */,
+			);
+			name = LiveActivity;
+			path = LiveActivity;
+			sourceTree = "<group>";
+		};
 		A79553F44358C0E99046B58E = {
 			isa = PBXGroup;
 			children = (
@@ -254,6 +293,7 @@
 				8CFC39A16F9B9B06CE4648BB /* Info.plist */,
 				2AFF84FB9571D12AFA48462D /* Readiness.entitlements */,
 				786F9325F29F7C3BE8A6717D /* Products */,
+				1B288008ED15D00DC01A4A82 /* LiveActivity */,
 			);
 			sourceTree = "<group>";
 		};
@@ -261,6 +301,7 @@
 			isa = PBXGroup;
 			children = (
 				0D98DAD3689D87A13BB0FEF1 /* Readiness.app */,
+				CAADC2998A055EAE9316756B /* JettWidgets.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -318,6 +359,7 @@
 				A8D4A3BC6412D0F227E7426E /* AppModel.swift */,
 				2AC211F10AAF4501965D0EC1 /* DemoPhysiology.swift */,
 				1E370FDA10DB4D5587685970 /* LogSetsIntent.swift */,
+				19A155AAA5E0F604903D1AA9 /* WorkoutActivity.swift */,
 				1AEA8A75DC789A0395CD19D1 /* Dictation.swift */,
 				FFC3C84970F1464F8574ABE3 /* Subscriptions.swift */,
 				727B333776AC76D5EAD1EBBA /* Copy.swift */,
@@ -416,6 +458,23 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		1F06E7D72C45E0CFB6F0C6C9 /* JettWidgets */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 442DED5258DB9F622841CF12 /* Build configuration list for PBXNativeTarget "JettWidgets" */;
+			buildPhases = (
+				B4119B810100B85625755E21 /* Sources */,
+				86D88A46A16D01E752111510 /* Frameworks */,
+				46528F7435798367D009DEC8 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = JettWidgets;
+			productName = JettWidgets;
+			productReference = CAADC2998A055EAE9316756B /* JettWidgets.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		E1156BB588976C198050FEF0 /* Readiness */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 42BE70A4A8ECC53D7ABFC406 /* Build configuration list for PBXNativeTarget "Readiness" */;
@@ -424,10 +483,12 @@
 				25AA648F3681889018A23852 /* Frameworks */,
 				BABC7856FF8DEE040F4405E7 /* Resources */,
 				7DC60644219E4E9B9063586E /* Embed Frameworks */,
+				9EDDCC0519945B94AF16C40C /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				8FE8EEB91CCB1EFAEB64EFFF /* PBXTargetDependency */,
 			);
 			name = Readiness;
 			productName = Readiness;
@@ -447,6 +508,9 @@
 					E1156BB588976C198050FEF0 = {
 						CreatedOnToolsVersion = 26.0;
 					};
+					1F06E7D72C45E0CFB6F0C6C9 = {
+						CreatedOnToolsVersion = 26.0;
+					};
 				};
 			};
 			buildConfigurationList = B9F94C908923EB514AB3654D /* Build configuration list for PBXProject "Readiness" */;
@@ -463,6 +527,7 @@
 			projectRoot = "";
 			targets = (
 				E1156BB588976C198050FEF0 /* Readiness */,
+				1F06E7D72C45E0CFB6F0C6C9 /* JettWidgets */,
 			);
 		};
 /* End PBXProject section */
@@ -470,6 +535,13 @@
 
 
 /* Begin PBXResourcesBuildPhase section */
+		46528F7435798367D009DEC8 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		BABC7856FF8DEE040F4405E7 = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -485,6 +557,15 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		B4119B810100B85625755E21 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F2A3F489783E79461DCCE732 /* WorkoutActivityAttributes.swift in Sources */,
+				B1296E2518366AD1BF9D9F06 /* JettWidgets.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		592FA99528F1CC09D6D76063 = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -511,6 +592,8 @@
 				D5DD1FF9090A37E50C8620A7 /* AppModel.swift in Sources */,
 				6CF173F1EF544C1C8F301AEC /* DemoPhysiology.swift in Sources */,
 				3AE4AE04E96C4CA5A0ADA8BD /* LogSetsIntent.swift in Sources */,
+				335F9DF08713FF65C894B3DE /* WorkoutActivity.swift in Sources */,
+				D861650683AAF8377BAFF83D /* WorkoutActivityAttributes.swift in Sources */,
 				26EC5CA84A95FA981E6FE1E4 /* Dictation.swift in Sources */,
 				699DE0D93E6F4551A62F39B6 /* Subscriptions.swift in Sources */,
 				3637D17E12D76F9EAA126693 /* Copy.swift in Sources */,
@@ -581,6 +664,24 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXContainerItemProxy section */
+		1C1FCDF71EA53CC514A3A411 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = EEB28B694E178D22952BF92A /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 1F06E7D72C45E0CFB6F0C6C9;
+			remoteInfo = JettWidgets;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXTargetDependency section */
+		8FE8EEB91CCB1EFAEB64EFFF /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 1F06E7D72C45E0CFB6F0C6C9 /* JettWidgets */;
+			targetProxy = 1C1FCDF71EA53CC514A3A411 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		3B5DC2A89CFFE606716E3369 /* Debug */ = {
@@ -682,6 +783,57 @@
 			};
 			name = Release;
 		};
+		BFA7AB998471612ACF8961D9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = V9JX42F864;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = LiveActivity/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.coachjett.ios.JettWidgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		31B154D69A7AE9DB5608D2D5 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = V9JX42F864;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = LiveActivity/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.coachjett.ios.JettWidgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -699,6 +851,15 @@
 			buildConfigurations = (
 				1F2433D172D7E2AD883F5E27 /* Debug */,
 				BCB77E891A9F888FCC9C6246 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		442DED5258DB9F622841CF12 /* Build configuration list for PBXNativeTarget "JettWidgets" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BFA7AB998471612ACF8961D9 /* Debug */,
+				31B154D69A7AE9DB5608D2D5 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
