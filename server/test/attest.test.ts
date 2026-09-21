@@ -15,6 +15,7 @@ import {
   verifyAssertion,
   verifyAttestation,
   verifyChain,
+  nonceFromCertificate,
   spkiFromCertificate,
   signedBy,
 } from "../src/attest"
@@ -210,6 +211,38 @@ describe("the chain to Apple", () => {
 const TEST_ROOT_DER = "MIIBuTCCAUCgAwIBAgIUE3UcdzJ+cQDUhsGpOZCJrWOMYDMwCgYIKoZIzj0EAwMwFDESMBAGA1UEAwwJVGVzdCBSb290MB4XDTI2MDkyMTE3MTg0NVoXDTM2MDkxODE3MTg0NVowFDESMBAGA1UEAwwJVGVzdCBSb290MHYwEAYHKoZIzj0CAQYFK4EEACIDYgAEtGI0YUdB4pmaXb/Unf+VTq0vp7b2uoJBPWXkKyI0BsjcCG6O659dyZ8c4DT9m+i7bdNZslcuqN4MKcWRT6IOoJkribgI1XdouX0VtWlxR3kWL2Jy/Bg2+LJA5MiiJd8to1MwUTAdBgNVHQ4EFgQUkHVoSjKNiJb0DChyHD20THgJq7EwHwYDVR0jBBgwFoAUkHVoSjKNiJb0DChyHD20THgJq7EwDwYDVR0TAQH/BAUwAwEB/zAKBggqhkjOPQQDAwNnADBkAjBXHEW3zJkQP0D7NBNiatjuNTrzyomX8vyb1mutVQKwEqxwCUh+UlyjVFKFoIBqVvECMDmSJrBQ45R2yocn4zzAlGY+Up6U1zeik2Ty7ELqbdXOKUQ2m1VAqt/sHPEgjBtASQ=="
 const TEST_LEAF_SHA256_DER = "MIIBeDCB/6ADAgECAgECMAoGCCqGSM49BAMCMBQxEjAQBgNVBAMMCVRlc3QgUm9vdDAeFw0yNjA5MjExNzIwNTNaFw0zNjA5MTgxNzIwNTNaMBQxEjAQBgNVBAMMCVRlc3QgTGVhZjBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABDJxchydrT+fJqutWeIqV7OPtt3e+Y+Hqqs2KWZ7JZSxpmC5WQjpYjtHutUZMrWkXUaN1RiyyIOi1Jx2eoNPwnejQjBAMB0GA1UdDgQWBBSfLJ/j4ED+6vNmRnYFW+ehV0NYbDAfBgNVHSMEGDAWgBSQdWhKMo2IlvQMKHIcPbRMeAmrsTAKBggqhkjOPQQDAgNoADBlAjEAkoTxTLrp3mNAtTinUQ35UZN6qLBx0kfFkWDzEFmgV3PbS46oS999fK7Vf+1L+ubRAjBQra3RI2L9C/ZuiWpc5j3iXiNchRfgplmvOBKYeMTokrh2/QZNgQ13dGff6GrmKxs="
 const TEST_LEAF_DER = "MIIBeDCB/6ADAgECAgEBMAoGCCqGSM49BAMDMBQxEjAQBgNVBAMMCVRlc3QgUm9vdDAeFw0yNjA5MjExNzE4NDVaFw0zNjA5MTgxNzE4NDVaMBQxEjAQBgNVBAMMCVRlc3QgTGVhZjBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABDJxchydrT+fJqutWeIqV7OPtt3e+Y+Hqqs2KWZ7JZSxpmC5WQjpYjtHutUZMrWkXUaN1RiyyIOi1Jx2eoNPwnejQjBAMB0GA1UdDgQWBBSfLJ/j4ED+6vNmRnYFW+ehV0NYbDAfBgNVHSMEGDAWgBSQdWhKMo2IlvQMKHIcPbRMeAmrsTAKBggqhkjOPQQDAwNoADBlAjBAjmHF8w7ZTWbfqk0MC11Gz+bdRE9dE80EaQDm5VsMrh2E96T8dSi+1efbaY/0le0CMQCCgQmEFJavgyk5WrNh4mNgB4lepDDlnG47HTKtl6FLRbz8+tNOx0oymYqs1qE7qf8="
+
+/// Apple's nonce extension, built the way Apple builds it.
+///
+/// extnValue is an OCTET STRING holding SEQUENCE { [1] { OCTET STRING nonce } }. The
+/// context tag is [1], and the unwrapper knew [0]. It stopped one level early and
+/// returned the [1] node with its header still on, so every genuine attestation was
+/// refused with "nonce mismatch": a sentence that means somebody replayed a statement,
+/// and here meant a tag number.
+function der(tag: number, content: Uint8Array): Uint8Array {
+  if (content.length < 0x80) return Uint8Array.from([tag, content.length, ...content])
+  return Uint8Array.from([tag, 0x81, content.length, ...content])
+}
+
+describe("Apple's nonce extension", () => {
+  const nonce = Uint8Array.from({ length: 32 }, (_, i) => i + 1)
+  const NONCE_OID = Uint8Array.from([0x2a, 0x86, 0x48, 0x86, 0xf7, 0x63, 0x64, 0x08, 0x02])
+
+  function certificateCarrying(value: Uint8Array): Uint8Array {
+    const extension = new Uint8Array([...der(0x06, NONCE_OID), ...der(0x04, value)])
+    return der(0x30, der(0x30, extension))
+  }
+
+  it("reads the nonce out of a [1]-wrapped extension", () => {
+    const wrapped = der(0x30, der(0xa1, der(0x04, nonce)))
+    expect(nonceFromCertificate(certificateCarrying(wrapped))).toEqual(nonce)
+  })
+
+  it("still reads a [0]-wrapped one", () => {
+    const wrapped = der(0x30, der(0xa0, der(0x04, nonce)))
+    expect(nonceFromCertificate(certificateCarrying(wrapped))).toEqual(nonce)
+  })
+})
 
 describe("reading a real certificate", () => {
   it("hands WebCrypto a SubjectPublicKeyInfo it will accept", async () => {

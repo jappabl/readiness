@@ -178,12 +178,16 @@ function findOID(node: DERNode, oid: number[], depth: number): Uint8Array | null
       // then an OCTET STRING again. Unwrap until something that is not a container.
       const sibling = children[i + 1]
       if (!sibling) return null
+      // Any container, rather than a list of the three that were thought of. Apple
+      // wraps the nonce in [1], the list had [0], and the unwrap stopped one level
+      // early and handed back a node with its header still attached. Every genuine
+      // attestation was then refused as a "nonce mismatch", which says somebody
+      // replayed a statement and meant a tag number.
       let inner = sibling.content
-      for (let step = 0; step < 4; step++) {
+      for (let step = 0; step < 6; step++) {
         const node = readDER(inner)
-        if (node.tag === 0x04 || node.tag === 0x30 || node.tag === 0xa0) {
-          inner = node.content
-        } else break
+        if (isConstructed(node.tag) || node.tag === 0x04) inner = node.content
+        else break
       }
       return inner
     }
