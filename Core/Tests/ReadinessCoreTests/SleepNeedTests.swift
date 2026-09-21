@@ -479,6 +479,25 @@ struct SleepCoverageFairnessTests {
         #expect(result.missing.contains { $0.localizedCaseInsensitiveContains("deep") })
     }
 
+    /// A record where nothing has ever staged a night is not a short record.
+    ///
+    /// "Seven nights of stage data for deep sleep", three times over, promises a wait
+    /// that never ends: the person owns no device that labels a night, so the seven
+    /// nights never arrive. Hao saw four lines of this under every past night. One
+    /// cause is one line, and it has to say the true thing about it.
+    @Test("a record that has never staged a night says so once, and honestly")
+    func neverStagedSaysItOnce() {
+        let result = SleepScore.of(SleepInput(
+            breakdown: night(19, staged: false), durationHours: 8,
+            history: (1...14).map { night($0 + 1, staged: false) },
+            sleepingHeartRate: 56, daytimeHeartRate: 66, calendar: calendar))
+        let staged = result.missing.filter { $0.localizedCaseInsensitiveContains("stage") }
+        #expect(staged.count == 1, "said it \(staged.count) times: \(result.missing)")
+        #expect(!result.missing.contains {
+            $0.localizedCaseInsensitiveContains("seven nights of stage")
+        }, "promised a wait that cannot end: \(result.missing)")
+    }
+
     /// Being exactly your own normal is not a fault, and used to cost about five points
     /// with the leading explanation naming a value identical to the person's average.
     @Test("a completely typical night scores near the top")

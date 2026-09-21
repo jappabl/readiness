@@ -233,7 +233,7 @@ struct DayDetailView: View {
                     Button("Done") { dismiss() }.tint(Tokens.textPrimary)
                 }
             }
-            .sheet(item: $insight) { InsightsView(score: $0) }
+            .sheet(item: $insight) { InsightsView(score: $0, date: date) }
         }
     }
 

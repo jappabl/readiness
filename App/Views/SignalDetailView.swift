@@ -85,7 +85,7 @@ struct SignalDetailView: View {
             }
         }
         .sheet(isPresented: $showingWhy) {
-            InsightsView(score: score)
+            InsightsView(score: score, date: date)
         }
     }
 

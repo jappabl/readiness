@@ -541,13 +541,31 @@ public enum SleepScore {
             guard component.fraction == nil else { return false }
             return wearsAWatch || !needsAWatch(component)
         }
-        let missing = absent.map { component -> String in
+        // Nothing here has ever staged a night, so the seven nights the stage rows ask
+        // for will not arrive: the record is not short, it is unstructured. Three rows
+        // each promising that wait is the same untrue thing said three times, under
+        // every night, for ever. One cause gets one line.
+        let neverStaged = tonightUnstaged && stagedNights == 0
+        var missing: [String] = []
+        var saidStages = false
+        for component in absent {
+            let isStage = component.missingLabel.localizedCaseInsensitiveContains("stage data")
+            if isStage, neverStaged {
+                if !saidStages {
+                    missing.append("Sleep stages, which nothing recording your nights "
+                                 + "is measuring")
+                    saidStages = true
+                }
+                continue
+            }
             // Same row, right reason. The stage rows are absent because of last night,
             // not because the record is too short to judge it against.
-            guard tonightUnstaged, stagingUsuallyWorks,
-                  component.missingLabel.localizedCaseInsensitiveContains("stage data")
-            else { return component.missingLabel }
-            return "\(component.title) last night, which your watch did not finish recording"
+            if isStage, tonightUnstaged, stagingUsuallyWorks {
+                missing.append("\(component.title) last night, which your watch did not "
+                             + "finish recording")
+                continue
+            }
+            missing.append(component.missingLabel)
         }
         let measured = components.count - absent.count
         // Decided in the spec: a phone-only sleeper can see a complete score. Their
@@ -719,8 +737,12 @@ public enum SleepScore {
                 // sleep episodes in one day, or two devices whose awake and asleep samples
                 // conflict. That label appeared underneath a ring drawn from those very
                 // stages.
-                missingLabel: "One continuous record of the night, which your devices did "
-                            + "not agree on",
+                // Not "your devices did not agree": that is one of the reasons this
+                // goes nil, and on a record with no stages in it there is no second
+                // device and no disagreement, only a night stored as one undivided
+                // block. The label has to hold every case it appears under.
+                missingLabel: "One continuous record of the night, which nothing "
+                            + "recorded end to end",
                 symbol: "moon.zzz.fill",
                 note: continuityFraction.map {
                     $0 >= 0.95 ? "You barely stirred."
@@ -730,7 +752,11 @@ public enum SleepScore {
             Component(
                 id: "schedule", title: "Bedtime",
                 fraction: schedule.fraction,
-                value: schedule.medianMinutes, unit: "min",
+                // The distance from the bedtime this person actually keeps, which the
+                // tile has to say or the number means nothing: "Bedtime, 103.5 min"
+                // reads as a duration of bedtime. Whole minutes, because half a minute
+                // of bedtime is a precision no one has.
+                value: schedule.medianMinutes.map { $0.rounded() }, unit: "min off usual",
                 comparison: nil, comparisonLabel: nil,
                 explanation: "How far last night's bedtime was from the one you normally "
                            + "keep. Going to bed at the same time is one of the few sleep "

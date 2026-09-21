@@ -19,6 +19,8 @@ import Charts
 /// added to an engine appears here the day it starts counting.
 struct InsightsView: View {
     let score: SignalScore
+    /// The day this is about. Today for every entry point but a rewound one.
+    var date: Date = Date()
 
     @Environment(\.dismiss) private var dismiss
     @State private var detail: ScoreContributor?
@@ -54,7 +56,13 @@ struct InsightsView: View {
         }
     }
 
+    /// "Last night" and "Your day" are both today by definition, so a day that has
+    /// gone is named instead of described. A Tuesday opened on Saturday said
+    /// "Last night" over Tuesday's numbers.
     private var title: String {
+        guard Calendar.current.isDateInToday(date) else {
+            return date.formatted(.dateTime.month(.wide).day())
+        }
         switch score.kind {
         case .recovery: return "Your morning"
         case .sleep: return "Last night"
@@ -308,7 +316,9 @@ struct InsightsView: View {
         switch score.coverage {
         case .buildingBaseline: return "Still learning your normal"
         case .unavailable: return "Nothing recorded yet"
-        default: return "Not counted today"
+        // No "today": this sheet can be opened on any day, and the heading was the
+        // one word on it that could not be.
+        default: return "Not counted"
         }
     }
 }
