@@ -80,8 +80,18 @@ struct OnboardingHealthDetailsView: View {
         .padding(.top, 6)
         .padding(.bottom, 16)
         .frame(maxWidth: .infinity)
-        .background(Tokens.surface, in: RoundedRectangle(cornerRadius: 24))
-        .overlay(RoundedRectangle(cornerRadius: 24).strokeBorder(Tokens.hairline, lineWidth: 1))
+        // A card, but only where it is one thing among many. In onboarding this is an
+        // attachment sitting in a conversation and needs an edge to be a thing at all.
+        // Presented on its own it is the whole sheet, and a rounded card inside a
+        // rounded sheet is two edges saying the same thing with a stripe of dead space
+        // between them.
+        .background {
+            if fields.count > 1 {
+                RoundedRectangle(cornerRadius: 24).fill(Tokens.surface)
+                    .overlay(RoundedRectangle(cornerRadius: 24)
+                        .strokeBorder(Tokens.hairline, lineWidth: 1))
+            }
+        }
         .tint(Tokens.messageOutgoing)
     }
 

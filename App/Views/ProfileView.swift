@@ -11,6 +11,7 @@ struct ProfileView: View {
     @Query private var profiles: [UserProfile]
     @State private var editing: HealthProfile.Field?
     @State private var loggingWeight = false
+    @State private var editorHeight: CGFloat = 320
 
     private var metric: Bool { profiles.first?.unitsAreMetric ?? model.onboarding.unitsAreMetric }
 
@@ -66,9 +67,23 @@ struct ProfileView: View {
                     },
                     onSkip: { editing = nil })
                     .padding(.horizontal, Tokens.screenMargin)
-                    .background(Tokens.canvas)
+                    .padding(.top, 10)
+                    .padding(.bottom, 18)
+                    .frame(maxWidth: .infinity, alignment: .top)
+                    .background {
+                        GeometryReader { proxy in
+                            Color.clear.onChange(of: proxy.size.height, initial: true) {
+                                _, height in editorHeight = height
+                            }
+                        }
+                    }
             }
-            .presentationDetents([.medium])
+            // As tall as what is in it. A wheel, a ruler and three buttons are three
+            // different heights, and a detent picked for one leaves the other two
+            // sitting in a half-empty sheet.
+            .presentationDetents([.height(editorHeight)])
+            .presentationDragIndicator(.visible)
+            .presentationBackground(Tokens.surface)
         }
         .sheet(isPresented: $loggingWeight) { WeightLogView { _ in loggingWeight = false } }
     }
