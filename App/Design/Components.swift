@@ -16,6 +16,27 @@ enum Signal: String, CaseIterable, Identifiable {
         }
     }
 
+    /// What the number is, in one line, for somebody who has never seen it.
+    ///
+    /// One line, not a paragraph. The first draft ran to three sentences each and Jett
+    /// carried them across the screen in a bubble half the height of the phone, which
+    /// is a manual rather than an introduction. If somebody wants the mechanism there
+    /// is a whole sheet of it behind the information button.
+    ///
+    /// Nothing in the app said this. Every explanation written so far describes what
+    /// moved a score, which only helps once you already know what the score is. Hao's
+    /// friend opened the app and did not know what strain meant.
+    ///
+    /// Said once, used everywhere: the insights sheet and Jett's walkthrough. A second
+    /// set of words that only new users ever see is how the two drift apart.
+    var meaning: String {
+        switch self {
+        case .strain: return "How hard your body worked today. It climbs as the day does."
+        case .recovery: return "How ready you are this morning, against your own normal."
+        case .sleep: return "Last night against what you needed, not a fixed eight hours."
+        }
+    }
+
     /// Light at the arc's start, deepest at its tip.
     var ring: [Color] {
         switch self {

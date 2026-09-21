@@ -35,6 +35,14 @@ struct InsightsView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 16) {
                         headline
+                        // What the number is, before what moved it. This sheet is where
+                        // somebody arrives when they tap the information button, and
+                        // every word in it used to assume they already knew.
+                        Text(signal.meaning)
+                            .font(.system(size: 14))
+                            .foregroundStyle(Tokens.textSecondary)
+                            .lineSpacing(2)
+                            .fixedSize(horizontal: false, vertical: true)
                         LazyVGrid(columns: columns, spacing: 12) {
                             ForEach(score.contributors, id: \.id) { tile(for: $0) }
                         }
@@ -53,6 +61,14 @@ struct InsightsView: View {
                 }
             }
             .sheet(item: $detail) { ContributorDetail(contributor: $0, tint: colour($0)) }
+        }
+    }
+
+    private var signal: Signal {
+        switch score.kind {
+        case .strain: return .strain
+        case .recovery: return .recovery
+        case .sleep: return .sleep
         }
     }
 

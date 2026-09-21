@@ -64,6 +64,7 @@
 		F4DA05AA778706DA63AA2EA5 /* SignalDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8EC7DE941CACCBD1BF749F9 /* SignalDetailView.swift */; };
 		70D07957F0C74B5AA46BAF1C /* CalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4F3EA3EBE864EF391B7D9AD /* CalendarView.swift */; };
 		CF0AA57D606C48A894B2CB5E /* InsightsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D16EF9A0AB8846CEB4E6FA31 /* InsightsView.swift */; };
+		C8BCF5A58DAB426A95E2240F /* JettTour.swift in Sources */ = {isa = PBXBuildFile; fileRef = F92B52D1E9C04305B8119276 /* JettTour.swift */; };
 		541C59ABE797C87E4BBA51A8 /* TodayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 413893742ACAB1BB14BDF3DD /* TodayView.swift */; };
 		C46266E031749544D0DF6C53 /* TrainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC32141384EFB7AF34329A9C /* TrainView.swift */; };
 		A873098868149F5B8C0F29FA /* DictationViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3FB61FCBDEDB39A386D7C86 /* DictationViews.swift */; };
@@ -179,6 +180,7 @@
 		A8EC7DE941CACCBD1BF749F9 /* SignalDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SignalDetailView.swift"; sourceTree = "<group>"; };
 		A4F3EA3EBE864EF391B7D9AD /* CalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CalendarView.swift"; sourceTree = "<group>"; };
 		D16EF9A0AB8846CEB4E6FA31 /* InsightsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "InsightsView.swift"; sourceTree = "<group>"; };
+		F92B52D1E9C04305B8119276 /* JettTour.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "JettTour.swift"; path = "App/Views/JettTour.swift"; sourceTree = SOURCE_ROOT; };
 		413893742ACAB1BB14BDF3DD /* TodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TodayView.swift"; sourceTree = "<group>"; };
 		BC32141384EFB7AF34329A9C /* TrainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TrainView.swift"; sourceTree = "<group>"; };
 		C3FB61FCBDEDB39A386D7C86 /* DictationViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DictationViews.swift"; sourceTree = "<group>"; };
@@ -419,6 +421,7 @@
 				A8EC7DE941CACCBD1BF749F9 /* SignalDetailView.swift */,
 				A4F3EA3EBE864EF391B7D9AD /* CalendarView.swift */,
 				D16EF9A0AB8846CEB4E6FA31 /* InsightsView.swift */,
+				F92B52D1E9C04305B8119276 /* JettTour.swift */,
 				413893742ACAB1BB14BDF3DD /* TodayView.swift */,
 				BC32141384EFB7AF34329A9C /* TrainView.swift */,
 				C3FB61FCBDEDB39A386D7C86 /* DictationViews.swift */,
@@ -650,6 +653,7 @@
 				F4DA05AA778706DA63AA2EA5 /* SignalDetailView.swift in Sources */,
 				70D07957F0C74B5AA46BAF1C /* CalendarView.swift in Sources */,
 				CF0AA57D606C48A894B2CB5E /* InsightsView.swift in Sources */,
+				C8BCF5A58DAB426A95E2240F /* JettTour.swift in Sources */,
 				541C59ABE797C87E4BBA51A8 /* TodayView.swift in Sources */,
 				C46266E031749544D0DF6C53 /* TrainView.swift in Sources */,
 				A873098868149F5B8C0F29FA /* DictationViews.swift in Sources */,

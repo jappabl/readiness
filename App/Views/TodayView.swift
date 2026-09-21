@@ -6,10 +6,12 @@ struct TodayView: View {
     @Environment(GymPresence.self) private var gym
     @Environment(\.modelContext) private var context
 
+    /// Armed once per appearance. Without it, marking the moment given would recompute
+    /// the beats mid-flight and take him off the screen halfway through his own sentence.
+    @State private var jettMomentArmed = true
     @State private var showingCheckIn = false
     @State private var pickingProgram = false
     @State private var showingAdjust = false
-    @State private var showingWhy = false
     @State private var activeSession: WorkoutSession?
     @State private var loggingWeight = false
     @State private var loggingMeal = false
@@ -21,6 +23,17 @@ struct TodayView: View {
         ZStack {
             Tokens.canvas.ignoresSafeArea()
             content
+        }
+        // Jett's morning. Read from the page rather than positioned by hand, so a card
+        // that moves, or is not there today, needs nothing changed here.
+        .overlayPreferenceValue(TourAnchors.self) { anchors in
+            GeometryReader { proxy in
+                if let beats = jettBeats, !beats.isEmpty {
+                    JettFlight(beats: beats,
+                               frames: anchors.mapValues { proxy[$0] },
+                               onFinish: finishJettMoment)
+                }
+            }
         }
         .toolbar(.hidden, for: .navigationBar)
         .safeAreaInset(edge: .top, spacing: 0) { header }
@@ -36,11 +49,6 @@ struct TodayView: View {
         }
         .alert("Saved", isPresented: $showSaved) { Button("OK", role: .cancel) { savedMessage = nil } } message: { Text(savedMessage ?? "") }
         .sheet(isPresented: $showingAdjust) { AdjustSessionView() }
-        .sheet(isPresented: $showingWhy) {
-            if let day = model.day, let rec = model.recommendation {
-                WhyView(day: day, recommendation: rec)
-            }
-        }
     }
 
     /// The last six days that have anything recorded on them. Today is the screen you
@@ -197,6 +205,36 @@ struct TodayView: View {
             || shown.carbohydrateGrams != nil || shown.fatGrams != nil
     }
 
+    /// What he has come up to say, or nil when he stays where he is.
+    ///
+    /// Never on a day with no numbers on it. "This is your strain" pointing at a dash
+    /// is worse than silence, and the morning after onboarding is exactly when the
+    /// rings are empty, which is also the morning he has just finished introducing
+    /// himself over nine messages.
+    private var jettBeats: [JettBeat]? {
+        guard jettMomentArmed, !model.isRewound else { return nil }
+        if case .ready = model.phase {} else { return nil }
+        let viewed = model.viewedScores(context: context)
+        guard viewed.recovery.value != nil, viewed.sleep.value != nil else { return nil }
+        guard let rec = model.recommendation, let day = model.day else { return nil }
+        let call = Copy.call(for: rec, gate: day.readiness.gateApplied,
+                             hasSession: model.hasProgram)
+
+        if !JettMoments.hasWalkedThrough {
+            // The long way round, once, the first morning the numbers mean anything.
+            return Signal.allCases.map { JettBeat(anchor: $0.rawValue, text: $0.meaning) }
+                + [JettBeat(anchor: nil, text: call)]
+        }
+        guard !JettMoments.hasGreeted(on: Date()) else { return nil }
+        return [JettBeat(anchor: nil, text: call)]
+    }
+
+    private func finishJettMoment() {
+        JettMoments.markWalkedThrough()
+        JettMoments.markGreeted(on: Date())
+        jettMomentArmed = false
+    }
+
     private func saved(_ message: String) { savedMessage = message }
     private func showSaveResult() { if savedMessage != nil { showSaved = true } }
 
@@ -204,60 +242,32 @@ struct TodayView: View {
 
     /// Two surfaces, not one card with a rule through it: the rings sit on top of the
     /// coaching card, their rounded bottom edge and shadow doing the separating.
+    /// The rings on their own.
+    ///
+    /// The coaching card used to sit under them carrying the day's call. Jett flies up
+    /// and says that line himself now, so the card was the same sentence twice: once
+    /// from him and once from a box. Taken out rather than reworded, because a second
+    /// voice saying the same thing is not a layout problem.
     private var summaryCard: some View {
-        VStack(spacing: -18) {
-            let viewed = model.viewedScores(context: context)
-            HStack(spacing: 0) {
-                ringCell(.strain, percent: Self.percent(viewed.strain),
-                         recovery: viewed.recovery.value)
-                cellDivider
-                ringCell(.recovery, percent: Self.percent(viewed.recovery),
-                         recovery: viewed.recovery.value)
-                cellDivider
-                ringCell(.sleep, percent: Self.percent(viewed.sleep),
-                         recovery: viewed.recovery.value)
-            }
-            .padding(.vertical, 15)
-            .frame(maxWidth: .infinity)
-            .background(Tokens.surface,
-                        in: RoundedRectangle(cornerRadius: Tokens.cardRadius, style: .continuous))
-            .shadow(color: .black.opacity(0.07), radius: 8, x: 0, y: 4)
-            .zIndex(1)
-
-            if let rec = model.recommendation, let day = model.day, !model.isRewound {
-                Button { Haptics.light(); showingWhy = true } label: {
-                    HStack(alignment: .top, spacing: 10) {
-                        JettFace(size: 24)
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(Copy.call(for: rec, gate: day.readiness.gateApplied,
-                                           hasSession: model.hasProgram))
-                                .font(.system(size: 15))
-                                .foregroundStyle(Tokens.textPrimary)
-                                .lineSpacing(2)
-                                .fixedSize(horizontal: false, vertical: true)
-                            if let note = Copy.confidenceNote(rec.confidence, days: day.daysOfHistory) {
-                                Text(note)
-                                    .font(.system(size: 13))
-                                    .foregroundStyle(Tokens.textSecondary)
-                            }
-                        }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 16)
-                    // Extra head room so the copy clears the card resting on top of it.
-                    .padding(.top, 31)
-                    .padding(.bottom, 14)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(PressableStyle())
-                .accessibilityHint("Shows how this was calculated")
-                .frame(maxWidth: .infinity)
-                .background(Tokens.surface,
-                            in: RoundedRectangle(cornerRadius: Tokens.cardRadius,
-                                                 style: .continuous))
-                .shadow(color: .black.opacity(0.05), radius: 10, x: 0, y: 2)
-            }
+        let viewed = model.viewedScores(context: context)
+        return HStack(spacing: 0) {
+            ringCell(.strain, percent: Self.percent(viewed.strain),
+                     recovery: viewed.recovery.value)
+                .explains(Signal.strain.rawValue)
+            cellDivider
+            ringCell(.recovery, percent: Self.percent(viewed.recovery),
+                     recovery: viewed.recovery.value)
+                .explains(Signal.recovery.rawValue)
+            cellDivider
+            ringCell(.sleep, percent: Self.percent(viewed.sleep),
+                     recovery: viewed.recovery.value)
+                .explains(Signal.sleep.rawValue)
         }
+        .padding(.vertical, 15)
+        .frame(maxWidth: .infinity)
+        .background(Tokens.surface,
+                    in: RoundedRectangle(cornerRadius: Tokens.cardRadius, style: .continuous))
+        .shadow(color: .black.opacity(0.07), radius: 8, x: 0, y: 4)
     }
 
     /// Never zero. A ring drawn at nothing reads as broken rather than as low, which
