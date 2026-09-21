@@ -294,7 +294,12 @@ struct CoachSheet: View {
     }
 
     private var allowance: CoachAllowance {
-        Paywall.allowance(used: model.coachMessagesUsed, isSubscribed: store.isSubscribed)
+        #if DEBUG
+        let unlimited = store.isSubscribed || model.coachUnlimitedForTesting
+        #else
+        let unlimited = store.isSubscribed
+        #endif
+        return Paywall.allowance(used: model.coachMessagesUsed, isSubscribed: unlimited)
     }
 
     private func send(_ text: String) {

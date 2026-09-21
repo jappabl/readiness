@@ -452,8 +452,13 @@ struct ProfileView: View {
     #if DEBUG
     private var attestation: some View {
         VStack(alignment: .leading, spacing: 12) {
-            heading("App Attest")
+            heading("Testing")
             ListCard {
+                Toggle("Unlimited answers", isOn: Binding(
+                    get: { model.coachUnlimitedForTesting },
+                    set: { model.coachUnlimitedForTesting = $0 }))
+                    .font(.subheadline).padding(14)
+                Divider().overlay(Tokens.hairline)
                 FieldRow(label: "This install") { Text(AppAttest.status) }
                 Divider().overlay(Tokens.hairline)
                 Button(checkingAttestation ? "Checking..." : "Check attestation") {

@@ -80,6 +80,21 @@ final class AppModel {
 
     func recordCoachMessage() { coachMessagesUsed += 1 }
 
+    #if DEBUG
+    /// Testing only: spends no free answers, so a test pass is not interrupted by a
+    /// paywall five messages in.
+    ///
+    /// It has to live on the client. The five free answers are counted here and the
+    /// wall is raised here, before anything is sent, so the proxy's own allowlist never
+    /// gets a say. On by default in a debug build, and switchable in Profile, because
+    /// the paywall still has to be testable on purpose rather than by running out.
+    var coachUnlimitedForTesting = UserDefaults.standard
+        .object(forKey: AppModel.unlimitedKey) as? Bool ?? true {
+        didSet { UserDefaults.standard.set(coachUnlimitedForTesting, forKey: Self.unlimitedKey) }
+    }
+    fileprivate static let unlimitedKey = "coach.unlimited.testing"
+    #endif
+
     /// Handed to the gym watcher so it can ask HealthKit whether a visit had exertion
     /// in it, without the watcher knowing anything about HealthKit.
     func workoutLookup() -> @Sendable (Date, Date) async -> Bool {
