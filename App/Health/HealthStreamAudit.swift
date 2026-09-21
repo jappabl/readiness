@@ -2,7 +2,7 @@ import Foundation
 import os
 
 /// Reports which streams actually came back with data, so "we read it" can be checked
-/// rather than assumed. Debug builds only — this exists because a widened read list is
+/// rather than assumed. Debug builds only: this exists because a widened read list is
 /// easy to write and easy to have silently return nothing.
 enum HealthStreamAudit {
 
@@ -49,7 +49,7 @@ enum HealthStreamAudit {
         let present = counts.filter { $0.1 > 0 }
         let empty = counts.filter { $0.1 == 0 }.map(\.0)
 
-        log.notice("STREAM AUDIT over \(series.count) days — \(present.count)/\(counts.count) streams have data")
+        log.notice("STREAM AUDIT over \(series.count) days: \(present.count)/\(counts.count) streams have data")
         for (name, count) in present {
             log.notice("STREAM AUDIT   \(name): \(count) days")
         }
@@ -58,7 +58,7 @@ enum HealthStreamAudit {
         }
         if let night = latest.sleep {
             log.notice("""
-                STREAM AUDIT   latest night — asleep \(night.asleepHours, format: .fixed(precision: 2))h \
+                STREAM AUDIT   latest night: asleep \(night.asleepHours, format: .fixed(precision: 2))h \
                 (core \(night.coreHours, format: .fixed(precision: 2)) \
                 deep \(night.deepHours, format: .fixed(precision: 2)) \
                 rem \(night.remHours, format: .fixed(precision: 2))) \

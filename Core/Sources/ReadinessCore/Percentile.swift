@@ -2,8 +2,8 @@ import Foundation
 
 /// Turns a z-score into "where does today sit among my own days".
 ///
-/// A ring needs a number. This one is a real quantity — the share of this user's own
-/// days that today beats — rather than an invented 0-100 score. A composite of 0 is the
+/// A ring needs a number. This one is a real quantity (the share of this user's own
+/// days that today beats) rather than an invented 0-100 score. A composite of 0 is the
 /// 50th percentile by construction, which is what "at baseline" should mean.
 public enum Percentile {
 

@@ -159,14 +159,14 @@ struct RootView: View {
         }
         .tint(Tokens.accent)
         // The bar floats, so it becomes part of the safe area rather than sitting on
-        // top of the content — every screen scrolls clear of it without knowing it exists.
+        // top of the content: every screen scrolls clear of it without knowing it exists.
         .safeAreaInset(edge: .bottom, spacing: 0) {
             FloatingTabBar(selection: $tab, onAsk: { askingJett = true },
                            onTalk: { talking = true })
                 .padding(.top, 6)
         }
         // fullScreenCover, not sheet: the large detent always leaves an inset strip of
-        // the parent at the top, and iOS lays a dimming layer under a sheet — so the
+        // the parent at the top, and iOS lays a dimming layer under a sheet, so the
         // material ends up blurring flat grey instead of the app.
         .fullScreenCover(isPresented: $askingJett) {
             CoachSheet()
@@ -247,7 +247,7 @@ private struct CardGallery: View {
 
 #if DEBUG
 /// Worked examples for the harness. Real arithmetic through the real engines, not
-/// hand-written numbers — a gallery that fakes its own output cannot catch anything.
+/// hand-written numbers: a gallery that fakes its own output cannot catch anything.
 enum SampleScores {
     static func score(for kind: SignalKind) -> SignalScore {
         switch kind {

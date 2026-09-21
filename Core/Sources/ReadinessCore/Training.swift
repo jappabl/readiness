@@ -52,12 +52,12 @@ public struct LiftSet: Equatable, Sendable, Codable {
 }
 
 /// How the app thinks the user should train today. Four states, produced by a
-/// deterministic layer — never by the language model.
+/// deterministic layer: never by the language model.
 public enum TrainingState: String, CaseIterable, Sendable, Codable {
     case push, maintain, reduce, recover
 }
 
-/// The morning subjective inputs. 1 is worst, 5 is best, for every field — so a higher
+/// The morning subjective inputs. 1 is worst, 5 is best, for every field, so a higher
 /// number always means a better morning and the arithmetic needs no special cases.
 public struct CheckIn: Equatable, Sendable, Codable {
     public let soreness: Int

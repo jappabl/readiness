@@ -84,7 +84,7 @@ public struct MealEstimate: Codable, Sendable {
         if parts.count >= 2 { return (parts[0] + parts[1]) / 2 }
         if let only = parts.first { return only }
 
-        // "240 kcal", "22 g" — take the leading figure and drop the unit.
+        // "240 kcal", "22 g": take the leading figure and drop the unit.
         let digits = text.prefix { $0.isNumber || $0 == "." }
         return Double(digits).flatMap { $0.isFinite ? $0 : nil }
     }

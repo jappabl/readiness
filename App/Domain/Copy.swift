@@ -10,8 +10,8 @@ enum Copy {
     }
 
 
-    /// Where a reading sits in the user's own range. Not a grade — the app has no
-    /// basis for calling a number "excellent" — and not a verdict either: this is the
+    /// Where a reading sits in the user's own range. Not a grade (the app has no
+    /// basis for calling a number "excellent") and not a verdict either: this is the
     /// measurement's own direction, so it takes the raw z, never the aligned one.
     static func position(_ z: Double) -> String {
         switch z {

@@ -96,8 +96,8 @@ public enum BaselineEngine {
     public static func evaluate(series: [Double]) -> BaselineResult? {
         // Non-finite values are dropped rather than carried. HealthKit should not
         // produce them, but one NaN anywhere in a window poisons the mean, the
-        // deviation and every reading taken against them for the next sixty days —
-        // and it reaches the screen as a tile reading "NaN ms".
+        // deviation and every reading taken against them for the next sixty days.
+        // And it reaches the screen as a tile reading "NaN ms".
         let series = series.filter(\.isFinite)
         guard let today = series.last else { return nil }
 

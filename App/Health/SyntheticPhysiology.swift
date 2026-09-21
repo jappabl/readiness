@@ -6,7 +6,7 @@ import Foundation
 /// store is real but empty. It is deterministic: the same seed gives the same history,
 /// so a screenshot of a given state is reproducible.
 ///
-/// It proves the app works. It cannot answer whether readiness predicts performance —
+/// It proves the app works. It cannot answer whether readiness predicts performance:
 /// only real data can do that.
 struct SyntheticPhysiology {
 

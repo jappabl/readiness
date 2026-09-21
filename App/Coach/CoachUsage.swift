@@ -32,7 +32,7 @@ struct CoachUsage {
     }
 
     func log() {
-        let rate = cacheHitRate.map { String(format: "%.0f%%", $0 * 100) } ?? "—"
+        let rate = cacheHitRate.map { String(format: "%.0f%%", $0 * 100) } ?? "–"
         Self.log.notice("""
             COACH USAGE in \(totalInput) (fresh \(input), cache write \(cacheWrite), \
             cache read \(cacheRead), hit \(rate)) · out \(output)

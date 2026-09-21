@@ -8,12 +8,12 @@ public enum CoachRequest {
 
     /// Answers are meant to be under sixty words. This is a ceiling, not a target, but
     /// leaving it at four figures invites the wall of text the voice rules exist to
-    /// prevent — and output tokens are the expensive half of the bill.
+    /// prevent. And output tokens are the expensive half of the bill.
     public static let maximumOutputTokens = 400
 
     /// The most recent `limit` turns, starting on a user message.
     ///
-    /// Old turns are paid for on every request and add almost nothing — the data block
+    /// Old turns are paid for on every request and add almost nothing: the data block
     /// already carries the state of the world. But the API requires the first message
     /// to be the user's, so a plain tail can produce a request that is rejected
     /// outright rather than merely expensive.
@@ -33,7 +33,7 @@ public enum CoachRequest {
                             maxTokens: Int = maximumOutputTokens) -> [String: Any] {
         // One breakpoint, after the data. The rules and the tool schema together are too
         // short to be worth caching on their own, and the data does not change inside a
-        // conversation — so this single marker makes every tool round and every
+        // conversation, so this single marker makes every tool round and every
         // follow-up question re-read the whole prefix at the cached rate.
         let system: [[String: Any]] = [
             ["type": "text", "text": rules],

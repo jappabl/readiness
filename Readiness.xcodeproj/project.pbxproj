@@ -82,6 +82,12 @@
 		F276C7A8446A4BB89CCE4420 /* GymDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCE451674E6749A5B77F117B /* GymDetector.swift */; };
 		C2EEBD2B38B7452FB79C5D8F /* MetricNarration.swift in Sources */ = {isa = PBXBuildFile; fileRef = A920EAAEF0324D28A36B6EAB /* MetricNarration.swift */; };
 		9D93635E6446433A997C4F2D /* BurstLimiter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18C11DE58B6F4C719E3E018F /* BurstLimiter.swift */; };
+		D31502BAA2ADE3AF8564420C /* NotificationMoment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46A3CE1A42A5DA4FFF21B817 /* NotificationMoment.swift */; };
+		9B4181559CB85648A00BA506 /* NotificationBudget.swift in Sources */ = {isa = PBXBuildFile; fileRef = F08CE7BDA3CF38C7C2E86187 /* NotificationBudget.swift */; };
+		973FDFF6C8103820D4F29AE0 /* NotificationRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC4476F278FBBF4701F32A32 /* NotificationRecord.swift */; };
+		FEC29825C9FAF22B4866400D /* MorningVerdict.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE3A08F66F48FDF516D67A7A /* MorningVerdict.swift */; };
+		B7391404CDDC5FA78841934B /* BedtimeTarget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80D4DC0ED4378D93263A96F8 /* BedtimeTarget.swift */; };
+		02F777B5EBF0B7E95B44AB60 /* NotificationDecision.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44495CC3DB02374B24AD2855 /* NotificationDecision.swift */; };
 		3FD94C8E64C14DE69AD81372 /* Paywall.swift in Sources */ = {isa = PBXBuildFile; fileRef = F45D316905EB425A9AB06DAB /* Paywall.swift */; };
 		DC0F2F7CE79C418F889C57D4 /* BaselineSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 863E215B852B4F9F8410D01E /* BaselineSummary.swift */; };
 		BC36D411CA924DC3B12E24DD /* SignalScore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A6F64ED3C37495DB87ACB26 /* SignalScore.swift */; };
@@ -186,6 +192,12 @@
 		DCE451674E6749A5B77F117B /* GymDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "GymDetector.swift"; sourceTree = "<group>"; };
 		A920EAAEF0324D28A36B6EAB /* MetricNarration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MetricNarration.swift"; sourceTree = "<group>"; };
 		18C11DE58B6F4C719E3E018F /* BurstLimiter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BurstLimiter.swift"; sourceTree = "<group>"; };
+		46A3CE1A42A5DA4FFF21B817 /* NotificationMoment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NotificationMoment.swift"; sourceTree = "<group>"; };
+		F08CE7BDA3CF38C7C2E86187 /* NotificationBudget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NotificationBudget.swift"; sourceTree = "<group>"; };
+		EC4476F278FBBF4701F32A32 /* NotificationRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NotificationRecord.swift"; sourceTree = "<group>"; };
+		BE3A08F66F48FDF516D67A7A /* MorningVerdict.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MorningVerdict.swift"; sourceTree = "<group>"; };
+		80D4DC0ED4378D93263A96F8 /* BedtimeTarget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BedtimeTarget.swift"; sourceTree = "<group>"; };
+		44495CC3DB02374B24AD2855 /* NotificationDecision.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NotificationDecision.swift"; sourceTree = "<group>"; };
 		BCEE1D3EF7944F4BB5157CB5 /* Readiness.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = "Readiness.storekit"; sourceTree = SOURCE_ROOT; };
 		F45D316905EB425A9AB06DAB /* Paywall.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Paywall.swift"; sourceTree = "<group>"; };
 		863E215B852B4F9F8410D01E /* BaselineSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BaselineSummary.swift"; sourceTree = "<group>"; };
@@ -429,6 +441,12 @@
 				A920EAAEF0324D28A36B6EAB /* MetricNarration.swift */,
 				BCEE1D3EF7944F4BB5157CB5 /* Readiness.storekit */,
 				18C11DE58B6F4C719E3E018F /* BurstLimiter.swift */,
+				46A3CE1A42A5DA4FFF21B817 /* NotificationMoment.swift */,
+				F08CE7BDA3CF38C7C2E86187 /* NotificationBudget.swift */,
+				EC4476F278FBBF4701F32A32 /* NotificationRecord.swift */,
+				BE3A08F66F48FDF516D67A7A /* MorningVerdict.swift */,
+				80D4DC0ED4378D93263A96F8 /* BedtimeTarget.swift */,
+				44495CC3DB02374B24AD2855 /* NotificationDecision.swift */,
 				F45D316905EB425A9AB06DAB /* Paywall.swift */,
 				863E215B852B4F9F8410D01E /* BaselineSummary.swift */,
 				0A6F64ED3C37495DB87ACB26 /* SignalScore.swift */,
@@ -639,6 +657,12 @@
 				F276C7A8446A4BB89CCE4420 /* GymDetector.swift in Sources */,
 				C2EEBD2B38B7452FB79C5D8F /* MetricNarration.swift in Sources */,
 				9D93635E6446433A997C4F2D /* BurstLimiter.swift in Sources */,
+				D31502BAA2ADE3AF8564420C /* NotificationMoment.swift in Sources */,
+				9B4181559CB85648A00BA506 /* NotificationBudget.swift in Sources */,
+				973FDFF6C8103820D4F29AE0 /* NotificationRecord.swift in Sources */,
+				FEC29825C9FAF22B4866400D /* MorningVerdict.swift in Sources */,
+				B7391404CDDC5FA78841934B /* BedtimeTarget.swift in Sources */,
+				02F777B5EBF0B7E95B44AB60 /* NotificationDecision.swift in Sources */,
 				3FD94C8E64C14DE69AD81372 /* Paywall.swift in Sources */,
 				DC0F2F7CE79C418F889C57D4 /* BaselineSummary.swift in Sources */,
 				BC36D411CA924DC3B12E24DD /* SignalScore.swift in Sources */,

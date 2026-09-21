@@ -4,7 +4,7 @@ import Foundation
 ///
 /// The first line is the only part most people read, so it is styled as the headline it
 /// is rather than as the opening of a paragraph. Doing that in the view means finding
-/// the sentence boundary here — and finding it without tripping on "14.2 ms", which is
+/// the sentence boundary here. And finding it without tripping on "14.2 ms", which is
 /// the failure that matters, since almost every answer names a measurement.
 public enum CoachAnswer {
 

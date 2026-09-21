@@ -5,7 +5,7 @@ import RiveRuntime
 ///
 /// The `.riv` carries one artboard and one state machine, both named "Jett", with three
 /// inputs: `isThinking`, `isSpeaking` and `mood`. Blinking and breathing run inside the
-/// file on their own timers, which is why there is no trigger for either here — the app
+/// file on their own timers, which is why there is no trigger for either here: the app
 /// should never have to remember to make him blink.
 struct JettRive: View {
     var size: CGFloat = 62

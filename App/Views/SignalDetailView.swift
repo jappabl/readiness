@@ -97,20 +97,20 @@ struct SignalDetailView: View {
         case .sleep:
             StatCard(symbol: "bed.double", label: "Time asleep",
                      value: model.latestSleepHours.map {
-                         $0.formatted(.number.precision(.fractionLength(1))) } ?? "—",
+                         $0.formatted(.number.precision(.fractionLength(1))) } ?? "–",
                      unit: "h")
             StatCard(symbol: "target", label: "What you need",
                      value: score.contributor(SleepScore.durationContributorID)?.comparison
-                         .map { $0.formatted(.number.precision(.fractionLength(0...1))) } ?? "—",
+                         .map { $0.formatted(.number.precision(.fractionLength(0...1))) } ?? "–",
                      unit: "h")
 
         case .strain:
             StatCard(symbol: "flame", label: model.dailyStrain?.metric.label ?? "Activity today",
                      value: model.dailyStrain.map {
-                         $0.value.formatted(.number.precision(.fractionLength(0))) } ?? "—",
+                         $0.value.formatted(.number.precision(.fractionLength(0))) } ?? "–",
                      unit: model.dailyStrain?.metric.unit)
             StatCard(symbol: "calendar", label: "Prior recorded days",
-                     value: model.dailyStrain.map { String($0.baselineDays) } ?? "—")
+                     value: model.dailyStrain.map { String($0.baselineDays) } ?? "–")
         }
     }
 
@@ -131,7 +131,7 @@ struct SignalDetailView: View {
                      trend: reading.scoringZ >= 0 ? .up : .down,
                      trendFavourable: favourable)
         } else {
-            StatCard(symbol: symbol, label: label, value: "—")
+            StatCard(symbol: symbol, label: label, value: "–")
         }
     }
 

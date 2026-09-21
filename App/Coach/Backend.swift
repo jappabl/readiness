@@ -5,7 +5,7 @@ import Foundation
 /// One switch, read in two places. With a proxy URL configured the app sends context and
 /// turns to our own server, which holds the provider keys, meters the call and composes
 /// the request. With no URL it keeps the old direct path, which is what development uses
-/// until the server holds real keys — so this can land without stopping anyone working.
+/// until the server holds real keys, so this can land without stopping anyone working.
 ///
 /// The direct path is not a fallback. It is a development mode, and it goes away with
 /// `Keychain.apiKey` and `MealPhotoKey` once the proxy is live. A client that silently

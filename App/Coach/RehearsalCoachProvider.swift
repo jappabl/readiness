@@ -4,8 +4,8 @@ import Foundation
 /// Streams a canned answer so the coach's UI can be built and inspected without a key
 /// and without spending anything.
 ///
-/// It exists because the parts most likely to be wrong — the thinking state, how text
-/// lands as it arrives, where a tool step appears — are invisible in source and can
+/// It exists because the parts most likely to be wrong (the thinking state, how text
+/// lands as it arrives, where a tool step appears) are invisible in source and can
 /// only be judged by watching them. Paying a model per render to find that out is a bad
 /// trade, and doing it without a key is impossible.
 struct RehearsalCoachProvider: CoachProvider {
@@ -63,7 +63,7 @@ struct RehearsalCoachProvider: CoachProvider {
                     try? await Task.sleep(for: .milliseconds(400))
                 }
 
-                // Word by word, the way a real stream arrives — never the whole answer
+                // Word by word, the way a real stream arrives: never the whole answer
                 // at once, which is what makes a fake look fake.
                 for word in Self.answer.split(separator: " ", omittingEmptySubsequences: false) {
                     continuation.yield(.text(word + " "))

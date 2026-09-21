@@ -1,6 +1,6 @@
 import Foundation
 
-/// Why someone opened the app. Not a label on a profile screen — it decides what the
+/// Why someone opened the app. Not a label on a profile screen: it decides what the
 /// home screen is made of.
 public enum TrainingGoal: String, Sendable, Codable, CaseIterable, Equatable {
     case getStronger
@@ -86,9 +86,9 @@ public enum HomeComposition {
     ///
     /// The rule worth stating plainly: the barbell angle cannot be the front page for
     /// everybody. Someone here to sleep better opens on their sleep, and only reaches
-    /// their programme further down — if they have one at all.
+    /// their programme further down, if they have one at all.
     public static func blocks(for goal: TrainingGoal, hasProgram: Bool) -> [HomeBlock] {
-        // Someone whose goal is lifting, with nothing to lift, gets asked — not an
+        // Someone whose goal is lifting, with nothing to lift, gets asked: not an
         // empty screen, and not a session that does not exist.
         let lead: HomeBlock = hasProgram ? .session : .programPrompt
         let body: [HomeBlock]

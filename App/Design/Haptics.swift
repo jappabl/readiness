@@ -1,6 +1,6 @@
 import UIKit
 
-/// Physical feedback at the moments that carry weight — a set landing, a decision
+/// Physical feedback at the moments that carry weight: a set landing, a decision
 /// taken, a change applied. Not on navigation, not on scrolling: haptics stop meaning
 /// anything the moment everything buzzes.
 enum Haptics {
@@ -28,7 +28,7 @@ enum Haptics {
         generator.impactOccurred(intensity: 0.5)
     }
 
-    /// Jett finished. A selection tick rather than a success notification — the answer
+    /// Jett finished. A selection tick rather than a success notification: the answer
     /// arriving is not an achievement.
     static func replyEnded() {
         UISelectionFeedbackGenerator().selectionChanged()

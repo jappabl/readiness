@@ -67,14 +67,14 @@ struct InsightsView: View {
     /// A ring, not a wall of type.
     ///
     /// This was a 52-point number with a verdict beside it and two lines of prose
-    /// underneath — the densest text on a screen whose whole point was to stop being
+    /// underneath: the densest text on a screen whose whole point was to stop being
     /// text. The ring carries the number, its share of the scale and its colour in one
     /// shape, which is the same job done without being read.
     private var headline: some View {
         HStack(alignment: .center, spacing: 18) {
             // The sleep ring shows the night's architecture rather than a plain arc.
             // Same shape, same number in the middle, and it answers the question people
-            // actually have about a night — how much of it was deep, how much REM —
+            // actually have about a night: how much of it was deep, how much REM,
             // without spending a single word on it.
             if let night = SleepStages(score: score) {
                 SleepStageRing(stages: night, value: score.value)
@@ -119,9 +119,9 @@ struct InsightsView: View {
     /// Symbol, number, bar. No sentence.
     ///
     /// The previous version put two lines of prose under every tile and the screen read
-    /// as an essay in a grid. A glyph and a colour carry what those lines carried — a
+    /// as an essay in a grid. A glyph and a colour carry what those lines carried: a
     /// bed for sleep, an amber flame for a hard hour, an arrow for which side of normal
-    /// you landed on — and they carry it without being read. The prose is still there,
+    /// you landed on, and they carry it without being read. The prose is still there,
     /// behind the tap, for the one row somebody actually wants to understand.
     private func tile(for contributor: ScoreContributor) -> some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -180,7 +180,7 @@ struct InsightsView: View {
         .accessibilityHint("Open for the trend and what this means")
     }
 
-    /// How this row went, as one glyph — never which side of a number it landed on.
+    /// How this row went, as one glyph. Never which side of a number it landed on.
     ///
     /// It used to be the ratio of the value to its baseline, which meant the arrow and
     /// the colour were computed from different things and could disagree: solid sleep at
@@ -192,7 +192,7 @@ struct InsightsView: View {
 
     /// Percent joins its number; everything else keeps its unit beside it.
     private func headlineValue(_ contributor: ScoreContributor) -> String {
-        guard let value = contributor.value else { return "—" }
+        guard let value = contributor.value else { return "–" }
         return contributor.unit == "%" ? whole(value) + "%" : formatted(value)
     }
 
@@ -216,10 +216,10 @@ struct InsightsView: View {
             return "\(lead.title) did more than anything else today."
         }
         guard let comparison = lead.comparison, comparison > 0 else {
-            return "\(lead.title) did most of it — \(measured(value, lead.unit))."
+            return "\(lead.title) did most of it: \(measured(value, lead.unit))."
         }
         let side = value < comparison ? "down at" : "up at"
-        return "\(lead.title) \(direction) most — \(side) \(measured(value, lead.unit)) "
+        return "\(lead.title) \(direction) most: \(side) \(measured(value, lead.unit)) "
              + "against \(lead.comparisonLabel ?? "your normal") of \(measured(comparison, lead.unit))."
     }
 
@@ -232,7 +232,7 @@ struct InsightsView: View {
 
 
     /// Up to one decimal, dropped when it is a zero. Rounding to whole numbers above ten
-    /// put "15 br/min against your normal 14" on screen for 14.6 against 14.2 — a tenth
+    /// put "15 br/min against your normal 14" on screen for 14.6 against 14.2: a tenth
     /// of a breath shown as a whole one.
     private func formatted(_ value: Double) -> String {
         abs(value) < 1000
@@ -247,16 +247,16 @@ struct InsightsView: View {
     }
 
     /// Recovery and sleep colour by how the row is doing. Strain does not have a "doing
-    /// well" axis — half an hour near threshold is not good news or bad news, it is hard
-    /// — so its tiles colour by effort instead, which is the thing worth seeing at a
+    /// well" axis: half an hour near threshold is not good news or bad news, it is hard.
+    /// So its tiles colour by effort instead, which is the thing worth seeing at a
     /// glance. Everything blue said nothing.
     private func colour(_ contributor: ScoreContributor) -> Color {
         guard score.kind == .strain else { return colour(contributor.state) }
         guard let reserve = StrainScore.zones.first(where: { $0.id == contributor.id })?.lowerReserve
         else { return Tokens.accent }
         // Thresholds track `StrainScore.zones`. When the first training zone dropped to
-        // 0.40 this ramp still started at 0.45, so "very light effort" — a brisk walk,
-        // the thing the change existed to surface — came out the same grey as sitting.
+        // 0.40 this ramp still started at 0.45, so "very light effort" (a brisk walk,
+        // the thing the change existed to surface) came out the same grey as sitting.
         switch reserve {
         case 0.85...: return Tokens.strainDeep
         case 0.75..<0.85: return Tokens.strainLow
@@ -283,7 +283,7 @@ struct InsightsView: View {
 
     // MARK: - Coverage
 
-    /// Shown whenever coverage is not full — not only when something is named.
+    /// Shown whenever coverage is not full, not only when something is named.
     /// `.buildingBaseline` has an empty `missing` list and used to render nothing at
     /// all, so a day-8 score appeared with exactly the confidence of a day-60 one.
     private var coverage: some View {
@@ -379,7 +379,7 @@ struct ContributorDetail: View {
 /// falling short is a bar stopping before a tick.
 ///
 /// It used to scale by `magnitude`, which was wrong in both directions at once. On
-/// strain a magnitude is a contribution, so the biggest bar was the biggest cost — fine.
+/// strain a magnitude is a contribution, so the biggest bar was the biggest cost: fine.
 /// On sleep a magnitude is a loss, so a row that cost nothing drew an empty bar and read
 /// as the worst thing on the screen.
 extension ScoreContributor {
@@ -444,8 +444,8 @@ struct ComparisonBar: View {
     /// "normal" tick at the halfway mark.
     ///
     /// It used to be drawn for anything with a comparison, but several rows report level
-    /// as a share of a target rather than a percentile — time asleep against need, the
-    /// heart rate dip against a strong one — and on those, half the bar is not the
+    /// as a share of a target rather than a percentile (time asleep against need, the
+    /// heart rate dip against a strong one), and on those, half the bar is not the
     /// normal. The tick was claiming a fact the bar could not support.
     private var hasBaseline: Bool { contributor.comparisonLabel != nil }
 
@@ -546,7 +546,7 @@ struct ScoreRing: View {
                 .stroke(tint, style: StrokeStyle(lineWidth: 11, lineCap: .round))
                 .rotationEffect(.degrees(-90))
 
-            Text(value.map { Swift.max(1, $0.rounded()).formatted(.number.precision(.fractionLength(0))) } ?? "—")
+            Text(value.map { Swift.max(1, $0.rounded()).formatted(.number.precision(.fractionLength(0))) } ?? "–")
                 .font(.system(size: 34, weight: .semibold))
                 .monospacedDigit()
                 .foregroundStyle(Tokens.textPrimary)
@@ -562,7 +562,7 @@ struct ScoreRing: View {
 
 /// The four parts of a night, read straight off a sleep `SignalScore`.
 ///
-/// Light is what is left once deep, REM and awake are taken out of the total — the
+/// Light is what is left once deep, REM and awake are taken out of the total. The
 /// engine never reports it separately because nothing scores it, but it is most of a
 /// night and leaving it out of the picture would make the other three look enormous.
 struct SleepStages {
@@ -636,7 +636,7 @@ struct SleepStageRing: View {
             }
 
             HStack(alignment: .firstTextBaseline, spacing: 1) {
-                Text(value.map { Swift.max(1, $0.rounded()).formatted(.number.precision(.fractionLength(0))) } ?? "—")
+                Text(value.map { Swift.max(1, $0.rounded()).formatted(.number.precision(.fractionLength(0))) } ?? "–")
                     .font(.system(size: figureSize, weight: .semibold))
                     .monospacedDigit()
             }
