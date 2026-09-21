@@ -103,12 +103,61 @@ struct RecoveryTransferTests {
 @Suite("Recovery bands")
 struct RecoveryBandTests {
 
-    @Test("bands follow the published thresholds", arguments: [
-        (100.0, ScoreBand.green), (67.0, .green), (66.9, .yellow),
-        (34.0, .yellow), (33.9, .red), (0.0, .red),
-    ])
-    func bands(percent: Double, expected: ScoreBand) {
-        #expect(ScoreBand.recovery(percent: percent) == expected)
+    /// How often the colour should actually appear.
+    ///
+    /// The bands were Whoop's published numbers, and Whoop's numbers sit on Whoop's
+    /// distribution. This scale is anchored so that a day exactly at somebody's own
+    /// baseline reads 50, and red began at 34, which is a third of a standard deviation
+    /// below average. Measured over the shipping weights and clamp, that made between
+    /// a quarter and a third of ordinary mornings red, and green rarer than red.
+    ///
+    /// Red is the app telling somebody to back off. One day in three is not a warning,
+    /// it is a mood, and it is why Hao said the score felt strict. The boundaries belong
+    /// to this scale's own distribution, so this measures it rather than asserting a
+    /// number somebody liked.
+    @Test("an ordinary morning is not a warning")
+    func redIsRare() {
+        var generator = SystemRandomNumberGenerator()
+        var red = 0
+        var green = 0
+        let samples = 20_000
+        for _ in 0..<samples {
+            // Each metric is a z against this person's own baseline, so it is standard
+            // normal by construction, with a shared component because physiology moves
+            // together. The composite is built exactly as the engine builds it.
+            let common = Double.normal(using: &generator)
+            var composite = 0.0
+            for weight in ReadinessEngine.weights.values {
+                let z = 0.55 * common + 0.835 * Double.normal(using: &generator)
+                composite += max(-RecoveryScore.contributionClamp,
+                                 min(RecoveryScore.contributionClamp, z * weight))
+            }
+            let percent = RecoveryScore.percent(composite: composite)
+            if percent < 100 * 0.0 { continue }
+            switch ScoreBand.recovery(percent: percent) {
+            case .red: red += 1
+            case .green: green += 1
+            default: break
+            }
+        }
+        let redShare = Double(red) / Double(samples)
+        let greenShare = Double(green) / Double(samples)
+        #expect(redShare < 0.18, "\(Int(redShare * 100))% of ordinary mornings are red")
+        #expect(greenShare > 0.30, "only \(Int(greenShare * 100))% of mornings reach green")
+    }
+
+    /// Read off the boundaries rather than repeating them. Repeating them is how three
+    /// switches and four tests came to hold their own copy of the same two numbers.
+    @Test("each band starts where the one below it ends")
+    func bandsMeetAtTheBoundaries() {
+        let green = ScoreBand.recoveryGreen
+        let red = ScoreBand.recoveryRed
+        #expect(ScoreBand.recovery(percent: 100) == .green)
+        #expect(ScoreBand.recovery(percent: green) == .green)
+        #expect(ScoreBand.recovery(percent: green.nextDown) == .yellow)
+        #expect(ScoreBand.recovery(percent: red) == .yellow)
+        #expect(ScoreBand.recovery(percent: red.nextDown) == .red)
+        #expect(ScoreBand.recovery(percent: 0) == .red)
     }
 
     /// The regression this spec exists to prevent: the ring and the recommendation were
@@ -120,10 +169,12 @@ struct RecoveryBandTests {
                 ReadinessInput(readings: morning(goodness: composite), daysOfHistory: 60))
             let percent = try #require(RecoveryScore.of(result).value)
             switch result.state {
-            case .aboveBaseline: #expect(percent >= 67)
-            case .atBaseline: #expect(percent >= 34 && percent < 67)
-            case .belowBaseline: #expect(percent >= 10 && percent < 34)
-            case .wellBelowBaseline: #expect(percent < 10)
+            case .aboveBaseline: #expect(percent >= ScoreBand.recoveryGreen)
+            case .atBaseline:
+                #expect(percent >= ScoreBand.recoveryRed && percent < ScoreBand.recoveryGreen)
+            case .belowBaseline:
+                #expect(percent >= ScoreBand.recoveryFloor && percent < ScoreBand.recoveryRed)
+            case .wellBelowBaseline: #expect(percent < ScoreBand.recoveryFloor)
             }
         }
     }
@@ -147,10 +198,12 @@ struct RecoveryBandTests {
         for composite in stride(from: -3.0, through: 3.0, by: 0.05) {
             let percent = RecoveryScore.percent(composite: composite)
             switch RecommendationEngine.trainingState(for: composite) {
-            case .push: #expect(percent >= 67)
-            case .maintain: #expect(percent >= 34 && percent < 67)
-            case .reduce: #expect(percent >= 10 && percent < 34)
-            case .recover: #expect(percent < 10)
+            case .push: #expect(percent >= ScoreBand.recoveryGreen)
+            case .maintain:
+                #expect(percent >= ScoreBand.recoveryRed && percent < ScoreBand.recoveryGreen)
+            case .reduce:
+                #expect(percent >= ScoreBand.recoveryFloor && percent < ScoreBand.recoveryRed)
+            case .recover: #expect(percent < ScoreBand.recoveryFloor)
             }
         }
     }
@@ -340,7 +393,7 @@ struct GateContractTests {
         let result = RecoveryScore.of(ReadinessEngine.evaluate(
             ReadinessInput(readings: morning(goodness: 1.0), acwr: 1.8, daysOfHistory: 60)))
         let value = try #require(result.value)
-        #expect(value < 67, "the spike did not cancel the green light")
+        #expect(value < ScoreBand.recoveryGreen, "the spike did not cancel the green light")
         #expect(value >= 34, "the spike crushed the day to \(value)")
         #expect(result.band == .yellow)
     }
@@ -595,5 +648,14 @@ struct DebtLevelTests {
         let hrv = try #require(score.contributor(MetricKind.hrv.rawValue))
         #expect(hrv.level ?? 0 > 0.5, "an above-baseline row should read above the middle")
         #expect(hrv.state == .optimal)
+    }
+}
+
+private extension Double {
+    /// Box-Muller, so the fixture does not need a dependency to draw a normal.
+    static func normal(using generator: inout SystemRandomNumberGenerator) -> Double {
+        let u1 = Double.random(in: 0.000001..<1, using: &generator)
+        let u2 = Double.random(in: 0..<1, using: &generator)
+        return (-2 * Foundation.log(u1)).squareRoot() * Foundation.cos(2 * .pi * u2)
     }
 }

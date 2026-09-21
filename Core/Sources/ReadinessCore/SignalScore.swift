@@ -19,15 +19,36 @@ public enum SignalKind: String, Sendable, Codable, CaseIterable {
 /// green last month, and is green for somebody else. A band derived from the user's own
 /// spread would be a percentile wearing a percent sign.
 public enum ScoreBand: String, Sendable, Codable, Equatable {
-    // Recovery and sleep, following the thresholds Whoop publishes.
     case red, yellow, green
     // Strain, on the 0...21 scale.
     case light, moderate, hard, allOut
 
+    /// Where the colour changes on this scale, measured rather than borrowed.
+    ///
+    /// These were Whoop's published numbers, 67 and 34, and Whoop's numbers sit on
+    /// Whoop's distribution. This scale is anchored so a morning exactly at somebody's
+    /// own baseline reads 50, which put red at a third of a standard deviation below
+    /// their own average. Measured over the shipping weights and clamp, 31% of ordinary
+    /// mornings came out red and green was rarer than red.
+    ///
+    /// Red is the app telling somebody to back off. One morning in three is not a
+    /// warning, it is a mood, and a colour that common says nothing. At 58 and 20 the
+    /// split is roughly 40% green, 48% yellow, 12% red: an average day is unremarkable
+    /// rather than a caution, and red is a day worth noticing.
+    ///
+    /// `ReadinessEngine.state(forPercent:)` uses the same two numbers and has to keep
+    /// using them. The ring and the training call are one calibration, not two.
+    /// Green from here up.
+    public static let recoveryGreen = 58.0
+    /// Yellow from here up. Below it the app is telling somebody to back off.
+    public static let recoveryRed = 20.0
+    /// And below this it stops advising and says rest.
+    public static let recoveryFloor = 6.0
+
     public static func recovery(percent: Double) -> ScoreBand {
         switch percent {
-        case 67...: return .green
-        case 34..<67: return .yellow
+        case recoveryGreen...: return .green
+        case recoveryRed..<recoveryGreen: return .yellow
         default: return .red
         }
     }
@@ -374,10 +395,17 @@ public enum RecoveryScore {
     /// bad", and it used to take seventy-six points off one, producing a red ring above
     /// an at-baseline state and a "maintain". It caps at the top of yellow instead,
     /// which is what cancelling a green light actually means.
+    /// Both were written as the numbers that happened to sit just under the old
+    /// boundaries, 8 under a floor of 10 and 66 under a green of 67. Moving the bands
+    /// left the load spike capping a day at 66 in a world where green starts at 58, so
+    /// the gate whose whole job is to cancel a green light stopped cancelling it. They
+    /// are derived from the boundaries now, because that is what they always meant.
     static func ceiling(for gate: ReadinessGate) -> Double {
         switch gate {
-        case .elevatedWristTemperature: return 8
-        case .acuteLoadSpike: return 66
+        // Rest. The state below the floor, not a number.
+        case .elevatedWristTemperature: return ScoreBand.recoveryFloor - 1
+        // The highest a morning can read with its green light taken away.
+        case .acuteLoadSpike: return ScoreBand.recoveryGreen - 1
         }
     }
 

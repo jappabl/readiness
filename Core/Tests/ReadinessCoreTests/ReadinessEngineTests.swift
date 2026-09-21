@@ -73,16 +73,24 @@ struct ReadinessStateTests {
         #expect(result.state == .wellBelowBaseline)
     }
 
-    /// Was written at goodness -1.0, which the old thresholds called mild. It is not:
-    /// every metric a full standard deviation the wrong way at once is past the 1st
-    /// percentile of the composite's own distribution. Calling that "mildly poor" was
-    /// the miscalibration, so the test now asks the question at a composite that really
-    /// is a middling-bad morning.
+    /// Was written at goodness -1.0, then moved to -0.4, and the boundaries have moved
+    /// under it again. Both times for the same reason: the line between "worth
+    /// mentioning" and "back off" kept sitting too close to an ordinary morning. At the
+    /// current bands -0.4 is an unremarkable day and -0.9 is the middling-bad one, so
+    /// the question is asked there, and the ordinary day is pinned beside it rather
+    /// than left to the next recalibration to notice.
     @Test("a mildly poor morning is below baseline, not well below")
     func mildlyPoorDayIsBelowBaseline() {
         let result = ReadinessEngine.evaluate(
-            ReadinessInput(readings: morning(goodness: -0.4), daysOfHistory: 60))
+            ReadinessInput(readings: morning(goodness: -0.9), daysOfHistory: 60))
         #expect(result.state == .belowBaseline)
+    }
+
+    @Test("an ordinary off day is still an ordinary day")
+    func slightlyOffDayIsAtBaseline() {
+        let result = ReadinessEngine.evaluate(
+            ReadinessInput(readings: morning(goodness: -0.4), daysOfHistory: 60))
+        #expect(result.state == .atBaseline)
     }
 
     @Test("inverted metrics push the right way: a high resting heart rate hurts readiness")
@@ -252,7 +260,10 @@ struct ReadinessConfidenceTests {
         // itself: an iPhone-only user's ring could read 32 to 68 and nothing else. So a
         // lone stream can reach the bottom again, while the weight floor still damps it:
         // two readings do not speak for five.
-        #expect(result.state == .wellBelowBaseline,
+        // The claim is that a lone stream still reaches the bottom of the scale rather
+        // than being diluted toward the middle, not that it lands in one named state.
+        // Which state that is moved when the bands did.
+        #expect(result.state == .belowBaseline || result.state == .wellBelowBaseline,
                 "with only HRV present it should still read the day, not dilute toward zero")
         #expect(result.composite < -0.5)
     }

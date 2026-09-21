@@ -227,9 +227,9 @@ public enum ReadinessEngine {
     /// Off the score the ring actually shows, so the two cannot drift apart.
     static func state(forPercent percent: Double) -> ReadinessState {
         switch percent {
-        case 67...: return .aboveBaseline
-        case 34..<67: return .atBaseline
-        case 10..<34: return .belowBaseline
+        case ScoreBand.recoveryGreen...: return .aboveBaseline
+        case ScoreBand.recoveryRed..<ScoreBand.recoveryGreen: return .atBaseline
+        case ScoreBand.recoveryFloor..<ScoreBand.recoveryRed: return .belowBaseline
         default: return .wellBelowBaseline
         }
     }

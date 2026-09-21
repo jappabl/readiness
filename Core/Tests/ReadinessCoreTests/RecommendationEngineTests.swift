@@ -53,10 +53,14 @@ struct CheckInTests {
     /// reduce day on its own; an ordinary morning is the one a bad check-in can move.
     @Test("a poor check-in can pull a borderline day down a state")
     func checkInMovesBorderlineDays() {
+        // Borderline means near the line, and the line moved. A composite of 0 is now
+        // the middle of maintain rather than its edge, and no check-in shift is meant
+        // to carry a morning from the middle of a band to the one below it.
+        let borderline = -0.4
         let without = RecommendationEngine.recommend(
-            RecommendationInput(readiness: readiness(0.0)))
+            RecommendationInput(readiness: readiness(borderline)))
         let with = RecommendationEngine.recommend(
-            RecommendationInput(readiness: readiness(0.0),
+            RecommendationInput(readiness: readiness(borderline),
                                 checkIn: CheckIn(soreness: 1, energy: 1, stress: 1, mood: 1)))
         #expect(without.state == .maintain)
         #expect(with.state == .reduce)
@@ -76,11 +80,20 @@ struct TrainingStateTests {
         #expect(RecommendationEngine.recommend(RecommendationInput(readiness: readiness(0.0))).state == .maintain)
     }
 
-    /// -1.0 now says recover, which is the point of the recalibration: every stream a
-    /// standard deviation down at once is not a trim-a-few-sets morning.
+    /// -0.4 used to say reduce and now says maintain, which is the recalibration
+    /// working rather than a test drifting: two thirds of a standard deviation off
+    /// somebody's own average is an ordinary Tuesday, and telling them to cut sets for
+    /// it is why the score read as strict. -0.9 is a genuinely down morning.
     @Test("a down morning says reduce")
     func downDayReduces() {
-        #expect(RecommendationEngine.recommend(RecommendationInput(readiness: readiness(-0.4))).state == .reduce)
+        #expect(RecommendationEngine.recommend(RecommendationInput(readiness: readiness(-0.9))).state == .reduce)
+    }
+
+    /// And the other side of the same line, so the boundary is pinned from both sides
+    /// rather than only from below.
+    @Test("a slightly down morning is left alone")
+    func slightlyDownDayMaintains() {
+        #expect(RecommendationEngine.recommend(RecommendationInput(readiness: readiness(-0.4))).state == .maintain)
     }
 
     @Test("a badly down morning says recover")
@@ -129,7 +142,7 @@ struct AdjustmentTests {
 
     @Test("a reduce day trims sets and caps effort rather than cutting load")
     func reduceTrimsVolume() {
-        let rec = RecommendationEngine.recommend(RecommendationInput(readiness: readiness(-0.4)))
+        let rec = RecommendationEngine.recommend(RecommendationInput(readiness: readiness(-0.9)))
         #expect(rec.adjustments.contains { if case .reduceWorkingSets = $0 { return true }; return false })
         #expect(rec.adjustments.contains { if case .capEffort = $0 { return true }; return false })
         #expect(!rec.adjustments.contains(.proceedAsPlanned))

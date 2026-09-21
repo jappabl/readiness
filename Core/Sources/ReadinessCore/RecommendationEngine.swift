@@ -61,10 +61,13 @@ public enum RecommendationEngine {
     /// a session called "maintain" underneath a red ring is the app disagreeing with
     /// itself in front of the user. The boundaries are the recovery bands.
     static func trainingState(for composite: Double) -> TrainingState {
+        // The ring's own boundaries. This switch, `ReadinessEngine.state(forPercent:)`
+        // and `ScoreBand.recovery` are one calibration of one quantity, and each used to
+        // carry its own copy of the numbers with a comment asking them not to drift.
         switch RecoveryScore.percent(composite: composite) {
-        case 67...: return .push
-        case 34..<67: return .maintain
-        case 10..<34: return .reduce
+        case ScoreBand.recoveryGreen...: return .push
+        case ScoreBand.recoveryRed..<ScoreBand.recoveryGreen: return .maintain
+        case ScoreBand.recoveryFloor..<ScoreBand.recoveryRed: return .reduce
         default: return .recover
         }
     }
