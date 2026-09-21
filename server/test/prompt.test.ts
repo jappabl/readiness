@@ -74,3 +74,52 @@ describe("the rules text survived the port", () => {
     expect(RULES).toContain("Under 60 words")
   })
 })
+
+/**
+ * The prompt is the product's promise written down, and it drifted from it.
+ *
+ * Onboarding says Jett helps with "training, recovery, sleep, and nutrition", one of
+ * the four suggested questions is "What should I eat for my goal?", two of the four
+ * goals are nutrition-led, and the app logs meals from a photo. The scope line listed
+ * training, physiology, recovery and data, so Jett answered a question the app had
+ * just put in front of Hao by saying he does not do that.
+ */
+describe("what Jett is allowed to answer", () => {
+  const starters = [
+    "How should I train this week?",
+    "How can I recover better?",
+    "How can I improve my sleep?",
+    "What should I eat for my goal?",
+  ]
+
+  test("the scope covers every subject the app offers to answer", () => {
+    for (const subject of ["training", "nutrition", "recovery", "physiology"]) {
+      expect(RULES).toContain(subject)
+    }
+    const scope = RULES.slice(RULES.indexOf("If the request has nothing to do with"))
+    for (const subject of ["training", "nutrition", "recovery"]) {
+      expect(scope.slice(0, 160)).toContain(subject)
+    }
+  })
+
+  test("nutrition has a body of knowledge, not only a refusal", () => {
+    // Training gets "what you know about training" and is answerable. Nutrition had
+    // the guardrails (minors, disordered eating) and no licence, which is a subject
+    // the model can only decline.
+    expect(RULES).toContain("What you know about nutrition")
+  })
+
+  test("every suggested question names something in scope", () => {
+    expect(starters).toHaveLength(4)
+    expect(RULES).toContain("nutrition")
+  })
+
+  /**
+   * The rules tell the model never to use an em dash while using four of them. The
+   * app's copy of this prompt was swept and the server's, which is the live one, was
+   * not: two copies of the same text, one of them corrected.
+   */
+  test("the rules do not use the character they forbid", () => {
+    expect(RULES).not.toContain("\u2014")
+  })
+})
