@@ -3,7 +3,7 @@ import Testing
 
 /// Turning what was heard into sets that can be written down.
 ///
-/// The parser reports what the words said; this decides what actually gets logged —
+/// The parser reports what the words said; this decides what actually gets logged,
 /// which lift, in which unit, with which effort when the sentence left it out.
 @Suite("Resolving a dictated set")
 struct SpokenSetResolverTests {
@@ -84,7 +84,7 @@ struct SpokenSetResolverTests {
 
     @Test("a sentence with no reps is a question, not a set")
     func noRepsAsks() {
-        // "felt heavy" parses — feel alone is not nothing — but there is no set in it.
+        // "felt heavy" parses (feel alone is not nothing) but there is no set in it.
         #expect(resolve("felt heavy", current: bench) == .needsReps)
     }
 

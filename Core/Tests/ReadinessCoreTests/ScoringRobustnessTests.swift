@@ -72,7 +72,7 @@ struct ScoringRobustnessTests {
             ReadinessInput(readings: [spike], daysOfHistory: 60))
 
         // Scored on -0.4, not on -3.0. The composite is no longer -0.4 exactly, because
-        // a single metric is damped rather than renormalised to the full weight — but it
+        // a single metric is damped rather than renormalised to the full weight, but it
         // is nowhere near what the raw z would have produced, which is what this asserts.
         let weight = try! #require(result.contributions.first).weight
         #expect(abs(result.composite - (-0.4 * weight)) < 0.0001,

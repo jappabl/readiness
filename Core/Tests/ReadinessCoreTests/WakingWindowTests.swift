@@ -6,8 +6,8 @@ import Testing
 /// single wake instant cannot express that.
 ///
 /// Round 7 guarded it by episode length: trust `primarySleepEnd` only for an episode of
-/// four hours or more. Length cannot separate a night from a nap — a 3.5-hour night is a
-/// night and a 4.5-hour afternoon sleep is not — so that guard broke it in both
+/// four hours or more. Length cannot separate a night from a nap: a 3.5-hour night is a
+/// night and a 4.5-hour afternoon sleep is not, so that guard broke it in both
 /// directions at once. A recorded short night switched the leading-gap check off entirely
 /// and hid a 42-point hole; a long daytime sleep still pointed the window at the evening
 /// and hid 45 points; and any episode the guard refused to trust was cut out of the trace
@@ -129,7 +129,7 @@ struct WakingWindowTests {
     }
 
     /// A past day runs to its own midnight, and the sleep that starts that evening belongs
-    /// to the next wake day — so it was never subtracted, and every past day was reported
+    /// to the next wake day, so it was never subtracted, and every past day was reported
     /// as part-recorded for anybody who does not sleep in their watch.
     @Test("an evening is not a hole on a day that is over", arguments: [20.0, 21.0, 22.0])
     func eveningSleepIsNotAHole(offAt: Double) {
@@ -145,7 +145,7 @@ struct WakingWindowTests {
     /// Taking the *last* qualifying period fixed a five-minute misread starting the window
     /// too early, and broke the other direction: any second episode beginning before nine
     /// dragged the window start to *its* end, so everything before it stopped being
-    /// examined — and because a wake time was then found, the clock floor was switched off
+    /// examined, and because a wake time was then found, the clock floor was switched off
     /// too, leaving no second net. Measured at 41 and 50 points, reported as complete.
     @Test("a morning lie-down does not erase the morning before it")
     func secondSleepDoesNotStartTheDay() {

@@ -198,7 +198,7 @@ public struct OnboardingConversation: Sendable {
             //
             // Only claimed once there is enough to draw. `BaselineSummary` needs seven
             // readings before it will place anybody in their own range, so below that the
-            // reveal under this sentence renders nothing at all — and "that's your normal
+            // reveal under this sentence renders nothing at all, and "that's your normal
             // now" landed over an empty space for every watch bought this week.
             say(daysRead >= BaselineSummary.minimumReadings
                     ? "\(nights), read. That's your normal now, and I'll tell you when it moves."

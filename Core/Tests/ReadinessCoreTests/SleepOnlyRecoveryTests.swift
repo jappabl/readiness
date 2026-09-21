@@ -3,13 +3,13 @@ import Testing
 @testable import ReadinessCore
 
 /// Recovery for somebody who granted Health access to sleep and declined the heart
-/// metrics — one tap apart in the permission sheet, and the whole population of
+/// metrics, one tap apart in the permission sheet, and the whole population of
 /// third-party sleep trackers.
 ///
 /// Sleep debt is one-sided by construction: owing nothing is the best it gets, so its
 /// aligned z is never positive. When it was the only input that could vote, the ring was
-/// capped at 50 however well somebody slept — "Recovery 50, Middling" beside "Sleep 97"
-/// off the same stream — and `StrainScore.target(recovery:)` read that ring, so the same
+/// capped at 50 however well somebody slept. "Recovery 50, Middling" beside "Sleep 97"
+/// off the same stream, and `StrainScore.target(recovery:)` read that ring, so the same
 /// person was told to aim for 57 where a fully tracked one with identical sleep got 82.
 @Suite("Recovery from sleep alone")
 struct SleepOnlyRecoveryTests {
@@ -56,7 +56,7 @@ struct SleepOnlyRecoveryTests {
         #expect(try #require(values.last) < 50, "a poor sleeper still reads middling")
     }
 
-    /// Debt has not stopped mattering — it is the accumulated half of the same picture.
+    /// Debt has not stopped mattering: it is the accumulated half of the same picture.
     @Test("a standing balance still pulls it down")
     func debtStillCounts() throws {
         let rested = try #require(recovery(sleep: 90, debt: 0).value)
@@ -85,7 +85,7 @@ struct SleepOnlyRecoveryTests {
         #expect(result.contributor("night") != nil, "no row for the night it came from")
     }
 
-    /// And a full panel is untouched — this is a fallback, not a new input.
+    /// And a full panel is untouched: this is a fallback, not a new input.
     @Test("a full panel does not use it")
     func fullPanelUnchanged() throws {
         let readings = ReadinessEngine.weights.keys.map {
@@ -115,7 +115,7 @@ struct SleepOnlyRecoveryTests {
     }
 
     /// Buying a watch must not be a cliff. On the second morning of HRV its baseline holds
-    /// one sample, so it has no spread and its z is forced to zero — and that empty vote
+    /// one sample, so it has no spread and its z is forced to zero, and that empty vote
     /// used to be enough to switch the fallback off, taking a settled sleeper from 97 to
     /// 50 overnight on sleep that had not changed.
     @Test("acquiring a sensor does not move the ring on its own")
@@ -157,7 +157,7 @@ struct SleepOnlyRecoveryTests {
 
     /// The load-spike gate exists to stop the app waving somebody into a hard session on
     /// top of a spike. It keys off the readiness state, the state came off the composite,
-    /// and a one-sided composite can never reach the threshold that arms it — so the one
+    /// and a one-sided composite can never reach the threshold that arms it, so the one
     /// ring that could now show green was the one the gate could not reach.
     @Test("a training spike still caps a night-derived ring")
     func spikeGateReachesSleepOnly() throws {

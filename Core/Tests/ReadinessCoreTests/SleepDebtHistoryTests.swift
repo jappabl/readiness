@@ -7,7 +7,7 @@ import Testing
 ///
 /// It was not. The caller walked a growing prefix of the whole record and called
 /// `SleepDebt.of` on each one, and `of` learns its reference from every night it is
-/// handed while accumulating over only the last seven — so each point was measured
+/// handed while accumulating over only the last seven, so each point was measured
 /// against a different reference, ending at the whole record's median while the row used
 /// the last twenty-eight nights'. The line could sit pinned at the cap for most of its
 /// length under a row reading "you are not down on sleep".

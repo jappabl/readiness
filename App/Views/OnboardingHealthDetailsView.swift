@@ -30,6 +30,19 @@ struct OnboardingHealthDetailsView: View {
         let value = rulerValue ?? (metricHeight ? 170 : 67)
         return metricHeight ? "\(value) cm" : "\(value / 12) ft \(value % 12) in"
     }
+    /// Only where the screen cannot say it itself. Asking somebody their sex without
+    /// saying why is the one of these three that earns a word.
+    private var explanation: String? {
+        switch current {
+        case .biologicalSex:
+            return "Only used when it matters for your coaching, like protein and "
+                 + "calorie targets. Jett is never told it otherwise."
+        case .dateOfBirth:
+            return "Your birthday stays on this device. Jett only ever gets your age."
+        case .height: return nil
+        }
+    }
+
     private var title: String {
         switch current {
         case .height: return "Your height"
@@ -62,6 +75,7 @@ struct OnboardingHealthDetailsView: View {
                     .accessibilityLabel("Previous detail")
                 }
                 Text(title).font(.title3.weight(.semibold))
+                if let note = explanation { InfoDot(text: note) }
                 Spacer(minLength: 0)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -126,9 +140,6 @@ struct OnboardingHealthDetailsView: View {
                        displayedComponents: .date)
                 .datePickerStyle(.wheel).labelsHidden()
                 .environment(\.calendar, Calendar(identifier: .gregorian))
-            Text("Your birthday stays here. Jett only gets your age.")
-                .font(.caption).foregroundStyle(Tokens.textSecondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
             confirmButton("Use \(birthday.formatted(date: .abbreviated, time: .omitted))") {
                 draft.dateOfBirth = Calendar(identifier: .gregorian).dateComponents([.year, .month, .day], from: birthday)
                 advance()
@@ -139,10 +150,6 @@ struct OnboardingHealthDetailsView: View {
 
     private var sexSelector: some View {
         VStack(spacing: 10) {
-            Text("Only used when it matters for your coaching.")
-                .font(.subheadline).foregroundStyle(Tokens.textSecondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.bottom, 6)
             ForEach(HealthProfile.BiologicalSex.allCases, id: \.self) { value in
                 Button {
                     draft.biologicalSex = value

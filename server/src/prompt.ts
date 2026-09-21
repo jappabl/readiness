@@ -105,7 +105,7 @@ export function coachBody(options: {
 }): Record<string, unknown> {
   // One breakpoint, after the data. The rules and the tool schema together are too
   // short to be worth caching on their own, and the data does not change inside a
-  // conversation — so this single marker makes every tool round and every follow-up
+  // conversation, so this single marker makes every tool round and every follow-up
   // question re-read the whole prefix at the cached rate.
   const system = [
     { type: "text", text: RULES },
@@ -119,7 +119,7 @@ export function coachBody(options: {
     stream: true,
     system,
     // No thinking. It is charged against `max_tokens` like any other output, and the
-    // answer is capped at sixty words — so on the harder prompts the model reasoned for
+    // answer is capped at sixty words, so on the harder prompts the model reasoned for
     // the whole budget and emitted no text at all. Measured across twenty-one cases: a
     // silent reply to "can I go hard today?", to a gated morning, to a rambling message,
     // and to somebody describing disordered eating. Silence there is worse than a bad
@@ -130,8 +130,8 @@ export function coachBody(options: {
     // for the same reason.
     thinking: { type: "disabled" },
     // Lower than the provider default of 1.0. Most of this job is obeying checkable rules
-    // — a word cap, a fixed list of chart names, a referral when somebody describes
-    // something medical — and at 1.0 the same prompt passed a rule on one run and broke it
+    //, a word cap, a fixed list of chart names, a referral when somebody describes
+    // something medical, and at 1.0 the same prompt passed a rule on one run and broke it
     // on the next, which makes the eval itself too noisy to attribute a change to.
     //
     // Not near zero, though: the voice is supposed to sound like a person rather than a
@@ -167,8 +167,8 @@ export function mealBody(options: {
     max_tokens: 500,
     thinking: { type: "disabled" },
     // Lower than the provider default of 1.0. Most of this job is obeying checkable rules
-    // — a word cap, a fixed list of chart names, a referral when somebody describes
-    // something medical — and at 1.0 the same prompt passed a rule on one run and broke it
+    //, a word cap, a fixed list of chart names, a referral when somebody describes
+    // something medical, and at 1.0 the same prompt passed a rule on one run and broke it
     // on the next, which makes the eval itself too noisy to attribute a change to.
     //
     // Not near zero, though: the voice is supposed to sound like a person rather than a

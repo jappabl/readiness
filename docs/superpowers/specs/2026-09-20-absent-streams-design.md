@@ -5,7 +5,7 @@
 
 ## The problem
 
-A phone-only sleeper — no watch, and the commonest first-run profile there is — gets a
+A phone-only sleeper (no watch, and the commonest first-run profile there is) gets a
 sleep score built from duration, continuity and bedtimes. They cannot have sleep stages or
 an overnight heart-rate dip, ever, because nothing on their person measures those.
 
@@ -18,7 +18,7 @@ Every morning the app lists what it could not count:
 > Overnight and daytime heart rate
 
 Four reasons, none of which will ever be satisfied, repeated daily forever. Until this
-week it was worse — the heading read *"Still learning your normal"*, which promises that
+week it was worse, the heading read *"Still learning your normal"*, which promises that
 waiting fixes it. That heading is fixed. The list underneath is not.
 
 The same shape applies elsewhere: recovery names four missing streams for this user, and
@@ -46,10 +46,10 @@ feature:
 
 | they said | data says | what happens |
 |---|---|---|
-| yes | stages arriving | nothing — normal operation |
+| yes | stages arriving | nothing: normal operation |
 | **yes** | **nothing, 7 days** | **nudge: the watch is not being worn to bed** |
 | no | nothing | stage rows never mentioned again |
-| **no** | **stages start arriving** | **"you got a watch" — congratulate, then confirm** |
+| **no** | **stages start arriving** | **"you got a watch": congratulate, then confirm** |
 
 Only the two bold rows say anything. The answer is a starting point, never a lock: somebody
 who buys a watch six months in is recognised by their data, not asked again.
@@ -58,14 +58,14 @@ Asymmetric thresholds, because the two errors are not equal:
 
 - **Into "no watch": 28 days.** A fortnight's holiday must not reclassify a watch owner
   and silence the nudge that their watch is off.
-- **Out of "no watch": 7 days** — one week of stage data is enough to say a watch has
+- **Out of "no watch": 7 days**, one week of stage data is enough to say a watch has
   appeared, and the congratulation should not lag a month behind the purchase.
 
 ### 2. Three states, not two
 
 | coverage | when | heading |
 |---|---|---|
-| `.full` | everything this person can record, recorded | — |
+| `.full` | everything this person can record, recorded |: |
 | `.partial` | something usually present is absent today | "Not counted today" |
 | `.buildingBaseline` | the record is too short to judge against | "Still learning your normal" |
 
@@ -80,7 +80,7 @@ Two, both rare, neither repeating:
 
 - *Watch not worn:* once, after seven empty nights against a "yes" answer. Not daily.
 - *Watch detected:* once, when stages appear against a "no" answer. Confirm rather than
-  assume — a single night of stage data could be a borrowed device or a one-off.
+  assume, a single night of stage data could be a borrowed device or a one-off.
 
 ### 4. The score itself does not change
 
@@ -101,7 +101,7 @@ computed.
 Four files: `ScoreCoverage` gains no cases, `SleepScore.of` and `RecoveryScore.of` filter
 their missing lists, `DailyPhysiology` gains a per-stream presence count, onboarding gains
 one sentence. No change to any scoring path, so the existing suite should stay green
-without edits — which is also the check that this is presentation-only.
+without edits, which is also the check that this is presentation-only.
 
 ## Decided
 

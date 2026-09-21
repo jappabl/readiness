@@ -13,7 +13,7 @@ tuning problem.** `AppModel.recoveryPercent` computes
 `Percentile.percent(fromZ: day.readiness.composite)`, which runs the composite through a
 standard normal CDF as though it were a single z-score. The composite is a weighted mean
 of five clamped z-scores with weights summing to 1, so its standard deviation is
-`sqrt(Σw²)` at zero correlation — about 0.49 — rising to roughly 0.83 at correlation 0.6.
+`sqrt(Σw²)` at zero correlation (about 0.49) rising to roughly 0.83 at correlation 0.6.
 Simulated over 200,000 days with the shipping weights:
 
 | input correlation | composite SD | 1st–99th percentile of composite | a day 2 SD below shows as | share of days reaching `wellBelowBaseline` (composite < −1.5) |
@@ -34,7 +34,7 @@ volume the app already holds.
 **Sleep cannot see most of a night.** `SleepScore` is
 `duration × continuity × scheduleAdjustment` against a fixed 8-hour target. Deep and REM
 are deliberately excluded, on the reasoning in `docs/briefs/signal-scores.md` that the app
-should not invent ideal stage fractions. That reasoning is sound and is preserved here —
+should not invent ideal stage fractions. That reasoning is sound and is preserved here,
 but stages can be scored against the user's *own* distribution, which invents nothing.
 
 Meanwhile `HealthKitSource.streams` already fetches heart rate average/min/max, walking
@@ -57,7 +57,7 @@ below:
 4. **One shared Insights surface** driven by a common contributor structure.
 
 Non-goals for this spec: per-user learned weights; Oura's recovery index (needs overnight
-intraday heart rate — the data becomes available with piece 2, but the contributor is not
+intraday heart rate, the data becomes available with piece 2, but the contributor is not
 built here); nap detection beyond what `SleepAggregator` already separates.
 
 ## The shared structure
@@ -133,7 +133,7 @@ compositeScale  = 0.6
 
 `compositeScale` is a stated product constant, chosen from the simulation above as the
 approximate composite standard deviation at realistic input correlation. It is not derived
-from the user's own data — deriving it per user would make the score a percentile of self,
+from the user's own data: deriving it per user would make the score a percentile of self,
 which decision 1 rules out.
 
 Resulting band edges, which tests pin:
@@ -212,7 +212,7 @@ prerequisite for both strain and the sleep heart-rate dip.
 ## Strain
 
 New file `Core/Sources/ReadinessCore/StrainScore.swift`. `StrainEngine` keeps `sessionLoad`,
-`acwr` and `novelty` unchanged — those feed the prescription engine and are out of scope.
+`acwr` and `novelty` unchanged: those feed the prescription engine and are out of scope.
 `DailyStrain` is retained as the documented fallback path.
 
 ### Cardiovascular load
@@ -232,7 +232,7 @@ The coefficient is 0.64 for both sexes; only the exponent differs. This ceilings
 4.37 TRIMP/min for men and 3.40 for women, so the scale has a real top rather than an
 assumed one.
 
-Worked example, pinned as a test: one hour at HRr 0.75, male —
+Worked example, pinned as a test: one hour at HRr 0.75, male:
 `60 × 0.75 × 0.64 × e^(1.92 × 0.75) = 60 × 0.75 × 0.64 × 4.2207 = 121.6 TRIMP`.
 
 `restingHeartRate` uses the baseline from `BaselineEngine`, not the day's reading, so a
@@ -272,7 +272,7 @@ Anchors, pinned as tests:
 | 0 | 0.00 | nothing recorded |
 | 20 | 3.55 | a walk |
 | 40 | 6.07 | an easy session |
-| 121.6 | 12.23 | the worked example above — one hard hour |
+| 121.6 | 12.23 | the worked example above, one hard hour |
 | 200 | 15.69 | a long hard session |
 | 300 | 18.74 | a genuinely big day |
 | 400 | 21.00 | the ceiling |
@@ -313,7 +313,7 @@ quality     = 0.85 + 0.15 × qualityFraction
 sleepScore  = 100 × performance × quality
 ```
 
-`quality` is bounded to [0.85, 1.0] so that duration dominates — a full night with poor
+`quality` is bounded to [0.85, 1.0] so that duration dominates, a full night with poor
 structure loses at most 15 points, and a short night cannot be rescued by good structure.
 This generalises the existing `0.9 + 0.1 × schedule` factor rather than replacing the idea.
 
@@ -350,7 +350,7 @@ One screen, driven entirely by `SignalScore`:
   the state as colour, and the signed points it moved.
 - A row expands to its `history` chart and its `explanation`.
 - A footer naming the model version and stating plainly that these are the app's own
-  calculations, not clinical measures — carried over from the existing brief's language,
+  calculations, not clinical measures: carried over from the existing brief's language,
   which is already careful and already shipped.
 
 `WhyView` stays for the recovery *recommendation* explanation, which is a different
@@ -362,7 +362,7 @@ question ("why this session") from the score breakdown ("what moved this number"
 |---|---|
 | `App/Domain/AppModel.swift` | `recoveryPercent`, `sleepScore`, `sleepPercent`, `dailyStrain`, `strainPercent` become one `signalScore(_:)` returning `SignalScore` |
 | `App/Domain/DayAssembler.swift` | feeds sleep performance into the readiness input; sleep need replaces the fixed constant |
-| `Core/.../RecommendationEngine.swift` | consumes `ReadinessState`, which is unchanged in shape — verify thresholds still behave |
+| `Core/.../RecommendationEngine.swift` | consumes `ReadinessState`, which is unchanged in shape: verify thresholds still behave |
 | `Core/.../PrescriptionEngine.swift` | same |
 | `Core/.../CoachContext.swift` | reports the new scores and contributors to the coach |
 | `App/Views/SignalDetailView.swift` | figures come from contributors; Insights replaces the info sheet |
@@ -377,7 +377,7 @@ Pinned by test, not left to inspection:
 
 - Every band edge in every table above, at the exact boundary value.
 - The recovery transfer at composite 0, ±0.26, ±1.20.
-- `ReadinessState` agrees with the band at every boundary — the specific regression this
+- `ReadinessState` agrees with the band at every boundary, the specific regression this
   spec exists to prevent.
 - TRIMP worked example: 60 min at HRr 0.75 male = 121.6, within 0.1.
 - TRIMP per-minute ceilings: 4.37 male, 3.40 female at HRr 1.0.
@@ -395,9 +395,9 @@ state through the `--card-gallery` harness pattern rather than asserting from co
 
 ## Sequence
 
-1. `SignalScore` + the recovery transfer fix and state derivation — Core only, largest
+1. `SignalScore` + the recovery transfer fix and state derivation. Core only, largest
    improvement per line changed, unblocks everything.
-2. Intraday heart rate source — the one new HealthKit surface, serves 3 and 4.
+2. Intraday heart rate source, the one new HealthKit surface, serves 3 and 4.
 3. Strain on TRIMP + muscular load.
 4. Sleep on need + quality.
-5. Insights screen — depends only on 1, so it can land any time after.
+5. Insights screen: depends only on 1, so it can land any time after.

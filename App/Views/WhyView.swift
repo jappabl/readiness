@@ -3,8 +3,8 @@ import SwiftUI
 /// The evidence behind today's call, for the morning the app disagrees with how you feel.
 ///
 /// Read top to bottom it answers three questions in order: what should I do, what is
-/// that based on, and what could it be missing. The model's internals — weights,
-/// points, the composite total — are deliberately not on this screen. They explain how
+/// that based on, and what could it be missing. The model's internals (weights,
+/// points, the composite total) are deliberately not on this screen. They explain how
 /// the arithmetic works, not why today is what it is, and they crowded out the part
 /// that does.
 struct WhyView: View {
@@ -57,7 +57,7 @@ struct WhyView: View {
 
     /// The one recovery score there is.
     ///
-    /// This screen used to compute its own — the composite run through a standard normal
+    /// This screen used to compute its own: the composite run through a standard normal
     /// CDF as though its spread were 1.0, which is the transfer `RecoveryScore` exists to
     /// replace, and with no gate ceiling at all. So the two rings disagreed by up to seven
     /// points on an ordinary morning and by **82** under the illness gate: Today showed a
@@ -65,8 +65,8 @@ struct WhyView: View {
     /// "Recover". A second hand-maintained breakdown of the same result was always going to
     /// end up describing a different model; there is one now.
     /// Read off the model rather than recomputed here, so this screen cannot drift again.
-    /// Recomputing it needed every input the model feeds in — the trailing history, and
-    /// now the night, for somebody whose only shared stream is sleep — and a call site
+    /// Recomputing it needed every input the model feeds in: the trailing history, and
+    /// now the night, for somebody whose only shared stream is sleep, and a call site
     /// that has to remember those is a call site that will eventually forget one.
     private var score: SignalScore { model.recoveryScore }
 
@@ -129,7 +129,7 @@ struct WhyView: View {
 
     // MARK: - Evidence
 
-    /// Biggest mover first, whichever way it moved — on a good day the reason is a
+    /// Biggest mover first, whichever way it moved: on a good day the reason is a
     /// metric that went up. Already ordered that way, and with the gate's own row included,
     /// which this screen previously left out entirely.
     private var ranked: [ScoreContributor] { score.contributors }

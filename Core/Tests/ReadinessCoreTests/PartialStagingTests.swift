@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import ReadinessCore
 
-/// A night can be recorded as asleep without being classified into stages — an
+/// A night can be recorded as asleep without being classified into stages: an
 /// `unspecified` run from a second source, a watch that only staged part of the night.
 ///
 /// `isStaged` asked only whether *any* stage was recorded, so one staged sample made the
@@ -95,7 +95,7 @@ struct PartialStagingTests {
             SleepInterval(start: start.addingTimeInterval(from * 3600),
                           end: start.addingTimeInterval(to * 3600), stage: stage)
         }
-        // Asleep for the whole eight hours; staged only from 1.6 h in — and the deep that
+        // Asleep for the whole eight hours; staged only from 1.6 h in, and the deep that
         // happened before then is simply not in the record.
         let night = SleepAggregator.byWakeDay(
             [slice(0, 1.6, .unspecified), slice(1.6, 2.6, .deep),
@@ -154,13 +154,13 @@ struct PartialStagingTests {
 
     /// A night the watch did not finish labelling loses its stage rows, and each one is
     /// charged a stand-in a shade under a good night. That stand-in is a constant, and
-    /// every constant sits above some nights and below others — so a gap is a small
+    /// every constant sits above some nights and below others, so a gap is a small
     /// penalty on a night better than your usual and a bonus on one worse than it.
     /// Measured against a sleeper's own distribution: -2.0 well above usual, -1.6 at it,
     /// +6.9 a little below, +8.0 clearly poor.
     ///
     /// It cannot be tuned away. The components are scored *self-relatively*, so "your
-    /// recent nights were poor" is not a thing this model can know — a consistently poor
+    /// recent nights were poor" is not a thing this model can know, a consistently poor
     /// sleeper scores near the top against their own history every night. The only stand-in
     /// that never pays a bonus is one at the floor, which would penalise every gap instead.
     /// What is pinned here is that the effect stays bounded and the night always says it

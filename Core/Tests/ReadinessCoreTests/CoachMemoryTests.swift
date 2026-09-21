@@ -4,8 +4,8 @@ import Testing
 
 /// What Jett is allowed to carry between conversations.
 ///
-/// Everything the app can recompute — scores, load, sleep, the programme, what was said
-/// in onboarding — is rebuilt fresh in the context block every message, so remembering
+/// Everything the app can recompute: scores, load, sleep, the programme, what was said
+/// in onboarding: is rebuilt fresh in the context block every message, so remembering
 /// any of it would only create a second copy that goes stale. Memory is for what nobody
 /// else records: a niggle mentioned in passing, a constraint with an end date, a thing
 /// they asked not to be brought up.

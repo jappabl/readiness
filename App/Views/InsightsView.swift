@@ -266,7 +266,7 @@ struct InsightsView: View {
     }
 
     /// The two states that mean something share their colour with every other breakdown.
-    /// An unremarkable row wears the signal's own colour instead — not blue, which was a
+    /// An unremarkable row wears the signal's own colour instead, not blue, which was a
     /// third meaning on a screen with two and left every ordinary row looking like an
     /// instruction. It is also what stops the grid reading flat.
     private func colour(_ state: ContributorState) -> Color {
@@ -383,12 +383,12 @@ struct ContributorDetail: View {
 /// On sleep a magnitude is a loss, so a row that cost nothing drew an empty bar and read
 /// as the worst thing on the screen.
 extension ScoreContributor {
-    /// How this row went, as one glyph — never which side of a number it landed on.
+    /// How this row went, as one glyph. Never which side of a number it landed on.
     ///
     /// Shared, because `WhyView` grew its own version of this row and drifted: it drew a
     /// bar straight off the z with a fixed polarity, which made sleep debt's dot sit on
     /// the "your normal" tick at zero debt, tinted green, over the sentence "slightly
-    /// above baseline" — and left 69% of the track unreachable.
+    /// above baseline", and left 69% of the track unreachable.
     var directionSymbol: String? {
         switch state {
         case .optimal: return "arrow.up"
@@ -584,8 +584,8 @@ struct SleepStages {
         // Deriving it again here was the bug, and the previous attempt at fixing it was a
         // no-op: core was *reconstructed* as asleep - deep - rem rather than read, which
         // makes the denominator identically max(deep + rem, asleep). That engages only
-        // when deep and REM alone exceed the whole night — a sixth of the nights the
-        // engine scales — so on the rest the ring drew, and the key printed, up to an hour
+        // when deep and REM alone exceed the whole night: a sixth of the nights the
+        // engine scales, so on the rest the ring drew, and the key printed, up to an hour
         // of deep sleep that did not happen.
         self.deep = deep
         self.rem = rem

@@ -119,7 +119,7 @@ struct SignalDetailView: View {
         if let reading = model.reading(kind) {
             // The arrow points the way the *reading* moved; the colour says whether that
             // was good news. `trendFavourable` exists for exactly this and had no caller,
-            // so it defaulted to true and every arrow on this screen was green — a resting
+            // so it defaulted to true and every arrow on this screen was green: a resting
             // heart rate ten beats above baseline drew a green arrow here and a red one on
             // the two screens that show the same row.
             // The quantity this metric is scored on, so this screen and the insights grid

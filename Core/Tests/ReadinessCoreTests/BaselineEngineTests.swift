@@ -1,7 +1,7 @@
 import Testing
 @testable import ReadinessCore
 
-@Suite("Baseline — today against the user's own rolling history")
+@Suite("Baseline: today against the user's own rolling history")
 struct BaselineEngineTests {
 
     @Test("a value sitting on the baseline mean scores zero")

@@ -39,7 +39,7 @@ public enum StrainEngine {
     /// Nil when there is not enough training in the window to compare against.
     /// `observedDays` is how long the app has actually been watching. The chronic mean
     /// used to divide by a fixed twenty-eight regardless, so the window was padded with
-    /// days that predate the record — and a perfectly steady three-sessions-a-week
+    /// days that predate the record, and a perfectly steady three-sessions-a-week
     /// logger was told they had spiked on seven consecutive days, somewhere around their
     /// second week. Raising the training-day count is the wrong lever: at six a
     /// once-a-week trainer would be gated out permanently.
@@ -48,7 +48,7 @@ public enum StrainEngine {
         let chronic = daily.suffix(chronicDays)
         guard chronic.filter({ $0 > 0 }).count >= minimumTrainingDays else { return nil }
         // No spread guard. One was added when the chronic mean still divided by a fixed
-        // twenty-eight, to stop a new logger's first sessions reading as a spike — but
+        // twenty-eight, to stop a new logger's first sessions reading as a spike, but
         // the observed-days denominator solves that properly, and requiring training
         // days outside the acute window suppresses the one case this ratio exists for:
         // months of training, three weeks off, then four hard days back. That returned

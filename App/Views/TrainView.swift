@@ -157,7 +157,7 @@ struct LiveWorkoutView: View {
     @State private var saveError = false
     @State private var dictation = Dictation()
     /// What speaking produced, held until the user commits it. Nothing is written to
-    /// the day off a transcript alone — a misheard set is worse than a typed one.
+    /// the day off a transcript alone: a misheard set is worse than a typed one.
     @State private var heard: SpokenSetResolver.Resolution?
     @State private var heardNothing: String?
 

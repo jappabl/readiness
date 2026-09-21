@@ -99,9 +99,9 @@ final class AppModel {
     ///
     /// Today's strain is judged against how much of the day the record covers, and that
     /// question is about the data, not about the clock. `readAt: Date()` is re-evaluated on
-    /// every render while `healthSeries` only changes on a refresh — and there is no health
+    /// every render while `healthSeries` only changes on a refresh, and there is no health
     /// refresh on foreground, background delivery is hourly and does not observe heart rate
-    /// at all — so resuming a suspended app measured this hour's clock against last hour's
+    /// at all, so resuming a suspended app measured this hour's clock against last hour's
     /// samples. A watch that never left the wrist was reported as a part-recorded day once
     /// the app was forty minutes stale, at any hour of the day.
     private(set) var healthReadAt: Date?
@@ -123,7 +123,7 @@ final class AppModel {
     var todayResponse: RecommendationResponse?
 
     /// A change the coach proposed and the user approved. Composed on top of the
-    /// engine's own adjustments — the coach adds to the call, it does not replace it.
+    /// engine's own adjustments: the coach adds to the call, it does not replace it.
     var coachAdjustment: SessionAdjustment?
 
     /// The short list of things Jett has been told, and what it most recently wrote.
@@ -377,7 +377,7 @@ final class AppModel {
 
             hasProgram = !templates.isEmpty
             goal = storedGoal(from: context)
-            // A missing programme is no longer a wall — the home screen asks for one
+            // A missing programme is no longer a wall: the home screen asks for one
             // in place, and only for the goals that need it.
             phase = needsOnboarding ? .needsOnboarding : .ready
 
@@ -405,7 +405,7 @@ final class AppModel {
     }
 
     /// What today's screen is made of. The barbell angle is not the front page for
-    /// everybody — see `HomeComposition`.
+    /// everybody. See `HomeComposition`.
     var goals: Set<TrainingGoal> {
         if let selected = onboarding.goals, !selected.isEmpty { return selected }
         return goal.map { [$0] } ?? onboarding.selectedGoals
@@ -437,7 +437,7 @@ final class AppModel {
     }
 
     /// The flow is over once the user has seen their own baselines, not when the goal
-    /// is stored — otherwise the reveal is cut off by the app appearing behind it.
+    /// is stored. Otherwise the reveal is cut off by the app appearing behind it.
     /// Correcting one of the measures from Profile, long after onboarding.
     ///
     /// Written to the same place onboarding writes, so Health still wins where Health
@@ -588,7 +588,7 @@ final class AppModel {
     /// The trailing values behind one metric, as the app itself understands it.
     ///
     /// The coach's chart card read `DailyPhysiology.value(for:)` per day, which cannot
-    /// answer for the balance — a balance is a property of a run of nights — so
+    /// answer for the balance (a balance is a property of a run of nights) so
     /// `[chart:sleepDebt]` drew nothing at all. Silently: the prompt tells the model a
     /// chart replaces the sentence it would have written, so it withheld the number too,
     /// for the heaviest input in the whole model.
@@ -619,7 +619,7 @@ final class AppModel {
                 case .hrv: return day.hrvSDNN
                 case .restingHeartRate: return day.restingHeartRate
                 // The balance as it stood, matching the number the row shows. It used
-                // to be last night's shortfall — a different quantity on a different
+                // to be last night's shortfall: a different quantity on a different
                 // scale, drawn under a reference line taken from the other one.
                 case .sleepDebt: return nil
                 case .respiratoryRate: return day.respiratoryRate
@@ -634,8 +634,8 @@ final class AppModel {
     /// The three scores for any day the series covers.
     ///
     /// Every accessor below used to hard-code "today", which meant the app could only
-    /// ever describe this morning. The engines never cared — each one reads a series
-    /// ending at the day in question — so a calendar is a matter of passing a date.
+    /// ever describe this morning. The engines never cared, each one reads a series
+    /// ending at the day in question, so a calendar is a matter of passing a date.
     func scores(on date: Date, context: ModelContext? = nil)
     -> (recovery: SignalScore, sleep: SignalScore, strain: SignalScore) {
         (recoveryScore(on: date), sleepScore(on: date), strainScore(on: date, context: context))
@@ -705,7 +705,7 @@ final class AppModel {
             //
             // And only when the number is on strain's own scale. A day with no cardiac
             // trace falls back to an activity *percentile*, deliberately banded nil
-            // because a percentile is not a position on an absolute scale — but
+            // because a percentile is not a position on an absolute scale, but
             // `SleepNeed` compares it against `strainThreshold`, so a watchless user's
             // ordinary-but-busy day read 90 and bought 36 minutes of extra need, which is
             // enough to move a band. Roughly a quarter of their days sit above their own
@@ -740,8 +740,8 @@ final class AppModel {
 
     /// The one night list both the score and the debt card learn from.
     ///
-    /// They used to take different slices — the score twenty-eight prior nights, the
-    /// card the whole series including last night — so they learned different needs and
+    /// They used to take different slices: the score twenty-eight prior nights, the
+    /// card the whole series including last night, so they learned different needs and
     /// contradicted each other on the same screen: "your need was 7.0 hours" above a
     /// card saying twelve hours behind.
     /// One entry per calendar night, nil where nothing was recorded. The balance fades per
@@ -805,7 +805,7 @@ final class AppModel {
             }.compactMap(\.heartRateMax).max(),
             hardSets: hardSets(on: date, context: context),
             // A past day is read whole; today is read as far as the data goes. See
-            // `healthReadAt` — the wall clock runs on while the samples do not.
+            // `healthReadAt`: the wall clock runs on while the samples do not.
             readAt: Calendar.current.isDateInToday(date)
                 ? (healthReadAt ?? Date())
                 // The end of that day, found rather than assumed: adding 86,399 seconds
@@ -835,8 +835,8 @@ final class AppModel {
 
     /// A day's heart rate with the night cut out.
     ///
-    /// Strain is what being awake cost. Leaving the night in did not move the number —
-    /// the everyday load saturates either way — but it put "Everyday movement, 1,440 min"
+    /// Strain is what being awake cost. Leaving the night in did not move the number
+    /// (the everyday load saturates either way), but it put "Everyday movement, 1,440 min"
     /// at the top of the breakdown on a rest day, under a sentence saying that was what
     /// did most of it.
     /// The trace with the day's sleep taken out of it.
@@ -849,8 +849,8 @@ final class AppModel {
                                asleep: [DateInterval]) -> [HeartRateSample] {
         guard let day else { return [] }
         // The same list the wear check gets, both wake days. Cutting only this day's own
-        // periods left *this evening's* sleep in the trace — it belongs to tomorrow's wake
-        // day — so a continuously worn watch reported "Everyday movement, 1,130 min" for a
+        // periods left *this evening's* sleep in the trace: it belongs to tomorrow's wake
+        // day, so a continuously worn watch reported "Everyday movement, 1,130 min" for a
         // waking day of 960: 170 minutes of sleep and lying awake in bed, labelled
         // movement. Which is the exact row this function exists to prevent.
         guard !asleep.isEmpty else { return day.heartRateSamples }
@@ -895,7 +895,7 @@ final class AppModel {
     ///
     /// `baseline(.restingHeartRate)` reads today's assembly, which is a different
     /// quantity for a historical day and nil first thing in the morning before today has
-    /// synced — at which point every past day silently fell back to that day's single
+    /// synced, at which point every past day silently fell back to that day's single
     /// reading, the exact thing `StrainInput.restingHeartRate` documents must not happen.
     private func restingBaseline(upTo date: Date) -> Double? {
         let cutoff = Self.endOfDay(date)

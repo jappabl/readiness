@@ -29,12 +29,12 @@ enum Signal: String, CaseIterable, Identifiable {
     ///
     /// Recovery and sleep carry a verdict, so they take it: a recovery of 13 used to
     /// draw in the same green as a recovery of 90, which put a healthy-looking ring
-    /// directly above the words "keep it gentle today". Strain has no verdict — a hard
-    /// day is not a bad day — so it keeps its own ramp and says intensity instead.
+    /// directly above the words "keep it gentle today". Strain has no verdict: a hard
+    /// day is not a bad day. So it keeps its own ramp and says intensity instead.
     func ring(forPercent percent: Int?) -> [Color] {
         // Sleep is always purple. It is the signal with the strongest identity in the
         // app and recolouring it by verdict cost more in recognition than it bought in
-        // information — the number is right there. Strain keeps its own ramp because a
+        // information: the number is right there. Strain keeps its own ramp because a
         // hard day is not a bad day. Recovery is the one that carries a verdict.
         guard self == .recovery, let percent else { return ring }
         switch percent {
@@ -78,14 +78,14 @@ struct SkyBackground: View {
 
 // MARK: - Ring
 
-/// The ring. A gradient arc on a light track, rounded caps, and — for strain — a
+/// The ring. A gradient arc on a light track, rounded caps, and, for strain, a
 /// hatched remainder rather than a plain one.
 struct RingGauge: View {
     let signal: Signal
     /// nil means not enough history to say, which is not the same as zero.
     let percent: Int?
     /// Where today is worth getting to, 0...100. Drawn as a mark on the track and never
-    /// said in words — see `StrainScore.target(recovery:)`.
+    /// said in words: see `StrainScore.target(recovery:)`.
     var target: Double?
     var lineWidth: CGFloat = 11
     var figureSize: CGFloat = 22
@@ -138,7 +138,7 @@ struct RingGauge: View {
 
             // The number and nothing else. The word under it repeated the ring's own
             // colour and the screen's own title, and it was a fixed word rather than a
-            // verdict — "Recovered" sat under a recovery of 15, in green, because the
+            // verdict. "Recovered" sat under a recovery of 15, in green, because the
             // figure colour was the signal's identity rather than the day's news.
             Text(percent.map { "\($0)" } ?? "—")
                 .font(.system(size: figureSize, weight: .semibold))
@@ -192,7 +192,7 @@ struct HeroRing: View {
 
 // MARK: - Cards
 
-/// Small icon and label, then a large value with its unit — the Bevel stat card.
+/// Small icon and label, then a large value with its unit: the Bevel stat card.
 struct StatCard: View {
     let symbol: String
     let label: String
@@ -376,7 +376,7 @@ struct RangeBar: View {
     }
 }
 
-/// Icon, label, chevron. The reference's one interactive idiom — it never uses a
+/// Icon, label, chevron. The reference's one interactive idiom: it never uses a
 /// filled button inside a card.
 struct AccessoryRow: View {
     let symbol: String
@@ -400,7 +400,7 @@ struct AccessoryRow: View {
     }
 }
 
-/// A card whose children are separated by hairlines rather than gaps — used wherever
+/// A card whose children are separated by hairlines rather than gaps: used wherever
 /// the reference groups rows inside one surface.
 struct ListCard<Content: View>: View {
     @ViewBuilder var content: Content
@@ -415,7 +415,7 @@ struct ListCard<Content: View>: View {
     }
 }
 
-/// The full-width action. Used sparingly — the reference prefers accessory rows.
+/// The full-width action. Used sparingly: the reference prefers accessory rows.
 struct PrimaryButton: View {
     let label: String
     var symbol: String?
@@ -461,7 +461,7 @@ struct FieldRow<Trailing: View>: View {
     }
 }
 
-/// A trend line with no axes — the shape is the point.
+/// A trend line with no axes: the shape is the point.
 struct Sparkline: View {
     let values: [Double]
     var tint: Color = Tokens.accent
@@ -674,8 +674,8 @@ struct JettFace: View {
 ///
 /// A paragraph under a control is a paragraph everybody scrolls past to reach the thing
 /// itself, and if it only restates what the control obviously does it should not exist
-/// at all. What survives that test is usually a promise the UI cannot make on its own —
-/// where data goes, what the app will not do — and that belongs one tap away, not in
+/// at all. What survives that test is usually a promise the UI cannot make on its own,
+/// where data goes, what the app will not do, and that belongs one tap away, not in
 /// everybody's way.
 struct InfoDot: View {
     let text: String

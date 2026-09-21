@@ -7,7 +7,7 @@ import Testing
 /// Round 7 asked how *long* the day's longest sleep was and trusted it above four hours.
 /// Length cannot separate a night from a nap: a broken three-and-a-half-hour night is a
 /// night, and a four-and-a-half-hour afternoon sleep is not. That guard was wrong in both
-/// directions at once — it hid a 42-point hole after a short night and a 45-point one
+/// directions at once: it hid a 42-point hole after a short night and a 45-point one
 /// after a long daytime sleep. When the sleep *started* is what tells them apart.
 @Suite("When the day started")
 struct WakeTimeTests {
@@ -44,14 +44,14 @@ struct WakeTimeTests {
         #expect(woke == midnight.addingTimeInterval(4.5 * 3600))
     }
 
-    /// And the case it was written for, which stays fixed — at any length.
+    /// And the case it was written for, which stays fixed, at any length.
     @Test("a daytime sleep never starts the day", arguments: [1.0, 4.5, 6.0])
     func daytimeSleepDoesNot(hours: Double) {
         #expect(wake([(17.5 - hours, 17.5)]) == nil)
     }
 
     /// Six was a bedtime, not a boundary. A night shift ending at six, a new parent, a
-    /// red-eye — all went to bed at exactly the hour that stopped qualifying, and had a
+    /// red-eye, all went to bed at exactly the hour that stopped qualifying, and had a
     /// perfectly recorded day reported as part-recorded every day.
     @Test("a night that starts at dawn is still a night", arguments: [5.0, 6.0, 7.5, 8.5])
     func lateBedtimeStillANight(hour: Double) throws {

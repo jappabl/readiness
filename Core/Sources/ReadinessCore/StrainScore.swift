@@ -1,7 +1,7 @@
 import Foundation
 
 /// One bucket of time at one heart rate, with `minutes` being how long that reading
-/// stood for — the gap to the next one, capped. Not raw beats.
+/// stood for: the gap to the next one, capped. Not raw beats.
 public struct HeartRateSample: Sendable, Equatable {
     public let start: Date
     public let minutes: Double
@@ -40,7 +40,7 @@ public struct StrainInput: Sendable {
     public let asleepPeriods: [DateInterval]
 
     /// The episode the day began from, spanning its own awake bridges. See
-    /// `WakingDay.start(of:primary:on:)` — the fragment list alone cannot say.
+    /// `WakingDay.start(of:primary:on:)`: the fragment list alone cannot say.
     public let primarySleep: DateInterval?
     /// What the ring showed before this engine existed. Used only when there is no
     /// cardiac trace at all, and always labelled.
@@ -69,7 +69,7 @@ public struct StrainInput: Sendable {
 ///
 /// The scale is Whoop's and is derived from Borg's 6...20 rating of perceived exertion,
 /// stretched by a point to leave room at the top. What sits underneath it here is
-/// Banister's TRIMP, which is published, forty years old and testable — the app does not
+/// Banister's TRIMP, which is published, forty years old and testable: the app does not
 /// need a proprietary load model to say something true about a day.
 ///
 /// The constants are absolute and stated. The known cost is that an untrained person
@@ -89,7 +89,7 @@ public enum StrainScore {
         let predicted = ageYears.map { 208 - 0.7 * Double($0) } ?? assumedMaximumHeartRate
         guard let observed, observed.isFinite, observed > predicted else { return predicted }
         // Bounded, because the observed maximum comes from HealthKit's raw daily peak
-        // and a single bad beat weeks ago would otherwise widen the reserve forever —
+        // and a single bad beat weeks ago would otherwise widen the reserve forever:
         // quietly dropping every session since out of the band it belongs in.
         return Swift.min(observed, predicted + observedMaximumHeadroom)
     }
@@ -179,7 +179,7 @@ public enum StrainScore {
     // MARK: - Zones
 
     /// Buckets of heart rate reserve. Zone 0 is everything under the first training
-    /// zone — most of most days, and not nothing: it is where a long day on your feet
+    /// zone, most of most days, and not nothing: it is where a long day on your feet
     /// shows up.
     public struct Zone: Sendable, Equatable {
         public let id: String
@@ -204,11 +204,11 @@ public enum StrainScore {
     /// Not a hard ceiling on the everyday zone any more, and the distinction matters:
     /// the ramp begins at 0.30 reserve while zone 0 runs to 0.40, so buckets in between
     /// earn partial training credit that is filed under zone 0 and bypasses this.
-    /// Sixteen hours sustained at 0.399 reserve is eight times this figure — not an
+    /// Sixteen hours sustained at 0.399 reserve is eight times this figure, not an
     /// ordinary day, but not what the old wording promised either.
     ///
     /// The bug this exists for: sixteen waking hours at an unremarkable 70 bpm is 87
-    /// load, which on the old curve was a strain of 10 out of 21 — "moderate" — for a
+    /// load, which on the old curve was a strain of 10 out of 21 ("moderate") for a
     /// person who did nothing at all. Fifteen hours of sitting outweighed a 45-minute
     /// run, so on a day somebody ran, the breakdown's top row was sitting down.
     ///
@@ -221,7 +221,7 @@ public enum StrainScore {
     ///
     /// A hard cut at the zone boundary was a cliff: sixteen hours just under it saturated
     /// at the cap, and one beat per minute higher put every one of those minutes on the
-    /// unbounded side — 104 bpm read 20, 105 bpm read 95. Ramping across a band means a
+    /// unbounded side: 104 bpm read 20, 105 bpm read 95. Ramping across a band means a
     /// bucket near the line contributes part of its load to each side, so the score moves
     /// smoothly with the day instead of hinging on it.
     public static let everydayRampLow = 0.30
@@ -254,7 +254,7 @@ public enum StrainScore {
     ///
     /// The waking day has no start whenever nothing the record calls sleep ended this
     /// morning: the watch charged overnight, sleep tracked on the phone alone, or
-    /// sleep-analysis permission declined — and in that last case on every day,
+    /// sleep-analysis permission declined, and in that last case on every day,
     /// permanently. Falling back to the first sample is what made the wear check a
     /// tautology twice over, because a watch put on late produces a trace whose start IS
     /// the window start, so there is no leading gap left to find.
@@ -269,12 +269,12 @@ public enum StrainScore {
     ///
     /// Eleven hours rather than ten. At ten the bound reduced to "flag any complete day
     /// whose trace starts after 10:00", which catches a Saturday lie-in and, worse, anyone
-    /// on a night shift — and the population this applies to is exactly the people with no
+    /// on a night shift, and the population this applies to is exactly the people with no
     /// sleep data, who are disproportionately the ones sleeping at odd hours. Eleven still
     /// fires on the case the floor exists for: a watch on the charger until noon, read at
     /// eleven at night, has 660 minutes of trace against 720 provably awake.
     ///
-    /// It cannot be made to distinguish "woke late" from "put the watch on late" — nothing
+    /// It cannot be made to distinguish "woke late" from "put the watch on late", nothing
     /// can, without a night to read. Where it is wrong it adds a line saying how much was
     /// recorded, which is cheap; the error it is guarding against is a hard session read as
     /// a rest day, which is not.
@@ -291,7 +291,7 @@ public enum StrainScore {
 
     /// What today is worth doing, given how recovered you are.
     ///
-    /// Deliberately never stated in words anywhere — it is a tick on the ring. A target
+    /// Deliberately never stated in words anywhere: it is a tick on the ring. A target
     /// written as a sentence is an instruction, and a coach who issues a number every
     /// morning is a spreadsheet. As a mark you are heading towards it is a suggestion,
     /// and passing it is allowed.
@@ -333,7 +333,7 @@ public enum StrainScore {
             let id = zone(forReserve: reserve).id
             let load = trimp(minutes: sample.minutes, heartRate: sample.beatsPerMinute,
                              resting: resting, maximum: maximum, sex: input.biologicalSex)
-            // Split across the ramp rather than assigned to one side of a line — and the
+            // Split across the ramp rather than assigned to one side of a line, and the
             // minutes split with the load, or the two disagree about the same sample. They
             // did: a trace whose every reading sat inside the ramp put everyday load in
             // zone0 and no minutes there, and the row is emitted only where there are
@@ -393,7 +393,7 @@ public enum StrainScore {
                 magnitude: muscular * share,
                 explanation: "Sets taken within about three reps of failure. A heavy "
                            + "triple barely moves your heart rate, so lifting is close "
-                           + "to invisible to a cardiac measure — it is counted "
+                           + "to invisible to a cardiac measure. It is counted "
                            + "separately rather than missed."))
         }
 
@@ -406,7 +406,7 @@ public enum StrainScore {
         // coming off to train: ninety minutes missing out of sixteen hours is a sampled
         // share of 0.91, so catching it through density would have wanted a threshold of
         // 0.91, at which point every normal day is thin too. Measured, a hole over the
-        // session had to pass eight and a half hours before either test fired — 22.9
+        // session had to pass eight and a half hours before either test fired: 22.9
         // against a true 65.5, reported as a complete day.
         //
         // A contiguous stretch of unobserved time is the thing that can hide a session,
@@ -415,7 +415,7 @@ public enum StrainScore {
         // are a twelve-hour gap, and a watch put on in the evening is a leading one.
         if !samples.isEmpty, let first = samples.map(\.start).min() {
             // The window runs from waking, when the night says when that was. When it
-            // does not, it runs from the first reading — which finds internal and
+            // does not, it runs from the first reading, which finds internal and
             // trailing holes but is blind to a late start, so that one case is answered
             // by the floor below instead of by a guessed hour.
             let gap = largestUnobservedGap(in: samples,
@@ -425,7 +425,7 @@ public enum StrainScore {
                                            to: input.readAt,
                                            asleep: input.asleepPeriods)
             if gap >= unobservedGapMinutes || fallsShortOfTheDay(input, from: first) {
-                missing.append("Part of the day — your heart rate was recorded for about "
+                missing.append("Part of the day, your heart rate was recorded for about "
                                + recorded(samples.reduce(0) { $0 + $1.minutes }))
             }
         }
@@ -477,7 +477,7 @@ public enum StrainScore {
     /// The longest contiguous run of minutes inside the window that no sample describes,
     /// counting the stretch before the first reading and the stretch after the last.
     ///
-    /// Samples before the window start are not a gap — somebody read at nine in the
+    /// Samples before the window start are not a gap: somebody read at nine in the
     /// morning wore the watch through a night this window does not reach back to.
     private static func largestUnobservedGap(in samples: [HeartRateSample],
                                             from start: Date, to end: Date,
@@ -498,7 +498,7 @@ public enum StrainScore {
     }
 
     /// The window, minus every stretch of it spent asleep. Sleep is not a hole in the
-    /// record — it is the one part of the day nobody expects a heart rate from — and
+    /// record (it is the one part of the day nobody expects a heart rate from) and
     /// counting it as one flagged watches that never came off.
     private static func awakeWindows(from start: Date, to end: Date,
                                      asleep: [DateInterval]) -> [DateInterval] {
@@ -517,7 +517,7 @@ public enum StrainScore {
         return windows
     }
 
-    /// No cardiac trace at all — the ordinary case for anybody without a watch. The ring
+    /// No cardiac trace at all: the ordinary case for anybody without a watch. The ring
     /// falls back to the activity comparison that shipped before this engine, and says
     /// so, because an empty ring is worse than a labelled approximation.
     private static func fallbackScore(_ fallback: DailyStrainResult?) -> SignalScore {
@@ -565,8 +565,8 @@ public enum StrainScore {
         switch zone.id {
         case "zone0":
             return "Below the first training zone. Walking about, standing, everything "
-                 + "that is not a session. It is not nothing — a long day on your feet "
-                 + "accumulates here — but each minute is worth very little."
+                 + "that is not a session. It is not nothing: a long day on your feet "
+                 + "accumulates here, but each minute is worth very little."
         case "zone1", "zone2":
             return "Easy aerobic work, the pace you could hold a conversation at. Most "
                  + "endurance training should live here, and it costs little to recover from."

@@ -9,7 +9,7 @@ import Testing
 /// four nights a week the seven-day HRV trend actually spans about twelve days, and after
 /// a trip it reaches back seventeen. HRV is the only metric scored on its trend and it
 /// carries the heaviest weight of the five, so a dip that recovered a fortnight ago was
-/// still holding the ring down — worth up to eighteen points, on physiology that had
+/// still holding the ring down: worth up to eighteen points, on physiology that had
 /// already returned to normal.
 @Suite("A week means a week")
 struct TrendWindowTests {
@@ -85,7 +85,7 @@ struct TrendWindowTests {
     @Test("one night back after a gap is not a week's trend",
           arguments: [3, 5, 7, 14, 21])
     func oneNightDoesNotBecomeTheTrend(gap: Int) throws {
-        // Settled, with the ordinary night-to-night variation a real record has — a flat
+        // Settled, with the ordinary night-to-night variation a real record has: a flat
         // line has no spread, so nothing can be unusual against it.
         var values: [Double?] = (0..<120).map { 55.0 + (Double($0 % 7) - 3) * 0.8 }
         values.append(contentsOf: Array(repeating: nil, count: gap))

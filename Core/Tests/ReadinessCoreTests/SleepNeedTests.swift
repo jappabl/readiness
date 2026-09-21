@@ -9,7 +9,7 @@ import Testing
 struct SleepNeedTests {
 
     /// The redesign: debt no longer moves the need. It used to, and over sixty nights it
-    /// made a constant 7h30 sleeper change band on 44% of them — the cap parked almost
+    /// made a constant 7h30 sleeper change band on 44% of them: the cap parked almost
     /// every need on the same number and left people a fraction of a point from a
     /// boundary. It also put a hard ceiling on anyone habitually under 7h26m. The stock
     /// lives in `SleepDebt` now and feeds recovery, which is the question it answers.
@@ -67,8 +67,8 @@ struct SleepDebtTests {
         Array(repeating: hours, count: count)
     }
 
-    /// The defect that drove the rewrite: accruing against the score's need — the upper
-    /// part of the sleeper's own distribution, above their average by construction —
+    /// The defect that drove the rewrite: accruing against the score's need: the upper
+    /// part of the sleeper's own distribution, above their average by construction:
     /// multiplied that bias by fourteen. Somebody averaging a solid eight hours carried
     /// a standing balance of 4.2 h, and an ordinary weekday/weekend sleeper sat pinned
     /// at the cap on 53 days out of 60. The balance measured their variance, not their
@@ -241,7 +241,7 @@ struct SleepScoreCalculationTests {
     /// The point of a need-relative score: the same eight hours is not the same result
     /// when you are six hours in the hole.
     /// Was "the same night scores lower against a larger need", which is the behaviour
-    /// the redesign removed — a running debt balance no longer moves the need, because
+    /// the redesign removed: a running debt balance no longer moves the need, because
     /// it made identical nights score differently for a reason nobody could act on that
     /// night. What remains is yesterday's load, which really is a property of the night
     /// that had to repair it.
@@ -387,7 +387,7 @@ struct SleepContributionTests {
 struct SleepCoverageTests {
 
     /// Reverses the old engine deliberately. It refused a score without continuity, on
-    /// the reasoning that hours alone cannot establish quality — which is true, and is
+    /// the reasoning that hours alone cannot establish quality, which is true, and is
     /// why the number is labelled rather than withheld. A phone-only sleeper got no ring
     /// at all, and a missing ring tells them less than a measured duration does.
     @Test("duration alone still produces a labelled score")
@@ -526,7 +526,7 @@ struct LearnedSleepNeedTests {
 
     /// The one case the estimate cannot be trusted. If even their long nights are short
     /// there is no unrestricted night anywhere in the record, so the number would measure
-    /// how constrained they are rather than what they need — and lowering the bar for the
+    /// how constrained they are rather than what they need, and lowering the bar for the
     /// person furthest from clearing it is the wrong direction to be wrong in.
     @Test("no relief anywhere falls back rather than ratifying the deprivation")
     func chronicallyRestricted() {
@@ -603,7 +603,7 @@ struct LearnedNeedRampTests {
 struct SleepDebtResolutionTests {
 
     /// At a fortnight, against a reference floored at seven hours, the balance saturated
-    /// for anybody whose median was under 6.5 — so a six-hour sleeper who genuinely
+    /// for anybody whose median was under 6.5, so a six-hour sleeper who genuinely
     /// improved to six and a half watched the card read the same number for forty days.
     /// That is precisely the group the floor exists to catch.
     @Test("improvement shows before the balance is cleared")
@@ -631,7 +631,7 @@ struct SleepDebtResolutionTests {
 /// The balance has to fade per night that *passed*, not per night that was recorded.
 ///
 /// `accumulate` applied the decay once per array entry, and the array had already had its
-/// unrecorded nights compacted out — so taking the watch off froze the balance instead of
+/// unrecorded nights compacted out, so taking the watch off froze the balance instead of
 /// letting it fade, and the sentence on screen ("each night fades as it recedes rather
 /// than dropping out on a fixed day") was false for exactly the people most likely to
 /// read it.

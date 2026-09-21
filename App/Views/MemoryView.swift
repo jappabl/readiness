@@ -4,7 +4,7 @@ import SwiftData
 /// The card in Profile, and the page behind it.
 ///
 /// Jett writes to this list without being asked, so the list has to be somewhere a
-/// person would actually look — not a row buried between goals and billing. One card
+/// person would actually look, not a row buried between goals and billing. One card
 /// that reads as its own thing, and a page that shows the whole list, is how it stays
 /// checkable rather than technically visible.
 

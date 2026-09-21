@@ -262,7 +262,7 @@ struct CoachChartCard: View {
     @Environment(AppModel.self) private var model
 
     /// The same series the app draws for this metric anywhere else, which for the balance
-    /// is the only place it exists — a per-day accessor cannot answer for a running total.
+    /// is the only place it exists: a per-day accessor cannot answer for a running total.
     private var values: [Double] { model.chartValues(kind) }
 
     private var reading: MetricReading? {

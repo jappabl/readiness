@@ -10,7 +10,7 @@ private func reading(_ kind: MetricKind, z: Double, samples: Int = 30) -> Metric
 }
 
 /// Confidence comes from how many samples each baseline rests on, not from how long the
-/// series is — a night of phone sleep is enough to lengthen the series while every heart
+/// series is: a night of phone sleep is enough to lengthen the series while every heart
 /// metric is still judged against two readings.
 private func thinMorning(goodness: Double, samples: Int) -> [MetricReading] {
     ReadinessEngine.weights.keys.map {
@@ -42,7 +42,7 @@ struct RecoveryTransferTests {
     }
 
     /// Re-pointed when compositeScale moved from 0.6 to 0.75. At 0.6 the score was
-    /// over-spread — at a realistic correlation between the inputs it ordered a healthy
+    /// over-spread, at a realistic correlation between the inputs it ordered a healthy
     /// person to recover one day in five.
     /// The transfer itself, not a morning run through the engine: past about a standard
     /// deviation the per-contribution clamp starts holding individual inputs back, so a
@@ -129,7 +129,7 @@ struct RecoveryBandTests {
     }
 
     /// Every state has to be reachable from physiology alone. The old thresholds put
-    /// wellBelowBaseline at composite < -1.5 — roughly a 2.5-sigma day — so in practice
+    /// wellBelowBaseline at composite < -1.5 (roughly a 2.5-sigma day) so in practice
     /// it only ever arrived through the wrist-temperature gate.
     @Test("every state is reachable without a gate")
     func allStatesReachable() {
@@ -275,7 +275,7 @@ struct ScoreCoverageTests {
     }
 
     /// A gate is the loudest thing the engine can say, so it cannot be left off the
-    /// breakdown — the screen would show contributors that do not explain the number.
+    /// breakdown: the screen would show contributors that do not explain the number.
     @Test("a gate is reported alongside the contributors")
     func gateReported() throws {
         let result = RecoveryScore.of(ReadinessEngine.evaluate(
@@ -308,7 +308,7 @@ struct SingleInputTests {
     }
 
     /// Renormalising over whatever survived handed the absent streams' votes to whoever
-    /// showed up: a lone blood-oxygen reading — weight 0.07 — scored the same as a full
+    /// showed up: a lone blood-oxygen reading (weight 0.07) scored the same as a full
     /// panel saying the same thing.
     @Test("a lone light-weight metric does not score like a full panel")
     func loneMetricIsDamped() throws {
@@ -334,7 +334,7 @@ struct GateContractTests {
 
     /// The load-spike gate's own explanation says it "cannot make a good morning bad".
     /// It took seventy-six points off one, producing a red ring above an at-baseline
-    /// state and a "maintain" — the exact disagreement the score mapping exists to stop.
+    /// state and a "maintain", the exact disagreement the score mapping exists to stop.
     @Test("a load spike cancels a green light without making the day red")
     func loadSpikeCapsRatherThanCrushes() throws {
         let result = RecoveryScore.of(ReadinessEngine.evaluate(
@@ -430,8 +430,8 @@ struct SleepDebtScoringTests {
     }
 
     /// The defect this replaced. Scored against its own rolling average, a stock whose
-    /// deviation is minutes made being eight hours down read as *good news* — it sat
-    /// below an elevated normal — and for a chronic case pinned at the cap the deviation
+    /// deviation is minutes made being eight hours down read as *good news*: it sat
+    /// below an elevated normal, and for a chronic case pinned at the cap the deviation
     /// was exactly zero, so thirty per cent of recovery's weight stopped voting.
     @Test("more debt is always worse, and owing nothing is never bad")
     func monotoneAndAnchored() {
@@ -471,7 +471,7 @@ struct SleepDebtScoringTests {
     /// something. It used to be a 36-point switch on whether last night beat 7.2 hours.
     /// It used to be a 36-point switch on whether last night beat about 7.2 hours, with
     /// four hours of sleep scoring no worse than six and a half. It has to grade across
-    /// the range that distinguishes people — which runs out where the per-input clamp
+    /// the range that distinguishes people, which runs out where the per-input clamp
     /// bites, at roughly seven hours behind.
     @Test("it grades rather than switching")
     func graded() {
@@ -495,7 +495,7 @@ struct SleepDebtScoringTests {
 struct ClampContinuityTests {
 
     /// The clamp used to switch on at three streams, so a metric simply starting to
-    /// report — at exactly its own average, saying nothing — moved the score by up to
+    /// report (at exactly its own average, saying nothing) moved the score by up to
     /// seventeen points.
     @Test("adding a stream that says nothing barely moves it")
     func addingANeutralStream() throws {

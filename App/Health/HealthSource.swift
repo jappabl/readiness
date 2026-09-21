@@ -165,7 +165,7 @@ extension DailyPhysiology {
                 }
                 // The same split the screen shows. This used to hand over the raw staged
                 // hours and drop a night only when they overflowed it, so Jett was told
-                // "deep sleep 0.9 h" about a night the app was showing as 1.2 — and was
+                // "deep sleep 0.9 h" about a night the app was showing as 1.2, and was
                 // told a number at all for nights the app says it cannot describe.
                 guard night.reconciledStages != nil, night.stagedHours > 0 else { return nil }
                 let value = night[keyPath: path] * (night.asleepHours / night.stagedHours)

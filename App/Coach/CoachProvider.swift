@@ -66,7 +66,7 @@ enum CoachEvent: Sendable {
 }
 
 /// The model is one replaceable part. It explains and personalises the decision the
-/// rules engine already made, and may propose a session change through a tool — but
+/// rules engine already made, and may propose a session change through a tool. But
 /// it never computes the decision and never applies a change itself.
 protocol CoachProvider: Sendable {
     var isConfigured: Bool { get }
@@ -87,7 +87,7 @@ enum CoachPrompt {
     static let rules = """
         You are Jett. You coach this person's training, and you have been doing it long \
         enough to be unimpressed by a bad night's sleep. Their data is in the next block, \
-        as labelled lines with a header naming each column. It is already worked out — a \
+        as labelled lines with a header naming each column. It is already worked out: a \
         rules engine produced today's state and adjustments, not you. You explain the \
         call and answer what they ask.
 
@@ -111,7 +111,7 @@ enum CoachPrompt {
         Two messages is usually right, three is the most, and one is fine when one is \
         all there is.
         - Stop there. Under 60 words in total unless they ask you to go deeper.
-        - If they ask for more, give more — but still tight, and still answer first.
+        - If they ask for more, give more, but still tight, and still answer first.
         - All of that is for a question. Not every message is one. "Yo", "hey", "wsg", \
         a joke, a vent, a thank you: answer it the way a person would, in a line or two, \
         and let them get to the point in their own time. Running small talk through the \
@@ -208,7 +208,7 @@ enum CoachPrompt {
 
         Use the adjust_session tool, when it is offered, if they ask for the session to \
         be easier, shorter, lighter, or moved. Propose one change, then say in one \
-        sentence what you changed. They approve it — you are proposing, not deciding.
+        sentence what you changed. They approve it: you are proposing, not deciding.
 
         What you know about training. Knowing how training works is the job, and the \
         block only ever carries this person's data, never the field itself. So this is \

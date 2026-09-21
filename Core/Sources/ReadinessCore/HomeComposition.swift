@@ -55,7 +55,7 @@ public enum HomeBlock: String, Sendable, Equatable, CaseIterable {
     case sleepQuality
     /// A standing balance rather than a reading, which is why it is its own card and
     /// not a line inside the sleep score. The card renders nothing when there is
-    /// nothing owed and nothing changed — a row saying "0 h, no change" every morning
+    /// nothing owed and nothing changed, a row saying "0 h, no change" every morning
     /// is how a card teaches people to stop looking at it.
     case sleepDebt
     case movement

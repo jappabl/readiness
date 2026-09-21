@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// The sections that vary by goal. Each one refuses to render a number the day does
-/// not actually have — an empty macro card is better than a confident zero.
+/// not actually have: an empty macro card is better than a confident zero.
 
 // MARK: - Nutrition
 
@@ -21,7 +21,7 @@ struct NutritionCard: View {
             VStack(alignment: .leading, spacing: 18) {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
                     // Zero, not a dash. The app's rule everywhere else is that a missing
-                    // measurement must never render as a confident zero — but nutrition
+                    // measurement must never render as a confident zero, but nutrition
                     // is not measured, it is logged, and an empty log is a log of
                     // nothing. Nought calories is the true answer, and a dash makes the
                     // user wonder whether the app failed to read something.
@@ -128,8 +128,8 @@ struct SleepQualityCard: View {
     /// Drawn from `reconciledStages`, which is the same split the engine scores and the
     /// ring draws. This card was the last place still dividing the raw staged hours by the
     /// night, and two devices each unioning their own samples stage more of a night than it
-    /// held: measured on a 7.5-hour night, the bar ran to 153% of its track — past the card
-    /// edge, since `bevelCard` does not clip — under a 7h 30m headline, with a legend
+    /// held: measured on a 7.5-hour night, the bar ran to 153% of its track: past the card
+    /// edge, since `bevelCard` does not clip: under a 7h 30m headline, with a legend
     /// summing to 11.5 hours. Three sources reached 233%.
     private func stages(_ split: (deep: Double, rem: Double, core: Double),
                         of asleepHours: Double) -> some View {
@@ -180,7 +180,7 @@ struct MovementCard: View {
             VStack(alignment: .leading, spacing: 20) {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
                     Image(systemName: "flame.fill").foregroundStyle(Tokens.textPrimary)
-                    Text(activeEnergy.map { $0.formatted(.number.precision(.fractionLength(0))) } ?? "—")
+                    Text(activeEnergy.map { $0.formatted(.number.precision(.fractionLength(0))) } ?? "–")
                         .font(.system(size: 30, weight: .semibold)).monospacedDigit()
                     Text("active kcal").font(.subheadline).foregroundStyle(.secondary)
                 }
@@ -217,7 +217,7 @@ struct EmptyBlock: View {
 /// What you are down on sleep, and which way it went.
 ///
 /// This used to live inside the sleep score, where it made two identical nights score
-/// differently for a reason nobody could act on that night — and measured over sixty
+/// differently for a reason nobody could act on that night, and measured over sixty
 /// nights it flipped a constant sleeper's band on 44% of them. A stock does not belong
 /// inside a flow. Here it is what it actually is: a balance with a direction.
 struct SleepDebtCard: View {
@@ -244,7 +244,7 @@ struct SleepDebtCard: View {
         }
     }
 
-    /// Down is good here, which is the opposite of everywhere else in the app — so the
+    /// Down is good here, which is the opposite of everywhere else in the app, so the
     /// arrow points the way the number moved and the colour says whether that was good.
     private var delta: some View {
         let paidDown = debt.change < 0
@@ -259,7 +259,7 @@ struct SleepDebtCard: View {
         //
         // `SleepDebt.change` is the difference between two consecutive cards: yesterday's
         // balance is computed against yesterday's own reference, not today's. This label
-        // has been wrong in both directions — "after last night" while a seven-night
+        // has been wrong in both directions: "after last night" while a seven-night
         // window's roll-off explained more of the movement than last night did, then
         // "since yesterday" while both balances shared today's reference, which made the
         // arrow point up on mornings the number had fallen. Defining the quantity as the

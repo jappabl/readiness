@@ -3,7 +3,7 @@ import Foundation
 /// The handful of things Jett carries between conversations.
 ///
 /// Almost nothing belongs here. Scores, load, sleep, the programme, the answers from
-/// onboarding — all of it is rebuilt from the record and sent fresh with every message,
+/// onboarding, all of it is rebuilt from the record and sent fresh with every message,
 /// so writing any of it down would only create a second copy to go stale. What is left
 /// is what nothing else records: a niggle mentioned in passing, a constraint with an end
 /// date, something they asked not to be brought up again.

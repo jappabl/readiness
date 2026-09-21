@@ -69,7 +69,7 @@ function problem(status: number, detail: string, extra?: Record<string, string>)
  * Who is calling.
  *
  * App Attest is the layer that stops someone pointing curl at this. It stays off until
- * the verification below exists — the team ID it validates <teamID>.<bundleID> against is
+ * the verification below exists: the team ID it validates <teamID>.<bundleID> against is
  * in `wrangler.toml` now, so that is no longer what is missing. While it is off, a shared
  * development secret is required instead, so the endpoint is never simply open.
  */

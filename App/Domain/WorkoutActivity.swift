@@ -4,8 +4,8 @@ import Foundation
 /// Starting, moving and ending the Lock Screen activity.
 ///
 /// Everything here is best-effort on purpose. A Live Activity can be refused for reasons
-/// the app cannot see or fix — the setting is off, too many are running, the system is
-/// under pressure — and none of them are reasons to stop somebody logging a set. So
+/// the app cannot see or fix: the setting is off, too many are running, the system is
+/// under pressure, and none of them are reasons to stop somebody logging a set. So
 /// every call either works or does nothing, and the workout never depends on it.
 @MainActor
 enum WorkoutActivity {

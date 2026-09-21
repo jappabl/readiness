@@ -3,7 +3,7 @@ import Foundation
 @testable import ReadinessCore
 
 /// Charts are requested by a marker in the text rather than a tool call, because a tool
-/// call costs a whole extra request — the entire prefix re-read, and a second round trip
+/// call costs a whole extra request: the entire prefix re-read, and a second round trip
 /// before a single word appears. A marker costs about six tokens and no round trip.
 ///
 /// The hard part is the stream: the marker arrives one character at a time, so a naive
@@ -67,7 +67,7 @@ struct CoachSegmentTests {
     @Test("two charts both survive")
     func twoCharts() {
         // Two names the app can actually draw. This used to pin `sleepDebt`, which the
-        // chart card can no longer render — a balance is not a per-day value — so a test
+        // chart card can no longer render (a balance is not a per-day value) so a test
         // called "two charts both survive" was guaranteeing a segment that draws nothing.
         let parsed = CoachSegments.parse("[chart:hrv] and [chart:restingHeartRate]")
         #expect(parsed == [.chart(.hrv), .text("and"), .chart(.restingHeartRate)])

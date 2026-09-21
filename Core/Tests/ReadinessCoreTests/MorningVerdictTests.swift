@@ -3,7 +3,7 @@ import Foundation
 @testable import ReadinessCore
 
 /// The morning verdict is the app's core output. It is not budgeted, and it is not
-/// suppressed for repeating itself — a fifth consecutive rough night is a fifth day the
+/// suppressed for repeating itself: a fifth consecutive rough night is a fifth day the
 /// user should train differently.
 @Suite("The morning verdict")
 struct MorningVerdictTests {
@@ -12,7 +12,7 @@ struct MorningVerdictTests {
     ///
     /// `title` defaults to the same contributor every other test in this file uses.
     /// `worseSignalWins` overrides it, because two scores with an identical lead
-    /// contributor produce an identical `summary` regardless of which one is picked —
+    /// contributor produce an identical `summary` regardless of which one is picked,
     /// that would let the wrong signal win the sentence without the test noticing.
     private func score(_ kind: SignalKind, value: Double, magnitude: Double,
                        coverage: ScoreCoverage = .full,
@@ -94,8 +94,8 @@ struct MorningVerdictTests {
         // Mirrors worseSignalWins with the roles swapped: recovery is the more negative
         // of two qualifying signals. A worstNews that always favored one parameter
         // regardless of which one actually moved further would pass every other test in
-        // this file — none of them has recovery as the worse of two candidates that both
-        // clear the interruption threshold — and only be caught here.
+        // this file: none of them has recovery as the worse of two candidates that both
+        // clear the interruption threshold, and only be caught here.
         let recoveryScore = score(.recovery, value: 30, magnitude: -14, title: "Heart rate variability")
         let sleepScore = score(.sleep, value: 55, magnitude: -6, title: "Deep sleep")
         let sentence = MorningVerdict.sentence(
@@ -143,7 +143,7 @@ struct MorningVerdictTests {
         // 40 nights: the oldest 19 are a 99 no recent night can beat, the most recent 21
         // are 94s that tonight's 96 does beat. Every other fixture in this file is
         // bestWindow (21) or fewer, so `.suffix(bestWindow)` never actually trims
-        // anything in them — deleting it, or swapping it for `.prefix`, changes none of
+        // anything in them: deleting it, or swapping it for `.prefix`, changes none of
         // their outcomes. This is the one history long enough to tell the difference.
         let longHistory = Array(repeating: 99.0, count: 19) + Array(repeating: 94.0, count: 21)
         let sentence = MorningVerdict.sentence(
@@ -164,7 +164,7 @@ struct MorningVerdictTests {
 
     // Added in review: `worstNews` filtered only `.unavailable`, so a `.buildingBaseline`
     // score with a -9 contributor produced a confident interruption off a number the
-    // app's own UI labels "Still learning your normal" (InsightsView.coverageTitle) — a
+    // app's own UI labels "Still learning your normal" (InsightsView.coverageTitle), a
     // caveat a lock screen cannot carry.
     @Test("a still-learning score does not interrupt, even with a big enough contributor")
     func buildingBaselineCoverageIsSilent() {
@@ -175,8 +175,8 @@ struct MorningVerdictTests {
     }
 
     // Added in review: `bestNight` uses `value > best`, but nothing exercised the
-    // boundary itself, so a regression to `value >= best` — congratulating a tied night
-    // as a new record — turned nothing red. The file's own doc comment calls the lock
+    // boundary itself, so a regression to `value >= best`: congratulating a tied night
+    // as a new record: turned nothing red. The file's own doc comment calls the lock
     // screen "the one place the app cannot afford small lies."
     @Test("tying the record, not beating it, stays quiet")
     func tyingTheBestIsSilent() {

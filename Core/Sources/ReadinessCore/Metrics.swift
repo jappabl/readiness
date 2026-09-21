@@ -112,7 +112,7 @@ public struct MetricReading: Sendable, Equatable, Codable {
     /// What the engine actually weighs. The same as `zScore` for every metric except
     /// HRV, which is scored on its trend. See `MetricKind.scoresOnTrend`.
     public let scoringZ: Double
-    /// The value that `scoringZ` describes — the same as `value` for every metric except
+    /// The value that `scoringZ` describes: the same as `value` for every metric except
     /// HRV, where it is the trend rather than last night's reading.
     ///
     /// A row that scores one quantity and prints another says two things at once. The HRV

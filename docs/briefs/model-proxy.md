@@ -24,8 +24,8 @@ app with a real entitlement, meters it, and forwards.
 **The server builds the request body. The client never sends one.**
 
 It is tempting to make the proxy a dumb forwarder: same JSON, different URL. Do not. A
-proxy that forwards a client-supplied body to a provider using your key is an open relay
-— anybody who gets past attestation once can send it arbitrary prompts against your
+proxy that forwards a client-supplied body to a provider using your key is an open
+relay: anybody who gets past attestation once can send it arbitrary prompts against your
 account, with any model and any `max_tokens`. Whatever you spend on attestation is wasted
 if the body is attacker-controlled.
 
@@ -36,7 +36,7 @@ release.
 
 ## Current state on the client
 
-### Coach — `App/Coach/ClaudeCoachProvider.swift`
+### Coach. `App/Coach/ClaudeCoachProvider.swift`
 ```swift
 static let model = "claude-sonnet-5"
 static let endpoint = URL(string: "https://api.anthropic.com/v1/messages")!
@@ -51,7 +51,7 @@ var apiKey: String? { Keychain.apiKey }
 - Gated on `CoachSharing.isAllowed` (`App/Coach/CoachProvider.swift:157`), a UserDefaults
   consent flag. Keep that gate; it is the user's consent to send anything at all.
 
-### Meal photos — `App/Coach/MealPhotoEstimator.swift`
+### Meal photos. `App/Coach/MealPhotoEstimator.swift`
 ```swift
 POST https://api.deepseek.com/anthropic/v1/messages
 model: "deepseek-flash", max_tokens 500, thinking disabled
@@ -71,7 +71,7 @@ BurstLimiter.capacity = 8         // Core/Sources/ReadinessCore/BurstLimiter.swi
 BurstLimiter.refillInterval = 12  // seconds per token
 ```
 
-### Entitlement — `App/Domain/Subscriptions.swift`
+### Entitlement. `App/Domain/Subscriptions.swift`
 ```swift
 static let monthlyID = "com.coachjett.ios.pro.monthly"
 static let yearlyID  = "com.coachjett.ios.pro.yearly"
@@ -91,7 +91,7 @@ the Worker with attestation stubbed behind a flag and turn it on after.
 
 ### Host
 
-**Cloudflare Workers.** Edge-deployed, so it adds little to the round trip — latency is one
+**Cloudflare Workers.** Edge-deployed, so it adds little to the round trip: latency is one
 of this product's two stated levers. It streams `ReadableStream` responses natively, which
 the coach needs. Secrets via `wrangler secret put`. Use **Durable Objects** for the token
 bucket, which needs strong consistency, and KV or D1 for anything that can be eventually
@@ -134,7 +134,7 @@ Port the two rules rather than inventing new numbers:
 - **Burst**: token bucket, capacity 8, one token per 12 seconds. `BurstLimiter` in Core is
   the exact algorithm; match its behaviour including the clamp on negative elapsed time.
 
-Both must be enforced for subscribers too — unlimited means no monthly cap, not no rate
+Both must be enforced for subscribers too: unlimited means no monthly cap, not no rate
 limit. Add a per-account daily spend ceiling and a global kill switch; a bug in a retry
 loop should cost you a rounding error, not a month of revenue.
 
@@ -175,7 +175,7 @@ cheap.
 
 - `ClaudeCoachProvider`: swap `endpoint` for the Worker URL, drop `x-api-key` and
   `anthropic-version`, send the session token instead. Stop building the provider body;
-  send `CoachContext` plus messages. Keep the SSE parsing — have the Worker pass the
+  send `CoachContext` plus messages. Keep the SSE parsing: have the Worker pass the
   provider's event stream through unchanged so `CoachEvent` parsing does not move.
 - `MealPhotoEstimator`: same swap. The base64 resize (≤1280px, q0.8) stays on the client;
   it is bandwidth you do not want to pay for twice.
@@ -183,7 +183,7 @@ cheap.
   deleted once the Worker is live, along with the Anthropic key field in `ProfileView`.
   Do not delete them before, or development stops.
 - Error mapping: the client already models `CoachError.notConfigured` and
-  `MealPhotoEstimator.Failure.service(Int)`. Map proxy statuses onto them —
+  `MealPhotoEstimator.Failure.service(Int)`. Map proxy statuses onto them:
   401 attestation failed, 402 free tier exhausted (the client shows the paywall),
   429 burst limit (the client already says "One at a time, try again in Ns" and needs
   `Retry-After`), 503 provider down.

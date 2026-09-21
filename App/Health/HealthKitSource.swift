@@ -24,7 +24,7 @@ final class HealthKitSource: HealthSource, @unchecked Sendable {
     }
 
     private static let streams: [Stream] = [
-        // Overnight physiology — what the readiness model scores.
+        // Overnight physiology: what the readiness model scores.
         Stream(key: "hrv", id: .heartRateVariabilitySDNN, unit: .secondUnit(with: .milli), options: .discreteAverage),
         Stream(key: "rhr", id: .restingHeartRate, unit: .beatsPerMinute, options: .discreteAverage),
         Stream(key: "respiratoryRate", id: .respiratoryRate, unit: .beatsPerMinute, options: .discreteAverage),
@@ -87,7 +87,7 @@ final class HealthKitSource: HealthSource, @unchecked Sendable {
     }
 
     /// Asked exactly once. HealthKit cannot present a second prompt while the first is
-    /// dismissing — it hangs — so read and write are requested together or not at all.
+    /// dismissing (it hangs), so read and write are requested together or not at all.
     func requestAuthorization(alsoShare share: Set<HKSampleType>) async throws {
         guard Self.isAvailable else { throw HealthSourceError.unavailable }
         try await store.requestAuthorization(toShare: share, read: Self.readTypes)
@@ -319,8 +319,8 @@ final class HealthKitSource: HealthSource, @unchecked Sendable {
     ///
     /// A watch samples every few minutes at rest and continuously during a workout, so
     /// at one-minute buckets most resting minutes have no reading of their own. Each
-    /// bucket therefore covers the gap to the next one — which is what the heart was
-    /// actually doing — rather than a fixed minute, or a quiet day would lose four
+    /// bucket therefore covers the gap to the next one, which is what the heart was
+    /// actually doing, rather than a fixed minute, or a quiet day would lose four
     /// fifths of itself. Capped, so a watch left on a charger stays a gap.
     static let heartRateCarryMinutes = 10.0
 
@@ -408,7 +408,7 @@ final class HealthKitSource: HealthSource, @unchecked Sendable {
     // MARK: - Sleep
 
     /// A night's sleep is attributed to the day the user woke up on, and overlapping
-    /// samples are merged rather than summed — see `SleepAggregator`.
+    /// samples are merged rather than summed. See `SleepAggregator`.
     private func dailySleep(from start: Date, to end: Date) async throws -> [Date: SleepBreakdown] {
         guard let type = HKCategoryType.categoryType(forIdentifier: .sleepAnalysis) else { return [:] }
         let calendar = Calendar.current
@@ -476,7 +476,7 @@ final class HealthKitSource: HealthSource, @unchecked Sendable {
     }
 
     /// A workout the watch built carries its own statistics. One written by another app
-    /// often does not — but the energy samples tied to it are still there, and asking
+    /// often does not. But the energy samples tied to it are still there, and asking
     /// the workout what belongs to it is the only way to find them.
     private func energyBurned(in workout: HKWorkout) async -> Double? {
         guard let type = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned)
@@ -566,7 +566,7 @@ final class HealthKitSource: HealthSource, @unchecked Sendable {
         store.enableBackgroundDelivery(for: type, frequency: .hourly) { _, _ in }
     }
 
-    /// True when the store holds essentially nothing — which is the normal state of a
+    /// True when the store holds essentially nothing, which is the normal state of a
     /// fresh simulator, and the trigger for falling back to synthetic data.
     func hasAnyData() async -> Bool {
         guard let type = HKQuantityType.quantityType(forIdentifier: .heartRateVariabilitySDNN)

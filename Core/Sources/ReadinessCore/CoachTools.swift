@@ -57,7 +57,7 @@ public enum CoachTools {
                 + "there in a month. Only for what the data block does not already carry: "
                 + "an injury mentioned in conversation, a constraint with an end date, a "
                 + "standing preference, or a commitment you made. Never their scores, load, "
-                + "sleep, programme, goal or equipment — those arrive fresh every message. "
+                + "sleep, programme, goal or equipment. Those arrive fresh every message. "
                 + "Most messages need no call at all.",
             "input_schema": [
                 "type": "object",

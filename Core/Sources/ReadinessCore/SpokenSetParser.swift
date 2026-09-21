@@ -30,7 +30,7 @@ public struct SpokenSetLog: Equatable, Sendable {
     public let exercise: String?
     public let reps: [Int]
     public let load: Double?
-    /// Nil when the number was said on its own — the caller decides whose unit it is.
+    /// Nil when the number was said on its own: the caller decides whose unit it is.
     public let loadUnit: SpokenLoadUnit?
     public let rir: Int?
     public let feel: SetFeel?

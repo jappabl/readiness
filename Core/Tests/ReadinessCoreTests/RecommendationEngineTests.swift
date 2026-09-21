@@ -110,7 +110,7 @@ struct TrainingStateTests {
     }
 }
 
-@Suite("Adjustments are concrete — 'take it easy' is not an answer")
+@Suite("Adjustments are concrete: 'take it easy' is not an answer")
 struct AdjustmentTests {
 
     @Test("every state proposes at least one concrete action")

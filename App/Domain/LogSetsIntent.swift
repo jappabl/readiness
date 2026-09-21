@@ -95,7 +95,7 @@ enum SpokenSetWriter {
     }
 
     /// What was understood, not what was said. Hearing "three sets, felt heavy" is how
-    /// somebody catches a misparse — read aloud by Siri, or read on the confirm card.
+    /// somebody catches a misparse: read aloud by Siri, or read on the confirm card.
     static func understood(_ resolution: SpokenSetResolver.Resolution,
                            metric: Bool) -> String {
         // The reps are the thing worth reading back: "1 set of bench" tells somebody

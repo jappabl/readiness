@@ -6,7 +6,7 @@ rather than inventing parallel ones.
 
 ## The app
 
-**Coach Jett** — a training and recovery app. It reads Apple Health, builds a personal
+**Coach Jett**, a training and recovery app. It reads Apple Health, builds a personal
 baseline from the user's own history, and tells them what to do today. The coach persona
 is **Jett**, who the app is named after: a face, a voice, and a chat tab. The product was
 renamed from "Readiness" to "Coach Jett"; the Xcode project, target, scheme and bundle id
@@ -44,26 +44,26 @@ know how to use rather than a feature they have to discover.
 
 2. **Free text appears exactly once, at the very end**, after the real Health read has
    completed. Every answer before that is a tap. The final message the user types is a
-   real question answered by the real coach against their real numbers — see "The
+   real question answered by the real coach against their real numbers: see "The
    handoff" below.
 
-## Current state — what to delete, what to keep
+## Current state: what to delete, what to keep
 
 | Path | Lines | Action |
 |---|---|---|
 | `App/Views/OnboardingView.swift` | 308 | **Replace entirely.** Holds the nine-step `Step` enum and every step body. |
 | `App/Views/OnboardingChrome.swift` | 219 | **Delete.** Holds `OnboardingScaffold`, `OnboardingStatement`, `ProgressTrack`. Verified: nothing outside `OnboardingView.swift` references any of the three, so the whole file goes with it. |
 | `App/Design/OnboardingArt.swift` | ~430 | **Partially keep.** See below. |
-| `App/ReadinessApp.swift` | — | `RootView` shows `OnboardingView()` above the `TabView` when `model.needsOnboarding`. Keep that structure. |
+| `App/ReadinessApp.swift` |: | `RootView` shows `OnboardingView()` above the `TabView` when `model.needsOnboarding`. Keep that structure. |
 
 ### The three existing animations
 
-- **`ReadingArt`** — Jett's face with three gradient arcs (strain amber, recovery green,
+- **`ReadingArt`**. Jett's face with three gradient arcs (strain amber, recovery green,
   sleep blue) sweeping around him at different speeds and directions. **Keep it.** It
   becomes the thinking beat inside the thread while Health is being read.
-- **`PrivateArt`** — three labelled source badges feeding a phone silhouette. **Delete
+- **`PrivateArt`**: three labelled source badges feeding a phone silhouette. **Delete
   it.** In a conversation Jett says this in one sentence and the picture is redundant.
-- **`BaselineArt`** — a scatter of past nights with a band tightening around them.
+- **`BaselineArt`**, a scatter of past nights with a band tightening around them.
   **Optional.** Build the thread without it first. If the "here is how I work" turn feels
   thin as pure text, inline it at a reduced height (~150pt) inside Jett's message bubble
   area. Do not keep it out of sunk cost; the real chart at the finale may make it
@@ -104,7 +104,7 @@ struct CoachChartCard: View { let kind: MetricKind; var compact = false }
 ```
 `CoachChartCard` reads `AppModel` from the environment, renders a self-drawing line via
 `DrawingLine` with a derived narration line under it, and **renders nothing if it has
-fewer than 2 values** — so it is safe to place before data exists, but you must not rely
+fewer than 2 values**, so it is safe to place before data exists, but you must not rely
 on it appearing.
 
 ### `App/Design/`
@@ -120,18 +120,18 @@ struct PrimaryButton: View { let label: String; var symbol: String?; var tint: C
 struct ListCard<Content: View>: View
 ```
 
-`Tokens` (in `App/Design/Tokens.swift`) — every colour is a dynamic light/dark pair.
+`Tokens` (in `App/Design/Tokens.swift`), every colour is a dynamic light/dark pair.
 Never write a hex value. You need at least: `canvas`, `surface`, `surfaceSunken`,
 `textPrimary`, `textSecondary`, `hairline`, `accent`, `onAccent`, `jettTint`,
 `cardRadius`, `screenMargin`.
 
 `Haptics` (in `App/Design/Haptics.swift`):
 ```swift
-Haptics.committed()   // success notification — use when onboarding completes
-Haptics.decided()     // rigid impact — use when a chip is tapped
+Haptics.committed()   // success notification: use when onboarding completes
+Haptics.decided()     // rigid impact: use when a chip is tapped
 Haptics.light()       // soft impact
-Haptics.replyBegan()  // soft impact at 0.5 intensity — use when a Jett turn starts
-Haptics.replyEnded()  // selection changed — use when a Jett turn finishes
+Haptics.replyBegan()  // soft impact at 0.5 intensity: use when a Jett turn starts
+Haptics.replyEnded()  // selection changed: use when a Jett turn finishes
 Haptics.restOver()
 ```
 
@@ -174,7 +174,7 @@ var healthKit: HealthKitSource
 func requestAuthorization() async throws
 ```
 Note the existing comment there: HealthKit **cannot present a second prompt while the
-first is dismissing — it hangs** — so read and write are requested together or not at
+first is dismissing (it hangs**) so read and write are requested together or not at
 all. Do not add a second authorization call.
 
 ## The conversation
@@ -199,27 +199,27 @@ Opening (no question yet):
 > **Jett:** I'm Jett. I'll read what your body is already recording and tell you what to
 > do with it.
 
-**1. Goal** — single select, chips from `TrainingGoal.allCases` using `.title`.
+**1. Goal**: single select, chips from `TrainingGoal.allCases` using `.title`.
 > **Jett:** What are you here for?
 
 Acknowledgement must be specific to the answer, one line, and must say what changes
 because of it. For `.getStronger`: "Then loads get set against how recovered you are, not
 against a calendar." Write one for each of the four.
 
-**2. Frequency** — single select, `TrainingFrequency.allCases` using `.title`; show
+**2. Frequency**: single select, `TrainingFrequency.allCases` using `.title`; show
 `.detail` as secondary text on the chip if it fits.
 > **Jett:** How many days a week do you train?
 
 Acknowledgement per case. For `.few`: "That's enough for a pattern to show up."
 
-**3. Obstacles** — **multi select**, `Obstacle.allCases`. Needs a confirm affordance
+**3. Obstacles**: **multi select**, `Obstacle.allCases`. Needs a confirm affordance
 since tapping is not terminal; a "Done" chip that is enabled with zero selections and
 reads "Skip" when nothing is picked.
 > **Jett:** Anything getting in the way? Pick any that apply.
 
 Acknowledgement: "Noted. I'll keep those in mind, and I won't score you on them."
 
-**4. Units** — single select, Pounds / Kilos → `answers.unitsAreMetric`.
+**4. Units**: single select, Pounds / Kilos → `answers.unitsAreMetric`.
 > **Jett:** Pounds or kilos?
 
 **5. How he works, then the ask.** Two assistant turns, then a button rather than chips.
@@ -268,7 +268,7 @@ owns the selected tab. Add a seed path: something like an optional pending messa
 small and one-shot; do not build a general message queue.
 
 If the coach is not configured (no API key) the request will fail with
-`CoachError.notConfigured`. **That is an acceptable outcome and must not look broken** —
+`CoachError.notConfigured`. **That is an acceptable outcome and must not look broken**,
 the existing `CoachView` already renders coach errors; make sure the seeded path goes
 through the same error rendering rather than a new one.
 
@@ -332,10 +332,10 @@ swift test --package-path Core
 
 Any logic worth a branch belongs in `Core/Sources/ReadinessCore/` with swift-testing tests
 (`@Test`, `#expect`, `@Suite`) written **before** the implementation. The script's
-sequencing — which question comes next given the answers so far — is exactly this kind of
+sequencing (which question comes next given the answers so far) is exactly this kind of
 logic. Views should be thin.
 
-## Verification — not optional
+## Verification, not optional
 
 This repo's rule is that **you look at the rendered UI before claiming it works.** Reading
 the code is not verification. In one recent session this discipline caught six real bugs

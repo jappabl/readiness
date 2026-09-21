@@ -4,7 +4,7 @@ import Testing
 
 /// Two devices tracking the same night each union their own samples, and the per-stage
 /// totals are then summed, so the staged hours can exceed the night that held them. The
-/// engine reconciles by keeping the proportions and fitting them to the night — that is
+/// engine reconciles by keeping the proportions and fitting them to the night: that is
 /// what it scores. What it *published* was the raw hours, so the ring and the stage key
 /// drew and printed sleep that did not happen.
 @Suite("Reconciling stages across two devices")
@@ -61,7 +61,7 @@ struct SleepStageReconciliationTests {
 
     /// The property the ring needs, and the one that was false: whatever is published for
     /// the stages has to fit inside the night. Drawn against a night of 7.5 hours, raw
-    /// hours of deep 3.0 and REM 2.5 leave 2.0 for light — and 1.04 of those deep hours
+    /// hours of deep 3.0 and REM 2.5 leave 2.0 for light, and 1.04 of those deep hours
     /// were a second device's opinion counted twice.
     @Test("published stage hours fit inside the night")
     func stagesFitTheNight() throws {

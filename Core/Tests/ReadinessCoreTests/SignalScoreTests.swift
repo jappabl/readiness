@@ -3,8 +3,8 @@ import Testing
 @testable import ReadinessCore
 
 /// What the sleep engine reads out of real HealthKit-shaped samples: continuity, and
-/// the schedule baseline. The score's own arithmetic — need, debt, quality, the
-/// breakdown — lives in SleepNeedTests.swift.
+/// the schedule baseline. The score's own arithmetic: need, debt, quality, the
+/// breakdown: lives in SleepNeedTests.swift.
 ///
 /// These were written against `SleepScore.evaluate`, which returned a percent built from
 /// duration times continuity times schedule. That engine has been replaced by one that

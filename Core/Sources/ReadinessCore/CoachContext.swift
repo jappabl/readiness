@@ -17,7 +17,7 @@ public struct CoachContext: Codable, Equatable, Sendable {
 
     /// One of the three rings, as the person is looking at it.
     ///
-    /// The block carried the model's internals — state, composite, per-metric z — and none
+    /// The block carried the model's internals (state, composite, per-metric z) and none
     /// of the three numbers actually on screen. With the hard rule "never invent a
     /// measurement; if a number is not in the block, say you do not have it", the correct
     /// behaviour was for Jett to say he could not see the user's recovery score while that
@@ -65,7 +65,7 @@ public struct CoachContext: Codable, Equatable, Sendable {
     /// The ratio at which this app actually acts.
     ///
     /// Carried rather than left to the model's own knowledge. Asked when to deload, it
-    /// answered "past 1.3" — the sports-science literature's caution line — while the
+    /// answered "past 1.3" (the sports-science literature's caution line) while the
     /// engine gates at 1.5, so it was describing a different system from the one the
     /// person is holding. A field rather than text spliced into `brief`, so both
     /// renderings carry the same facts and the size comparison between them stays honest.
@@ -115,7 +115,7 @@ public struct CoachContext: Codable, Equatable, Sendable {
                      + "confidence \(confidence) | history \(daysOfHistory)d"
                      + (gate.map { " | gate \($0)" } ?? ""))
         // With the app's own threshold beside it. Asked when to deload, the model supplied
-        // 1.3 from general training knowledge while the engine flags at 1.5 — so it was
+        // 1.3 from general training knowledge while the engine flags at 1.5, so it was
         // telling people a number the app does not act on, which is the one thing the
         // rules say never to do.
         if let acwr {

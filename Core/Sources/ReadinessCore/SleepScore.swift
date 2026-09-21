@@ -10,14 +10,14 @@ import Foundation
 ///
 /// Deliberately NOT debt-adjusted, which is a reversal. Folding a running balance into a
 /// nightly score meant two identical nights scored differently for a reason nobody could
-/// act on that night — and measured over sixty nights it made a constant 7h30 sleeper
+/// act on that night, and measured over sixty nights it made a constant 7h30 sleeper
 /// change band on 44% of them, because the debt cap parked almost everybody's need on
 /// exactly the same number and left them a fraction of a point from a boundary. It also
 /// put a hard ceiling on anyone habitually under 7h26m: green was unreachable at any
 /// quality.
 ///
 /// Debt is a stock and a night is a flow. The stock lives in `SleepDebt` now, where it
-/// can be shown as a balance with a direction, and it feeds recovery — which is the
+/// can be shown as a balance with a direction, and it feeds recovery, which is the
 /// question it actually answers.
 /// A need estimated from somebody's own nights, and how much of it really was theirs.
 public struct LearnedNeed: Sendable, Equatable {
@@ -43,7 +43,7 @@ public struct SleepNeed: Sendable, Equatable {
     /// The nightly requirement when nothing better is known.
     ///
     /// A population average, and the only number in the app applied to a person rather
-    /// than learned from them — every other thing measured here is scored against the
+    /// than learned from them, every other thing measured here is scored against the
     /// user's own history. `baseline(from:)` replaces it as soon as there is enough to
     /// learn from.
     public static let baselineHours = 8.0
@@ -53,7 +53,7 @@ public struct SleepNeed: Sendable, Equatable {
 
     /// Where in the person's own distribution their need sits.
     ///
-    /// Not the median — that is the trap. A chronically under-slept person's median is
+    /// Not the median: that is the trap. A chronically under-slept person's median is
     /// their deprivation, and scoring them against it would hand them 100 for sleeping
     /// six hours and call the job done. The upper part of the distribution is what they
     /// take when nothing stops them, which is the closest thing to unrestricted sleep
@@ -65,7 +65,7 @@ public struct SleepNeed: Sendable, Equatable {
     ///
     /// 0.75 is the lowest value that still works, and the reason is the shape of an
     /// ordinary week. Five restricted weekdays and two free weekends put the
-    /// unrestricted nights in the top two sevenths — above the 71st percentile — so
+    /// unrestricted nights in the top two sevenths (above the 71st percentile) so
     /// anything lower collapses into the weekday cluster and learns the deprivation
     /// instead. Measured on that pattern: 0.50 gives a need of 6.5 h, 0.65 gives 7.2 h,
     /// and 0.75 gives 8.8 h, which is the weekend. The cost to somebody under no
@@ -81,7 +81,7 @@ public struct SleepNeed: Sendable, Equatable {
     /// trusted: when even their long nights are below the floor, there is no evidence of
     /// an unrestricted night anywhere in the record, so the number would be a measure of
     /// how constrained they are rather than of what they need. Leaving them on the
-    /// population average is the harsher answer and the honest one — the alternative
+    /// population average is the harsher answer and the honest one: the alternative
     /// quietly lowers the bar for exactly the person who is furthest from clearing it.
     public static func baseline(from nights: [Double]) -> LearnedNeed {
         let usable = nights.filter { $0.isFinite && $0 > 0 }.sorted()
@@ -91,7 +91,7 @@ public struct SleepNeed: Sendable, Equatable {
 
         // A band rather than a single index. On a weekday/weekend record the
         // distribution is two clusters with nothing between them, so a point estimate
-        // sits on whichever night happens to land at the index — and one missing night
+        // sits on whichever night happens to land at the index, and one missing night
         // moved the need by a full hour, which moved an ordinary night ten points.
         let span = usable.indices.filter {
             let q = Double($0) / Double(Swift.max(1, usable.count - 1))
@@ -173,7 +173,7 @@ public struct SleepNeed: Sendable, Equatable {
 /// own card with that direction, and it feeds recovery, where "how far behind am I" is
 /// the question being asked.
 public struct SleepDebt: Sendable, Equatable {
-    /// Outstanding hours, never negative — sleeping extra pays the hole down and then
+    /// Outstanding hours, never negative: sleeping extra pays the hole down and then
     /// stops. Being twelve hours "ahead" is not a thing anybody can spend.
     public let hours: Double
     /// Signed change from the night before. Negative is progress.
@@ -184,7 +184,7 @@ public struct SleepDebt: Sendable, Equatable {
     ///
     /// Debt is scored absolutely rather than against the sleeper's own rolling average,
     /// which is the whole point of the constant existing. A stock has almost no
-    /// day-to-day variance to divide by — measured over sixty days its deviation was
+    /// day-to-day variance to divide by: measured over sixty days its deviation was
     /// minutes, and for a chronically short sleeper pinned at the cap it was exactly
     /// zero, leaving thirty per cent of recovery's weight inert. Worse, scoring an
     /// absolute-bad quantity against its own mean inverts it: sitting at eight hours
@@ -196,8 +196,8 @@ public struct SleepDebt: Sendable, Equatable {
     /// Six hours, not three, because of where the per-input clamp bites: debt carries a
     /// weight of 0.30 against a limit of 0.35, so it saturates at about 1.17 standard
     /// deviations however the scale is drawn. At three hours per deviation that put the
-    /// ceiling at three and a half hours behind — twelve hours in the hole scored no
-    /// worse — and the metric graded over a range narrower than a single bad week. At
+    /// ceiling at three and a half hours behind: twelve hours in the hole scored no
+    /// worse, and the metric graded over a range narrower than a single bad week. At
     /// six it grades across the seven hours that actually distinguish people, and
     /// flattens only where further distinctions stop mattering.
     public static let hoursPerDeviation = 6.0
@@ -207,7 +207,7 @@ public struct SleepDebt: Sendable, Equatable {
     /// Replaces a hard seven-night window, which had an edge: a night stopped counting
     /// entirely on its eighth day. After a bad week that produced five mornings where
     /// ideal sleep moved the recovery ring not at all, and then eighteen points across two
-    /// mornings as the worst night fell off the back — 32 / 32 / 32 / 32 / 32 / 41 / 50,
+    /// mornings as the worst night fell off the back: 32 / 32 / 32 / 32 / 32 / 41 / 50,
     /// crossing a band, caused by nothing the sleeper did. Widening the window to a
     /// fortnight smoothed it and pinned a short sleeper at the cap on 82% of days instead
     /// of 29%, so neither width was right; the edge was the problem, not its position.
@@ -226,7 +226,7 @@ public struct SleepDebt: Sendable, Equatable {
     /// Seven rather than twelve, because that is where recovery stops being able to hear
     /// it: a 0.30-weight input against a 0.35 clamp saturates at `hoursPerDeviation`
     /// times 1.17, which is seven hours. At twelve, the top 42% of the displayed range
-    /// scored identically — somebody forty nights into a six-hour habit could sleep nine
+    /// scored identically: somebody forty nights into a six-hour habit could sleep nine
     /// hours twice and watch the ring not move, with the advice still reading "reduce".
     /// The number shown and the number scored should agree.
     public static let maximumHours = 7.0
@@ -235,14 +235,14 @@ public struct SleepDebt: Sendable, Equatable {
     /// What the balance accrues against.
     ///
     /// NOT the score's need. The score asks "did last night meet what you need", and the
-    /// need for that is the upper part of your own distribution — above your average by
+    /// need for that is the upper part of your own distribution: above your average by
     /// construction. Accumulating against it over a fortnight multiplies that bias by
     /// fourteen: measured, somebody averaging a solid eight hours carried a standing
     /// balance of 4.2 hours and an ordinary weekday/weekend sleeper sat pinned at the
     /// twelve-hour cap on 53 days out of 60. The number was a statement about their
     /// variance, not their sleep.
     ///
-    /// Their own median is unbiased — a steady sleeper owes nothing, a bad week shows,
+    /// Their own median is unbiased: a steady sleeper owes nothing, a bad week shows,
     /// a recovery week pays down. Floored at seven hours so the one case a self-relative
     /// reference cannot see is still caught: somebody chronically short has a median
     /// that ratifies the shortage, and their debt would otherwise read zero forever.
@@ -262,13 +262,13 @@ public struct SleepDebt: Sendable, Equatable {
     /// away freezes what is owed. The reference is the opposite: it is a median, the
     /// statistic most prone to stepping on a small sample, and pinning it to a run of
     /// calendar nights left it resting on eight readings for somebody wearing the watch
-    /// twice a week. It then re-levelled overnight — a four-nights-a-week wearer saw
+    /// twice a week. It then re-levelled overnight: a four-nights-a-week wearer saw
     /// 7.0 h behind, then 5.5, then 4.1 on three mornings of identical sleep, with the
     /// arrow pointing up each time and the ring gaining seven points.
     public static let referenceNights = 28
 
     /// The most credit a run of long nights can bank. Some, because a floor at zero
-    /// stops a good night paying anything down and turns the balance into a ratchet —
+    /// stops a good night paying anything down and turns the balance into a ratchet,
     /// but not unbounded, because a fortnight of holiday is not a licence.
     public static let maximumCreditHours = 3.0
 
@@ -276,14 +276,14 @@ public struct SleepDebt: Sendable, Equatable {
     /// night nothing was recorded.
     ///
     /// The nils matter. The decay used to be applied once per array entry, and the array
-    /// arrived with its unrecorded nights already compacted out — so taking the watch off
+    /// arrived with its unrecorded nights already compacted out, so taking the watch off
     /// *froze* the balance rather than letting it fade, and a week away left somebody
     /// carrying a balance a fortnight of ordinary sleep should have cleared. Worth about
     /// fourteen points of recovery ring after a fortnight's gap, and it made the sentence
     /// on screen ("each night fades as it recedes") false for exactly the people most
     /// likely to be reading it.
     ///
-    /// A night nobody recorded fades what is owed and contributes nothing of its own —
+    /// A night nobody recorded fades what is owed and contributes nothing of its own,
     /// not wearing the watch is neither a good night nor a bad one.
     public static func of(nights: [Double?]) -> SleepDebt {
         let clean: [Double?] = nights.map { night in
@@ -392,7 +392,7 @@ public struct SleepInput: Sendable {
 /// What last night was worth, as a share of what it needed to be.
 ///
 /// Duration against need is the headline, the way Whoop does it. Structure adjusts it
-/// within a narrow band, the way AutoSleep's quality does — but every structural
+/// within a narrow band, the way AutoSleep's quality does. But every structural
 /// component is scored against this sleeper's own distribution rather than an invented
 /// ideal. That constraint is inherited from docs/briefs/signal-scores.md and it is the
 /// reason deep and REM can be scored at all: the app never claims to know how much deep
@@ -406,7 +406,7 @@ public enum SleepScore {
     /// Structure can move the score by this much and no more. Duration has to dominate:
     /// a beautifully built five hours is still five hours, and a score that let good
     /// architecture rescue a short night would be telling people the wrong thing.
-    /// Was 0.85, which is exactly where `ScoreBand.sleep` turns green — so the worst
+    /// Was 0.85, which is exactly where `ScoreBand.sleep` turns green, so the worst
     /// possible structure on a full-length night still landed at 85 and read as a good
     /// one. 0.80 did not fix it either: the same night, three hours awake with no deep
     /// sleep, no REM and no overnight heart rate drop, still scored 85.7. At 0.70 it
@@ -522,7 +522,7 @@ public enum SleepScore {
         let stagedNights = input.history.filter { $0.reconciledStages != nil }.count
         // Whether the *record* is short, which is what "still learning your normal" says.
         // It used to mean "too few staged nights", and a phone with no stage sensors never
-        // gets one — so the commonest first-run profile there is was told the app was
+        // gets one, so the commonest first-run profile there is was told the app was
         // still learning their normal every morning, for ever, with four reasons listed
         // that could never be satisfied. A phone-only record of sixty nights is not thin;
         // it is complete for what that device can see, which is what `.partial` says.
@@ -570,7 +570,7 @@ public enum SleepScore {
         let missingLabel: String
         let symbol: String
         /// What this row says in one sentence. A night's parts need saying in their own
-        /// terms — "0.5 h against the 1 h a night this long usually gives you" is a
+        /// terms: "0.5 h against the 1 h a night this long usually gives you" is a
         /// different sentence from "below your normal", and only the engine knows which
         /// of the two it means.
         var note: String? = nil
@@ -583,7 +583,7 @@ public enum SleepScore {
         /// Whether a night's stages can be trusted.
         ///
         /// Two ways they cannot. A night recorded as plain "asleep" has no stages at all,
-        /// and that is not the same as a night with no deep sleep in it — the app used to
+        /// and that is not the same as a night with no deep sleep in it: the app used to
         /// tell somebody whose watch was on the charger that they got zero hours of REM
         /// and rank it as the reason their night was poor. And a phone and a watch both
         /// recording can report more staged hours than the night contained, which
@@ -597,7 +597,7 @@ public enum SleepScore {
         /// Two devices each union their own samples and the totals are then summed, so a
         /// phone and a watch both recording can report more staged hours than the night
         /// contained. Rejecting those nights outright starved every structural component
-        /// — of tonight AND of the whole history — so a second tracker cost nine points
+        /// (of tonight AND of the whole history) so a second tracker cost nine points
         /// and a "still learning your normal" notice that never resolved. Scaling to fit
         /// keeps the proportions, which is the part that was ever being scored.
         let staged = night.map(isStaged) ?? false
@@ -694,7 +694,7 @@ public enum SleepScore {
                            + "than awake or merely in bed. Eight broken hours are not "
                            + "eight hours, and this is the part that notices.",
                 // Not "sleep stages, so continuity could not be read": continuity goes
-                // nil for reasons that leave the stages perfectly intact — two separate
+                // nil for reasons that leave the stages perfectly intact, two separate
                 // sleep episodes in one day, or two devices whose awake and asleep samples
                 // conflict. That label appeared underneath a ring drawn from those very
                 // stages.
@@ -729,7 +729,7 @@ public enum SleepScore {
                 explanation: "The share of the night spent in deep sleep, measured "
                            + "against your own nights rather than an ideal. There is no "
                            + "agreed correct amount, and anybody who tells you there is "
-                           + "made it up — but a night well below your own usual is "
+                           + "made it up. But a night well below your own usual is "
                            + "worth knowing about.",
                 missingLabel: "Seven nights of stage data for deep sleep",
                 symbol: "moon.fill",
@@ -772,7 +772,7 @@ public enum SleepScore {
                 missingLabel: "Overnight and daytime heart rate",
                 symbol: "arrow.down.heart.fill",
                 note: dip.map {
-                    $0 >= fullDip ? "A big drop — your body settled properly."
+                    $0 >= fullDip ? "A big drop: your body settled properly."
                         : ($0 >= 0.10 ? "A normal drop."
                         : ($0 >= 0.05 ? "A smaller drop than usual."
                                       : "Your heart rate stayed high for a night's rest."))

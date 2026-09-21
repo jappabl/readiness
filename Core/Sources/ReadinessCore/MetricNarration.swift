@@ -31,7 +31,7 @@ public enum MetricNarration {
     }
 
     /// The same sentence for a quantity that is not one of the scored metrics. Nothing
-    /// here ever depended on the kind — only on where the value sits in its own history —
+    /// here ever depended on the kind: only on where the value sits in its own history,
     /// and requiring a `MetricKind` meant sleep duration could not be described at all.
     /// `spanDays` is how many calendar days the series covers, when that is not simply
     /// its length. A chart's points are its *recordings*, so counting them and calling the

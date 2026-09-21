@@ -95,7 +95,7 @@ struct ReadinessStateTests {
         #expect(elevated.composite < flat.composite)
     }
 
-    @Test("a high HRV helps readiness — the mirror of the resting heart rate case")
+    @Test("a high HRV helps readiness, the mirror of the resting heart rate case")
     func highHRVRaisesReadiness() {
         let flat = ReadinessEngine.evaluate(
             ReadinessInput(readings: morning(goodness: 0), daysOfHistory: 60))
@@ -106,7 +106,7 @@ struct ReadinessStateTests {
     }
 }
 
-@Suite("Readiness decomposition — spec AC3")
+@Suite("Readiness decomposition: spec AC3")
 struct ReadinessDecompositionTests {
 
     @Test("per-input contributions sum to the composite, verifiable by hand")
@@ -235,7 +235,7 @@ struct ReadinessConfidenceTests {
         #expect(result.confidence == .normal)
     }
 
-    @Test("exactly 14 days is confident — the threshold is inclusive")
+    @Test("exactly 14 days is confident, the threshold is inclusive")
     func thresholdIsInclusive() {
         let result = ReadinessEngine.evaluate(
             ReadinessInput(readings: morning(goodness: 0), daysOfHistory: 14))
@@ -249,7 +249,7 @@ struct ReadinessConfidenceTests {
         #expect(result.contributions.count == 1)
         // The per-input clamp exists to stop one metric of several overruling the rest.
         // With one metric there are no others, and applying it there capped the scale
-        // itself — an iPhone-only user's ring could read 32 to 68 and nothing else. So a
+        // itself: an iPhone-only user's ring could read 32 to 68 and nothing else. So a
         // lone stream can reach the bottom again, while the weight floor still damps it:
         // two readings do not speak for five.
         #expect(result.state == .wellBelowBaseline,

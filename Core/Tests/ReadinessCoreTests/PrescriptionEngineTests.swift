@@ -4,7 +4,7 @@ import Testing
 private let squat = Lift(name: "Back squat", workingWeight: 315, increment: 10, repTarget: 5, rirTarget: 2)
 private let press = Lift(name: "Overhead press", workingWeight: 135, increment: 5, repTarget: 5, rirTarget: 2)
 
-@Suite("Prescription — percent in, loadable weight out")
+@Suite("Prescription: percent in, loadable weight out")
 struct PrescriptionMappingTests {
 
     @Test("a day at baseline runs the program as written")
@@ -36,7 +36,7 @@ struct PrescriptionMappingTests {
     @Test("every prescribed load sits on the lifter's own loadable grid")
     func loadsAreAlwaysLoadable() {
         // The grid is workingWeight +/- n*increment. A squat at 315 with 10 lb jumps
-        // moves to 305 or 325 — never to 310. So the *delta* is what must divide.
+        // moves to 305 or 325: never to 310. So the *delta* is what must divide.
         for state in ReadinessState.allCases {
             for lift in [squat, press] {
                 let p = PrescriptionEngine.prescribe(lift: lift, state: state, multiDayTrendPresent: true)
@@ -64,7 +64,7 @@ struct PrescriptionMappingTests {
     }
 }
 
-@Suite("Prescription bounds — spec 3.4")
+@Suite("Prescription bounds: spec 3.4")
 struct PrescriptionBoundsTests {
 
     @Test("no state's base adjustment escapes the floor and ceiling")

@@ -80,7 +80,7 @@ public enum SpokenSetResolver {
     }
 
     /// A spoken unit always wins. Without one, the number is in whatever unit the user
-    /// reads the rest of the app in — which is the only unit they could have meant.
+    /// reads the rest of the app in, which is the only unit they could have meant.
     static func pounds(_ value: Double?, unit: SpokenLoadUnit?, metric: Bool) -> Double? {
         guard let value else { return nil }
         let isKilograms = unit.map { $0 == .kilograms } ?? metric

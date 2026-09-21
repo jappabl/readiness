@@ -31,7 +31,7 @@ private func input(_ samples: [HeartRateSample] = [], hardSets: Int = 0,
                    fallback: DailyStrainResult? = nil) -> StrainInput {
     // Read after the last reading, not at the moment the fixture was built. These
     // helpers start their samples at `Date()` and run forwards, so the default `readAt`
-    // sat before every one of them — a day whose trace is entirely in its own future,
+    // sat before every one of them: a day whose trace is entirely in its own future,
     // which no window can describe.
     let last = samples.map { $0.start.addingTimeInterval($0.minutes * 60) }.max()
     return StrainInput(samples: samples, restingHeartRate: resting, ageYears: age,
@@ -127,7 +127,7 @@ struct StrainCurveTests {
 
     /// Re-anchored when the curve moved from 40/400 to 20/650. The old pair spent six
     /// of the twenty-one points below anything anybody would call training, and put a
-    /// three-hour easy ride at 19.4 — "all out" — while a genuinely epic day clamped at
+    /// three-hour easy ride at 19.4 ("all out") while a genuinely epic day clamped at
     /// the same 21 as a hard hour and a half.
     @Test("the anchors sit where the spec says", arguments: [
         (0.0, 0.000), (20.0, 19.739), (40.0, 31.286), (100.0, 51.025),
@@ -164,8 +164,8 @@ struct StrainCurveTests {
 @Suite("Muscular load")
 struct MuscularLoadTests {
 
-    /// Lifting is invisible to a heart rate measure — a heavy triple barely moves the
-    /// average — so hard sets carry their own load, and Insights shows both.
+    /// Lifting is invisible to a heart rate measure: a heavy triple barely moves the
+    /// average, so hard sets carry their own load, and Insights shows both.
     @Test("twenty hard sets is worth a hundred")
     func hardSets() {
         #expect(StrainScore.muscularLoad(hardSets: 20) == 100)
@@ -295,8 +295,8 @@ struct StrainCoverageTests {
     /// A watch worn for four hours produces a real number out of a fifth of a day and
     /// used to claim it had everything it wanted. Either the session was caught and
     /// nothing around it was, or the session was missed and a hard day reads as a rest
-    /// day — silently, in both directions.
-    /// Was one 240-minute sample, which is not what a sparse day looks like — under the
+    /// day: silently, in both directions.
+    /// Was one 240-minute sample, which is not what a sparse day looks like: under the
     /// span-and-density check that reads as four hours fully covered, which it is.
     /// A real thin trace is a few readings spread across the day.
     @Test("a barely worn watch says so")
@@ -342,7 +342,7 @@ struct SedentaryDayTests {
     /// missed by feeding the engine half-hour toy traces instead of a day.
     ///
     /// Sixteen waking hours at 70 bpm is 87 TRIMP. On the old curve that was a strain
-    /// of 10 out of 21 — "moderate" — for somebody who did nothing whatsoever, rising
+    /// of 10 out of 21 ("moderate") for somebody who did nothing whatsoever, rising
     /// to "hard" at 80 bpm. A stressed or caffeinated person who never exercises read
     /// as having trained, every single day, forever.
     @Test("a desk day with no exercise stays in the bottom band", arguments: [68.0, 70.0, 75.0, 80.0])
@@ -378,7 +378,7 @@ struct SedentaryDayTests {
     }
 
     /// The ceiling has to be out of reach of a normal hard day, or the top of the scale
-    /// is decoration. A three-hour easy ride used to read 19.4 — all out.
+    /// is decoration. A three-hour easy ride used to read 19.4, all out.
     @Test("a long easy ride is hard, not all out")
     func longRideIsNotAllOut() throws {
         let ride = wakingDay() + minutes(180, at: 140)
@@ -399,7 +399,7 @@ struct ACWRGuardTests {
     }
 
     /// Three sessions crammed into the most recent week against twenty-one empty ones is
-    /// arithmetically a 4.0 spike and tells you nothing — but only because those twenty-
+    /// arithmetically a 4.0 spike and tells you nothing, but only because those twenty-
     /// one days predate the record. The fix is the denominator, not a spread guard: the
     /// chronic mean divides by how long the app has been watching.
     @Test("a first week of logging is not a spike")
@@ -459,7 +459,7 @@ struct WearTimeClockTests {
     }
 
     /// `elapsed` used to be derived from `span`, which made the test
-    /// `span < min(720, span)` — false for every trace ever recorded. Only density fired,
+    /// `span < min(720, span)`: false for every trace ever recorded. Only density fired,
     /// so a watch worn four hours reported a complete day and an evening session that
     /// was never recorded showed up as nothing at all.
     @Test("a watch worn for four hours of a full day says so")
@@ -485,7 +485,7 @@ struct WearTimeClockTests {
 
     /// The mirror of the case above, and the one my first fix could not catch. Measuring
     /// elapsed from the first sample meant a late-worn watch had a span equal to the
-    /// elapsed time, so the test was `span < span × share` — false however late it went
+    /// elapsed time, so the test was `span < span × share`: false however late it went
     /// on. Fifty-six minutes of a sixteen-hour day reported a complete record.
     /// 15:00 used to be excluded, because eight hours of a sixteen-hour waking day sat
     /// exactly on the old share threshold. Measuring the leading gap instead has no such
@@ -574,7 +574,7 @@ struct ACWRObservedDaysTests {
 
 /// The wear check asked how *much* of the day carried samples and never *where* the
 /// hole was, and a share cannot localise a hole. Both of its tests were shares of the
-/// span, so a gap over the session — the exact thing that makes a load measure lie —
+/// span, so a gap over the session: the exact thing that makes a load measure lie:
 /// had to grow past eight and a half hours before either fired.
 @Suite("The wear check needs to know where the hole is")
 struct WearGapTests {
@@ -582,7 +582,7 @@ struct WearGapTests {
     /// Woken at seven, read at eleven at night, worn all day apart from `off`.
     /// A fixed ordinary Thursday, not `Date()`. On a spring-forward day
     /// `startOfDay + 23 h` is the *next* midnight, so the clock floor sees zero minutes
-    /// elapsed and switches itself off — which made one of these tests unable to pass at
+    /// elapsed and switches itself off, which made one of these tests unable to pass at
     /// all on 2027-03-14, and the floor an hour stricter on every fall-back day.
     private var midnight: Date {
         Calendar.current.date(from: DateComponents(year: 2026, month: 9, day: 10))!
@@ -612,7 +612,7 @@ struct WearGapTests {
 
     /// The headline case, and the ordinary one: the watch comes off to train. Ninety
     /// minutes missing out of sixteen hours is a sampled share of 0.91, so the density
-    /// test would need a threshold near 0.91 to see it — no calibration of a share can
+    /// test would need a threshold near 0.91 to see it: no calibration of a share can
     /// do this job. Measured before the fix: strain 22.9 against a true 65.5, coverage
     /// `.full`, nothing said.
     @Test("a hole over the session is not a complete record")
@@ -642,7 +642,7 @@ struct WearGapTests {
     /// Round 5's fix, for the third time. With no wake time the window used to start at
     /// the first sample, so the span test became `span < span x 0.5` again: false however
     /// late the watch went on. `wokeAt` is nil whenever the day has no asleep-stage
-    /// sample — watch on the charger overnight, iPhone-only sleep, or sleep-analysis
+    /// sample: watch on the charger overnight, iPhone-only sleep, or sleep-analysis
     /// permission declined, which makes it nil on every day, permanently.
     @Test("a watch put on at ten at night says so, wake time or not",
           arguments: [Double?.some(7), Double?.none])
@@ -666,8 +666,8 @@ struct WearGapTests {
 
 
 /// The clock floor, which is the only thing standing in for a wake time the app does not
-/// have. It cannot tell "woke late" from "put the watch on late" — nobody can, without a
-/// night to read — so it claims only what the clock proves: by this hour, at least
+/// have. It cannot tell "woke late" from "put the watch on late", nobody can, without a
+/// night to read, so it claims only what the clock proves: by this hour, at least
 /// `time since midnight - maximumSleepMinutes` of waking day has happened.
 @Suite("Standing in for a wake time")
 struct WearClockFloorTests {
@@ -738,7 +738,7 @@ struct WearMessageTests {
 ///
 /// `magnitudesSum` pins this at reserve 0.70, where `trainingShare` is saturated and the
 /// split never happens, so the ramp was untested. A trace with no reading below 0.40
-/// reserve — a chest strap or a watch put on to train — filed everyday load to zone 0 and
+/// reserve (a chest strap or a watch put on to train) filed everyday load to zone 0 and
 /// no minutes there, and a row is only drawn where there are minutes, so that load
 /// disappeared from the breakdown while staying in the ring: 21.19 against rows summing
 /// to 10.21, 52% unexplained.
@@ -756,7 +756,7 @@ struct RampBandSumTests {
                            readAt: start.addingTimeInterval(Double(minutes) * 60))
     }
 
-    /// 108 bpm is reserve 0.41 for this profile — inside the 0.30–0.55 ramp, and above
+    /// 108 bpm is reserve 0.41 for this profile: inside the 0.30–0.55 ramp, and above
     /// the 0.40 line that decides which zone the sample is filed under.
     @Test("a session-only trace inside the ramp still sums",
           arguments: [(108.0, 45), (109.0, 60), (113.0, 90), (105.0, 30)])

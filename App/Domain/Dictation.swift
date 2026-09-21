@@ -6,7 +6,7 @@ import Speech
 ///
 /// Siri already logs a set from across the room; this is for when the phone is in your
 /// hand between sets and typing three fields with chalk on your fingers is the worst
-/// part of the app. It only ever hands back a transcript — `SpokenSetResolver` decides
+/// part of the app. It only ever hands back a transcript: `SpokenSetResolver` decides
 /// what that means, so speaking and saying it to Siri cannot disagree.
 ///
 /// Recognition is forced on-device where the phone supports it. What somebody grunts

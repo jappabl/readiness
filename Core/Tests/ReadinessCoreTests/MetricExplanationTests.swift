@@ -46,7 +46,7 @@ struct MetricExplanationTests {
     /// a fortnight after the window became a week, and it claimed the reference was the
     /// top of your own distribution after that reference became a median floored at
     /// seven hours. Both are checkable claims, and a user who checks finds the number on
-    /// the card disagrees with the sentence explaining it — a weekday-6.5/weekend-9
+    /// the card disagrees with the sentence explaining it: a weekday-6.5/weekend-9
     /// sleeper's "longest nights" imply roughly 22 hours owed against a card reading 0.
     @Test("the sleep-debt explanation describes the model that is actually running")
     func debtExplanationTracksTheModel() {

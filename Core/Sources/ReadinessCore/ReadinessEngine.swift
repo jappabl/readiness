@@ -44,7 +44,7 @@ public struct ReadinessResult: Sendable, Equatable, Codable {
     /// Carried rather than recomputed downstream, because it is not always a function of
     /// the composite alone: when every input that voted is one-sided the night stands in
     /// for what cannot be measured, and the state, the gates and the session advice all
-    /// have to be looking at the same number the ring is. They were not — the load-spike
+    /// have to be looking at the same number the ring is. They were not: the load-spike
     /// gate keys off the state, the state came off the composite, and a one-sided
     /// composite cannot reach the threshold that arms the gate, so a sleep-only user could
     /// be shown a green ring on a genuine 2.0 training spike with nothing to cap it.
@@ -173,7 +173,7 @@ public enum ReadinessEngine {
             // The scoring z, not the displayed one: HRV is weighed on its trend.
             let clamped = Swift.min(Swift.max(reading.scoringZ, -zClamp), zClamp)
             let aligned = clamped * reading.kind.polarity
-            // No single input may leave the middle band on its own — but the limit has
+            // No single input may leave the middle band on its own, but the limit has
             // to scale with how many inputs there are, or it bounds the scale rather
             // than any one voice. Switching it on at three streams made a sensor simply
             // starting to report move the score by up to seventeen points on unchanged

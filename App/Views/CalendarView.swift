@@ -3,8 +3,8 @@ import SwiftData
 
 /// Every day the app has, reachable.
 ///
-/// Replaces a Trends tab. Trends answered a question nobody had asked — four charts of
-/// aggregate shapes — while the obvious question, "what happened on Tuesday", had no
+/// Replaces a Trends tab. Trends answered a question nobody had asked: four charts of
+/// aggregate shapes, while the obvious question, "what happened on Tuesday", had no
 /// answer anywhere in the app. A month grid answers it in one tap, and the shape of a
 /// month reads off the dots without a chart being drawn at all.
 struct CalendarView: View {
@@ -144,7 +144,7 @@ struct CalendarView: View {
         .onTapGesture {
             // Recovery is not the only thing a day can hold. Gating on it meant a day
             // you trained but wore nothing to bed was dead to the touch, and before any
-            // health data exists that is every day — which reads as the calendar being
+            // health data exists that is every day, which reads as the calendar being
             // broken rather than empty.
             guard !future, model.hasAnything(on: date, context: context) else { return }
             Haptics.light()

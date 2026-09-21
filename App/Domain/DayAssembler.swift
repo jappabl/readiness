@@ -27,8 +27,8 @@ enum DayAssembler {
     /// Every other metric here is a fluctuating measurement with a meaningful personal
     /// normal, and a z-score is the right tool for those. Debt is neither: it is a slow
     /// stock whose rolling deviation is minutes, and it has a true zero that means the
-    /// same thing for everybody. Scored relatively it inverted — being eight hours down
-    /// read as good news because it sat under an elevated mean — and for a chronic case
+    /// same thing for everybody. Scored relatively it inverted: being eight hours down
+    /// read as good news because it sat under an elevated mean, and for a chronic case
     /// pinned at the cap its deviation was exactly zero, so it stopped voting entirely.
     /// The same twenty-eight nights the card and the score read, so all three agree.
     static let debtNights = 28
@@ -45,7 +45,7 @@ enum DayAssembler {
         let recorded = all.compactMap { $0 }
         guard recorded.count >= 2 else { return nil }
         // And something recorded *recently*. The balance decays per night that passed, so
-        // a record that simply stops produces a number fading smoothly to zero — and zero
+        // a record that simply stops produces a number fading smoothly to zero, and zero
         // is this metric's best possible reading. Somebody who slept with the watch for two
         // months and then stopped ended up at 0.0 h, "You are not down on sleep", a full
         // green bar, an up arrow, `.optimal`, and coverage `.full`: the app fully confident
@@ -61,7 +61,7 @@ enum DayAssembler {
                              baseline: 0,
                              zScore: debt.hours / SleepDebt.hoursPerDeviation,
                              // How much history stands behind it, not how far the
-                             // balance looks back — those were only ever the same
+                             // balance looks back: those were only ever the same
                              // number by coincidence, and the window has moved.
                              // Nights actually behind this balance, not rows in the
                              // record: confidence should not outlive the data.
@@ -78,8 +78,8 @@ enum DayAssembler {
         /// `values` is one entry per calendar day, oldest first, nil on a day this metric
         /// recorded nothing.
         ///
-        /// Handed through with its gaps intact. It used to be compacted first — twice, in
-        /// two branches — and then sliced, so "the last sixty days" and "the last seven
+        /// Handed through with its gaps intact. It used to be compacted first: twice, in
+        /// two branches, and then sliced, so "the last sixty days" and "the last seven
         /// days" were counts of *readings*. For four nights of wear a week the seven-day
         /// HRV trend spanned twelve calendar days and after a trip seventeen, which is up
         /// to eighteen points of recovery ring, on a dip that had already recovered.
@@ -98,7 +98,7 @@ enum DayAssembler {
 
         add(.hrv, series.map(\.hrvSDNN))
         add(.restingHeartRate, series.map(\.restingHeartRate))
-        // The running balance, on its own absolute scale — see `debtReading`.
+        // The running balance, on its own absolute scale: see `debtReading`.
         if let debt = debtReading(series) {
             readings.append(debt)
             trendReadings.append(debt)
@@ -121,7 +121,7 @@ enum DayAssembler {
             wristDeviation = current - result.mean
         }
 
-        // Days that recorded something, not calendar days — the series is dense now, and
+        // Days that recorded something, not calendar days: the series is dense now, and
         // this number is what the coach is told and what confidence is judged against.
         let daysOfHistory = series.filter(\.hasReadinessData).count
 

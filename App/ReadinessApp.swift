@@ -113,7 +113,7 @@ struct RootView: View {
     }()
 
     /// `--why`, for the evidence sheet. Pairs with `--demo-today`. Added while fixing a
-    /// second recovery ring on this screen that disagreed with Today's by 82 points — the
+    /// second recovery ring on this screen that disagreed with Today's by 82 points: the
     /// kind of thing only looking at both of them catches.
     private static let whyHarness: Bool = {
         #if DEBUG

@@ -254,7 +254,7 @@ struct OnboardingRevealTests {
     }
 
     /// The reveal under this sentence needs seven readings before it can place anybody in
-    /// their own range, so below that it renders nothing — and "that's your normal now"
+    /// their own range, so below that it renders nothing, and "that's your normal now"
     /// landed over an empty space for every watch bought this week.
     @Test("a normal is only claimed once there is one to show",
           arguments: [1, 3, 6])

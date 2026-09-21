@@ -5,11 +5,11 @@ import Testing
 /// What the balance accrues against has to be as steady as the balance itself.
 ///
 /// Round 9 took the cliff out of the *window*; it came back through the *reference*. The
-/// reference is a median, and it was taken over a fixed run of calendar nights — so for
+/// reference is a median, and it was taken over a fixed run of calendar nights, so for
 /// somebody wearing the watch twice a week it rested on eight recorded nights and stepped
 /// by whole hours as single nights rolled out of range. Measured on a four-nights-a-week
 /// wearer whose habit had dropped to six hours: three consecutive mornings, every night an
-/// identical 6.0 h, and the card read 7.0 h behind, then 5.5, then 4.1 — falling 2.9 hours
+/// identical 6.0 h, and the card read 7.0 h behind, then 5.5, then 4.1: falling 2.9 hours
 /// while the arrow said "up after last night" each morning and the ring gained 7 points on
 /// behaviour that had not changed.
 @Suite("What the balance is measured against")

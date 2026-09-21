@@ -51,7 +51,7 @@ struct BedtimeTargetTests {
             need: need(hours: 8.75, strain: 0.7), debtHours: 0.1)
         // Formatted through the same locale-dependent `.formatted(.number...)` the
         // production code uses, rather than a hardcoded "8.8": that literal assumes a
-        // period decimal separator and fails on a machine whose locale uses a comma —
+        // period decimal separator and fails on a machine whose locale uses a comma,
         // the same class of machine-dependence pinning `calendar` to UTC exists to avoid.
         let expectedHours = 8.75.formatted(.number.precision(.fractionLength(0...1)))
         #expect(sentence?.contains(expectedHours) == true)

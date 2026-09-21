@@ -3,7 +3,7 @@ import Foundation
 @testable import ReadinessCore
 
 /// The context is sent on every turn, so its size is a latency number as much as a
-/// price one — every token of it has to be read before the first word comes back.
+/// price one, every token of it has to be read before the first word comes back.
 /// JSON spends most of its bytes repeating key names; this is the same facts, denser.
 @Suite("The compact context")
 struct CoachBriefTests {

@@ -59,7 +59,7 @@ public struct SleepBreakdown: Sendable, Equatable {
     /// How much of the night has to carry a stage before the record is describing its
     /// structure at all.
     ///
-    /// A night can be recorded as asleep without being classified — an `unspecified` run
+    /// A night can be recorded as asleep without being classified: an `unspecified` run
     /// from a second source, or a watch that only staged part of it. Asking merely whether
     /// *any* stage was recorded made one labelled sample stand for the whole night and
     /// charged every unclassified hour to the stages as a zero, so the app named a stage
@@ -67,8 +67,8 @@ public struct SleepBreakdown: Sendable, Equatable {
     /// failure this predicate exists to prevent, arriving from the other side.
     ///
     /// Almost all of the night, because partial staging is never proportional. The
-    /// unclassified part of a night is a contiguous window — the watch starts late, stops
-    /// early, runs out of battery — and sleep architecture is ordered, so the labelled part
+    /// unclassified part of a night is a contiguous window: the watch starts late, stops
+    /// early, runs out of battery, and sleep architecture is ordered, so the labelled part
     /// is a biased slice rather than a sample. Rescaling it to fill the night assumes the
     /// missing hours looked like the recorded ones, and measured over 600 nights at 78-98%
     /// coverage that assumption named a *different* stage as the night's worst component
@@ -93,7 +93,7 @@ public struct SleepBreakdown: Sendable, Equatable {
     ///
     /// One scale, both directions. Two devices over-count and are scaled down; a partly
     /// classified night is scaled up, which assumes the unlabelled part looked like the
-    /// labelled part — a stated assumption, and a far better one than charging it to the
+    /// labelled part: a stated assumption, and a far better one than charging it to the
     /// stages as zeros, which made measuring *less* of a night score it *higher*.
     public var reconciledStages: (deep: Double, rem: Double, core: Double)? {
         guard asleepHours > 0, stagedHours > 0,
@@ -109,8 +109,8 @@ public struct SleepBreakdown: Sendable, Equatable {
     /// qualifying, so a perfectly recorded day was reported as part-recorded every single
     /// day. Nine still excludes an afternoon sleep, which is the case the rule exists for.
     ///
-    /// Not a length. Round 7 guarded the wake time by episode length — trust it only for
-    /// four hours or more — and length cannot tell a night from a nap: a broken 3.5-hour
+    /// Not a length. Round 7 guarded the wake time by episode length: trust it only for
+    /// four hours or more, and length cannot tell a night from a nap: a broken 3.5-hour
     /// night is a night, and a 4.5-hour afternoon sleep is not. That guard was wrong in
     /// both directions at once, hiding a 42-point hole after a short night and a 45-point
     /// one after a long daytime sleep. When the sleep started is the thing that actually
@@ -120,7 +120,7 @@ public struct SleepBreakdown: Sendable, Equatable {
     /// When the waking day began, or nil when the record cannot say.
     ///
     /// Not `primarySleepEnd`, which is the end of the longest asleep episode of the wake
-    /// day — a wake time only when that episode was a night. With no night recorded, which
+    /// day: a wake time only when that episode was a night. With no night recorded, which
     /// is the watch-on-the-charger case and exactly the population this matters for, a
     /// recorded nap becomes the longest episode and this would hand back the middle of the
     /// afternoon. The strain wear check judges the day against a window starting here, so
@@ -167,7 +167,7 @@ public enum WakingDay {
     /// Taken from the caller rather than inferred from the periods. Inferring it from
     /// where the *first* period ended was wrong for any night that stirs: a staged night
     /// fragments at every awake segment, so a blip before local midnight put the inferred
-    /// day a day early, nothing could qualify, and the answer went nil — switching the
+    /// day a day early, nothing could qualify, and the answer went nil: switching the
     /// leading-gap check off and hiding fifty points, decided by which side of midnight
     /// somebody happened to turn over.
     public static func start(of periods: [DateInterval], primary: DateInterval?,
@@ -182,12 +182,12 @@ public enum WakingDay {
                     < Int(SleepBreakdown.latestWakingStartHour)
         }
         // The night's own episode, when the night itself qualifies. `periods` are
-        // fragments — a staged night splits at every awake segment — so neither end of the
+        // fragments (a staged night splits at every awake segment) so neither end of the
         // fragment list is reliably the moment the day began. Taking the first was wrong
         // (a five-minute misread, or ninety minutes awake mid-night, started the window
         // there and called the rest of the night a hole). Taking the last was wrong the
         // other way: any second sleep before nine dragged the start to *its* end, so a
-        // hard morning between waking and a lie-down was never examined at all — and
+        // hard morning between waking and a lie-down was never examined at all, and
         // because a wake time was found, the clock floor switched off too. The primary
         // episode spans its own awake bridges, which is exactly what neither end of the
         // fragment list does.

@@ -55,7 +55,7 @@ struct NotificationRecordTests {
         record.lastInsight = "Your training volume has been about 18% higher."
         // Every other moment was also said at this exact instant. If the switch ever
         // read one of those fields instead of returning early for `.newInsight`, it
-        // would see a same-day match here and wrongly block — so novelty must ignore
+        // would see a same-day match here and wrongly block, so novelty must ignore
         // the calendar regardless of what the rest of the record holds.
         record.lastMorningVerdict = morning
         record.lastIllnessGate = morning

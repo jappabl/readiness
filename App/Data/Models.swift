@@ -290,7 +290,7 @@ extension WorkoutSession {
 ///
 /// It used to live in `@State` inside the sheet, which meant closing Jett threw the whole
 /// conversation away: come back an hour later and you are introducing yourself again. The
-/// history is the cheap part — ten messages a day for three years is a few megabytes, and
+/// history is the cheap part: ten messages a day for three years is a few megabytes, and
 /// nothing here is ever queried, only read in order from the end.
 ///
 /// What is expensive is sending it, so almost none of it is sent. Anything older than the

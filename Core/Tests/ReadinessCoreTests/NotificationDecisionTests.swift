@@ -91,7 +91,7 @@ struct NotificationDecisionTests {
         #expect(outcome == nil)
     }
 
-    @Test("the same news the next day goes out again — novelty does not gate the verdict")
+    @Test("the same news the next day goes out again: novelty does not gate the verdict")
     func repeatsAcrossDays() {
         var record = NotificationRecord()
         record.lastMorningVerdict = morning
@@ -166,8 +166,8 @@ struct NotificationDecisionTests {
         // A hundred quiet decisions in a row, then one real insight. If a skipped
         // moment ever cost a coin, the jar would be empty long before the news arrived.
         //
-        // `record` is threaded through the loop — reassigned from whatever each call
-        // actually returns — rather than left untouched. A version that discarded each
+        // `record` is threaded through the loop: reassigned from whatever each call
+        // actually returns, rather than left untouched. A version that discarded each
         // call's result would call `next` on the same untouched fresh record every
         // time, which stays nil regardless of what the decision does internally, and
         // would pass even if a skipped moment quietly spent a coin.
@@ -223,7 +223,7 @@ struct NotificationDecisionTests {
     // MARK: - Review findings
 
     /// A gate score, with the magnitude fixed low enough that `MorningVerdict.sentence`
-    /// never fires on its own — so tests below can prove what blocks the *gate itself*
+    /// never fires on its own, so tests below can prove what blocks the *gate itself*
     /// without a fallback to the verdict muddying the result.
     private func gateScore(magnitude: Double = -3) -> SignalScore {
         score(.recovery, value: 60, magnitude: magnitude, gate: .elevatedWristTemperature)
@@ -248,7 +248,7 @@ struct NotificationDecisionTests {
     }
 
     // IMPORTANT 2: the illness gate's once-per-day guard, mirroring `onePerDay`. Uses a
-    // low magnitude so a deleted guard is caught by the gate firing again — not by a
+    // low magnitude so a deleted guard is caught by the gate firing again, not by a
     // `morningVerdict` fallback, which would also fire and mask the real signal.
     @Test("the gate goes out once a day, however often the app refreshes")
     func gateOnePerDay() {
@@ -261,7 +261,7 @@ struct NotificationDecisionTests {
         #expect(outcome == nil)
     }
 
-    // IMPORTANT 2: mirrors `repeatsAcrossDays` — the guard must not block forever.
+    // IMPORTANT 2: mirrors `repeatsAcrossDays`: the guard must not block forever.
     @Test("the gate fires again the next day if the illness persists")
     func gateRepeatsAcrossDays() {
         var record = NotificationRecord()
@@ -274,7 +274,7 @@ struct NotificationDecisionTests {
     }
 
     // IMPORTANT 2: pins `record.lastIllnessGate = input.now` itself, round-tripping
-    // through real `next(_:)` calls rather than a hand-set record — deleting all
+    // through real `next(_:)` calls rather than a hand-set record: deleting all
     // review-noted lines here, that write is the one still isolated: the gate's own
     // guard is exercised by `gateOnePerDay` above, and the low magnitude keeps
     // `morningVerdict` silent so only the gate's repeat behavior is on trial.
@@ -306,7 +306,7 @@ struct NotificationDecisionTests {
         #expect(outcome == nil)
     }
 
-    // IMPORTANT 3: mirrors `repeatsAcrossDays` — an unusual night the following evening
+    // IMPORTANT 3: mirrors `repeatsAcrossDays`: an unusual night the following evening
     // still gets its own message.
     @Test("the bedtime target fires again the next evening if it's unusual again")
     func bedtimeRepeatsNextDay() {
@@ -326,7 +326,7 @@ struct NotificationDecisionTests {
 
     // IMPORTANT 3: pins `record.lastBedtimeTarget = input.now` itself, round-tripping
     // through real `next(_:)` calls. Without it the guard above can never see a same-day
-    // match, so the engine would re-fire on every refresh inside the 90-minute window —
+    // match, so the engine would re-fire on every refresh inside the 90-minute window:
     // draining all three coins in an hour and a half.
     @Test("the bedtime target's own send is what blocks its next refresh")
     func bedtimeWriteIsWhatBlocksIt() {
@@ -353,7 +353,7 @@ struct NotificationDecisionTests {
     }
 
     // IMPORTANT 4: the gate's body used to be `ReadinessGate.elevatedWristTemperature
-    // .explanation` — an in-app paragraph of about 245 characters that exceeds
+    // .explanation`: an in-app paragraph of about 245 characters that exceeds
     // lock-screen truncation and never states the instruction this notification IS.
     @Test("the gate's body is a short instruction, not the in-app paragraph")
     func gateBodyIsLockScreenSafe() {
@@ -367,8 +367,8 @@ struct NotificationDecisionTests {
     // IMPORTANT 6, ruling from the controller: the spec's "`.unavailable` coverage
     // produces no notification of any kind" was written about today's data driving
     // today's messages (morning verdict, illness gate, bedtime target). An insight is
-    // derived from session history, not today's scores, so it stays true — and worth
-    // sending — on a day the watch was not worn. No guard was added; this test pins
+    // derived from session history, not today's scores, so it stays true, and worth
+    // sending, on a day the watch was not worn. No guard was added; this test pins
     // that the exemption is deliberate rather than an oversight.
     @Test("an insight still speaks when today's scores are unavailable")
     func insightSpeaksEvenWhenTodayIsUnavailable() {

@@ -24,16 +24,16 @@ public enum BaselineEngine {
     /// the same estimator by those two measures, moved onto a calendar axis. Not the same
     /// *numbers*: even on a perfect record it moves a score by about 2 points on average,
     /// and changes a band on 2.3% of mornings. Measured against noise-free physiology that
-    /// movement is an improvement, and the gap it closes is much larger — but "identical"
+    /// movement is an improvement, and the gap it closes is much larger, but "identical"
     /// would be wrong, and the next reader would use it as an invariant.
     ///
     /// The problem being: `suffix(7)` of a list whose missing days have been compacted out
     /// is seven readings, not seven days. At four nights of wear a week it spans twelve
-    /// days, and after a trip seventeen — so a dip that had recovered a fortnight ago was
+    /// days, and after a trip seventeen, so a dip that had recovered a fortnight ago was
     /// still holding the ring down, by up to eighteen points.
     ///
     /// (`SleepDebt.retention` is 0.85 rather than this, deliberately: a balance is an
-    /// accumulator, not an average, so what has to match is where it settles — 6.67 times
+    /// accumulator, not an average, so what has to match is where it settles: 6.67 times
     /// a nightly shortfall against the old window's 7. Same idea, different anchor.)
     public static let trendRetention = 0.75
 
@@ -69,7 +69,7 @@ public enum BaselineEngine {
         // Renormalising over the recorded days was the obvious thing and it was wrong: it
         // hands whatever survives the gap the whole of the missing weight. After a week
         // off, today's reading carried 65% of its own "seven-day trend" and after a
-        // fortnight 93% — so one night back read -1.64, past the clamp, and put the ring at
+        // fortnight 93%, so one night back read -1.64, past the clamp, and put the ring at
         // 32 red where the old estimator said 46.9. The trend exists precisely to stop one
         // night doing that. Measured against noise-free truth this is better at every wear
         // pattern and identical at full wear, where there is no missing weight to place.
@@ -122,7 +122,7 @@ public enum BaselineEngine {
     }
 
     /// `daily` is one entry per calendar day, oldest first, nil where nothing was
-    /// recorded — the same shape `evaluate(daily:)` takes, so a caller cannot accidentally
+    /// recorded: the same shape `evaluate(daily:)` takes, so a caller cannot accidentally
     /// get the reading-count windows back by reaching for the convenience.
     public static func reading(kind: MetricKind, daily: [Double?]) -> MetricReading? {
         guard let today = daily.compactMap({ $0 }).last(where: { $0.isFinite }),

@@ -357,7 +357,7 @@ struct CoachSheet: View {
                             case .remember, .forget:
                                 // Applied at once. A memory is a sentence they already
                                 // said, and asking permission to keep it would be more
-                                // intrusive than keeping it — what protects them is that
+                                // intrusive than keeping it: what protects them is that
                                 // the list is visible and deletable in Profile.
                                 return model.applyMemory(call.intent)
                             }

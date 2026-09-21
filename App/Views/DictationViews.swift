@@ -2,7 +2,7 @@ import SwiftUI
 import SwiftData
 
 /// Whether the user has ever held Jett's face. Until they have, the logging screen
-/// says the gesture exists once — a hold nobody is told about is a hold nobody uses,
+/// says the gesture exists once: a hold nobody is told about is a hold nobody uses,
 /// and onboarding is the wrong place to teach it, because there is nothing to log yet.
 enum HoldToTalk {
     private static let key = "dictation.heldJett"
@@ -14,7 +14,7 @@ enum HoldToTalk {
 ///
 /// Two doors into the same machinery. Inside a live workout the microphone sits next to
 /// the Log button, because that is where somebody already is between sets. Everywhere
-/// else, holding Jett's face opens `DictationSheet` — which has no screen context to
+/// else, holding Jett's face opens `DictationSheet`, which has no screen context to
 /// work from, so it has to do more work to know which lift was meant.
 ///
 /// Neither writes anything off a transcript alone. What was understood is always shown
@@ -82,7 +82,7 @@ struct SpokenSetCard: View {
 
 /// Held Jett's face from any screen.
 ///
-/// Starts listening on appear, because holding the face already said what you wanted —
+/// Starts listening on appear, because holding the face already said what you wanted:
 /// making somebody then tap a second button would be a worse version of tapping once.
 struct DictationSheet: View {
     @Environment(\.dismiss) private var dismiss
@@ -101,7 +101,7 @@ struct DictationSheet: View {
     private var metric: Bool { profiles.first?.unitsAreMetric ?? model.onboarding.unitsAreMetric }
     private var programme: [TemplateExercise] { templates.flatMap(\.orderedExercises) }
 
-    /// The sheet is exactly as tall as what is in it, and grows as the state changes —
+    /// The sheet is exactly as tall as what is in it, and grows as the state changes:
     /// listening, then what was understood, then sometimes a list of lifts. A fixed
     /// detent would be half empty for the first of those and cramped for the last.
     @State private var contentHeight: CGFloat = 160
