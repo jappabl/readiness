@@ -15,6 +15,8 @@ import {
   verifyAssertion,
   verifyAttestation,
   verifyChain,
+  spkiFromCertificate,
+  signedBy,
 } from "../src/attest"
 
 /**
@@ -198,6 +200,47 @@ describe("the chain to Apple", () => {
       ["verify"],
     )
     expect((key.algorithm as { namedCurve?: string }).namedCurve).toBe("P-384")
+  })
+})
+
+/// Real certificates, because the chain tests only ever fed it rubbish and watched it
+/// say no. Saying no to rubbish is not the same as saying yes to Apple: the one path
+/// nothing covered was reading a genuine certificate's public key, and it was broken.
+/// A P-384 root signing a P-256 leaf, which is the shape Apple actually sends.
+const TEST_ROOT_DER = "MIIBuTCCAUCgAwIBAgIUE3UcdzJ+cQDUhsGpOZCJrWOMYDMwCgYIKoZIzj0EAwMwFDESMBAGA1UEAwwJVGVzdCBSb290MB4XDTI2MDkyMTE3MTg0NVoXDTM2MDkxODE3MTg0NVowFDESMBAGA1UEAwwJVGVzdCBSb290MHYwEAYHKoZIzj0CAQYFK4EEACIDYgAEtGI0YUdB4pmaXb/Unf+VTq0vp7b2uoJBPWXkKyI0BsjcCG6O659dyZ8c4DT9m+i7bdNZslcuqN4MKcWRT6IOoJkribgI1XdouX0VtWlxR3kWL2Jy/Bg2+LJA5MiiJd8to1MwUTAdBgNVHQ4EFgQUkHVoSjKNiJb0DChyHD20THgJq7EwHwYDVR0jBBgwFoAUkHVoSjKNiJb0DChyHD20THgJq7EwDwYDVR0TAQH/BAUwAwEB/zAKBggqhkjOPQQDAwNnADBkAjBXHEW3zJkQP0D7NBNiatjuNTrzyomX8vyb1mutVQKwEqxwCUh+UlyjVFKFoIBqVvECMDmSJrBQ45R2yocn4zzAlGY+Up6U1zeik2Ty7ELqbdXOKUQ2m1VAqt/sHPEgjBtASQ=="
+const TEST_LEAF_DER = "MIIBeDCB/6ADAgECAgEBMAoGCCqGSM49BAMDMBQxEjAQBgNVBAMMCVRlc3QgUm9vdDAeFw0yNjA5MjExNzE4NDVaFw0zNjA5MTgxNzE4NDVaMBQxEjAQBgNVBAMMCVRlc3QgTGVhZjBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABDJxchydrT+fJqutWeIqV7OPtt3e+Y+Hqqs2KWZ7JZSxpmC5WQjpYjtHutUZMrWkXUaN1RiyyIOi1Jx2eoNPwnejQjBAMB0GA1UdDgQWBBSfLJ/j4ED+6vNmRnYFW+ehV0NYbDAfBgNVHSMEGDAWgBSQdWhKMo2IlvQMKHIcPbRMeAmrsTAKBggqhkjOPQQDAwNoADBlAjBAjmHF8w7ZTWbfqk0MC11Gz+bdRE9dE80EaQDm5VsMrh2E96T8dSi+1efbaY/0le0CMQCCgQmEFJavgyk5WrNh4mNgB4lepDDlnG47HTKtl6FLRbz8+tNOx0oymYqs1qE7qf8="
+
+describe("reading a real certificate", () => {
+  it("hands WebCrypto a SubjectPublicKeyInfo it will accept", async () => {
+    // The whole structure, tag and length included. Returning only the contents threw
+    // "invalid SPKI input" against every real device, and against nothing in this file.
+    const spki = spkiFromCertificate(base64ToBytes(TEST_ROOT_DER))
+    expect(spki[0]).toBe(0x30)
+    await expect(
+      crypto.subtle.importKey("spki", spki, { name: "ECDSA", namedCurve: "P-384" }, false, [
+        "verify",
+      ]),
+    ).resolves.toBeDefined()
+  })
+
+  it("reads a P-256 leaf's key as well as a P-384 issuer's", async () => {
+    const spki = spkiFromCertificate(base64ToBytes(TEST_LEAF_DER))
+    await expect(
+      crypto.subtle.importKey("spki", spki, { name: "ECDSA", namedCurve: "P-256" }, false, [
+        "verify",
+      ]),
+    ).resolves.toBeDefined()
+  })
+
+  it("verifies a leaf against the issuer that really signed it", async () => {
+    const issuer = await crypto.subtle.importKey(
+      "spki",
+      spkiFromCertificate(base64ToBytes(TEST_ROOT_DER)),
+      { name: "ECDSA", namedCurve: "P-384" },
+      false,
+      ["verify"],
+    )
+    expect(await signedBy(base64ToBytes(TEST_LEAF_DER), issuer)).toBe(true)
   })
 })
 

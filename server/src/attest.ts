@@ -247,7 +247,7 @@ export async function verifyChain(chain: Uint8Array[]): Promise<boolean> {
   return true
 }
 
-async function signedBy(certificate: Uint8Array, issuer: CryptoKey): Promise<boolean> {
+export async function signedBy(certificate: Uint8Array, issuer: CryptoKey): Promise<boolean> {
   const outer = readDER(certificate)
   // The signed bytes are the tbsCertificate exactly as encoded, not its contents.
   const tbs = readDER(outer.content, 0)
@@ -270,8 +270,16 @@ async function signedBy(certificate: Uint8Array, issuer: CryptoKey): Promise<boo
   )
 }
 
-/** The whole SubjectPublicKeyInfo, which is what WebCrypto's "spki" format wants. */
-function spkiFromCertificate(certificate: Uint8Array): Uint8Array {
+/**
+ * The whole SubjectPublicKeyInfo, which is what WebCrypto's "spki" format wants.
+ *
+ * From `offset`, which is where the node begins, and not from `end - content.length`,
+ * which is where its *contents* begin. The second skipped the SEQUENCE's own tag and
+ * length, so what came back was the inside of an SPKI rather than an SPKI, and every
+ * real device was turned away with "invalid SPKI input". Nothing caught it because the
+ * chain tests only ever fed this rubbish and watched it say no.
+ */
+export function spkiFromCertificate(certificate: Uint8Array): Uint8Array {
   const tbs = derChildren(readDER(certificate))[0]
   if (!tbs) throw new Error("no tbsCertificate")
   let offset = 0
@@ -280,8 +288,7 @@ function spkiFromCertificate(certificate: Uint8Array): Uint8Array {
     if (node.tag === 0x30) {
       const parts = derChildren(node)
       if (parts.length === 2 && parts[1]?.tag === 0x03) {
-        const start = node.end - node.content.length
-        return tbs.content.slice(start, node.end)
+        return tbs.content.slice(offset, node.end)
       }
     }
     offset = node.end

@@ -327,7 +327,13 @@ async function handleAttest(request: Request, env: Env): Promise<Response> {
       body: JSON.stringify({ op: "register", key }),
     })
     return Response.json({ ok: true })
-  } catch {
+  } catch (error) {
+    // Same bargain as `/v1/attest/check`: the reason a registration was refused is an
+    // oracle, and it is also the only way to find out why a real device is being turned
+    // away. It is said while attestation is not yet the gate, and not after.
+    if (env.REQUIRE_ATTESTATION !== "true") {
+      return problem(401, `not authorised: ${String(error)}`)
+    }
     return problem(401, "not authorised")
   }
 }
