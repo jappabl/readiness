@@ -4,14 +4,7 @@ import SwiftUI
 /// already lives in.
 ///
 /// Once a morning, he comes up off the tab bar, gives the day's call, and goes back.
-///
-/// He walked through the three rings on the first morning for a version, saying what
-/// each one was. It read as onboarding that had leaked onto the wrong screen. Today is
-/// where somebody finds out what their body did, not where they learn vocabulary, and
-/// those sentences are behind the information button on each ring instead.
-///
-/// The machinery stayed general because the cost of a beat is a line, so a screen that
-/// does want walking through can have one without any of this changing.
+/// The first morning he stops at each ring on the way and says what it is.
 ///
 /// He is a rigged character who blinks and breathes on his own, and `isSpeaking` moves
 /// his mouth, so a stop reads as somebody talking rather than a label appearing. That is
@@ -45,7 +38,15 @@ extension View {
 
 /// What he has already said, so he does not say it twice.
 enum JettMoments {
+    private static let walkthroughKey = "jett.walkthrough.given"
     private static let greetedKey = "jett.greeted.day"
+
+    static var hasWalkedThrough: Bool {
+        UserDefaults.standard.bool(forKey: walkthroughKey)
+    }
+    static func markWalkedThrough() {
+        UserDefaults.standard.set(true, forKey: walkthroughKey)
+    }
 
     /// One greeting a day, on the calendar's terms rather than a timer, so a night
     /// shift still gets one morning.
@@ -59,6 +60,7 @@ enum JettMoments {
     }
 
     static func forgetEverything() {
+        UserDefaults.standard.removeObject(forKey: walkthroughKey)
         UserDefaults.standard.removeObject(forKey: greetedKey)
     }
 }
@@ -114,7 +116,9 @@ struct JettFlight: View {
         guard let target else { return CGPoint(x: size.width / 2 - 40, y: size.height * 0.3) }
         let leaning: CGFloat = index.isMultiple(of: 2) ? -1 : 1
         let x = target.midX + leaning * min(target.width / 2, 34)
-        let drop: CGFloat = [30, 42, 34, 38][index % 4]
+        // Close enough to be touching it. Thirty points clear reads as him standing in
+        // front of whatever is underneath rather than beside the thing he is naming.
+        let drop: CGFloat = [18, 26, 20, 24][index % 4]
         let above = target.maxY + 150 > size.height
         return CGPoint(x: min(max(34, x), size.width - 34),
                        y: above ? target.minY - drop : target.maxY + drop)
@@ -131,7 +135,7 @@ struct JettFlight: View {
             let size = geometry.size
             let head = headPoint(in: size)
             ZStack(alignment: .topLeading) {
-                scrim
+                scrim(in: size)
                 if let beat, !landed {
                     bubble(beat, head: head, in: size)
                 }
@@ -168,8 +172,18 @@ struct JettFlight: View {
     ///
     /// Light enough to read the page through. The point is where he is, not the scrim,
     /// and a heavy one turns this into a product tour.
-    private var scrim: some View {
-        Rectangle()
+    /// Dark everywhere except the thing he is talking about.
+    ///
+    /// The rectangle is grown by `bleed` on every side and shifted back by the same
+    /// amount, so it paints over the header and the tab bar while the view it lives in
+    /// still measures the content. The hole moves with it, which is the only part worth
+    /// reading twice: it is positioned in the grown rectangle's space, not the screen's.
+    ///
+    /// Moving the whole overlay somewhere it would cover the header was the other way
+    /// to do this, and it moved every frame down by the header's height.
+    private func scrim(in size: CGSize) -> some View {
+        let bleed: CGFloat = 320
+        return Rectangle()
             .fill(.black.opacity(0.3))
             .mask {
                 Rectangle()
@@ -178,12 +192,14 @@ struct JettFlight: View {
                             RoundedRectangle(cornerRadius: Tokens.cardRadius + 4,
                                              style: .continuous)
                                 .frame(width: target.width + 14, height: target.height + 14)
-                                .position(x: target.midX, y: target.midY)
+                                .position(x: target.midX + bleed, y: target.midY + bleed)
                                 .blendMode(.destinationOut)
                         }
                     }
                     .compositingGroup()
             }
+            .frame(width: size.width + bleed * 2, height: size.height + bleed * 2)
+            .offset(x: -bleed, y: -bleed)
             .allowsHitTesting(false)
     }
 

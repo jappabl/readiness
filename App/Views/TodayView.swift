@@ -20,6 +20,8 @@ struct TodayView: View {
     @State private var savedMessage: String?
     @State private var showSaved = false
 
+    static let summaryAnchor = "summary"
+
     var body: some View {
         ZStack {
             Tokens.canvas.ignoresSafeArea()
@@ -27,6 +29,11 @@ struct TodayView: View {
         }
         // Jett's morning. Read from the page rather than positioned by hand, so a card
         // that moves, or is not there today, needs nothing changed here.
+        .toolbar(.hidden, for: .navigationBar)
+        // Before the header inset, because that is the space the anchors resolve in.
+        // Attaching it after moved every frame down by the header's height. The scrim
+        // covers the header anyway: it is drawn as one path that extends past its own
+        // bounds rather than as a rectangle that stops at them.
         .overlayPreferenceValue(TourAnchors.self) { anchors in
             GeometryReader { proxy in
                 if let beats = jettBeats, !beats.isEmpty {
@@ -36,7 +43,6 @@ struct TodayView: View {
                 }
             }
         }
-        .toolbar(.hidden, for: .navigationBar)
         .safeAreaInset(edge: .top, spacing: 0) { header }
         .sheet(isPresented: $showingCheckIn) { CheckInView() }
         .sheet(isPresented: $pickingProgram) {
@@ -210,13 +216,13 @@ struct TodayView: View {
             || shown.carbohydrateGrams != nil || shown.fatGrams != nil
     }
 
-    /// The day's call, once a morning, or nil when he stays where he is.
+    /// The day's call, once a morning, and the three rings once ever.
     ///
-    /// He used to walk through the three rings on the first morning, saying what each
-    /// one was. It read as onboarding that had leaked onto the wrong screen: Today is
-    /// where somebody checks what their body did, not where they learn what a word
-    /// means. Those sentences live behind the information button on each ring, which is
-    /// where somebody goes when they actually want them.
+    /// The walkthrough came out for a version, because reading it Hao could not tell
+    /// whether he was looking at onboarding or at Today. Putting it back, because the
+    /// version without it is worse: somebody arrives from onboarding, sees three
+    /// numbers they have never met, and the app never says what any of them are. The
+    /// ambiguity was worth fixing, the explanation was not worth losing.
     ///
     /// Never on a day with no numbers on it. A greeting about a dash is worse than
     /// silence, and the morning after onboarding is exactly when the rings are empty.
@@ -233,11 +239,16 @@ struct TodayView: View {
             instruction: Copy.call(for: rec, gate: day.readiness.gateApplied,
                                    hasSession: model.hasProgram))
 
+        if !JettMoments.hasWalkedThrough {
+            return Signal.allCases.map { JettBeat(anchor: $0.rawValue, text: $0.meaning) }
+                + [JettBeat(anchor: TodayView.summaryAnchor, text: call)]
+        }
         guard !JettMoments.hasGreeted(on: Date()) else { return nil }
-        return [JettBeat(anchor: nil, text: call)]
+        return [JettBeat(anchor: TodayView.summaryAnchor, text: call)]
     }
 
     private func finishJettMoment() {
+        JettMoments.markWalkedThrough()
         JettMoments.markGreeted(on: Date())
         jettMomentArmed = false
     }
@@ -275,6 +286,11 @@ struct TodayView: View {
         .background(Tokens.surface,
                     in: RoundedRectangle(cornerRadius: Tokens.cardRadius, style: .continuous))
         .shadow(color: .black.opacity(0.07), radius: 8, x: 0, y: 4)
+        // Published from a background rather than from the card itself. An anchor set
+        // on a container replaces whatever its children published, so `.explains` here
+        // silently wiped the three ring anchors and every beat lost its target: no
+        // spotlight, and Jett parked in the middle of the screen.
+        .background { Color.clear.explains(TodayView.summaryAnchor) }
     }
 
     /// Never zero. A ring drawn at nothing reads as broken rather than as low, which
