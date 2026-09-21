@@ -2,6 +2,12 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<!-- ProMotion is opt in on iPhone. Without this key iOS caps every CAAnimation and
+	     CADisplayLink in the app at 60Hz on a 120Hz phone, which is why the app felt
+	     half as smooth as the system UI around it. Apple made it opt in for battery,
+	     and it only costs anything while something is actually animating. -->
+	<key>CADisableMinimumFrameDurationOnPhone</key>
+	<true/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
