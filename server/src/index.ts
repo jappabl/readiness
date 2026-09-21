@@ -9,6 +9,7 @@ import { freshBucket, meterDecision, type MeterState } from "./limits"
 import { entitlement } from "./entitlement"
 import { coachBody, mealBody, trim } from "./prompt"
 import { InvalidRequest, parseCoachBody, parseMealBody, MAX_MESSAGES } from "./schema"
+import { legalPage } from "./legal"
 
 export interface Env {
   ANTHROPIC_API_KEY: string
@@ -235,6 +236,14 @@ async function handleMeal(request: Request, env: Env, id: string): Promise<Respo
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url)
+
+    // Before the method check and before identification: these are pages a reviewer,
+    // and anybody else, has to be able to open without holding a key.
+    if (request.method === "GET") {
+      const legal = legalPage(url.pathname)
+      if (legal) return legal
+    }
+
     if (request.method !== "POST") return problem(405, "use POST")
 
     const who = await identify(request, env)

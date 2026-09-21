@@ -171,8 +171,8 @@ struct PaywallView: View {
 
             HStack(spacing: 18) {
                 Button("Restore") { Task { working = true; await store.restore(); working = false } }
-                Button("Terms") { open("https://example.com/terms") }
-                Button("Privacy") { open("https://example.com/privacy") }
+                Button("Terms") { open(Backend.termsURL) }
+                Button("Privacy") { open(Backend.privacyURL) }
             }
             .font(.system(size: 12))
             .foregroundStyle(Tokens.textTertiary)

@@ -28,6 +28,13 @@ enum Backend {
 
     static var isProxied: Bool { baseURL != nil }
 
+    /// Served by the same Worker, so they cannot be broken by a deploy of something
+    /// else and they are on an origin the app is already allowed to reach. The fallback
+    /// is only ever hit by a build with no proxy configured, which cannot ship.
+    private static let legalHome = URL(string: "https://coachjett-proxy.hlincontacts.workers.dev")!
+    static var termsURL: String { (baseURL ?? legalHome).appendingPathComponent("legal/terms").absoluteString }
+    static var privacyURL: String { (baseURL ?? legalHome).appendingPathComponent("legal/privacy").absoluteString }
+
     /// Stands in for App Attest until the project has a team id to attest against.
     /// Debug builds only: a shipped app must never carry a shared secret.
     static var developmentSecret: String? {
