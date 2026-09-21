@@ -126,6 +126,32 @@ final class AppModel {
     /// engine's own adjustments: the coach adds to the call, it does not replace it.
     var coachAdjustment: SessionAdjustment?
 
+    /// The day being looked at, when it is not today.
+    ///
+    /// The calendar used to open a sheet with three rings on it, which is a report about
+    /// a day rather than the day itself. This rewinds the screen instead: the same rings,
+    /// the same cards, the same coaching, as they stood that morning. Nil is today, and
+    /// today is the only state in which anything can be logged, because a set you did on
+    /// Tuesday does not belong to the Tuesday you are reading about on Saturday.
+    var viewingDate: Date? {
+        didSet {
+            guard let viewingDate else { return }
+            // Never forward, and never today by another name.
+            if viewingDate >= Calendar.current.startOfDay(for: Date()) { self.viewingDate = nil }
+        }
+    }
+
+    var viewedDay: Date { viewingDate ?? Date() }
+    var isRewound: Bool { viewingDate != nil }
+
+    /// The three rings for whichever day is on screen.
+    func viewedScores(context: ModelContext?) -> (recovery: SignalScore,
+                                                  sleep: SignalScore,
+                                                  strain: SignalScore) {
+        isRewound ? scores(on: viewedDay, context: context)
+                  : (recoveryScore, sleepScore, strainScore(context: context))
+    }
+
     /// The short list of things Jett has been told, and what it most recently wrote.
     ///
     /// Kept as one small JSON blob rather than a SwiftData model: it is capped at twenty

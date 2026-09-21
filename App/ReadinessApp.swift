@@ -151,7 +151,9 @@ struct RootView: View {
         TabView(selection: $tab) {
             NavigationStack { TodayView() }.hidingSystemTabBar().tag(0)
             NavigationStack { TrainView() }.hidingSystemTabBar().tag(1)
-            NavigationStack { CalendarView() }.hidingSystemTabBar().tag(2)
+            NavigationStack {
+                CalendarView { withAnimation(.snappy(duration: 0.3)) { tab = 0 } }
+            }.hidingSystemTabBar().tag(2)
             NavigationStack { ProfileView() }.hidingSystemTabBar().tag(3)
         }
         .task {

@@ -10,7 +10,6 @@ struct TodayView: View {
     @State private var pickingProgram = false
     @State private var showingAdjust = false
     @State private var showingWhy = false
-    @State private var pastDay: DayKey?
     @State private var activeSession: WorkoutSession?
     @State private var loggingWeight = false
     @State private var loggingMeal = false
@@ -42,7 +41,6 @@ struct TodayView: View {
                 WhyView(day: day, recommendation: rec)
             }
         }
-        .sheet(item: $pastDay) { DayDetailView(date: $0.date) }
     }
 
     /// The last six days that have anything recorded on them. Today is the screen you
@@ -64,7 +62,7 @@ struct TodayView: View {
                 ForEach(recentDays, id: \.self) { day in
                     Button {
                         Haptics.light()
-                        pastDay = DayKey(date: day)
+                        withAnimation(.snappy(duration: 0.3)) { model.viewingDate = day }
                     } label: {
                         Label(day.formatted(.dateTime.weekday(.wide).month(.abbreviated).day()),
                               systemImage: Calendar.current.isDateInYesterday(day)
@@ -73,7 +71,12 @@ struct TodayView: View {
                 }
             } label: {
                 HStack(spacing: 5) {
-                    Text("Today, ") + Text(Date(), format: .dateTime.month(.wide).day())
+                    if model.isRewound {
+                        Text(model.viewedDay,
+                             format: .dateTime.weekday(.wide).month(.wide).day())
+                    } else {
+                        Text("Today, ") + Text(Date(), format: .dateTime.month(.wide).day())
+                    }
                     Image(systemName: "chevron.down")
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(Tokens.textSecondary)
@@ -82,8 +85,28 @@ struct TodayView: View {
                 .foregroundStyle(Tokens.textPrimary)
             }
             Spacer()
-            // No profile button. The tab bar already has one, and a second door to the
-            // same room is just furniture in the corner of the screen.
+            // The only thing that ever sits here, and only while the screen is showing
+            // a day that has already happened. Text and a symbol rather than a filled
+            // pill: it has to be findable without becoming the loudest thing up here.
+            if model.isRewound {
+                Button {
+                    Haptics.light()
+                    withAnimation(.snappy(duration: 0.3)) { model.viewingDate = nil }
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "arrow.uturn.right")
+                            .font(.system(size: 11, weight: .semibold))
+                        Text("Today")
+                    }
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(Tokens.accent)
+                    .frame(minHeight: 44)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .transition(.opacity.combined(with: .offset(x: 8)))
+                .accessibilityLabel("Back to today")
+            }
         }
         .padding(.horizontal, Tokens.screenMargin)
         .padding(.top, 6)
@@ -122,14 +145,23 @@ struct TodayView: View {
                                    onDecline: { gym.declineGym(at: place) })
                 }
                 summaryCard
-                checkInPrompt
+                if !model.isRewound { checkInPrompt }
                 if let error = model.healthReadError { Text("Health couldn't refresh. \(error)").font(.footnote).foregroundStyle(.secondary) }
                 // The screen below the fold is composed from the goal, not fixed:
                 // someone here to sleep better does not open on a back squat.
                 ForEach(model.homeBlocks, id: \.self) { block in
                     view(for: block)
                 }
-                insight
+                if !model.isRewound { insight }
+                // A day with nothing on it renders as a void, which reads as the screen
+                // having failed rather than as the day having been quiet.
+                if model.isRewound, model.homeBlocks.isEmpty || !model.hasAnything(
+                    on: model.viewedDay, context: context) {
+                    Text("Nothing was recorded on this day.")
+                        .font(.system(size: 14))
+                        .foregroundStyle(Tokens.textSecondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
             }
             .padding(.horizontal, Tokens.screenMargin)
             .padding(.top, 2)
@@ -148,12 +180,13 @@ struct TodayView: View {
     /// coaching card, their rounded bottom edge and shadow doing the separating.
     private var summaryCard: some View {
         VStack(spacing: -18) {
+            let viewed = model.viewedScores(context: context)
             HStack(spacing: 0) {
-                ringCell(.strain, percent: model.strainPercent(context: context))
+                ringCell(.strain, percent: Self.percent(viewed.strain))
                 cellDivider
-                ringCell(.recovery, percent: model.recoveryPercent)
+                ringCell(.recovery, percent: Self.percent(viewed.recovery))
                 cellDivider
-                ringCell(.sleep, percent: model.sleepPercent)
+                ringCell(.sleep, percent: Self.percent(viewed.sleep))
             }
             .padding(.vertical, 15)
             .frame(maxWidth: .infinity)
@@ -162,7 +195,7 @@ struct TodayView: View {
             .shadow(color: .black.opacity(0.07), radius: 8, x: 0, y: 4)
             .zIndex(1)
 
-            if let rec = model.recommendation, let day = model.day {
+            if let rec = model.recommendation, let day = model.day, !model.isRewound {
                 Button { showingWhy = true } label: {
                     VStack(alignment: .leading, spacing: 5) {
                         Text("Coaching").microLabel()
@@ -194,6 +227,12 @@ struct TodayView: View {
                 .shadow(color: .black.opacity(0.05), radius: 10, x: 0, y: 2)
             }
         }
+    }
+
+    /// Never zero. A ring drawn at nothing reads as broken rather than as low, which
+    /// is the same reason the live accessors clamp at one.
+    private static func percent(_ score: SignalScore) -> Int? {
+        score.value.map { max(1, Int($0.rounded())) }
     }
 
     private var cellDivider: some View {
@@ -292,24 +331,58 @@ struct TodayView: View {
 
     @ViewBuilder
     private func view(for block: HomeBlock) -> some View {
-        let today = model.series.last { Calendar.current.isDateInToday($0.date) }
+        // The row for whichever day is on screen. Every card below reads this, so
+        // rewinding moves all of them together rather than one at a time.
+        let calendar = Calendar.current
+        let shown = model.series.last { calendar.isDate($0.date, inSameDayAs: model.viewedDay) }
+        let past = model.isRewound
         switch block {
         case .session:
-            session
+            // A plan is a thing you are about to do. On a day already gone the only
+            // honest version is what was actually lifted, which the history holds.
+            if past { loggedThatDay } else { session }
         case .programPrompt:
-            programPrompt
+            if !past { programPrompt }
         case .nutrition:
-            NutritionCard(calories: today?.dietaryEnergyKcal, protein: today?.proteinGrams,
-                carbs: today?.carbohydrateGrams, fat: today?.fatGrams, onLog: { loggingMeal = true })
+            NutritionCard(calories: shown?.dietaryEnergyKcal, protein: shown?.proteinGrams,
+                carbs: shown?.carbohydrateGrams, fat: shown?.fatGrams,
+                onLog: past ? nil : { loggingMeal = true })
         case .weightTrend:
             WeightTrendCard(latest: model.latestWeight, series: model.series.compactMap(\.bodyMassKg),
-                metric: model.onboarding.unitsAreMetric, onLog: { loggingWeight = true })
+                metric: model.onboarding.unitsAreMetric,
+                onLog: past ? nil : { loggingWeight = true })
         case .sleepQuality:
-            SleepQualityCard(night: today?.sleep, summary: model.sleepScore.summary)
+            SleepQualityCard(night: shown?.sleep,
+                             summary: model.viewedScores(context: context).sleep.summary)
         case .sleepDebt:
             SleepDebtCard(debt: model.sleepDebt)
         case .movement:
-            MovementCard(activeEnergy: today?.activeEnergyKcal, steps: today?.steps, exerciseMinutes: today?.exerciseMinutes)
+            MovementCard(activeEnergy: shown?.activeEnergyKcal, steps: shown?.steps,
+                         exerciseMinutes: shown?.exerciseMinutes)
+        }
+    }
+
+    /// What was lifted on the day being read, rather than a session to start.
+    @ViewBuilder
+    private var loggedThatDay: some View {
+        let sessions = (try? context.fetch(FetchDescriptor<WorkoutSession>())) ?? []
+        let that = sessions.first {
+            Calendar.current.isDate($0.date, inSameDayAs: model.viewedDay) && !$0.sets.isEmpty
+        }
+        if let that {
+            VStack(alignment: .leading, spacing: 12) {
+                Text(that.templateName).sectionHeading()
+                ListCard {
+                    ForEach(Array(that.orderedSets.enumerated()), id: \.element.id) { index, set in
+                        if index > 0 {
+                            Divider().overlay(Tokens.hairline).padding(.leading, 14)
+                        }
+                        FieldRow(label: set.exerciseName) {
+                            Text("\(Int(set.load.rounded())) lb × \(set.reps)").monospacedDigit()
+                        }
+                    }
+                }
+            }
         }
     }
 

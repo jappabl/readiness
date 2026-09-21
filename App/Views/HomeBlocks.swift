@@ -10,13 +10,18 @@ struct NutritionCard: View {
     let protein: Double?
     let carbs: Double?
     let fat: Double?
-    let onLog: () -> Void
+    var onLog: (() -> Void)?
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text("Nutrition").sectionHeading(); Spacer()
-                Button(action: onLog) { Label("Log meal", systemImage: "camera").font(.subheadline.weight(.semibold)) }
+                if let onLog {
+                    Button(action: onLog) {
+                        Label("Log meal", systemImage: "camera")
+                            .font(.subheadline.weight(.semibold))
+                    }
                     .sectionAction()
+                }
             }
             VStack(alignment: .leading, spacing: 18) {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
@@ -54,13 +59,15 @@ struct WeightTrendCard: View {
     let latest: (date: Date, kilograms: Double)?
     let series: [Double]
     let metric: Bool
-    let onLog: () -> Void
+    var onLog: (() -> Void)?
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text("Weight").sectionHeading(); Spacer()
-                Button("Log weight", systemImage: "plus", action: onLog)
-                    .font(.subheadline.weight(.semibold)).sectionAction()
+                if let onLog {
+                    Button("Log weight", systemImage: "plus", action: onLog)
+                        .font(.subheadline.weight(.semibold)).sectionAction()
+                }
             }
             VStack(alignment: .leading, spacing: 12) {
                 if let latest {

@@ -8,11 +8,14 @@ import SwiftData
 /// answer anywhere in the app. A month grid answers it in one tap, and the shape of a
 /// month reads off the dots without a chart being drawn at all.
 struct CalendarView: View {
+    /// Switches to Today, which is now the screen that shows a day.
+    var onOpenDay: () -> Void = {}
+
     @Environment(AppModel.self) private var model
     @Environment(\.modelContext) private var context
 
     @State private var month: Date = Calendar.current.startOfDay(for: Date())
-    @State private var selected: Date?
+
 
     private let calendar = Calendar.current
 
@@ -33,10 +36,6 @@ struct CalendarView: View {
         }
         .navigationTitle("Calendar")
         .toolbarBackground(Tokens.canvas, for: .navigationBar)
-        .sheet(item: Binding(get: { selected.map(DayKey.init) },
-                             set: { selected = $0?.date })) { key in
-            DayDetailView(date: key.date)
-        }
     }
 
     // MARK: - Month
@@ -148,7 +147,11 @@ struct CalendarView: View {
             // broken rather than empty.
             guard !future, model.hasAnything(on: date, context: context) else { return }
             Haptics.light()
-            selected = date
+            // Rewind the app rather than open a report about the day. Today is the tab
+            // that shows a day, and a second screen that also shows one is two answers
+            // to the same question.
+            model.viewingDate = date
+            onOpenDay()
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(label(date, recovery: recovery))
