@@ -23,12 +23,16 @@ struct PaywallView: View {
             VStack(spacing: 0) {
                 closeRow
                 // No scroll view. The demo is the only thing that changes size, so it
-                // takes the slack and centres in it; everything else holds still.
+                // takes the slack; everything else holds still.
                 heading
                     .padding(.horizontal, Tokens.screenMargin)
+                // Top-aligned, because a conversation starts at the top and grows
+                // down. Centred in the slack it read as a graphic floating in space,
+                // which is the opposite of the thing it is meant to be showing.
                 PaywallDemo()
                     .padding(.horizontal, Tokens.screenMargin)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .padding(.top, 14)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 footer
             }
         }

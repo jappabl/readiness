@@ -7,6 +7,13 @@ import SwiftUI
 /// from *this user's own history*. Nobody reads three bullet points about a coach; they
 /// will watch one work for eight seconds.
 ///
+/// It is drawn by `CoachTurnView`, the same view the real conversation uses, and not by
+/// a copy of it. The copy had drifted: the question sat in an accent rectangle instead
+/// of the outgoing bubble, and Jett's answer had no bubble at all, so the one screen
+/// asking somebody to pay for the chat was the one screen that did not look like it.
+/// Sharing the view is also the only way it stays true, since the demo now inherits
+/// every change to how a message is drawn.
+///
 /// The script never states a measurement. The chart carries the specifics, and it is
 /// real, so the demo cannot claim something the data does not say.
 struct PaywallDemo: View {
@@ -16,10 +23,11 @@ struct PaywallDemo: View {
     @State private var sceneIndex = 0
     @State private var question = ""
     @State private var thinking = false
-    @State private var answer = ""
-    @State private var showsChart = false
+    /// One growing string, the way a real reply arrives. Charts are `[chart:name]`
+    /// markers inside it, parsed by the same segment reader the live stream uses, so
+    /// the demo cannot render a chart the conversation would not.
+    @State private var reply = ""
     @State private var showsStep = false
-    @State private var showsClose = false
 
     private var scene: Scene {
         let all = scenes
@@ -69,62 +77,37 @@ struct PaywallDemo: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             if !question.isEmpty {
-                HStack {
-                    Spacer(minLength: 40)
-                    Text(question)
-                        .font(.system(size: 14))
-                        .foregroundStyle(Tokens.onAccent)
-                        .padding(.vertical, 9).padding(.horizontal, 13)
-                        .background(Tokens.accent, in: RoundedRectangle(cornerRadius: 16,
-                                                                        style: .continuous))
-                }
-                .transition(.opacity.combined(with: .move(edge: .trailing)))
+                CoachTurnView(message: CoachMessage(role: .user, text: question))
+                    .transition(.opacity.combined(with: .move(edge: .trailing)))
             }
 
             if thinking { ThinkingPill() }
-
-            if !answer.isEmpty {
-                Text(answer)
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(Tokens.textPrimary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
 
             if showsStep, let label = scene.step {
                 CoachStepRow(label: label)
                     .transition(.opacity.combined(with: .move(edge: .top)))
             }
 
-            if showsChart {
-                ForEach(Array(scene.charts.enumerated()), id: \.element) { order, kind in
-                    CoachChartCard(kind: kind, compact: true)
-                        .id("\(sceneIndex)-\(kind.rawValue)")
-                        .transition(.opacity.combined(with: .scale(scale: 0.97, anchor: .top)))
-                }
-            }
-
-            if showsClose {
-                Text(scene.closing)
-                    .font(.system(size: 14))
-                    .foregroundStyle(Tokens.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+            if !reply.isEmpty {
+                CoachTurnView(message: CoachMessage(role: .assistant, text: reply))
                     .transition(.opacity)
             }
         }
-        // Centred, not top-aligned: the scenes differ in height by design, and content
-        // that sits in the middle of its space reads as composed, where the same content
-        // pinned to the top of it reads as a hole underneath.
         .frame(maxWidth: .infinity, alignment: .leading)
         .animation(.spring(response: 0.36, dampingFraction: 0.86), value: question)
         .animation(.spring(response: 0.36, dampingFraction: 0.86), value: thinking)
-        .animation(.spring(response: 0.36, dampingFraction: 0.86), value: showsChart)
         .animation(.spring(response: 0.36, dampingFraction: 0.86), value: showsStep)
-        .animation(.spring(response: 0.36, dampingFraction: 0.86), value: showsClose)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("A demonstration of Coach Jett answering a question.")
         .task { await play() }
+    }
+
+    /// The finished message, markers and all, exactly as the live stream would end up.
+    private var finishedReply: String {
+        var parts = [scene.lead]
+        parts.append(contentsOf: scene.charts.map { "[chart:\($0.rawValue)]" })
+        parts.append(scene.closing)
+        return parts.joined(separator: "\n")
     }
 
     /// Loops for as long as the paywall is on screen. Reduce Motion gets the finished
@@ -132,10 +115,8 @@ struct PaywallDemo: View {
     private func play() async {
         guard !reduceMotion else {
             question = scene.question
-            answer = scene.lead
-            showsChart = !scene.charts.isEmpty
+            reply = finishedReply
             showsStep = scene.step != nil
-            showsClose = true
             return
         }
         while !Task.isCancelled {
@@ -156,18 +137,20 @@ struct PaywallDemo: View {
                 }
 
                 for word in scene.lead.split(separator: " ") {
-                    answer += (answer.isEmpty ? "" : " ") + word
+                    reply += (reply.isEmpty ? "" : " ") + word
                     try? await Task.sleep(for: .milliseconds(75))
                 }
 
-                if !scene.charts.isEmpty {
+                // Markers, not a flag. The bubble grows around each chart as it lands,
+                // which is what the live stream does when the model writes one.
+                for kind in scene.charts {
                     try? await Task.sleep(for: .milliseconds(300))
-                    showsChart = true
-                    try? await Task.sleep(for: .milliseconds(2000))
+                    reply += "\n[chart:\(kind.rawValue)]"
                 }
+                if !scene.charts.isEmpty { try? await Task.sleep(for: .milliseconds(1700)) }
 
                 try? await Task.sleep(for: .milliseconds(400))
-                showsClose = true
+                reply += "\n" + scene.closing
                 try? await Task.sleep(for: .seconds(3))
             }
         }
@@ -176,9 +159,7 @@ struct PaywallDemo: View {
     private func reset() {
         question = ""
         thinking = false
-        answer = ""
-        showsChart = false
+        reply = ""
         showsStep = false
-        showsClose = false
     }
 }
