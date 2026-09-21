@@ -60,6 +60,10 @@ final class AppModel {
     var coachSharingAllowed = CoachSharing.isAllowed {
         didSet { CoachSharing.setAllowed(coachSharingAllowed) }
     }
+    /// Set when the Live Activity's End is tapped, cleared once a screen has opened the
+    /// running session. The activity can only hand over an intention; the session lives
+    /// here and the app is what finishes it.
+    var wantsToFinishWorkout = false
     var pendingCoachMessage: String?
     var pendingOnboardingConversation: [CoachMessage] = []
     private var healthAuthorizationRequested = false

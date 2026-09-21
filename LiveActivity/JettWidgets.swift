@@ -29,11 +29,15 @@ struct WorkoutLiveActivity: Widget {
                     Text(setLine(context.state)).font(.caption).monospacedDigit()
                 }
                 DynamicIslandExpandedRegion(.bottom) {
-                    if let ends = context.state.restEnds {
-                        restBar(ends)
-                    } else {
-                        Text("\(context.state.totalSets) sets logged")
-                            .font(.caption).foregroundStyle(.secondary)
+                    HStack(spacing: 10) {
+                        if let ends = context.state.restEnds {
+                            restBar(ends)
+                        } else {
+                            Text("\(context.state.totalSets) sets logged")
+                                .font(.caption).foregroundStyle(.secondary)
+                            Spacer()
+                        }
+                        finishLink
                     }
                 }
             } compactLeading: {
@@ -72,7 +76,30 @@ struct WorkoutLiveActivity: Widget {
                 Text(setLine(state))
                     .font(.subheadline.weight(.medium)).monospacedDigit()
             }
-            if let ends = state.restEnds { restBar(ends) }
+            HStack(spacing: 10) {
+                if let ends = state.restEnds { restBar(ends) } else { Spacer() }
+                finishLink
+            }
+        }
+    }
+
+    /// The way out.
+    ///
+    /// The activity had none: it could be started from the app and then only ever
+    /// ended from the app, which is the one place somebody is not looking during a
+    /// workout. A phone face down on a bench with a session that cannot be closed from
+    /// the screen it is on is worse than no activity at all.
+    ///
+    /// A link rather than a button with an intent, because ending a workout is not just
+    /// dismissing this: the session has to be written as complete, and the app owns
+    /// that. One tap gets them to the screen that does it.
+    private var finishLink: some View {
+        Link(destination: URL(string: "coachjett://finish")!) {
+            Text("End")
+                .font(.caption.weight(.semibold))
+                .padding(.horizontal, 14)
+                .frame(height: 30)
+                .background(.white.opacity(0.18), in: Capsule())
         }
     }
 

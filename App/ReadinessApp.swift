@@ -55,6 +55,11 @@ struct ReadinessApp: App {
                         }
                     }
                 }
+                // The only link the app answers, and it comes from the Lock Screen.
+                .onOpenURL { url in
+                    guard url.scheme == "coachjett", url.host == "finish" else { return }
+                    model.wantsToFinishWorkout = true
+                }
                 .task { await store.load() }
                 .task {
                     #if DEBUG

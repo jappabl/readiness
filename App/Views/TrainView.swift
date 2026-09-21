@@ -36,6 +36,13 @@ struct TrainView: View {
             }
         }
         .fullScreenCover(item: $liveSession) { LiveWorkoutView(session: $0) }
+        // Arriving from the Lock Screen's End. Opening the session is the whole job:
+        // Finish is already in there, and it is the screen that knows what was logged.
+        .onChange(of: model.wantsToFinishWorkout) { _, wants in
+            guard wants else { return }
+            model.wantsToFinishWorkout = false
+            liveSession = sessions.first { !$0.isComplete }
+        }
         .sheet(item: $editingTemplate) { TemplateEditorView(template: $0) }
         .sheet(isPresented: $creatingSession) {
             TemplateEditorView(onSave: { model.selectToday($0) })
@@ -172,12 +179,15 @@ struct LiveWorkoutView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(AppModel.self) private var model
     @Query(sort: \WorkoutTemplate.order) private var templates: [WorkoutTemplate]
+    /// Newest first, for starting a set where the last one of these finished.
+    @Query(sort: \WorkoutSession.date, order: .reverse) private var sessions: [WorkoutSession]
     @Query private var profiles: [UserProfile]
     @State private var exerciseIndex = 0
     @State private var restRemaining = 0
     @State private var restTimer: Timer?
     @State private var showingFinish = false
-    @State private var weight = ""
+    /// Pounds, always, whatever the wheel is showing.
+    @State private var weight = 0.0
     @State private var reps = 8
     @State private var rir = 2
     @State private var saveError = false
@@ -196,18 +206,86 @@ struct LiveWorkoutView: View {
         guard let current else { return 0 }
         return session.sets.filter { $0.exerciseName == current.name && !$0.isWarmup }.count
     }
+    /// The ceiling is kept even though a wheel cannot overshoot it, because the spoken
+    /// path writes here too and a misheard number is the same bad set.
     private var enteredLoad: Double? {
-        let trimmed = weight.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return nil }
-        let normalized = trimmed.replacingOccurrences(of: Locale.current.decimalSeparator ?? ".", with: ".")
-        guard let value = Double(normalized), value.isFinite, value >= 0 else { return nil }
-        let pounds = metric ? value * 2.2046226218 : value
-        // The spoken path has refused an absurd load since it was written; the field
-        // next to it had no ceiling at all. A slipped keypress logged 225185 lb during
-        // testing, and a set like that does not just look wrong, it moves the strain
-        // score and everything downstream of it for the rest of the week.
-        guard pounds <= SpokenSetParser.maximumReasonableLoad else { return nil }
-        return pounds
+        guard weight.isFinite, weight >= 0,
+              weight <= SpokenSetParser.maximumReasonableLoad else { return nil }
+        return weight
+    }
+
+    /// Every plate you could put on this, in the smallest step it actually moves in.
+    ///
+    /// The step is the exercise's own: a dumbbell curl goes up in 2.5 and a leg press in
+    /// 10, and a wheel that offers a 2.5 lb change on a leg press is a wheel nobody can
+    /// reach the end of. Zero stays on the list, because bodyweight sets are sets.
+    private func loadOptions(for exercise: TemplateExercise) -> [Double] {
+        let step = exercise.increment > 0 ? exercise.increment : 2.5
+        let top = SpokenSetParser.maximumReasonableLoad
+        var options = stride(from: 0.0, through: top, by: step).map { $0 }
+        // Whatever they last used belongs on the wheel even when it is off the grid,
+        // which happens on a machine with its own plate numbers.
+        if !options.contains(weight), weight > 0, weight <= top {
+            options.append(weight)
+            options.sort()
+        }
+        return options
+    }
+
+    private func wheel<Content: View>(label: String,
+                                      @ViewBuilder content: () -> Content) -> some View {
+        VStack(spacing: 0) {
+            Text(label).microLabel()
+            content()
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    /// What reps in reserve is, without saying reps in reserve.
+    ///
+    /// The engine wants a number and the person does not have one. Nobody outside a
+    /// coaching qualification knows what RIR means, and a stepper from 0 to 6 asks them
+    /// to guess at a scale nobody explained. Three answers everybody can give, mapped
+    /// back to the number the engine has always used.
+    private var effortPicker: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("How hard was that?").microLabel()
+            HStack(spacing: 8) {
+                effortOption("Comfortable", rir: 3)
+                effortOption("Hard", rir: 1)
+                effortOption("All out", rir: 0)
+            }
+        }
+    }
+
+    /// Which of the three a stored reps-in-reserve belongs to.
+    ///
+    /// The plan's own target is 2 or 3 depending on experience, and matching on equality
+    /// meant arriving at this screen with nothing selected at all, which reads as a
+    /// question that has not been answered rather than one with a sensible default.
+    private func effortBucket(_ value: Int) -> Int {
+        switch value {
+        case 0: return 0
+        case 1: return 1
+        default: return 3
+        }
+    }
+
+    private func effortOption(_ label: String, rir value: Int) -> some View {
+        let selected = effortBucket(rir) == value
+        return Button {
+            Haptics.selected()
+            rir = value
+        } label: {
+            Text(label)
+                .font(.system(size: 15, weight: selected ? .semibold : .regular))
+                .foregroundStyle(selected ? Tokens.messageOnOutgoing : Tokens.textPrimary)
+                .frame(maxWidth: .infinity, minHeight: 44)
+                .background(selected ? Tokens.messageOutgoing : Tokens.surface,
+                            in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(selected ? [.isSelected] : [])
     }
 
     var body: some View {
@@ -279,23 +357,30 @@ struct LiveWorkoutView: View {
                 step(1, symbol: "chevron.right", label: "Next exercise",
                      enabled: exerciseIndex < exercises.count - 1)
             }
-            ListCard {
-                FieldRow(label: "Weight (\(unit))") {
-                    TextField("Enter weight", text: $weight)
-                        .keyboardType(.decimalPad).multilineTextAlignment(.trailing).monospacedDigit()
-                        .accessibilityLabel("Set weight in \(metric ? "kilograms" : "pounds")")
+            // Two wheels and three words, because this is done between sets with one
+            // hand and a heart rate of 150. A keyboard for the weight meant tapping a
+            // field, waiting for the pad, typing, then dismissing it.
+            HStack(spacing: 0) {
+                wheel(label: "Weight (\(unit))") {
+                    Picker("Weight", selection: $weight) {
+                        ForEach(loadOptions(for: exercise), id: \.self) { value in
+                            Text(displayLoad(value)).monospacedDigit().tag(value)
+                        }
+                    }
+                    .pickerStyle(.wheel)
+                    .accessibilityLabel("Set weight in \(metric ? "kilograms" : "pounds")")
                 }
-                Divider().overlay(Tokens.hairline).padding(.leading, 14)
-                Stepper(value: $reps, in: 1...50) { LabeledContent("Reps", value: "\(reps)") }
-                    .monospacedDigit().padding(14).ticksOnChange(reps)
-                Divider().overlay(Tokens.hairline).padding(.leading, 14)
-                Stepper(value: $rir, in: 0...6) { LabeledContent("Reps in reserve", value: "\(rir)") }
-                    .monospacedDigit().padding(14).ticksOnChange(rir)
+                wheel(label: "Reps") {
+                    Picker("Reps", selection: $reps) {
+                        ForEach(1...50, id: \.self) { Text("\($0)").monospacedDigit().tag($0) }
+                    }
+                    .pickerStyle(.wheel)
+                }
             }
-            if weight.isEmpty {
-                Text("Enter the weight you used, or 0 for no added load.")
-                    .font(.caption).foregroundStyle(Tokens.textSecondary)
-            }
+            .frame(height: 150)
+
+            effortPicker
+
             if restRemaining > 0 {
                 HStack {
                     Label("Rest \(restRemaining)s", systemImage: "timer")
@@ -318,10 +403,6 @@ struct LiveWorkoutView: View {
                 PrimaryButton(label: "Log set", tint: Tokens.strainLow,
                               enabled: enteredLoad != nil) { logSet(exercise) }
                 microphone(exercise)
-            }
-            if !HoldToTalk.discovered {
-                Text("Hold Jett’s face to log a set out loud from anywhere.")
-                    .font(.caption).foregroundStyle(Tokens.textSecondary)
             }
             if !session.orderedSets.isEmpty {
                 VStack(alignment: .leading, spacing: 10) {
@@ -450,14 +531,25 @@ struct LiveWorkoutView: View {
             totalSets: session.sets.count)
     }
 
+    /// Start where they left off.
+    ///
+    /// This session first, then the last time they did this movement at all. The second
+    /// half is the point: the first set of a bench press should not start at zero every
+    /// Monday when the app already knows what went on the bar last Monday.
     private func prepareSet() {
         guard let current else { return }
         let last = session.orderedSets.last { $0.exerciseName == current.name }
-        if let last { weight = displayLoad(last.load) }
-        else if current.workingWeight > 0 || current.increment == 0 { weight = displayLoad(current.workingWeight) }
-        else { weight = "" }
+            ?? lastTime(current.name)
+        weight = last?.load ?? (current.workingWeight > 0 ? current.workingWeight : 0)
         reps = last?.reps ?? current.targetReps
         rir = last?.rir ?? current.targetRIR
+    }
+
+    private func lastTime(_ exercise: String) -> LoggedSet? {
+        sessions.lazy
+            .filter { $0 !== session }
+            .compactMap { $0.orderedSets.last { $0.exerciseName == exercise } }
+            .first
     }
 
     private func displayLoad(_ pounds: Double) -> String {
