@@ -311,6 +311,19 @@ private struct CardGallery: View {
                     WeightTrendCard(latest: (date: Date(), kilograms: 74.2),
                                     series: [75.1, 74.9, 75.0, 74.6, 74.4, 74.5, 74.2],
                                     metric: true) {}
+                    // The empty states, which are otherwise reachable only by deleting
+                    // somebody's data: onboarding installs a split, so Train is never
+                    // empty for anybody who finished it.
+                    EmptyStateView(message: "Nothing to look back on yet. Once a few "
+                                          + "days are recorded, they show up here.")
+                    EmptyStateView(message: "No split yet. Start from one Jett picked, "
+                                          + "or build a session yourself.") {
+                        ListCard {
+                            AccessoryRow(symbol: "dumbbell", label: "Choose a starter split") {}
+                            Divider().overlay(Tokens.hairline)
+                            AccessoryRow(symbol: "plus", label: "Create a session") {}
+                        }
+                    }
                 }
                 .padding(.horizontal, Tokens.screenMargin)
                 .padding(.vertical, 24)

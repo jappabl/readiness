@@ -24,10 +24,17 @@ struct CalendarView: View {
             Tokens.canvas.ignoresSafeArea()
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
-                    monthHeader
-                    weekdayRow
-                    grid
-                    key
+                    // A month of hollow dots is not a calendar, it is a grid nobody can
+                    // read. Until there is a single day with anything on it, say so.
+                    if model.series.isEmpty {
+                        EmptyStateView(message: "Nothing to look back on yet. Once a few "
+                                              + "days are recorded, they show up here.")
+                    } else {
+                        monthHeader
+                        weekdayRow
+                        grid
+                        key
+                    }
                 }
                 .padding(.horizontal, Tokens.screenMargin)
                 .padding(.top, 4)

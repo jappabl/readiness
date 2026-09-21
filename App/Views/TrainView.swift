@@ -19,7 +19,7 @@ struct TrainView: View {
         ZStack {
             Tokens.canvas.ignoresSafeArea()
             ScrollView {
-                VStack(alignment: .leading, spacing: 24) { program; history }
+                VStack(alignment: .leading, spacing: 24) { content }
                     .padding(.horizontal, Tokens.screenMargin)
                     .padding(.top, 4).clearsTabBar()
             }
@@ -41,6 +41,32 @@ struct TrainView: View {
             TemplateEditorView(onSave: { model.selectToday($0) })
         }
         .sheet(isPresented: $choosingSplit) { NavigationStack { ProgramSetupView() } }
+    }
+
+    /// Nothing at all, or the two sections.
+    ///
+    /// A first open has no split and no history, which is two empty sections and one
+    /// blank page. The sections each said so in their own grey sentence, which reads as
+    /// two things having failed rather than as a tab waiting to be used.
+    @ViewBuilder
+    private var content: some View {
+        if templates.isEmpty && sessions.isEmpty {
+            EmptyStateView(message: "No split yet. Start from one Jett picked, "
+                                  + "or build a session yourself.") {
+                ListCard {
+                    AccessoryRow(symbol: "dumbbell", label: "Choose a starter split") {
+                        choosingSplit = true
+                    }
+                    Divider().overlay(Tokens.hairline)
+                    AccessoryRow(symbol: "plus", label: "Create a session") {
+                        creatingSession = true
+                    }
+                }
+            }
+        } else {
+            program
+            history
+        }
     }
 
     private var program: some View {

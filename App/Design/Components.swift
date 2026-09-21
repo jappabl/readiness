@@ -736,13 +736,17 @@ struct JettStanding: View {
     }
 }
 
-/// Him, and a line about why there is nothing here.
-struct EmptyStateView: View {
+/// Him, a line about why there is nothing here, and whatever gets you out of it.
+///
+/// One per screen, never per section. A Train tab with no split and no history has two
+/// empty sections and wants one Jett; three of him stacked down a page is a mascot
+/// problem rather than an empty-state one.
+struct EmptyStateView<Actions: View>: View {
     let message: String
-    var action: (label: String, run: () -> Void)?
+    @ViewBuilder var actions: () -> Actions
 
     var body: some View {
-        VStack(spacing: 14) {
+        VStack(spacing: 16) {
             JettStanding()
             Text(message)
                 .font(.system(size: 15))
@@ -750,16 +754,16 @@ struct EmptyStateView: View {
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.horizontal, 24)
-            if let action {
-                Button(action.label) { Haptics.light(); action.run() }
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Tokens.accent)
-                    .frame(minHeight: 44)
-            }
+            actions()
         }
         .frame(maxWidth: .infinity)
-        .padding(.top, 20)
-        .accessibilityElement(children: .combine)
+        .padding(.top, 24)
+    }
+}
+
+extension EmptyStateView where Actions == EmptyView {
+    init(message: String) {
+        self.init(message: message) { EmptyView() }
     }
 }
 
