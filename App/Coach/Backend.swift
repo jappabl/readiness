@@ -51,6 +51,10 @@ enum Backend {
     }
 
     /// A request to our proxy, carrying proof of who is asking but never a provider key.
+    ///
+    /// Synchronous, and therefore unattested. Kept for the development path and for the
+    /// meal estimator, which has no await to hand. Anything that can be async should use
+    /// `attestedRequest` instead.
     static func request(_ route: Route, body: [String: Any]) throws -> URLRequest {
         guard let baseURL else { throw CoachError.notConfigured }
         var request = URLRequest(url: baseURL.appendingPathComponent(route.rawValue))
@@ -65,6 +69,24 @@ enum Backend {
             request.setValue(signed, forHTTPHeaderField: "x-jett-transaction")
         }
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        return request
+    }
+
+    /// The same request, signed by the Secure Enclave.
+    ///
+    /// The body is signed along with a challenge the server just issued, so a captured
+    /// assertion is good for exactly one request and cannot be pointed at a different
+    /// question. On a simulator, where App Attest does not exist, this is the plain
+    /// request and the development secret carries it.
+    static func attestedRequest(_ route: Route, body: [String: Any]) async throws -> URLRequest {
+        var request = try Self.request(route, body: body)
+        guard let baseURL, AppAttest.isSupported, let payload = request.httpBody else {
+            return request
+        }
+        let proof = try await AppAttest.proof(for: payload, baseURL: baseURL)
+        request.setValue(proof.keyID, forHTTPHeaderField: "x-jett-key-id")
+        request.setValue(proof.challenge, forHTTPHeaderField: "x-jett-challenge")
+        request.setValue(proof.assertion, forHTTPHeaderField: "x-jett-attestation")
         return request
     }
 

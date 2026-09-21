@@ -30,6 +30,7 @@
 		009D4826D7C7474F9942DFB4 /* CoachUsage.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1AB0117C12A40B9AD8AC6A2 /* CoachUsage.swift */; };
 		5A857E5B1FB945769547D7B6 /* Entitlement.swift in Sources */ = {isa = PBXBuildFile; fileRef = D09527BAB324452A88535DDE /* Entitlement.swift */; };
 		75C10A7CFCE04183910679CA /* Backend.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE721595487F4B8B8CD5D07A /* Backend.swift */; };
+		718EE8718C6C60CD2069E5CD /* AppAttest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38C73F6AE07924B3DCD15330 /* AppAttest.swift */; };
 		1F2ABFDB99F5A157202064B1 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = A05C07BD369FE0B4C393E4DD /* Models.swift */; };
 		8EB8022FAEB8B072A5B48D87 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0BCBBC313CD0F4786FBECC8 /* Components.swift */; };
 		3847AA30AB8B469E81244BA6 /* JettRive.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75C97A7B460546DC971F8390 /* JettRive.swift */; };
@@ -141,6 +142,7 @@
 		E1AB0117C12A40B9AD8AC6A2 /* CoachUsage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CoachUsage.swift"; sourceTree = "<group>"; };
 		D09527BAB324452A88535DDE /* Entitlement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Entitlement.swift"; sourceTree = "<group>"; };
 		FE721595487F4B8B8CD5D07A /* Backend.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Backend.swift"; sourceTree = "<group>"; };
+		38C73F6AE07924B3DCD15330 /* AppAttest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppAttest.swift"; sourceTree = "<group>"; };
 		A05C07BD369FE0B4C393E4DD /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Models.swift"; sourceTree = "<group>"; };
 		F0BCBBC313CD0F4786FBECC8 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Components.swift"; sourceTree = "<group>"; };
 		49A1D7FFCBF64F3A8A42C5E3 /* RiveRuntime.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = RiveRuntime.xcframework; path = Frameworks/RiveRuntime.xcframework; sourceTree = SOURCE_ROOT; };
@@ -342,6 +344,7 @@
 				E1AB0117C12A40B9AD8AC6A2 /* CoachUsage.swift */,
 				D09527BAB324452A88535DDE /* Entitlement.swift */,
 				FE721595487F4B8B8CD5D07A /* Backend.swift */,
+				38C73F6AE07924B3DCD15330 /* AppAttest.swift */,
 			);
 			name = "Coach";
 			path = "App/Coach";
@@ -609,6 +612,7 @@
 				009D4826D7C7474F9942DFB4 /* CoachUsage.swift in Sources */,
 				5A857E5B1FB945769547D7B6 /* Entitlement.swift in Sources */,
 				75C10A7CFCE04183910679CA /* Backend.swift in Sources */,
+				718EE8718C6C60CD2069E5CD /* AppAttest.swift in Sources */,
 				1F2ABFDB99F5A157202064B1 /* Models.swift in Sources */,
 				8EB8022FAEB8B072A5B48D87 /* Components.swift in Sources */,
 				3847AA30AB8B469E81244BA6 /* JettRive.swift in Sources */,

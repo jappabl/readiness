@@ -38,7 +38,18 @@ BUNDLE_ID = "com.coachjett.ios"
 name = "BUCKET"
 class_name = "RateBucket"
 
+# One per attested key. Strongly consistent because the counter is the replay defence:
+# two requests racing an eventually consistent store would both read the same counter
+# and both be accepted, which is the replay it exists to stop.
+[[durable_objects.bindings]]
+name = "ATTEST"
+class_name = "AttestedInstall"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["RateBucket"]
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["AttestedInstall"]
 

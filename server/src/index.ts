@@ -10,6 +10,7 @@ import { entitlement } from "./entitlement"
 import { coachBody, mealBody, trim } from "./prompt"
 import { InvalidRequest, parseCoachBody, parseMealBody, MAX_MESSAGES } from "./schema"
 import { legalPage } from "./legal"
+import { base64ToBytes, verifyAssertion, verifyAttestation, type AttestedKey } from "./attest"
 
 export interface Env {
   ANTHROPIC_API_KEY: string
@@ -23,6 +24,80 @@ export interface Env {
   APPLE_TEAM_ID: string
   BUNDLE_ID: string
   BUCKET: DurableObjectNamespace
+  /// One object per attested key, holding its public key and its counter.
+  ATTEST: DurableObjectNamespace
+}
+
+/**
+ * What an install is, once it has proved itself.
+ *
+ * A Durable Object rather than KV because the counter is the replay defence and has to
+ * be right under concurrency: two requests racing against an eventually consistent store
+ * would both read the same counter and both be accepted, which is precisely the replay
+ * the counter exists to stop.
+ */
+export class AttestedInstall implements DurableObject {
+  constructor(private state: DurableObjectState) {}
+
+  async fetch(request: Request): Promise<Response> {
+    const body = (await request.json()) as
+      | { op: "register"; key: AttestedKey }
+      | { op: "load" }
+      | { op: "advance"; counter: number }
+
+    return await this.state.blockConcurrencyWhile(async () => {
+      const stored = await this.state.storage.get<AttestedKey>("key")
+      switch (body.op) {
+        case "register":
+          // Registering twice is not an error, but it must not reset a counter: that
+          // would hand a replayed assertion a clean slate.
+          if (!stored) await this.state.storage.put("key", body.key)
+          return Response.json({ ok: true })
+        case "load":
+          return Response.json({ key: stored ?? null })
+        case "advance":
+          if (!stored) return Response.json({ ok: false })
+          await this.state.storage.put("key", { ...stored, counter: body.counter })
+          return Response.json({ ok: true })
+      }
+    })
+  }
+}
+
+/**
+ * A challenge, so an attestation or an assertion cannot be replayed.
+ *
+ * Signed rather than stored: the Worker has no session to keep it in, and a challenge
+ * that carries its own expiry and its own signature needs no round trip to validate.
+ */
+async function issueChallenge(env: Env): Promise<string> {
+  const payload = `${Date.now()}.${crypto.randomUUID()}`
+  const signature = await hmac(payload, env.DEV_SHARED_SECRET ?? env.BUNDLE_ID)
+  return `${payload}.${signature}`
+}
+
+const CHALLENGE_LIFETIME_MS = 5 * 60 * 1000
+
+async function challengeIsValid(challenge: string, env: Env, now: number): Promise<boolean> {
+  const parts = challenge.split(".")
+  if (parts.length !== 3) return false
+  const [issued, nonce, signature] = parts as [string, string, string]
+  const expected = await hmac(`${issued}.${nonce}`, env.DEV_SHARED_SECRET ?? env.BUNDLE_ID)
+  if (signature !== expected) return false
+  const age = now - Number(issued)
+  return Number.isFinite(age) && age >= 0 && age < CHALLENGE_LIFETIME_MS
+}
+
+async function hmac(message: string, secret: string): Promise<string> {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  )
+  const signature = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(message))
+  return [...new Uint8Array(signature)].map((b) => b.toString(16).padStart(2, "0")).join("")
 }
 
 const PROVIDERS: Record<string, { url: string; key: (env: Env) => string }> = {
@@ -79,11 +154,46 @@ async function identify(request: Request, env: Env): Promise<{ id: string } | Re
   const requireAttestation = env.REQUIRE_ATTESTATION === "true"
 
   if (requireAttestation) {
-    if (!attestation) return problem(401, "attestation required")
-    // Deliberately unimplemented rather than faked: see docs/briefs/model-proxy.md.
-    // Returning a permissive default here would make the only anti-abuse control a
-    // comment.
-    return problem(501, "App Attest verification is not implemented yet")
+    const keyID = request.headers.get("x-jett-key-id")
+    const challenge = request.headers.get("x-jett-challenge")
+    if (!attestation || !keyID || !challenge) return problem(401, "attestation required")
+    if (!(await challengeIsValid(challenge, env, Date.now()))) {
+      return problem(401, "stale challenge")
+    }
+
+    const install = env.ATTEST.get(env.ATTEST.idFromName(keyID))
+    const stored = (await (
+      await install.fetch("https://attest/load", {
+        method: "POST",
+        body: JSON.stringify({ op: "load" }),
+      })
+    ).json()) as { key: AttestedKey | null }
+    if (!stored.key) return problem(401, "unknown key")
+
+    try {
+      // The body is signed along with the challenge, so an assertion captured from one
+      // request cannot be replayed against a different question.
+      const body = new Uint8Array(await request.clone().arrayBuffer())
+      const signed = new Uint8Array(new TextEncoder().encode(challenge).length + body.length)
+      signed.set(new TextEncoder().encode(challenge))
+      signed.set(body, new TextEncoder().encode(challenge).length)
+      const counter = await verifyAssertion({
+        assertion: base64ToBytes(attestation),
+        signedData: signed,
+        key: stored.key,
+        appID: `${env.APPLE_TEAM_ID}.${env.BUNDLE_ID}`,
+      })
+      await install.fetch("https://attest/advance", {
+        method: "POST",
+        body: JSON.stringify({ op: "advance", counter }),
+      })
+    } catch {
+      // Never say which check failed. The difference between "unknown key" and "bad
+      // signature" is an oracle for somebody probing it.
+      return problem(401, "not authorised")
+    }
+    // The attested key id, which the client cannot choose.
+    return { id: keyID }
   }
 
   if (!env.DEV_SHARED_SECRET) return problem(401, "not authorised")
@@ -163,6 +273,44 @@ async function callProvider(
     return problem(status, detail.slice(0, 500))
   }
   return upstream
+}
+
+/**
+ * Registering an install, once.
+ *
+ * Open by design: there is nothing to authenticate with yet, which is the whole point of
+ * the step. What stops it being abused is that the attestation has to come from Apple,
+ * be built around a challenge we issued in the last five minutes, and name this app.
+ */
+async function handleAttest(request: Request, env: Env): Promise<Response> {
+  const body = (await request.json()) as {
+    keyId?: string
+    challenge?: string
+    attestation?: string
+  }
+  if (!body.keyId || !body.challenge || !body.attestation) {
+    return problem(400, "keyId, challenge and attestation are required")
+  }
+  if (!(await challengeIsValid(body.challenge, env, Date.now()))) {
+    return problem(401, "stale challenge")
+  }
+
+  try {
+    const key = await verifyAttestation({
+      attestation: base64ToBytes(body.attestation),
+      challenge: body.challenge,
+      keyID: body.keyId,
+      appID: `${env.APPLE_TEAM_ID}.${env.BUNDLE_ID}`,
+    })
+    const install = env.ATTEST.get(env.ATTEST.idFromName(body.keyId))
+    await install.fetch("https://attest/register", {
+      method: "POST",
+      body: JSON.stringify({ op: "register", key }),
+    })
+    return Response.json({ ok: true })
+  } catch {
+    return problem(401, "not authorised")
+  }
 }
 
 async function handleCoach(request: Request, env: Env, id: string): Promise<Response> {
@@ -245,6 +393,12 @@ export default {
     }
 
     if (request.method !== "POST") return problem(405, "use POST")
+
+    // Both before identification, because they are how an install becomes identifiable.
+    if (url.pathname === "/v1/challenge") {
+      return Response.json({ challenge: await issueChallenge(env) })
+    }
+    if (url.pathname === "/v1/attest") return await handleAttest(request, env)
 
     const who = await identify(request, env)
     if (who instanceof Response) return who

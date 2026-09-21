@@ -86,9 +86,9 @@ struct ClaudeCoachProvider: CoachProvider {
     /// the token ceiling, the system prompt and the tools are all the server's to decide,
     /// because a proxy that forwards a body the client composed is an open relay.
     private func buildRequest(apiKey: String?, context: CoachContext,
-                              messages: [[String: Any]], offersTools: Bool) throws -> URLRequest {
+                              messages: [[String: Any]], offersTools: Bool) async throws -> URLRequest {
         if Backend.isProxied {
-            return try Backend.request(.coach, body: [
+            return try await Backend.attestedRequest(.coach, body: [
                 "context": context.brief,
                 "messages": messages,
                 "unitsAreMetric": unitsAreMetric,
@@ -118,7 +118,7 @@ struct ClaudeCoachProvider: CoachProvider {
         async throws -> Turn {
 
         guard CoachSharing.isAllowed else { throw CoachError.sharingNotAllowed }
-        let request = try buildRequest(apiKey: apiKey, context: context,
+        let request = try await buildRequest(apiKey: apiKey, context: context,
                                        messages: messages, offersTools: offersTools)
 
         let (bytes, response) = try await URLSession.shared.bytes(for: request)
