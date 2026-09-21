@@ -142,7 +142,7 @@ struct RecoveryBandTests {
         }
         let redShare = Double(red) / Double(samples)
         let greenShare = Double(green) / Double(samples)
-        #expect(redShare < 0.18, "\(Int(redShare * 100))% of ordinary mornings are red")
+        #expect(redShare < 0.14, "\(Int(redShare * 100))% of ordinary mornings are red")
         #expect(greenShare > 0.30, "only \(Int(greenShare * 100))% of mornings reach green")
     }
 

@@ -32,18 +32,19 @@ public enum ScoreBand: String, Sendable, Codable, Equatable {
     /// mornings came out red and green was rarer than red.
     ///
     /// Red is the app telling somebody to back off. One morning in three is not a
-    /// warning, it is a mood, and a colour that common says nothing. At 58 and 20 the
-    /// split is roughly 40% green, 48% yellow, 12% red: an average day is unremarkable
-    /// rather than a caution, and red is a day worth noticing.
+    /// warning, it is a mood, and a colour that common says nothing. At 58 and 15 the
+    /// split is roughly 40% green, 50% yellow, 10% red: an average day is unremarkable
+    /// rather than a caution, and red is about one morning a fortnight, which is a day
+    /// worth reading.
     ///
     /// `ReadinessEngine.state(forPercent:)` uses the same two numbers and has to keep
     /// using them. The ring and the training call are one calibration, not two.
     /// Green from here up.
     public static let recoveryGreen = 58.0
     /// Yellow from here up. Below it the app is telling somebody to back off.
-    public static let recoveryRed = 20.0
+    public static let recoveryRed = 15.0
     /// And below this it stops advising and says rest.
-    public static let recoveryFloor = 6.0
+    public static let recoveryFloor = 4.0
 
     public static func recovery(percent: Double) -> ScoreBand {
         switch percent {
