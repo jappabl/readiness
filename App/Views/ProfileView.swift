@@ -313,8 +313,7 @@ struct ProfileView: View {
             heading("When Jett speaks first", info:
                 "A verdict on the morning after a night worth mentioning, a warning if "
                 + "your temperature is up, a target on a night that needs more sleep "
-                + "than usual, and a pattern when one appears. At most a few a week, "
-                + "and never the same thing twice.")
+                + "than usual, and a pattern when one appears. Never for the sake of it.")
             ListCard {
                 Button {
                     Haptics.decided()

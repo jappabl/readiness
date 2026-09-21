@@ -282,8 +282,8 @@ public struct OnboardingConversation: Sendable {
     /// scrolled that far. Asked at the end, where they have seen what the app does and
     /// the promise not to overdo it is something they can check against.
     private mutating func askAboutNotifications() {
-        say("Can I message you? I won't blow up your phone, a few times a week at most, "
-            + "and only when I actually know something.")
+        say("Can I message you? Only when I actually know something you don't, "
+            + "and you can shut me up whenever.")
         step = .notifications
     }
 

@@ -11,9 +11,6 @@ struct OnboardingView: View {
     @State private var visibleCount = 0
     @State private var connecting = false
     @State private var connectionDone = false
-    @State private var draft = ""
-    @State private var showingSharing = false
-    @State private var pendingQuestion = ""
     @State private var startedAt = Date()
     @State private var receiptAnswerID: Int?
     @State private var deliveryStatus = ""
@@ -75,31 +72,8 @@ struct OnboardingView: View {
                 }
             }
         }
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            if flow.step == .ready && settled {
-                VStack(spacing: 0) {
-                    CoachComposer(draft: $draft, isStreaming: false, onSend: finish)
-                    Text("Jett uses AI. You choose what to share before your first reply.")
-                        .font(.caption2)
-                        .foregroundStyle(Tokens.textTertiary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 24)
-                        .padding(.bottom, 6)
-                }
-                .background(Tokens.messageCanvas)
-            }
-        }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Tokens.messageCanvas.ignoresSafeArea())
-        .sheet(isPresented: $showingSharing, onDismiss: {
-            if !model.coachSharingAllowed { draft = pendingQuestion }
-        }) {
-            CoachSharingSheet(onAllow: {
-                model.coachSharingAllowed = true
-                showingSharing = false
-                complete(pendingQuestion)
-            }, onCancel: { showingSharing = false })
-        }
         .task(id: flow.turns.count) {
             visibleCount = min(visibleCount, flow.turns.count)
             do {
@@ -365,7 +339,7 @@ struct OnboardingView: View {
             // not have a ninth ready, and asking for one holds them at the door of an
             // app they have not seen yet. The same four starters are waiting in the
             // chat for whenever they do have something.
-            Button("Let's go") { complete(nil) }
+            Button("Let's go") { complete() }
                 .font(.body.weight(.semibold))
                 .foregroundStyle(Tokens.messageOnOutgoing)
                 .frame(maxWidth: .infinity, minHeight: 50)
@@ -514,17 +488,7 @@ struct OnboardingView: View {
         }
     }
 
-    private func finish(_ text: String) {
-        guard flow.step == .ready, settled else { return }
-        guard model.coachSharingAllowed else {
-            pendingQuestion = text
-            showingSharing = true
-            return
-        }
-        complete(text)
-    }
-
-    private func complete(_ text: String?) {
+    private func complete() {
         model.completeOnboarding(flow.answers, in: context)
         // Built from what was just answered rather than asked for again on the next
         // screen. Nil when somebody ruled out every movement, which is the one case
@@ -533,7 +497,6 @@ struct OnboardingView: View {
         model.pendingOnboardingConversation = flow.turns.map {
             CoachMessage(role: $0.isUser ? .user : .assistant, text: $0.text, reaction: $0.reaction)
         }
-        model.pendingCoachMessage = text
         Haptics.committed()
         model.finishOnboarding()
     }
