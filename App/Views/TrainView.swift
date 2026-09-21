@@ -261,10 +261,10 @@ struct LiveWorkoutView: View {
                 }
                 Divider().overlay(Tokens.hairline).padding(.leading, 14)
                 Stepper(value: $reps, in: 1...50) { LabeledContent("Reps", value: "\(reps)") }
-                    .monospacedDigit().padding(14)
+                    .monospacedDigit().padding(14).ticksOnChange(reps)
                 Divider().overlay(Tokens.hairline).padding(.leading, 14)
                 Stepper(value: $rir, in: 0...6) { LabeledContent("Reps in reserve", value: "\(rir)") }
-                    .monospacedDigit().padding(14)
+                    .monospacedDigit().padding(14).ticksOnChange(rir)
             }
             if weight.isEmpty {
                 Text("Enter the weight you used, or 0 for no added load.")

@@ -228,8 +228,8 @@ public struct OnboardingConversation: Sendable {
     private mutating func routeHealthDetails(_ profile: HealthProfile, today: Date, skipped: Bool, hasHealthData: Bool = false) {
         missingHealthFields = profile.missingFields(on: today)
         if missingHealthFields.isEmpty {
-            say(hasHealthData ? "You're set. Pick a question below, or write your own."
-                : "We can start with any of these questions.")
+            say(hasHealthData ? "You're set. Come find me when something comes up."
+                : "You're set. Come find me when something comes up.")
             step = .ready
         } else {
             say(skipped ? "You can connect Health later. Add any missing details here, or skip."
@@ -248,7 +248,7 @@ public struct OnboardingConversation: Sendable {
         guard allowed.isValid(on: today) else { return false }
         answers.healthDetails = allowed
         answer("Details added")
-        say("You're set. Pick a question below, or write your own.")
+        say("You're set. Come find me when something comes up.")
         step = .ready
         return true
     }
@@ -256,7 +256,7 @@ public struct OnboardingConversation: Sendable {
     public mutating func skipHealthDetails() {
         guard step == .healthDetails else { return }
         answer("Skip for now")
-        say("No problem. Pick a question below, or write your own.")
+        say("No problem. Come find me when something comes up.")
         step = .ready
     }
 

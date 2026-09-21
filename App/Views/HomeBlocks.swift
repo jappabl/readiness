@@ -16,7 +16,7 @@ struct NutritionCard: View {
             HStack {
                 Text("Nutrition").sectionHeading(); Spacer()
                 if let onLog {
-                    Button(action: onLog) {
+                    Button { Haptics.light(); onLog() } label: {
                         Label("Log meal", systemImage: "camera")
                             .font(.subheadline.weight(.semibold))
                     }
@@ -65,7 +65,7 @@ struct WeightTrendCard: View {
             HStack {
                 Text("Weight").sectionHeading(); Spacer()
                 if let onLog {
-                    Button("Log weight", systemImage: "plus", action: onLog)
+                    Button("Log weight", systemImage: "plus") { Haptics.light(); onLog() }
                         .font(.subheadline.weight(.semibold)).sectionAction()
                 }
             }

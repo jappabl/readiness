@@ -35,7 +35,7 @@ enum AppAttest {
         set { UserDefaults.standard.set(newValue, forKey: keyIDKey) }
     }
 
-    private static var isRegistered: Bool {
+    static var isRegistered: Bool {
         get { UserDefaults.standard.bool(forKey: attestedKey) }
         set { UserDefaults.standard.set(newValue, forKey: attestedKey) }
     }
@@ -50,6 +50,19 @@ enum AppAttest {
     }
 
     enum Failure: Error { case unsupported, notRegistered }
+
+    /// Why the last attempt did not produce a proof, for the diagnostics row in Profile.
+    ///
+    /// Kept because the failure is otherwise invisible: with the server not yet
+    /// requiring attestation, a broken registration looks exactly like a working one
+    /// from the outside, right up until the flag is flipped and nothing works.
+    private(set) static var lastFailure: String?
+
+    static var status: String {
+        if !isSupported { return "Not available on this device" }
+        if let lastFailure { return lastFailure }
+        return isRegistered ? "Registered" : "Not registered yet"
+    }
 
     /// Registers this install with the server, once.
     ///
@@ -73,33 +86,50 @@ enum AppAttest {
             "challenge": challenge,
             "attestation": attestation.base64EncodedString(),
         ])
-        let (_, response) = try await URLSession.shared.data(for: request)
-        guard (response as? HTTPURLResponse)?.statusCode == 200 else {
+        let (data, response) = try await URLSession.shared.data(for: request)
+        let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+        guard status == 200 else {
             // Deliberately not stored. An install that failed to register tries again
             // on the next request rather than carrying a key the server never accepted.
+            lastFailure = "Server refused registration (\(status)): "
+                + (String(data: data, encoding: .utf8) ?? "")
             throw Failure.notRegistered
         }
         keyID = key
         isRegistered = true
+        lastFailure = nil
     }
 
-    /// Signs one request. The body is part of what is signed, so a captured assertion
-    /// cannot be replayed against a different question.
-    static func proof(for body: Data, baseURL: URL) async throws -> Proof {
-        guard isSupported else { throw Failure.unsupported }
-        try await register(baseURL: baseURL)
-        guard let keyID else { throw Failure.notRegistered }
+    /// Signs one request, or returns nil having recorded why it could not.
+    ///
+    /// Nil rather than a thrown error on purpose. Every caller wants the same thing from
+    /// a failure here, which is to send the request anyway and let the server decide, so
+    /// making them all write that is only an opportunity to get it wrong once.
+    static func proof(for body: Data, baseURL: URL) async -> Proof? {
+        guard isSupported else { return nil }
+        do {
+            try await register(baseURL: baseURL)
+            guard let keyID else { return nil }
 
-        let challenge = try await fetchChallenge(baseURL: baseURL)
-        // Challenge and body together: the first stops a replay, the second stops the
-        // same signature standing for a different request.
-        var signed = Data(challenge.utf8)
-        signed.append(body)
-        let hash = Data(SHA256.hash(data: signed))
-        let assertion = try await service.generateAssertion(keyID, clientDataHash: hash)
-        return Proof(keyID: keyID,
-                     assertion: assertion.base64EncodedString(),
-                     challenge: challenge)
+            let challenge = try await fetchChallenge(baseURL: baseURL)
+            // Challenge and body together: the first stops a replay, the second stops
+            // the same signature standing for a different request.
+            var signed = Data(challenge.utf8)
+            signed.append(body)
+            let hash = Data(SHA256.hash(data: signed))
+            let assertion = try await service.generateAssertion(keyID, clientDataHash: hash)
+            lastFailure = nil
+            return Proof(keyID: keyID,
+                         assertion: assertion.base64EncodedString(),
+                         challenge: challenge)
+        } catch {
+            // A key the Secure Enclave no longer recognises, or a server that refused
+            // it. Either way the next attempt starts over rather than retrying a key
+            // that will keep failing.
+            if lastFailure == nil { lastFailure = String(describing: error) }
+            isRegistered = false
+            return nil
+        }
     }
 
     private static func fetchChallenge(baseURL: URL) async throws -> String {

@@ -1,9 +1,26 @@
 import UIKit
 
-/// Physical feedback at the moments that carry weight: a set landing, a decision
-/// taken, a change applied. Not on navigation, not on scrolling: haptics stop meaning
-/// anything the moment everything buzzes.
+/// What the app feels like under a thumb.
+///
+/// Three tiers, and the discipline is in the strength rather than the coverage. iOS
+/// itself is extremely haptic: pickers tick on every detent, toggles thump, scroll views
+/// bump at the end. That never wears out because it is all selection feedback, the
+/// faintest tier, confirming a movement the thumb just made.
+///
+/// What wears out is the notification tier, the success and warning buzzes. Those
+/// announce an outcome. One per logged set is right; one per tap is exhausting inside a
+/// day, and worse, it makes the real ones stop registering.
+///
+///  - `selected` on anything discrete changing under the thumb. Everywhere.
+///  - `light` and `decided` when a surface arrives or a choice commits.
+///  - `committed`, `restOver` only for outcomes that actually happened.
 enum Haptics {
+
+    /// The faintest tier, and the one that can be everywhere: a tab, a row, a stepper,
+    /// a segment, an option taken. It is confirming the thumb, not announcing an event.
+    static func selected() {
+        UISelectionFeedbackGenerator().selectionChanged()
+    }
 
     /// Something was committed: a set logged, a check-in saved, a change applied.
     static func committed() {

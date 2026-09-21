@@ -37,12 +37,12 @@ struct WeightLogView: View {
                     set(BodyMass.display(kilograms: kg, metric: new))
                 })) {
                     Text("Pounds").tag(false); Text("Kilos").tag(true)
-                }.pickerStyle(.segmented)
+                }.pickerStyle(.segmented).ticksOnChange(metric)
                 Toggle("Save to Apple Health", isOn: $health)
                 Text("Adds a new weight measurement. Your earlier readings stay intact.")
                     .font(.footnote).foregroundStyle(.secondary).frame(maxWidth: .infinity, alignment: .leading)
                 if let error { Text(error).font(.footnote).foregroundStyle(.red) }
-                Button { save() } label: {
+                Button { Haptics.committed(); save() } label: {
                     HStack { Spacer(); if busy { ProgressView().tint(.white) } else { Text("Save weight") }; Spacer() }.padding(.vertical, 9)
                 }.buttonStyle(.borderedProminent).disabled(busy || !BodyMass.isValid(kilograms: kilograms))
                 Spacer(minLength: 0)
@@ -105,6 +105,7 @@ struct MealLogView: View {
                 .fullScreenCover(isPresented: $camera) { MealCamera { image in usePhoto(image); camera = false } onCancel: { camera = false } }
                 .confirmationDialog("Estimate with DeepSeek?", isPresented: $showConsent, titleVisibility: .visible) {
                     Button("Send photo and estimate") {
+                        Haptics.decided()
                         UserDefaults.standard.set(true, forKey: Self.consentKey)
                         estimate()
                     }
@@ -205,7 +206,8 @@ struct MealLogView: View {
 
     private func heroButton(_ title: String, _ symbol: String,
                             action: @escaping () -> Void) -> some View {
-        Button(action: action) { heroLabel(title, symbol) }.buttonStyle(.plain)
+        Button { Haptics.light(); action() } label: { heroLabel(title, symbol) }
+            .buttonStyle(.plain)
     }
 
     private func heroLabel(_ title: String, _ symbol: String) -> some View {

@@ -115,7 +115,7 @@ struct OnboardingHealthDetailsView: View {
                 Text("cm").tag(true)
                 Text("ft + in").tag(false)
             }
-            .pickerStyle(.segmented).frame(maxWidth: 180)
+            .pickerStyle(.segmented).frame(maxWidth: 180).ticksOnChange(metricHeight)
             .onChange(of: metricHeight) { old, new in
                 let value = Double(rulerValue ?? (old ? 170 : 67))
                 rulerValue = Int((new ? value * 2.54 : value / 2.54).rounded())
@@ -138,7 +138,7 @@ struct OnboardingHealthDetailsView: View {
             DatePicker("Date of birth", selection: $birthday,
                        in: Calendar(identifier: .gregorian).date(byAdding: .year, value: -120, to: Date())!...Date(),
                        displayedComponents: .date)
-                .datePickerStyle(.wheel).labelsHidden()
+                .datePickerStyle(.wheel).labelsHidden().ticksOnChange(birthday)
                 .environment(\.calendar, Calendar(identifier: .gregorian))
             confirmButton("Use \(birthday.formatted(date: .abbreviated, time: .omitted))") {
                 draft.dateOfBirth = Calendar(identifier: .gregorian).dateComponents([.year, .month, .day], from: birthday)
@@ -233,6 +233,9 @@ private struct HeightRuler: View {
                 .safeAreaPadding(.horizontal, max(0, (geometry.size.width - 10) / 2))
                 .scrollTargetBehavior(.viewAligned)
                 .scrollPosition(id: $value, anchor: .center)
+                // A tick per notch under the thumb. This is the one control in the app
+                // that is literally a dial, and a silent dial feels broken.
+                .ticksOnChange(value)
                 .onAppear { proxy.scrollTo(value ?? (metric ? 170 : 67), anchor: .center) }
                 .overlay(alignment: .top) {
                     Capsule().fill(Tokens.messageOutgoing).frame(width: 3, height: 42)

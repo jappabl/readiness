@@ -57,7 +57,7 @@ struct SignalDetailView: View {
                 }
             }
             ToolbarItem(placement: .topBarTrailing) {
-                Button { showingWhy = true } label: {
+                Button { Haptics.light(); showingWhy = true } label: {
                     Image(systemName: "info.circle").font(.system(size: 16))
                 }
                 .tint(Tokens.textPrimary)

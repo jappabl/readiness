@@ -45,7 +45,7 @@ struct PaywallView: View {
     private var closeRow: some View {
         HStack {
             Spacer()
-            Button { onDone() } label: {
+            Button { Haptics.light(); onDone() } label: {
                 Image(systemName: "xmark")
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(Tokens.textSecondary)

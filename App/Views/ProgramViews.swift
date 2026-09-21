@@ -18,7 +18,7 @@ struct ProgramSetupView: View {
             if !templates.isEmpty {
                 Section("Your sessions") {
                     ForEach(templates) { template in
-                        Button { select(template) } label: {
+                        Button { Haptics.selected(); select(template) } label: {
                             choice(name: template.name,
                                    detail: Copy.count(template.exercises.count, "exercise"),
                                    symbol: "dumbbell")
@@ -29,7 +29,7 @@ struct ProgramSetupView: View {
             }
             Section {
                 ForEach(starters, id: \.name) { starter in
-                    Button { install(starter) } label: {
+                    Button { Haptics.decided(); install(starter) } label: {
                         choice(name: starter.name, detail: splitDetail(starter),
                                symbol: "figure.strengthtraining.traditional")
                     }
@@ -44,7 +44,7 @@ struct ProgramSetupView: View {
                 Text("Matched to your equipment and limits. Add your own weights when you edit.")
             }
             Section {
-                Button { creatingSession = true } label: {
+                Button { Haptics.light(); creatingSession = true } label: {
                     Label("Create a session", systemImage: "plus")
                         .frame(minHeight: 32)
                 }

@@ -152,7 +152,7 @@ struct WhyView: View {
     /// input to the decision, and repeating someone's own answer back to them anywhere
     /// else is just an echo.
     private var felt: some View {
-        Button { editingCheckIn = true } label: {
+        Button { Haptics.light(); editingCheckIn = true } label: {
             HStack(spacing: 10) {
                 Image(systemName: "face.smiling")
                     .font(.system(size: 12, weight: .semibold))

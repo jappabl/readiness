@@ -75,6 +75,7 @@ struct CheckInView: View {
                 ForEach(1...5, id: \.self) { Text("\($0)").tag($0) }
             }
             .pickerStyle(.segmented)
+            .ticksOnChange(value.wrappedValue)
             HStack {
                 Text(low); Spacer(); Text(high)
             }

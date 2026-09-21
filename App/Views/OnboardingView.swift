@@ -323,17 +323,16 @@ struct OnboardingView: View {
             .font(.subheadline).frame(minHeight: 44).frame(maxWidth: .infinity)
             .tint(Tokens.messageOutgoing).disabled(connecting)
         case .ready:
-            LazyVGrid(columns: columns, spacing: 10) {
-                ForEach(OnboardingConversation.starterQuestions, id: \.self) { question in
-                    choice(question) {
-                        Haptics.decided()
-                        draft = question
-                    }
-                }
-            }
-            Button("Explore the app first") { complete(nil) }
-                .font(.subheadline).frame(minHeight: 44).frame(maxWidth: .infinity)
-                .tint(Tokens.messageOutgoing)
+            // No menu of questions. Somebody who has just answered eight of them does
+            // not have a ninth ready, and asking for one holds them at the door of an
+            // app they have not seen yet. The same four starters are waiting in the
+            // chat for whenever they do have something.
+            Button("Let's go") { complete(nil) }
+                .font(.body.weight(.semibold))
+                .foregroundStyle(Tokens.messageOnOutgoing)
+                .frame(maxWidth: .infinity, minHeight: 50)
+                .background(Tokens.messageOutgoing, in: Capsule())
+                .buttonStyle(.plain)
         case .reading:
             EmptyView()
         }
@@ -341,7 +340,10 @@ struct OnboardingView: View {
 
     private func choice(_ title: String, detail: String? = nil, symbol: String? = nil,
                         selected: Bool = false, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
+        Button {
+            Haptics.selected()
+            action()
+        } label: {
             HStack(alignment: .center, spacing: 9) {
                 if let symbol {
                     Image(systemName: selected ? "checkmark" : symbol)

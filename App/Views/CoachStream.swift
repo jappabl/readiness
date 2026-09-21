@@ -345,6 +345,9 @@ struct CoachComposer: View {
             Button {
                 let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
                 guard canSend else { return }
+                // After the guard, so a tap on a disabled arrow stays silent rather
+                // than feeling like it worked.
+                Haptics.light()
                 draft = ""
                 focused = false
                 onSend(text)

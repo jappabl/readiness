@@ -110,6 +110,7 @@ struct ProfileView: View {
                     ForEach(TrainingGoal.allCases, id: \.self) { goal in
                         let selected = model.goals.contains(goal)
                         Button {
+                            Haptics.selected()
                             var goals = model.goals
                             if selected { goals.remove(goal) } else { goals.insert(goal) }
                             model.setGoals(goals, in: context)
@@ -316,6 +317,7 @@ struct ProfileView: View {
                 + "and never the same thing twice.")
             ListCard {
                 Button {
+                    Haptics.decided()
                     if notifications.isEnabled { notifications.disable() }
                     else { Task { await notifications.enable() } }
                 } label: {
@@ -354,6 +356,7 @@ struct ProfileView: View {
                 // The whole row is the control. A bare Toggle only responds on the
                 // switch itself outside a List, which is a 50pt target on the far edge.
                 Button {
+                    Haptics.decided()
                     if gym.wantsWatching { gym.stopWatching() }
                     else { gym.requestPermission(workoutsDuring: model.workoutLookup()) }
                 } label: {

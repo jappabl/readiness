@@ -78,12 +78,21 @@ enum Backend {
     /// assertion is good for exactly one request and cannot be pointed at a different
     /// question. On a simulator, where App Attest does not exist, this is the plain
     /// request and the development secret carries it.
+    /// The client offers proof; the server decides whether it needed it.
+    ///
+    /// Never throws on a failure to attest. Registration needs a round trip and Apple's
+    /// own service, either of which can be down, and the app refusing to send a message
+    /// because it could not produce a signature the server is not currently asking for
+    /// is a self-inflicted outage. When attestation is required the request still goes,
+    /// and comes back 401, which is a real answer rather than a raw enum description.
     static func attestedRequest(_ route: Route, body: [String: Any]) async throws -> URLRequest {
         var request = try Self.request(route, body: body)
         guard let baseURL, AppAttest.isSupported, let payload = request.httpBody else {
             return request
         }
-        let proof = try await AppAttest.proof(for: payload, baseURL: baseURL)
+        guard let proof = await AppAttest.proof(for: payload, baseURL: baseURL) else {
+            return request
+        }
         request.setValue(proof.keyID, forHTTPHeaderField: "x-jett-key-id")
         request.setValue(proof.challenge, forHTTPHeaderField: "x-jett-challenge")
         request.setValue(proof.assertion, forHTTPHeaderField: "x-jett-attestation")

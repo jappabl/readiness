@@ -41,7 +41,7 @@ struct GymConfirmCard: View {
                             quietRow(other: "Somewhere else")
                         } else {
                             pill("Name it") { beginCorrecting() }
-                            Button("No") { onDecline() }
+                            Button("No") { Haptics.selected(); onDecline() }
                                 .font(.system(size: 14))
                                 .foregroundStyle(Tokens.textSecondary)
                         }
@@ -59,7 +59,7 @@ struct GymConfirmCard: View {
     private var correction: some View {
         VStack(alignment: .leading, spacing: 8) {
             ForEach(candidates.dropFirst().prefix(2), id: \.self) { name in
-                Button { onConfirm(name) } label: {
+                Button { Haptics.decided(); onConfirm(name) } label: {
                     HStack {
                         Text(name).font(.system(size: 15, weight: .medium))
                             .foregroundStyle(Tokens.textPrimary)
@@ -81,7 +81,7 @@ struct GymConfirmCard: View {
                     .textInputAutocapitalization(.words)
                     .focused($fieldFocused)
                     .onSubmit { commit(typed) }
-                Button("Save") { commit(typed) }
+                Button("Save") { Haptics.committed(); commit(typed) }
                     .font(.system(size: 15, weight: .semibold))
                     .disabled(typed.trimmingCharacters(in: .whitespaces).isEmpty)
             }
@@ -89,7 +89,7 @@ struct GymConfirmCard: View {
             .background(Tokens.surfaceSunken,
                         in: RoundedRectangle(cornerRadius: 12, style: .continuous))
 
-            Button("Not a gym") { onDecline() }
+            Button("Not a gym") { Haptics.selected(); onDecline() }
                 .font(.system(size: 14))
                 .foregroundStyle(Tokens.textSecondary)
         }

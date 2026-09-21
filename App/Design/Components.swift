@@ -385,7 +385,10 @@ struct AccessoryRow: View {
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
+        Button {
+            Haptics.selected()
+            action()
+        } label: {
             HStack(spacing: 8) {
                 Image(systemName: symbol).font(.system(size: 13))
                 Text(label).font(.system(size: 15))
@@ -426,7 +429,12 @@ struct PrimaryButton: View {
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
+        Button {
+            // The full-width action is a commit rather than a selection, so it gets the
+            // middle tier: something is about to happen, not something has been picked.
+            Haptics.light()
+            action()
+        } label: {
             HStack(spacing: 7) {
                 if let symbol { Image(systemName: symbol).font(.subheadline.weight(.semibold)) }
                 Text(label).font(.body.weight(.semibold))
@@ -440,6 +448,15 @@ struct PrimaryButton: View {
         }
         .buttonStyle(.plain)
         .disabled(!enabled)
+    }
+}
+
+extension View {
+    /// A tick whenever this value changes, which is what makes a wheel feel like a dial
+    /// and a segmented control feel like a switch. Skipped on the first render, so a
+    /// screen appearing does not buzz.
+    func ticksOnChange<Value: Equatable>(_ value: Value) -> some View {
+        onChange(of: value) { _, _ in Haptics.selected() }
     }
 }
 
@@ -605,7 +622,10 @@ struct InfoButton: View {
     @State private var showing = false
 
     var body: some View {
-        Button { showing = true } label: {
+        Button {
+            Haptics.selected()
+            showing = true
+        } label: {
             Image(systemName: "info.circle")
                 .font(.system(size: 13))
                 .foregroundStyle(Tokens.textSecondary.opacity(0.45))
@@ -682,7 +702,10 @@ struct InfoDot: View {
     @State private var showing = false
 
     var body: some View {
-        Button { showing = true } label: {
+        Button {
+            Haptics.selected()
+            showing = true
+        } label: {
             Image(systemName: "info.circle")
                 .font(.system(size: 13, weight: .medium))
                 // Neutral, like every other icon. Nothing here is good or bad news.
@@ -746,7 +769,13 @@ struct FloatingTabBar: View {
     }
 
     private func item(_ tag: Int, _ title: String, _ symbol: String, _ filled: String) -> some View {
-        Button { selection = tag } label: {
+        Button {
+            // Only on an actual move. Tapping the tab you are already on changes
+            // nothing, and a buzz for nothing is how haptics stop meaning anything.
+            guard selection != tag else { return }
+            Haptics.light()
+            selection = tag
+        } label: {
             VStack(spacing: 3) {
                 Image(systemName: selection == tag ? filled : symbol)
                     .font(.system(size: 18, weight: .medium))

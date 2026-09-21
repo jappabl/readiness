@@ -196,7 +196,7 @@ struct TodayView: View {
             .zIndex(1)
 
             if let rec = model.recommendation, let day = model.day, !model.isRewound {
-                Button { showingWhy = true } label: {
+                Button { Haptics.light(); showingWhy = true } label: {
                     VStack(alignment: .leading, spacing: 5) {
                         Text("Coaching").microLabel()
                         Text(Copy.call(for: rec, gate: day.readiness.gateApplied,
@@ -282,7 +282,7 @@ struct TodayView: View {
     @ViewBuilder
     private var checkInPrompt: some View {
         if model.todayCheckIn == nil {
-            Button { showingCheckIn = true } label: {
+            Button { Haptics.light(); showingCheckIn = true } label: {
                 HStack(spacing: 11) {
                     // The one coloured icon left outside a ring, and it earns it: this
                     // is a single call to action rather than a row in a grid of
