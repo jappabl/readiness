@@ -104,23 +104,33 @@ struct OnboardingView: View {
                     let answer = flow.turns.prefix(visibleCount).last
                     if let answer, answer.isUser {
                         // Acknowledge the tap first, then give the reply a readable beat.
-                        try await Task.sleep(for: .milliseconds(250))
+                        // The whole sequence runs at about half pace: at the old timings
+                        // delivered, read, reacted and replied arrived inside a second
+                        // and a half, which reads as a machine working through a list
+                        // rather than somebody picking up their phone.
+                        try await Task.sleep(for: .milliseconds(420))
                         deliveryStatus = "Delivered"
-                        try await Task.sleep(for: .milliseconds(550))
+                        try await Task.sleep(for: .milliseconds(1100))
                         deliveryStatus = "Read " + Date().formatted(date: .omitted, time: .shortened)
-                        try await Task.sleep(for: .milliseconds(180))
-                        withAnimation(reduceMotion ? nil : .easeOut(duration: 0.2)) {
+                        if !reduceMotion { Haptics.wasRead() }
+                        // Long enough that reading and reacting are two events. Under
+                        // about a third of a second the two taps blur into one.
+                        try await Task.sleep(for: .milliseconds(480))
+                        withAnimation(reduceMotion ? nil : .easeOut(duration: 0.34)) {
                             _ = reactedAnswers.insert(answer.id)
                         }
+                        if !reduceMotion, answer.reaction != nil { Haptics.reacted() }
+                        // Then the pause before the reply, scaled by how much there is
+                        // to type, the way a longer answer takes longer to write.
                         let replyLength = flow.turns[visibleCount].text.count
-                        let remaining = min(650, max(270, replyLength * 7))
+                        let remaining = min(1300, max(560, replyLength * 14))
                         try await Task.sleep(for: .milliseconds(remaining))
                     } else {
-                        try await Task.sleep(for: .milliseconds(700))
+                        try await Task.sleep(for: .milliseconds(1150))
                     }
                     guard !Task.isCancelled else { return }
                     Haptics.replyBegan()
-                    withAnimation(reduceMotion ? nil : .easeOut(duration: 0.24)) {
+                    withAnimation(reduceMotion ? nil : .easeOut(duration: 0.4)) {
                         visibleCount += 1
                     }
                     Haptics.replyEnded()
@@ -142,7 +152,7 @@ struct OnboardingView: View {
             Button {
                 guard editable else { return }
                 Haptics.light()
-                withAnimation(reduceMotion ? nil : .easeOut(duration: 0.2)) {
+                withAnimation(reduceMotion ? nil : .easeOut(duration: 0.3)) {
                     flow.editAnswer(id: turn.id)
                     visibleCount = flow.turns.count
                     receiptAnswerID = nil
@@ -396,7 +406,7 @@ struct OnboardingView: View {
 
     private func scroll(_ proxy: ScrollViewProxy) {
         if reduceMotion { proxy.scrollTo("latest", anchor: .bottom) }
-        else { withAnimation(.easeOut(duration: 0.25)) { proxy.scrollTo("latest", anchor: .bottom) } }
+        else { withAnimation(.easeOut(duration: 0.4)) { proxy.scrollTo("latest", anchor: .bottom) } }
     }
 
     private func connect() {
@@ -424,7 +434,7 @@ struct OnboardingView: View {
                 try? await Task.sleep(for: .milliseconds(reduceMotion ? 600 : 1100))
             }
             model.startBackgroundDelivery()
-            withAnimation(reduceMotion ? nil : .easeOut(duration: 0.24)) {
+            withAnimation(reduceMotion ? nil : .easeOut(duration: 0.4)) {
                 flow.finishReading(hasHealthData: model.hasOnboardingHealthData,
                                    // Days that actually had something in them.
                                    // `dailySeries` returns a row per day for all 180

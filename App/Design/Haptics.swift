@@ -34,6 +34,24 @@ enum Haptics {
         UISelectionFeedbackGenerator().selectionChanged()
     }
 
+    /// Jett read what you sent.
+    ///
+    /// Fainter than anything else here, because it is the smallest thing the app ever
+    /// reports: not a reply, not an action, just that the message landed. In a real
+    /// conversation this is somebody glancing at their phone.
+    static func wasRead() {
+        UIImpactFeedbackGenerator(style: .soft).impactOccurred(intensity: 0.35)
+    }
+
+    /// Jett reacted to it.
+    ///
+    /// A shade firmer than `wasRead`, and a different texture, because the two land
+    /// under a second apart and would otherwise read as one stutter. Rigid rather than
+    /// soft gives it an edge: reading is passive, reacting is somebody doing something.
+    static func reacted() {
+        UIImpactFeedbackGenerator(style: .rigid).impactOccurred(intensity: 0.55)
+    }
+
     /// The rest timer running out.
     static func restOver() {
         UINotificationFeedbackGenerator().notificationOccurred(.warning)
