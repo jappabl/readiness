@@ -174,20 +174,27 @@ function findOID(node: DERNode, oid: number[], depth: number): Uint8Array | null
   for (let i = 0; i < children.length; i++) {
     const child = children[i]!
     if (child.tag === 0x06 && sameBytes(child.content, Uint8Array.from(oid))) {
-      // The value sits in the OCTET STRING beside the OID, wrapped in a SEQUENCE and
-      // then an OCTET STRING again. Unwrap until something that is not a container.
-      const sibling = children[i + 1]
+      // The value, skipping a `critical` BOOLEAN if this extension carries one.
+      // X.509 puts it between the OID and the value, and "the node after the OID"
+      // would have read the flag as the payload.
+      const sibling = children.slice(i + 1).find((node) => node.tag === 0x04)
       if (!sibling) return null
-      // Any container, rather than a list of the three that were thought of. Apple
-      // wraps the nonce in [1], the list had [0], and the unwrap stopped one level
-      // early and handed back a node with its header still attached. Every genuine
-      // attestation was then refused as a "nonce mismatch", which says somebody
-      // replayed a statement and meant a tag number.
+      // Apple documents this as SEQUENCE { [1] { OCTET STRING nonce } }, and the octet
+      // string is the payload, so the walk stops there rather than carrying on.
+      //
+      // Carrying on is how the previous two attempts at this were wrong. A list of the
+      // container tags somebody thought of did not have [1] on it and stopped a level
+      // early. Unwrapping every container instead went a level too far: a 32-byte hash
+      // begins with an arbitrary byte, half of all bytes read as a constructed tag, and
+      // the loop ate the nonce it had just found. A coin flip per attestation, which is
+      // what it looked like from the outside.
       let inner = sibling.content
       for (let step = 0; step < 6; step++) {
+        if (inner.length < 2) break
         const node = readDER(inner)
-        if (isConstructed(node.tag) || node.tag === 0x04) inner = node.content
-        else break
+        if (node.tag === 0x04) return node.content
+        if (!isConstructed(node.tag)) break
+        inner = node.content
       }
       return inner
     }

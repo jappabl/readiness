@@ -238,6 +238,30 @@ describe("Apple's nonce extension", () => {
     expect(nonceFromCertificate(certificateCarrying(wrapped))).toEqual(nonce)
   })
 
+  /// The shape Apple documents is SEQUENCE { [1] { OCTET STRING nonce } }, and the
+  /// octet string is the payload: the walk has to stop there. A 32-byte hash starts
+  /// with an arbitrary byte, and half of all bytes read as a constructed tag, so a
+  /// loop that unwraps once more eats the nonce it just found. That is a coin flip
+  /// per attestation, which is exactly what it looked like.
+  it("does not keep unwrapping a nonce that happens to look like DER", () => {
+    const looksLikeDER = Uint8Array.from([0x30, 0x1e, ...Array.from({ length: 30 }, (_, i) => i)])
+    expect(looksLikeDER.length).toBe(32)
+    const wrapped = der(0x30, der(0xa1, der(0x04, looksLikeDER)))
+    expect(nonceFromCertificate(certificateCarrying(wrapped))).toEqual(looksLikeDER)
+  })
+
+  /// X.509 allows a `critical` BOOLEAN between the OID and the value, and the reader
+  /// took "the node after the OID" as the value.
+  it("skips the critical flag when one is present", () => {
+    const wrapped = der(0x30, der(0xa1, der(0x04, nonce)))
+    const extension = new Uint8Array([
+      ...der(0x06, NONCE_OID),
+      ...der(0x01, Uint8Array.from([0xff])),
+      ...der(0x04, wrapped),
+    ])
+    expect(nonceFromCertificate(der(0x30, der(0x30, extension)))).toEqual(nonce)
+  })
+
   it("still reads a [0]-wrapped one", () => {
     const wrapped = der(0x30, der(0xa0, der(0x04, nonce)))
     expect(nonceFromCertificate(certificateCarrying(wrapped))).toEqual(nonce)
