@@ -208,6 +208,7 @@ describe("the chain to Apple", () => {
 /// nothing covered was reading a genuine certificate's public key, and it was broken.
 /// A P-384 root signing a P-256 leaf, which is the shape Apple actually sends.
 const TEST_ROOT_DER = "MIIBuTCCAUCgAwIBAgIUE3UcdzJ+cQDUhsGpOZCJrWOMYDMwCgYIKoZIzj0EAwMwFDESMBAGA1UEAwwJVGVzdCBSb290MB4XDTI2MDkyMTE3MTg0NVoXDTM2MDkxODE3MTg0NVowFDESMBAGA1UEAwwJVGVzdCBSb290MHYwEAYHKoZIzj0CAQYFK4EEACIDYgAEtGI0YUdB4pmaXb/Unf+VTq0vp7b2uoJBPWXkKyI0BsjcCG6O659dyZ8c4DT9m+i7bdNZslcuqN4MKcWRT6IOoJkribgI1XdouX0VtWlxR3kWL2Jy/Bg2+LJA5MiiJd8to1MwUTAdBgNVHQ4EFgQUkHVoSjKNiJb0DChyHD20THgJq7EwHwYDVR0jBBgwFoAUkHVoSjKNiJb0DChyHD20THgJq7EwDwYDVR0TAQH/BAUwAwEB/zAKBggqhkjOPQQDAwNnADBkAjBXHEW3zJkQP0D7NBNiatjuNTrzyomX8vyb1mutVQKwEqxwCUh+UlyjVFKFoIBqVvECMDmSJrBQ45R2yocn4zzAlGY+Up6U1zeik2Ty7ELqbdXOKUQ2m1VAqt/sHPEgjBtASQ=="
+const TEST_LEAF_SHA256_DER = "MIIBeDCB/6ADAgECAgECMAoGCCqGSM49BAMCMBQxEjAQBgNVBAMMCVRlc3QgUm9vdDAeFw0yNjA5MjExNzIwNTNaFw0zNjA5MTgxNzIwNTNaMBQxEjAQBgNVBAMMCVRlc3QgTGVhZjBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABDJxchydrT+fJqutWeIqV7OPtt3e+Y+Hqqs2KWZ7JZSxpmC5WQjpYjtHutUZMrWkXUaN1RiyyIOi1Jx2eoNPwnejQjBAMB0GA1UdDgQWBBSfLJ/j4ED+6vNmRnYFW+ehV0NYbDAfBgNVHSMEGDAWgBSQdWhKMo2IlvQMKHIcPbRMeAmrsTAKBggqhkjOPQQDAgNoADBlAjEAkoTxTLrp3mNAtTinUQ35UZN6qLBx0kfFkWDzEFmgV3PbS46oS999fK7Vf+1L+ubRAjBQra3RI2L9C/ZuiWpc5j3iXiNchRfgplmvOBKYeMTokrh2/QZNgQ13dGff6GrmKxs="
 const TEST_LEAF_DER = "MIIBeDCB/6ADAgECAgEBMAoGCCqGSM49BAMDMBQxEjAQBgNVBAMMCVRlc3QgUm9vdDAeFw0yNjA5MjExNzE4NDVaFw0zNjA5MTgxNzE4NDVaMBQxEjAQBgNVBAMMCVRlc3QgTGVhZjBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABDJxchydrT+fJqutWeIqV7OPtt3e+Y+Hqqs2KWZ7JZSxpmC5WQjpYjtHutUZMrWkXUaN1RiyyIOi1Jx2eoNPwnejQjBAMB0GA1UdDgQWBBSfLJ/j4ED+6vNmRnYFW+ehV0NYbDAfBgNVHSMEGDAWgBSQdWhKMo2IlvQMKHIcPbRMeAmrsTAKBggqhkjOPQQDAwNoADBlAjBAjmHF8w7ZTWbfqk0MC11Gz+bdRE9dE80EaQDm5VsMrh2E96T8dSi+1efbaY/0le0CMQCCgQmEFJavgyk5WrNh4mNgB4lepDDlnG47HTKtl6FLRbz8+tNOx0oymYqs1qE7qf8="
 
 describe("reading a real certificate", () => {
@@ -230,6 +231,22 @@ describe("reading a real certificate", () => {
         "verify",
       ]),
     ).resolves.toBeDefined()
+  })
+
+  /// The shape Apple actually sends: a P-384 issuer signing a P-256 leaf with SHA-256.
+  /// The hash a signature used is written in the certificate's own signatureAlgorithm
+  /// and was being inferred from the issuer's curve instead, so this exact combination
+  /// verified against SHA-384 and failed. Every real chain reached "chain does not
+  /// reach Apple's root", which reads like a forgery and was arithmetic.
+  it("verifies a SHA-256 leaf signed by a P-384 issuer", async () => {
+    const issuer = await crypto.subtle.importKey(
+      "spki",
+      spkiFromCertificate(base64ToBytes(TEST_ROOT_DER)),
+      { name: "ECDSA", namedCurve: "P-384" },
+      false,
+      ["verify"],
+    )
+    expect(await signedBy(base64ToBytes(TEST_LEAF_SHA256_DER), issuer)).toBe(true)
   })
 
   it("verifies a leaf against the issuer that really signed it", async () => {

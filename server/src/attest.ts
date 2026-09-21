@@ -260,14 +260,41 @@ export async function signedBy(certificate: Uint8Array, issuer: CryptoKey): Prom
   // A BIT STRING's first byte is the count of unused bits.
   const der = signatureNode.content.slice(1)
 
+  // Two different questions, and they used to share one answer.
+  //
+  // How wide r and s are is a property of the issuer's curve: a P-384 key signs with
+  // 48-byte halves whatever it hashed. Which hash was used is a property of this
+  // certificate, written in its own signatureAlgorithm, and Apple signs a P-256 leaf
+  // with SHA-256 under a P-384 intermediate. Inferring the hash from the curve turned
+  // every genuine chain into "chain does not reach Apple's root", which reads like a
+  // forgery and was arithmetic.
   const named = (issuer.algorithm as { namedCurve?: string }).namedCurve
   const bits = named === "P-384" ? 48 : 32
   return crypto.subtle.verify(
-    { name: "ECDSA", hash: bits === 48 ? "SHA-384" : "SHA-256" },
+    { name: "ECDSA", hash: hashOf(children[1]) },
     issuer,
     rawSignature(der, bits),
     signedBytes,
   )
+}
+
+/**
+ * The hash named by a certificate's signatureAlgorithm.
+ *
+ * The ecdsa-with-SHA* OIDs differ only in their last byte: 1.2.840.10045.4.3.{2,3,4}
+ * for SHA-256, SHA-384 and SHA-512.
+ */
+function hashOf(algorithm: DERNode | undefined): string {
+  const oid = algorithm && derChildren(algorithm)[0]
+  const last = oid?.content[oid.content.length - 1]
+  switch (last) {
+    case 3:
+      return "SHA-384"
+    case 4:
+      return "SHA-512"
+    default:
+      return "SHA-256"
+  }
 }
 
 /**
