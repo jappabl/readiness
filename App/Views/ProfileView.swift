@@ -12,6 +12,7 @@ struct ProfileView: View {
     @State private var editing: HealthProfile.Field?
     @State private var loggingWeight = false
     @State private var editorHeight: CGFloat = 320
+    @Environment(Notifications.self) private var notifications
 
     private var metric: Bool { profiles.first?.unitsAreMetric ?? model.onboarding.unitsAreMetric }
 
@@ -37,6 +38,7 @@ struct ProfileView: View {
                     baselines
                     weights
                     look
+                    speaking
                     atTheGym
                     privacy
                 }
@@ -297,6 +299,47 @@ struct ProfileView: View {
                 }
                 Divider().overlay(Tokens.hairline).padding(.leading, 14)
                 FieldRow(label: "Model") { Text(ReadinessEngine.modelVersion).monospacedDigit() }
+            }
+        }
+    }
+
+    /// Jett starting the conversation, rather than answering one.
+    ///
+    /// Off until asked for, and asked for here rather than on first launch: a permission
+    /// sheet before anybody knows what the app does is a permission sheet people decline.
+    private var speaking: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            heading("When Jett speaks first", info:
+                "A verdict on the morning after a night worth mentioning, a warning if "
+                + "your temperature is up, a target on a night that needs more sleep "
+                + "than usual, and a pattern when one appears. At most a few a week, "
+                + "and never the same thing twice.")
+            ListCard {
+                Button {
+                    if notifications.isEnabled { notifications.disable() }
+                    else { Task { await notifications.enable() } }
+                } label: {
+                    HStack {
+                        Text("Let Jett reach me")
+                            .font(.system(size: 15))
+                            .foregroundStyle(Tokens.textPrimary)
+                        Spacer(minLength: 12)
+                        Toggle("", isOn: .constant(notifications.isEnabled))
+                            .labelsHidden().tint(Tokens.accent).allowsHitTesting(false)
+                    }
+                    .padding(.horizontal, 14).padding(.vertical, 8)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                if notifications.systemStatus == .denied {
+                    Divider().overlay(Tokens.hairline)
+                    AccessoryRow(symbol: "gear", label: "Turn on in Settings",
+                                 tint: Tokens.textSecondary) {
+                        if let url = URL(string: UIApplication.openSettingsURLString) {
+                            openURL(url)
+                        }
+                    }
+                }
             }
         }
     }

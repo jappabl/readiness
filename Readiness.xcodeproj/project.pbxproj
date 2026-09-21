@@ -13,6 +13,7 @@
 		7B556357EA57E28B025220D9 /* JettWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = CAADC2998A055EAE9316756B /* JettWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		A48C14F35B074FB29DC926D1 /* DailyStrain.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1453BC247AC4FBFB2B245E8 /* DailyStrain.swift */; };
 		AE2D561E76F545B195BE919A /* SleepScore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68F3AB85F79946D3BBC4A7E8 /* SleepScore.swift */; };
+		942B43426B398BC0D4B8E2CB /* UsualBedtime.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CD49C73884DA3E86D6303C9 /* UsualBedtime.swift */; };
 		AFECC2FD73F74759B378CC25 /* FoodLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D8BB139FB4C4604BDDD7DD5 /* FoodLog.swift */; };
 		FCF62ED827454EC0B1080A35 /* MealPhotoEstimator.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4F62BB82A7B412C869F000E /* MealPhotoEstimator.swift */; };
 		F87758D2AAFC41B8A5E9D327 /* LoggingViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53FE074D7CB046BD9FD9B072 /* LoggingViews.swift */; };
@@ -41,6 +42,7 @@
 		6CF173F1EF544C1C8F301AEC /* DemoPhysiology.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AC211F10AAF4501965D0EC1 /* DemoPhysiology.swift */; };
 		3AE4AE04E96C4CA5A0ADA8BD /* LogSetsIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E370FDA10DB4D5587685970 /* LogSetsIntent.swift */; };
 		335F9DF08713FF65C894B3DE /* WorkoutActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19A155AAA5E0F604903D1AA9 /* WorkoutActivity.swift */; };
+		13520CEA45E87775B86BA314 /* Notifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A0A41B5353776C43AB5F43 /* Notifications.swift */; };
 		26EC5CA84A95FA981E6FE1E4 /* Dictation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1AEA8A75DC789A0395CD19D1 /* Dictation.swift */; };
 		699DE0D93E6F4551A62F39B6 /* Subscriptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFC3C84970F1464F8574ABE3 /* Subscriptions.swift */; };
 		3637D17E12D76F9EAA126693 /* Copy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 727B333776AC76D5EAD1EBBA /* Copy.swift */; };
@@ -122,6 +124,7 @@
 		CAADC2998A055EAE9316756B /* JettWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "JettWidgets.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
 		B1453BC247AC4FBFB2B245E8 /* DailyStrain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "DailyStrain.swift"; path = "Core/Sources/ReadinessCore/DailyStrain.swift"; sourceTree = SOURCE_ROOT; };
 		68F3AB85F79946D3BBC4A7E8 /* SleepScore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "SleepScore.swift"; path = "Core/Sources/ReadinessCore/SleepScore.swift"; sourceTree = SOURCE_ROOT; };
+		2CD49C73884DA3E86D6303C9 /* UsualBedtime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UsualBedtime.swift"; sourceTree = "<group>"; };
 		3D8BB139FB4C4604BDDD7DD5 /* FoodLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "FoodLog.swift"; path = "Core/Sources/ReadinessCore/FoodLog.swift"; sourceTree = SOURCE_ROOT; };
 		D4F62BB82A7B412C869F000E /* MealPhotoEstimator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "MealPhotoEstimator.swift"; path = "App/Coach/MealPhotoEstimator.swift"; sourceTree = SOURCE_ROOT; };
 		53FE074D7CB046BD9FD9B072 /* LoggingViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "LoggingViews.swift"; path = "App/Views/LoggingViews.swift"; sourceTree = SOURCE_ROOT; };
@@ -151,6 +154,7 @@
 		2AC211F10AAF4501965D0EC1 /* DemoPhysiology.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DemoPhysiology.swift"; sourceTree = "<group>"; };
 		1E370FDA10DB4D5587685970 /* LogSetsIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "LogSetsIntent.swift"; sourceTree = "<group>"; };
 		19A155AAA5E0F604903D1AA9 /* WorkoutActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WorkoutActivity.swift"; sourceTree = "<group>"; };
+		05A0A41B5353776C43AB5F43 /* Notifications.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Notifications.swift"; sourceTree = "<group>"; };
 		1AEA8A75DC789A0395CD19D1 /* Dictation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Dictation.swift"; sourceTree = "<group>"; };
 		FFC3C84970F1464F8574ABE3 /* Subscriptions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Subscriptions.swift"; sourceTree = "<group>"; };
 		727B333776AC76D5EAD1EBBA /* Copy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Copy.swift"; sourceTree = "<group>"; };
@@ -372,6 +376,7 @@
 				2AC211F10AAF4501965D0EC1 /* DemoPhysiology.swift */,
 				1E370FDA10DB4D5587685970 /* LogSetsIntent.swift */,
 				19A155AAA5E0F604903D1AA9 /* WorkoutActivity.swift */,
+				05A0A41B5353776C43AB5F43 /* Notifications.swift */,
 				1AEA8A75DC789A0395CD19D1 /* Dictation.swift */,
 				FFC3C84970F1464F8574ABE3 /* Subscriptions.swift */,
 				727B333776AC76D5EAD1EBBA /* Copy.swift */,
@@ -466,6 +471,7 @@
 				77311ADBF1851EC9BE0A1B98 /* SessionPlanner.swift */,
 				08F8A3D6CEA4393252D67072 /* SpokenSetParser.swift */,
 				BEBB3C62E6CA24AFF5E2F266 /* SpokenSetResolver.swift */,
+				2CD49C73884DA3E86D6303C9 /* UsualBedtime.swift */,
 				AA4B7944599E6BF427A4842E /* StrainEngine.swift */,
 				C8E4DCF35AF6C72C1EB7D54F /* Training.swift */,
 			);
@@ -590,6 +596,7 @@
 			files = (
 				A48C14F35B074FB29DC926D1 /* DailyStrain.swift in Sources */,
 				AE2D561E76F545B195BE919A /* SleepScore.swift in Sources */,
+				942B43426B398BC0D4B8E2CB /* UsualBedtime.swift in Sources */,
 				AFECC2FD73F74759B378CC25 /* FoodLog.swift in Sources */,
 				FCF62ED827454EC0B1080A35 /* MealPhotoEstimator.swift in Sources */,
 				F87758D2AAFC41B8A5E9D327 /* LoggingViews.swift in Sources */,
@@ -611,6 +618,7 @@
 				6CF173F1EF544C1C8F301AEC /* DemoPhysiology.swift in Sources */,
 				3AE4AE04E96C4CA5A0ADA8BD /* LogSetsIntent.swift in Sources */,
 				335F9DF08713FF65C894B3DE /* WorkoutActivity.swift in Sources */,
+				13520CEA45E87775B86BA314 /* Notifications.swift in Sources */,
 				D861650683AAF8377BAFF83D /* WorkoutActivityAttributes.swift in Sources */,
 				26EC5CA84A95FA981E6FE1E4 /* Dictation.swift in Sources */,
 				699DE0D93E6F4551A62F39B6 /* Subscriptions.swift in Sources */,

@@ -752,6 +752,42 @@ final class AppModel {
     /// The running balance, as its own thing rather than folded into the night's score.
     var sleepDebt: SleepDebt { sleepDebt(on: Date()) }
 
+    /// What tonight asks for: their learned baseline, plus what today's load has to be
+    /// repaired. The same inputs the sleep score uses, read forward instead of back.
+    func tonightsNeed(on date: Date, context: ModelContext?) -> SleepNeed {
+        let learned = SleepNeed.baseline(from: sleepNights(before: date))
+        return SleepNeed.of(baseline: learned.hours, learnedShare: learned.confidence,
+                            strain: strainScore(on: date, context: context).value)
+    }
+
+    /// Everything the notification engine needs to decide whether to speak.
+    ///
+    /// Assembled here because this is the only place that holds all of it. The decision
+    /// itself is Core's, and this deliberately makes none of it: no thresholds, no
+    /// ordering, no "is it too early", only the readings.
+    func notificationInput(now: Date = .now, record: NotificationRecord,
+                           context: ModelContext?) -> NotificationDecision.Input {
+        let scores = self.scores(on: now, context: context)
+        // Oldest first, excluding today, which is what the engine documents wanting.
+        let calendar = Calendar.current
+        let recentSleep = series
+            .filter { !calendar.isDate($0.date, inSameDayAs: now) && $0.date < now }
+            .suffix(14)
+            .compactMap { sleepScore(on: $0.date).value }
+        return NotificationDecision.Input(
+            now: now,
+            recovery: scores.recovery,
+            sleep: scores.sleep,
+            recentSleepScores: Array(recentSleep),
+            tonightsNeed: tonightsNeed(on: now, context: context),
+            sleepDebtHours: sleepDebt.hours,
+            usualBedtime: UsualBedtime.tonight(
+                from: series.compactMap { $0.sleep?.primarySleepStart }, now: now),
+            insight: recentInsight,
+            record: record)
+    }
+
+
     func sleepDebt(on date: Date) -> SleepDebt {
         let nights = nightlySleep(upTo: date)
         // One night cannot have a change since the night before it. `SleepDebt.of`

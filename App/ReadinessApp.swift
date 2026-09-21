@@ -7,6 +7,7 @@ struct ReadinessApp: App {
     @State private var store = Subscriptions()
     @State private var gym = GymPresence()
     @State private var appearance = Appearance()
+    @State private var notifications = Notifications()
     @Environment(\.scenePhase) private var scenePhase
 
     private let container = Store.container
@@ -18,12 +19,26 @@ struct ReadinessApp: App {
                 .environment(store)
                 .environment(gym)
                 .environment(appearance)
+                .environment(notifications)
                 // Light by default, warm dark at night, or whatever they chose. The
                 // system setting is deliberately not followed: iOS cannot tell us
                 // whether it was chosen or inherited, so the preference is ours.
                 .preferredColorScheme(appearance.isDark ? .dark : .light)
                 .onChange(of: scenePhase) { _, phase in
-                    if phase == .active { appearance.refresh() }
+                    if phase == .active {
+                        appearance.refresh()
+                        Task { await notifications.refreshStatus() }
+                    }
+                    // On the way out, not on the way in. A notification is for somebody
+                    // who is not looking at the app, and one posted while they are gets
+                    // dropped by the system rather than held for later.
+                    if phase == .background {
+                        Task {
+                            await notifications.considerSpeaking(
+                                model.notificationInput(record: notifications.record,
+                                                        context: container.mainContext))
+                        }
+                    }
                 }
                 .task { await store.load() }
                 .task {
