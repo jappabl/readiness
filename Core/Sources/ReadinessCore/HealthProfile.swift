@@ -6,7 +6,10 @@ public struct HealthProfile: Codable, Sendable, Equatable {
         case female, male, other
         public var title: String { rawValue.capitalized }
     }
-    public enum Field: Sendable, Equatable { case height, dateOfBirth, biologicalSex }
+    public enum Field: Sendable, Equatable, Identifiable, CaseIterable {
+        case height, dateOfBirth, biologicalSex
+        public var id: Self { self }
+    }
 
     public var heightCM: Double?
     public var dateOfBirth: DateComponents?

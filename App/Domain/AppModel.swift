@@ -438,6 +438,23 @@ final class AppModel {
 
     /// The flow is over once the user has seen their own baselines, not when the goal
     /// is stored — otherwise the reveal is cut off by the app appearing behind it.
+    /// Correcting one of the measures from Profile, long after onboarding.
+    ///
+    /// Written to the same place onboarding writes, so Health still wins where Health
+    /// has a reading: this fills what it cannot see rather than overriding it.
+    func updateHealthDetails(_ details: HealthProfile, in context: ModelContext) {
+        var answers = onboarding
+        answers.healthDetails = details.fillingMissing(
+            from: onboarding.healthDetails ?? HealthProfile())
+        let profile = profileRow(in: context)
+        if let encoded = try? JSONEncoder().encode(answers),
+           let json = String(data: encoded, encoding: .utf8) {
+            profile.onboardingJSON = json
+        }
+        try? context.save()
+        onboarding = answers
+    }
+
     func finishOnboarding() {
         onboardingFinished = true
         if goal != nil { phase = .ready }

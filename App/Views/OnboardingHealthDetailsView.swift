@@ -40,12 +40,17 @@ struct OnboardingHealthDetailsView: View {
 
     var body: some View {
         VStack(spacing: 18) {
-            HStack {
-                Text("OPTIONAL · \(index + 1) OF \(fields.count)")
-                    .font(.caption2.weight(.medium)).foregroundStyle(Tokens.textSecondary)
-                Spacer(minLength: 12)
-                Button(index == 0 && draft == HealthProfile() ? "Skip all" : "Skip rest") { finish() }
-                    .font(.subheadline).frame(minHeight: 44)
+            // A single field is somebody correcting one measure from Profile, not a
+            // run through onboarding. "1 of 1" says nothing and "Skip all" is a second
+            // word for the Cancel already in the toolbar.
+            if fields.count > 1 {
+                HStack {
+                    Text("OPTIONAL · \(index + 1) OF \(fields.count)")
+                        .font(.caption2.weight(.medium)).foregroundStyle(Tokens.textSecondary)
+                    Spacer(minLength: 12)
+                    Button(index == 0 && draft == HealthProfile() ? "Skip all" : "Skip rest") { finish() }
+                        .font(.subheadline).frame(minHeight: 44)
+                }
             }
             HStack {
                 if index > 0 {
@@ -96,8 +101,6 @@ struct OnboardingHealthDetailsView: View {
                 .contentTransition(.numericText())
                 .foregroundStyle(Tokens.textPrimary)
             HeightRuler(value: $rulerValue, metric: metricHeight)
-            Text("Slide to your height")
-                .font(.caption).foregroundStyle(Tokens.textSecondary)
             confirmButton("Use \(heightLabel)") {
                 draft.heightCM = (heightCM * 100).rounded() / 100
                 advance()

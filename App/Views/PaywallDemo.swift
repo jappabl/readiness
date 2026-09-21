@@ -144,10 +144,7 @@ struct PaywallDemo: View {
                     try? await Task.sleep(for: .milliseconds(650))
                 }
 
-                for word in scene.lead.split(separator: " ") {
-                    reply += (reply.isEmpty ? "" : " ") + word
-                    try? await Task.sleep(for: .milliseconds(75))
-                }
+                await stream(scene.lead)
 
                 // Markers, not a flag. The bubble grows around each chart as it lands,
                 // which is what the live stream does when the model writes one.
@@ -157,10 +154,30 @@ struct PaywallDemo: View {
                 }
                 if !scene.charts.isEmpty { try? await Task.sleep(for: .milliseconds(1700)) }
 
-                try? await Task.sleep(for: .milliseconds(400))
-                reply += "\n\n" + scene.closing
+                // The pause before the second message is the whole effect. A person
+                // sends the verdict, then types the rest; arriving together is what
+                // made it read as a paragraph with a line break in it.
+                try? await Task.sleep(for: .milliseconds(620))
+                reply += "\n\n"
+                thinking = false
+                await stream(scene.closing)
                 try? await Task.sleep(for: .seconds(3))
             }
+        }
+    }
+
+    /// Words in uneven bursts, the way tokens actually arrive.
+    ///
+    /// One word every 75ms was the tell: real output comes in clumps of one to three
+    /// with the gaps varying, and a metronome reads as a progress bar wearing text.
+    private func stream(_ text: String) async {
+        var remaining = text.split(separator: " ")[...]
+        while !remaining.isEmpty {
+            let take = min(Int.random(in: 1...3), remaining.count)
+            let clump = remaining.prefix(take).joined(separator: " ")
+            remaining = remaining.dropFirst(take)
+            reply += (reply.hasSuffix("\n") || reply.isEmpty ? "" : " ") + clump
+            try? await Task.sleep(for: .milliseconds(.random(in: 38...105)))
         }
     }
 

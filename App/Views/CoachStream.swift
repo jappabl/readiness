@@ -8,6 +8,7 @@ struct CoachTurnView: View {
     /// revealing words on top of that would animate the same arrival twice.
     var revealsWords = false
     private var outgoing: Bool { message.role == .user }
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private var spokenLabel: String {
         let speaker = outgoing ? "You" : "Jett"
         let reaction = message.reaction.map { ". Jett reacted with \($0.rawValue)" } ?? ""
@@ -23,15 +24,22 @@ struct CoachTurnView: View {
     var body: some View {
         VStack(alignment: outgoing ? .trailing : .leading, spacing: 5) {
             ForEach(Array(parts.enumerated()), id: \.offset) { index, part in
-                switch part {
-                case .text(let text):
-                    row { bubble(text, isFirst: index == 0) }
-                case .chart(let kind):
-                    row { CoachChartCard(kind: kind) }
+                Group {
+                    switch part {
+                    case .text(let text):
+                        row { bubble(text, isFirst: index == 0) }
+                    case .chart(let kind):
+                        row { CoachChartCard(kind: kind) }
+                    }
                 }
+                .transition(.arriving(from: outgoing ? .bottomTrailing : .bottomLeading))
             }
         }
         .frame(maxWidth: .infinity, alignment: outgoing ? .trailing : .leading)
+        // Keyed on how many messages there are, not on the text. A bubble still filling
+        // with words must not replay its arrival on every token.
+        .animation(reduceMotion ? nil : .spring(response: 0.34, dampingFraction: 0.78),
+                   value: parts.count)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(spokenLabel)
     }
@@ -87,6 +95,21 @@ struct CoachTurnView: View {
                 .accessibilityHidden(true)
                 .transition(.scale(scale: 0.8, anchor: .bottomLeading).combined(with: .opacity))
         }
+    }
+}
+
+extension AnyTransition {
+    /// How a message lands: up from under the one before it, growing from its own
+    /// corner rather than the middle, so it reads as being sent rather than drawn.
+    ///
+    /// The scale is small on purpose. Anything springier is a cartoon, and this happens
+    /// two or three times per answer.
+    static func arriving(from corner: UnitPoint) -> AnyTransition {
+        .asymmetric(
+            insertion: .scale(scale: 0.88, anchor: corner)
+                .combined(with: .opacity)
+                .combined(with: .offset(y: 6)),
+            removal: .opacity)
     }
 }
 

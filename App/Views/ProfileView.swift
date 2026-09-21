@@ -9,6 +9,10 @@ struct ProfileView: View {
     @Environment(\.openURL) private var openURL
     @Environment(\.modelContext) private var context
     @Query private var profiles: [UserProfile]
+    @State private var editing: HealthProfile.Field?
+    @State private var loggingWeight = false
+
+    private var metric: Bool { profiles.first?.unitsAreMetric ?? model.onboarding.unitsAreMetric }
 
     @State private var showingPaywall = false
     @State private var showingSharing = false
@@ -51,6 +55,26 @@ struct ProfileView: View {
         .fullScreenCover(isPresented: $showingPaywall) {
             PaywallView { showingPaywall = false }
         }
+        .sheet(item: $editing) { field in
+            NavigationStack {
+                OnboardingHealthDetailsView(
+                    fields: [field], metric: metric,
+                    onSave: { details in
+                        model.updateHealthDetails(details, in: context)
+                        editing = nil
+                    },
+                    onSkip: { editing = nil })
+                    .padding(.horizontal, Tokens.screenMargin)
+                    .background(Tokens.canvas)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Cancel") { editing = nil }.tint(Tokens.textPrimary)
+                        }
+                    }
+            }
+            .presentationDetents([.medium])
+        }
+        .sheet(isPresented: $loggingWeight) { WeightLogView { _ in loggingWeight = false } }
     }
 
     private func heading(_ title: String, info: String? = nil) -> some View {
@@ -66,6 +90,8 @@ struct ProfileView: View {
         VStack(alignment: .leading, spacing: 12) {
             heading("You")
             ListCard {
+                personal
+                Divider().overlay(Tokens.hairline)
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Goals").microLabel()
                     ForEach(TrainingGoal.allCases, id: \.self) { goal in
@@ -107,6 +133,78 @@ struct ProfileView: View {
     /// One card, not a section of rows. Everything else in Profile is something they
     /// told the app; this is the only thing the app wrote about them, and it earns being
     /// its own object rather than a line between goals and billing.
+    /// Height, age, sex and weight, in the section called You.
+    ///
+    /// They were collected in onboarding, read from Health where it has them, and then
+    /// only ever visible to Jett. Somebody looking at a section about themselves expects
+    /// to find them there, and a value that cannot be checked is a value that quietly
+    /// stays wrong: a height typed in the wrong unit shapes every answer afterwards.
+    ///
+    /// Read from Health where Health has it, so what is shown is what the coaching
+    /// actually used, not a second copy that drifted.
+    @ViewBuilder
+    private var personal: some View {
+        let profile = model.effectiveHealthProfile
+        VStack(alignment: .leading, spacing: 0) {
+            FieldRow(label: "Height") {
+                measure(heightText(profile.heightCM)) { editing = .height }
+            }
+            Divider().overlay(Tokens.hairline).padding(.leading, 14)
+            FieldRow(label: "Age") {
+                measure(profile.ageYears().map { "\($0)" }) { editing = .dateOfBirth }
+            }
+            Divider().overlay(Tokens.hairline).padding(.leading, 14)
+            FieldRow(label: "Sex") {
+                measure(profile.biologicalSex?.title) { editing = .biologicalSex }
+            }
+            Divider().overlay(Tokens.hairline).padding(.leading, 14)
+            // Weight is the one that moves, so it is a log rather than a setting. The
+            // row states the latest and hands over to the place that records them.
+            FieldRow(label: "Weight") {
+                Button { loggingWeight = true } label: {
+                    HStack(spacing: 6) {
+                        Text(weightText ?? "Add")
+                            .foregroundStyle(weightText == nil ? Tokens.accent : Tokens.textPrimary)
+                            .monospacedDigit()
+                        Image(systemName: "chevron.right")
+                            .font(.footnote).foregroundStyle(Tokens.textSecondary)
+                    }
+                    .frame(minHeight: 34).contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    /// A value, or an invitation to supply it. Never a dash: a blank reads as broken,
+    /// where "Add" reads as something the person can do something about.
+    private func measure(_ value: String?, edit: @escaping () -> Void) -> some View {
+        Button(action: edit) {
+            HStack(spacing: 6) {
+                Text(value ?? "Add")
+                    .foregroundStyle(value == nil ? Tokens.accent : Tokens.textPrimary)
+                    .monospacedDigit()
+                Image(systemName: "chevron.right")
+                    .font(.footnote).foregroundStyle(Tokens.textSecondary)
+            }
+            .frame(minHeight: 34).contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func heightText(_ centimetres: Double?) -> String? {
+        guard let centimetres else { return nil }
+        if metric { return "\(Int(centimetres.rounded())) cm" }
+        let inches = centimetres / 2.54
+        return "\(Int(inches) / 12) ft \(Int(inches.rounded()) % 12) in"
+    }
+
+    private var weightText: String? {
+        guard let latest = model.latestWeight else { return nil }
+        let shown = metric ? latest.kilograms : latest.kilograms * 2.2046226218
+        return "\(shown.formatted(.number.precision(.fractionLength(0...1)))) \(metric ? "kg" : "lb")"
+    }
+
     private var memory: some View {
         NavigationLink { MemoryView() } label: {
             MemoryCard(notes: model.coachMemory.notes)
