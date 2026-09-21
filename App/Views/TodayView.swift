@@ -258,8 +258,6 @@ struct TodayView: View {
 
     // MARK: - Rings and coaching, one card
 
-    /// Two surfaces, not one card with a rule through it: the rings sit on top of the
-    /// coaching card, their rounded bottom edge and shadow doing the separating.
     /// The rings on their own.
     ///
     /// The coaching card used to sit under them carrying the day's call. Jett flies up
@@ -305,8 +303,6 @@ struct TodayView: View {
 
     /// `recovery` is the day on screen's, not today's: the strain ring draws its target
     /// arc from recovery, and a rewound Tuesday was drawing Saturday's.
-    /// `recovery` is the day on screen's, not today's: the strain ring draws its target
-    /// arc from recovery, and a rewound Tuesday was drawing Saturday's.
     ///
     /// The ring opens its own screen; the mark beside the title opens how the day's
     /// call was made. That used to hang off the coaching card, which is gone, and it
@@ -328,23 +324,27 @@ struct TodayView: View {
             }
             .buttonStyle(.plain)
 
-            HStack(spacing: 4) {
-                Text(signal.title)
-                    .font(.system(size: 13))
-                    .foregroundStyle(Tokens.textSecondary)
-                if model.recommendation != nil, model.day != nil, !model.isRewound {
-                    Button { Haptics.light(); showingWhy = true } label: {
-                        Image(systemName: "info.circle")
-                            .font(.system(size: 12))
-                            .foregroundStyle(Tokens.textTertiary)
-                            .frame(width: 28, height: 28)
-                            .contentShape(Rectangle())
+            // The mark hangs off the title rather than sitting beside it in a row.
+            // In a row the pair is centred as one thing, so every label shifted left by
+            // half an icon and stopped lining up with the ring above it.
+            Text(signal.title)
+                .font(.system(size: 13))
+                .foregroundStyle(Tokens.textSecondary)
+                .frame(height: 20)
+                .overlay(alignment: .trailing) {
+                    if model.recommendation != nil, model.day != nil, !model.isRewound {
+                        Button { Haptics.light(); showingWhy = true } label: {
+                            Image(systemName: "info.circle")
+                                .font(.system(size: 12))
+                                .foregroundStyle(Tokens.textTertiary)
+                                .frame(width: 30, height: 30)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .offset(x: 24)
+                        .accessibilityLabel("How today's call was made")
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("How today's call was made")
                 }
-            }
-            .frame(height: 20)
         }
         .frame(maxWidth: .infinity)
     }
