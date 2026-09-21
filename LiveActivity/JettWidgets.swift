@@ -40,9 +40,12 @@ struct WorkoutLiveActivity: Widget {
                 Image(systemName: "dumbbell.fill")
             } compactTrailing: {
                 if let ends = context.state.restEnds {
-                    // Fixed width, or the island jitters as the digits change.
+                    // Fixed, or the island jitters as the digits change, and wide enough
+                    // for m:ss. At 44 iOS could not promise the seconds would fit and
+                    // rendered "2:--" rather than a countdown, which is worse than no
+                    // timer at all: it looks like the app lost track of the rest.
                     Text(timerInterval: Date()...ends, countsDown: true)
-                        .monospacedDigit().frame(width: 44)
+                        .monospacedDigit().frame(width: 58)
                 } else {
                     Text(setLine(context.state)).monospacedDigit()
                 }

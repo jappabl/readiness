@@ -175,7 +175,13 @@ struct LiveWorkoutView: View {
         guard !trimmed.isEmpty else { return nil }
         let normalized = trimmed.replacingOccurrences(of: Locale.current.decimalSeparator ?? ".", with: ".")
         guard let value = Double(normalized), value.isFinite, value >= 0 else { return nil }
-        return metric ? value * 2.2046226218 : value
+        let pounds = metric ? value * 2.2046226218 : value
+        // The spoken path has refused an absurd load since it was written; the field
+        // next to it had no ceiling at all. A slipped keypress logged 225185 lb during
+        // testing, and a set like that does not just look wrong, it moves the strain
+        // score and everything downstream of it for the rest of the week.
+        guard pounds <= SpokenSetParser.maximumReasonableLoad else { return nil }
+        return pounds
     }
 
     var body: some View {
