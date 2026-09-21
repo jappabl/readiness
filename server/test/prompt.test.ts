@@ -115,6 +115,18 @@ describe("what Jett is allowed to answer", () => {
   })
 
   /**
+   * Refusing the big obvious version and answering the small one is the failure mode
+   * that matters, because nobody asks "do my homework" twice. Hao got a refusal for
+   * that and then got 2 + 2 and a derivative answered in full.
+   */
+  test("being out of scope does not depend on the question being large", () => {
+    const scope = RULES.slice(RULES.indexOf("If the request has nothing to do with"))
+    expect(scope).toContain("2 + 2")
+    // And the exception that keeps it usable: sums about their own training are the job.
+    expect(scope).toContain("plates on a bar")
+  })
+
+  /**
    * The rules tell the model never to use an em dash while using four of them. The
    * app's copy of this prompt was swept and the server's, which is the live one, was
    * not: two copies of the same text, one of them corrected.
