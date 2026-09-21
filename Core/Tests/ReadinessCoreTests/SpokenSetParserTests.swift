@@ -29,6 +29,60 @@ struct SpokenSetParserTests {
         #expect(SpokenSetParser.parse("two sets of deadlift 3x5")?.reps == [5, 5, 5])
     }
 
+    /// Said to Siri on a real phone, and heard as nothing at all.
+    ///
+    /// Three things go wrong at once. "3 sets of 155" puts the weight where the parser
+    /// expects the reps; 155 is not a plausible rep count so the whole list was discarded
+    /// rather than reconsidered. "6 reps" is a shape the parser had no pattern for. And
+    /// with no "at" and no "for" anywhere, every load pattern missed too, so a sentence
+    /// naming the lift, the weight, the sets and the reps produced an empty result.
+    @Test("the weight can sit where the reps usually do")
+    func setsOfWeightThenRepsPer() {
+        let log = SpokenSetParser.parse("I did 3 sets of 155 of bench press 6 reps per",
+                                        knownExercises: ["Bench press"])
+        #expect(log?.reps == [6, 6, 6])
+        #expect(log?.load == 155)
+        #expect(log?.exercise == "Bench press")
+    }
+
+    @Test("a bare rep count is heard")
+    func bareRepsAreHeard() {
+        #expect(SpokenSetParser.parse("bench press 225, 8 reps")?.reps == [8])
+        #expect(SpokenSetParser.parse("4 sets of 185, 10 reps each")?.reps == [10, 10, 10, 10])
+        #expect(SpokenSetParser.parse("squat 3 sets 5 reps")?.reps == [5, 5, 5])
+    }
+
+    @Test("a number too big to be reps is read as the weight")
+    func impossibleRepCountIsAWeight() {
+        let log = SpokenSetParser.parse("3 sets of 225")
+        #expect(log?.load == 225)
+        #expect(log?.reps.isEmpty == true, "no rep count was actually said")
+    }
+
+    @Test("a plausible rep count after sets of is still reps")
+    func plausibleCountStaysReps() {
+        // The existing reading must not be broken by the one above it.
+        #expect(SpokenSetParser.parse("3 sets of 8")?.reps == [8, 8, 8])
+        #expect(SpokenSetParser.parse("3 sets of 8")?.load == nil)
+    }
+
+    @Test("different reps across sets survive after for")
+    func repListAfterFor() {
+        // "155 for 6, 6, 5" is three sets that went differently, and only the first
+        // was being kept. Losing the drop-off is losing the thing worth recording.
+        #expect(SpokenSetParser.parse("bench press 155 for 6, 6, 5")?.reps == [6, 6, 5])
+        #expect(SpokenSetParser.parse("225 for 8 and 7")?.reps == [8, 7])
+    }
+
+    @Test("a weight said last is still the weight")
+    func trailingWeight() {
+        // "back squat 5 reps 315". Nothing marks 315 as a load, but nobody does 315
+        // reps either, and the rep count is already spoken for.
+        let log = SpokenSetParser.parse("back squat 5 reps 315")
+        #expect(log?.reps == [5])
+        #expect(log?.load == 315)
+    }
+
     @Test("one set stays one set")
     func oneSetStaysOne() {
         #expect(SpokenSetParser.parse("bench press at 165 for 5")?.reps == [5])

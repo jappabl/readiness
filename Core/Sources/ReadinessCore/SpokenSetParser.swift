@@ -60,10 +60,11 @@ public enum SpokenSetParser {
         guard !raw.isEmpty else { return nil }
 
         let text = normalised(raw)
-        let heard = spokenLoad(in: text)
+        let counted = reps(in: text)
+        let heard = spokenLoad(in: text, repsAreKnown: !counted.isEmpty)
         let log = SpokenSetLog(
             exercise: exercise(in: raw, knownExercises: knownExercises),
-            reps: reps(in: text),
+            reps: counted,
             load: heard?.value,
             loadUnit: heard?.unit,
             rir: rir(in: text),
@@ -77,12 +78,9 @@ public enum SpokenSetParser {
     /// Lower-cases and turns spoken numbers into digits, so one set of patterns
     /// handles "three sets of eight" and "3 sets of 8" alike.
     static func normalised(_ transcript: String) -> String {
-        var text = transcript.lowercased()
-        for (word, value) in numberWords {
-            text = text.replacingOccurrences(
-                of: "\\b\(word)\\b", with: String(value), options: .regularExpression)
-        }
-        return text
+        // Whole runs of number words at a time, so "two twenty five" becomes 225 rather
+        // than the three separate digits a word-by-word replace used to leave behind.
+        SpokenNumbers.expand(transcript.lowercased())
     }
 
     private static func matches(_ pattern: String, in text: String) -> [[String]] {
@@ -98,35 +96,94 @@ public enum SpokenSetParser {
 
     // MARK: - Reps
 
-    static func reps(in text: String) -> [Int] {
-        // "3 sets of 8, 6, 7": the list stops at the first word that is not a number
-        // or a joiner, so "3 sets of 5 at 225" does not swallow the weight.
-        if let match = matches(#"(\d+)\s+sets?\s+of\s+((?:\d+(?:\s*(?:,|and)\s*)?)+)"#,
+    /// The effort phrase removed, so its number cannot be mistaken for a rep count.
+    ///
+    /// "225 for 5, 3 RIR" was being read as two sets, of five and of three. The three
+    /// is how much was left in the tank, and it has to stop being a number before
+    /// anything goes looking for a list.
+    static func withoutEffort(_ text: String) -> String {
+        var cleaned = text
+        for pattern in [#"\d+\s*(?:reps?\s*)?in\s+(?:the\s+)?(?:tank|reserve)"#,
+                        #"\d+\s*rir\b"#, #"\brir\s*\d+"#] {
+            cleaned = cleaned.replacingOccurrences(of: pattern, with: " ",
+                                                   options: [.regularExpression])
+        }
+        return cleaned
+    }
+
+    static func reps(in raw: String) -> [Int] {
+        let text = withoutEffort(raw)
+
+        // "225 x 8" is not 225 sets. A count that large is the weight, and whichever
+        // side cannot be a set count says which reading this is.
+        if let match = matches(#"(\d+)\s*(?:x|×|by)\s*(\d+)"#, in: text).first,
+           let left = Int(match[1]), let right = Int(match[2]), valid(reps: right) {
+            if left <= maximumReasonableSets { return Array(repeating: right, count: left) }
+            return [right]
+        }
+        // "six reps", "6 reps each", "6 reps per": out loud, the commonest way to say it.
+        if let match = matches(#"(\d+)\s*reps?\b"#, in: text).first,
+           let value = Int(match[1]), valid(reps: value) {
+            return Array(repeating: value, count: setCount(in: text))
+        }
+        // "3 sets of 8, 6, 7", and "a set of 10", and "three sets 10, 9, 8" with no
+        // "of" in it at all. The list stops at the first word that is not a number or a
+        // joiner, so "3 sets of 5 at 225" does not swallow the weight.
+        if let match = matches(#"(?:(\d+)\s+)?(?:a\s+)?sets?\s+(?:of\s+)?((?:\d+(?:\s*(?:,|and)\s*)?)+)"#,
                                in: text).first {
             let count = Int(match[1]) ?? 1
             let listed = numbers(in: match[2])
             if listed.count == 1, count > 1 { return Array(repeating: listed[0], count: count) }
             if !listed.isEmpty { return listed }
         }
-        // "3x5"
-        if let match = matches(#"(\d+)\s*(?:x|×|by)\s*(\d+)"#, in: text).first,
-           let count = Int(match[1]), let value = Int(match[2]), valid(reps: value) {
-            return Array(repeating: value, count: min(count, 20))
-        }
         // "225 for 5", and "three sets of bench press at 165 for 5": said out loud the
         // lift's name lands between the two numbers, so the count is read on its own.
-        if let match = matches(#"\bfor\s+(\d+)"#, in: text).first,
-           let value = Int(match[1]), valid(reps: value) {
-            return Array(repeating: value, count: setCount(in: text))
+        if let match = matches(#"\bfor\s+((?:\d+(?!\s*sets?\b)(?:\s*(?:,|and)\s*)?)+)"#,
+                               in: text).first {
+            let listed = numbers(in: match[1])
+            if listed.count > 1 { return listed }
+            if let only = listed.first {
+                return Array(repeating: only, count: setCount(in: text))
+            }
+        }
+        // "8 at 225", "just did 8 at 225", "8, 8, 7 at 225". The number before "at" is
+        // the reps and the one after it is the weight, which is the opposite way round
+        // from every pattern above.
+        if let match = matches(#"((?:\d+(?!\s*sets?\b)(?:\s*(?:,|and)\s*)?)+)\s*at\s+\d"#,
+                               in: text).first {
+            let listed = numbers(in: match[1])
+            if listed.count > 1 { return listed }
+            if let only = listed.first {
+                return Array(repeating: only, count: setCount(in: text))
+            }
+        }
+        // Nothing marked at all: "bench press, 225, 8", "10 pull-ups". Whatever is left
+        // that could be a rep count is one, and anything too big to be is the weight.
+        //
+        // The set count is not up for grabs here. "3 sets of 225" states a count and a
+        // weight and no reps at all, and reading the 3 as a rep count would invent
+        // three sets of three.
+        var loose = matches(#"\d+"#, in: text).compactMap { Int($0[0]) }
+        if let spoken = matches(#"(\d+)\s+sets?\b"#, in: text).first,
+           let count = Int(spoken[1]), let claimed = loose.firstIndex(of: count) {
+            loose.remove(at: claimed)
+        }
+        let plausible = loose.filter(valid(reps:))
+        if !plausible.isEmpty, loose.count <= 3 {
+            return Array(repeating: plausible[plausible.count - 1], count: setCount(in: text))
         }
         return []
     }
+
+    /// Above this a number said before "sets" or beside an x is a weight rather than a
+    /// count. Nobody does thirty sets, and 225 x 8 is one set of eight.
+    static let maximumReasonableSets = 20
 
     /// How many sets were claimed, from anywhere in the sentence. One when nobody said.
     private static func setCount(in text: String) -> Int {
         guard let match = matches(#"(\d+)\s+sets?\b"#, in: text).first,
               let count = Int(match[1]), count > 0 else { return 1 }
-        return min(count, 20)
+        return min(count, maximumReasonableSets)
     }
 
     private static func numbers(in text: String) -> [Int] {
@@ -143,7 +200,7 @@ public enum SpokenSetParser {
     ///
     /// Only the first pattern carries a unit. The other two are bare numbers, and
     /// reporting them as pounds would silently log a metric lifter 2.2× light.
-    static func spokenLoad(in text: String) -> (value: Double, unit: SpokenLoadUnit?)? {
+    static func spokenLoad(in text: String, repsAreKnown: Bool = false) -> (value: Double, unit: SpokenLoadUnit?)? {
         if let match = matches(#"(\d+(?:\.\d+)?)\s*(pounds?|lbs?|kilos?|kilograms?|kgs?)\b"#,
                                in: text).first,
            let value = Double(match[1]), value > 0, value <= maximumReasonableLoad {
@@ -155,6 +212,27 @@ public enum SpokenSetParser {
                value > 0, value <= maximumReasonableLoad {
                 return (value, nil)
             }
+        }
+        // "3 sets of 155 of bench press". The weight is sitting where a rep count
+        // usually goes, and nobody does 155 reps, so the number itself says which it
+        // is. Without this the whole sentence parsed to nothing: the rep reader
+        // discarded 155 as implausible and no load pattern matched, because there
+        // was no "at" and no "for" anywhere in it.
+        if let match = matches(#"\d+\s+sets?\s+of\s+(\d+(?:\.\d+)?)"#, in: text).first,
+           let value = Double(match[1]), !valid(reps: Int(value)),
+           value > 0, value <= maximumReasonableLoad {
+            return (value, nil)
+        }
+        // Last resort, and only once the reps are accounted for: a number nothing else
+        // claimed, too big to be a rep count and small enough to be a barbell. "back
+        // squat 5 reps 315" marks 315 as nothing at all. Requiring the reps first is
+        // what keeps this honest, since on its own it would read "felt heavy after 90
+        // minutes" as ninety pounds.
+        if repsAreKnown,
+           let found = matches(#"(\d+(?:\.\d+)?)"#, in: text)
+            .compactMap({ Double($0[1]) })
+            .first(where: { !valid(reps: Int($0)) && $0 > 0 && $0 <= maximumReasonableLoad }) {
+            return (found, nil)
         }
         return nil
     }

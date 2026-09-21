@@ -109,6 +109,7 @@
 		7C3380F055337EA303C536B7 /* RecommendationEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD58B08A5DA45A979AEB8E31 /* RecommendationEngine.swift */; };
 		51ED31F44E6B48A325A251C7 /* SessionPlanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77311ADBF1851EC9BE0A1B98 /* SessionPlanner.swift */; };
 		5B3B248146C139959F77B91B /* SpokenSetParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08F8A3D6CEA4393252D67072 /* SpokenSetParser.swift */; };
+		DC3CE5EE678623B748C639EA /* SpokenNumbers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04643F499DE736CC01069D6A /* SpokenNumbers.swift */; };
 		746A63E00B113D1E55F867F3 /* SpokenSetResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = BEBB3C62E6CA24AFF5E2F266 /* SpokenSetResolver.swift */; };
 		EAC82235C8E54D9EE734160F /* WatchPresence.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17582EAAF362319D4D0B533E /* WatchPresence.swift */; };
 		A343E7F972FC8BA6774F7F35 /* StrainEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA4B7944599E6BF427A4842E /* StrainEngine.swift */; };
@@ -224,6 +225,7 @@
 		AD58B08A5DA45A979AEB8E31 /* RecommendationEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "RecommendationEngine.swift"; sourceTree = "<group>"; };
 		77311ADBF1851EC9BE0A1B98 /* SessionPlanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SessionPlanner.swift"; sourceTree = "<group>"; };
 		08F8A3D6CEA4393252D67072 /* SpokenSetParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SpokenSetParser.swift"; sourceTree = "<group>"; };
+		04643F499DE736CC01069D6A /* SpokenNumbers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SpokenNumbers.swift"; sourceTree = "<group>"; };
 		BEBB3C62E6CA24AFF5E2F266 /* SpokenSetResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SpokenSetResolver.swift"; sourceTree = "<group>"; };
 		17582EAAF362319D4D0B533E /* WatchPresence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WatchPresence.swift"; sourceTree = "<group>"; };
 		AA4B7944599E6BF427A4842E /* StrainEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StrainEngine.swift"; sourceTree = "<group>"; };
@@ -475,6 +477,7 @@
 				AD58B08A5DA45A979AEB8E31 /* RecommendationEngine.swift */,
 				77311ADBF1851EC9BE0A1B98 /* SessionPlanner.swift */,
 				08F8A3D6CEA4393252D67072 /* SpokenSetParser.swift */,
+				04643F499DE736CC01069D6A /* SpokenNumbers.swift */,
 				BEBB3C62E6CA24AFF5E2F266 /* SpokenSetResolver.swift */,
 				17582EAAF362319D4D0B533E /* WatchPresence.swift */,
 				2CD49C73884DA3E86D6303C9 /* UsualBedtime.swift */,
@@ -696,6 +699,7 @@
 				7C3380F055337EA303C536B7 /* RecommendationEngine.swift in Sources */,
 				51ED31F44E6B48A325A251C7 /* SessionPlanner.swift in Sources */,
 				5B3B248146C139959F77B91B /* SpokenSetParser.swift in Sources */,
+				DC3CE5EE678623B748C639EA /* SpokenNumbers.swift in Sources */,
 				746A63E00B113D1E55F867F3 /* SpokenSetResolver.swift in Sources */,
 				EAC82235C8E54D9EE734160F /* WatchPresence.swift in Sources */,
 				A343E7F972FC8BA6774F7F35 /* StrainEngine.swift in Sources */,
