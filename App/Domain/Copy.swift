@@ -42,19 +42,19 @@ enum Copy {
                 ? "Temperature is up. Skip it or keep it easy."
                 : "Temperature is up. Take it easy today."
         }
+        // No "baseline". It is a word this app invented for its own arithmetic, and it
+        // was standing in front of every instruction, making the reader translate before
+        // they could act. Wherever this appears the numbers are on the same screen, and
+        // Jett's morning line names them in words before it gets here.
         switch recommendation.state {
         case .push:
-            return hasSession ? "Ahead of baseline. Train as planned."
-                              : "Ahead of baseline. Good day to move."
+            return hasSession ? "Train as planned." : "Good day to move."
         case .maintain:
-            return hasSession ? "Run the session as planned."
-                              : "Nothing's off today."
+            return hasSession ? "Run the session as planned." : "Nothing's off today."
         case .reduce:
-            return hasSession ? "Under baseline. Cut volume, keep reps in reserve."
-                              : "Under baseline. Keep it gentle today."
+            return hasSession ? "Cut volume, keep reps in reserve." : "Keep it gentle today."
         case .recover:
-            return hasSession ? "Well under baseline. Move, don't train hard."
-                              : "Well under baseline. Rest today."
+            return hasSession ? "Move, don't train hard." : "Rest today."
         }
     }
 

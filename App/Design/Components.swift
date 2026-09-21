@@ -714,6 +714,56 @@ struct JettFace: View {
 }
 
 
+/// Jett, standing there, for the screens that would otherwise be empty.
+///
+/// A blank page reads as a failure. Every one of these screens is legitimately empty,
+/// a day with nothing recorded, a Train tab before there is a plan, and the app was
+/// saying so with a line of grey text in the middle of nothing, which looks like
+/// something went wrong rather than like there is nothing here yet.
+///
+/// A body rather than the face, because the face is an avatar: it belongs beside a
+/// sentence he is saying. Somebody standing in an empty room is the thing that makes
+/// the room read as waiting rather than broken, and it needs legs to do that.
+struct JettStanding: View {
+    var height: CGFloat = 190
+
+    var body: some View {
+        Image("JettBody")
+            .resizable()
+            .scaledToFit()
+            .frame(height: height)
+            .accessibilityHidden(true)
+    }
+}
+
+/// Him, and a line about why there is nothing here.
+struct EmptyStateView: View {
+    let message: String
+    var action: (label: String, run: () -> Void)?
+
+    var body: some View {
+        VStack(spacing: 14) {
+            JettStanding()
+            Text(message)
+                .font(.system(size: 15))
+                .foregroundStyle(Tokens.textSecondary)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 24)
+            if let action {
+                Button(action.label) { Haptics.light(); action.run() }
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(Tokens.accent)
+                    .frame(minHeight: 44)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 20)
+        .accessibilityElement(children: .combine)
+    }
+}
+
+
 /// Five slots on a floating surface, the middle one being the coach.
 ///
 /// The coach sits in the bar rather than over it because it is a destination like any

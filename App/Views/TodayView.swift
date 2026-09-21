@@ -168,13 +168,12 @@ struct TodayView: View {
                 }
                 if !model.isRewound { insight }
                 // A day with nothing on it renders as a void, which reads as the screen
-                // having failed rather than as the day having been quiet.
+                // having failed rather than as the day having been quiet. A line of grey
+                // text in the middle of nothing does not fix that; somebody standing in
+                // the empty room does.
                 if model.isRewound, blocks.isEmpty || !model.hasAnything(
                     on: model.viewedDay, context: context) {
-                    Text("Nothing was recorded on this day.")
-                        .font(.system(size: 14))
-                        .foregroundStyle(Tokens.textSecondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    EmptyStateView(message: "Nothing was recorded on this day.")
                 }
             }
             .padding(.horizontal, Tokens.screenMargin)
@@ -227,8 +226,12 @@ struct TodayView: View {
         let viewed = model.viewedScores(context: context)
         guard viewed.recovery.value != nil, viewed.sleep.value != nil else { return nil }
         guard let rec = model.recommendation, let day = model.day else { return nil }
-        let call = Copy.call(for: rec, gate: day.readiness.gateApplied,
-                             hasSession: model.hasProgram)
+        // What the numbers say, then what to do about it. He is standing over the rings
+        // that carry those numbers, so naming them is the whole sentence.
+        let call = MorningGreeting.sentence(
+            recovery: viewed.recovery, sleep: viewed.sleep,
+            instruction: Copy.call(for: rec, gate: day.readiness.gateApplied,
+                                   hasSession: model.hasProgram))
 
         guard !JettMoments.hasGreeted(on: Date()) else { return nil }
         return [JettBeat(anchor: nil, text: call)]
