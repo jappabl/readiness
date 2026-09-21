@@ -3,12 +3,15 @@ import SwiftUI
 /// Jett coming up off the tab bar to say something, and settling into the card he
 /// already lives in.
 ///
-/// Two moments, one mechanism. Every morning he flies up and gives the day's call, then
-/// lands in the coaching card under the rings, which is exactly where his face already
-/// sits: the animation resolves into the screen rather than leaving it. The first time
-/// the numbers are real he takes the long way round, stopping at each ring to say what
-/// it is, because Hao's friend opened the app and did not know what strain meant and no
-/// sentence in the app would have told him.
+/// Once a morning, he comes up off the tab bar, gives the day's call, and goes back.
+///
+/// He walked through the three rings on the first morning for a version, saying what
+/// each one was. It read as onboarding that had leaked onto the wrong screen. Today is
+/// where somebody finds out what their body did, not where they learn vocabulary, and
+/// those sentences are behind the information button on each ring instead.
+///
+/// The machinery stayed general because the cost of a beat is a line, so a screen that
+/// does want walking through can have one without any of this changing.
 ///
 /// He is a rigged character who blinks and breathes on his own, and `isSpeaking` moves
 /// his mouth, so a stop reads as somebody talking rather than a label appearing. That is
@@ -42,15 +45,7 @@ extension View {
 
 /// What he has already said, so he does not say it twice.
 enum JettMoments {
-    private static let walkthroughKey = "jett.walkthrough.given"
     private static let greetedKey = "jett.greeted.day"
-
-    static var hasWalkedThrough: Bool {
-        UserDefaults.standard.bool(forKey: walkthroughKey)
-    }
-    static func markWalkedThrough() {
-        UserDefaults.standard.set(true, forKey: walkthroughKey)
-    }
 
     /// One greeting a day, on the calendar's terms rather than a timer, so a night
     /// shift still gets one morning.
@@ -64,7 +59,6 @@ enum JettMoments {
     }
 
     static func forgetEverything() {
-        UserDefaults.standard.removeObject(forKey: walkthroughKey)
         UserDefaults.standard.removeObject(forKey: greetedKey)
     }
 }

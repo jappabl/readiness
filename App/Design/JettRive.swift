@@ -20,7 +20,6 @@ struct JettRive: View {
         model.view()
             .frame(width: size, height: size)
             .clipShape(Circle())
-            .overlay(Circle().strokeBorder(Color.primary.opacity(0.08), lineWidth: 0.5))
             .onAppear { push() }
             .onChange(of: isThinking) { _, _ in push() }
             .onChange(of: isSpeaking) { _, _ in push() }

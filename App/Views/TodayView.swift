@@ -9,6 +9,7 @@ struct TodayView: View {
     /// Armed once per appearance. Without it, marking the moment given would recompute
     /// the beats mid-flight and take him off the screen halfway through his own sentence.
     @State private var jettMomentArmed = true
+    @State private var showingWhy = false
     @State private var showingCheckIn = false
     @State private var pickingProgram = false
     @State private var showingAdjust = false
@@ -49,6 +50,11 @@ struct TodayView: View {
         }
         .alert("Saved", isPresented: $showSaved) { Button("OK", role: .cancel) { savedMessage = nil } } message: { Text(savedMessage ?? "") }
         .sheet(isPresented: $showingAdjust) { AdjustSessionView() }
+        .sheet(isPresented: $showingWhy) {
+            if let day = model.day, let rec = model.recommendation {
+                WhyView(day: day, recommendation: rec)
+            }
+        }
     }
 
     /// The last six days that have anything recorded on them. Today is the screen you
@@ -205,12 +211,16 @@ struct TodayView: View {
             || shown.carbohydrateGrams != nil || shown.fatGrams != nil
     }
 
-    /// What he has come up to say, or nil when he stays where he is.
+    /// The day's call, once a morning, or nil when he stays where he is.
     ///
-    /// Never on a day with no numbers on it. "This is your strain" pointing at a dash
-    /// is worse than silence, and the morning after onboarding is exactly when the
-    /// rings are empty, which is also the morning he has just finished introducing
-    /// himself over nine messages.
+    /// He used to walk through the three rings on the first morning, saying what each
+    /// one was. It read as onboarding that had leaked onto the wrong screen: Today is
+    /// where somebody checks what their body did, not where they learn what a word
+    /// means. Those sentences live behind the information button on each ring, which is
+    /// where somebody goes when they actually want them.
+    ///
+    /// Never on a day with no numbers on it. A greeting about a dash is worse than
+    /// silence, and the morning after onboarding is exactly when the rings are empty.
     private var jettBeats: [JettBeat]? {
         guard jettMomentArmed, !model.isRewound else { return nil }
         if case .ready = model.phase {} else { return nil }
@@ -220,17 +230,11 @@ struct TodayView: View {
         let call = Copy.call(for: rec, gate: day.readiness.gateApplied,
                              hasSession: model.hasProgram)
 
-        if !JettMoments.hasWalkedThrough {
-            // The long way round, once, the first morning the numbers mean anything.
-            return Signal.allCases.map { JettBeat(anchor: $0.rawValue, text: $0.meaning) }
-                + [JettBeat(anchor: nil, text: call)]
-        }
         guard !JettMoments.hasGreeted(on: Date()) else { return nil }
         return [JettBeat(anchor: nil, text: call)]
     }
 
     private func finishJettMoment() {
-        JettMoments.markWalkedThrough()
         JettMoments.markGreeted(on: Date())
         jettMomentArmed = false
     }
@@ -282,26 +286,48 @@ struct TodayView: View {
 
     /// `recovery` is the day on screen's, not today's: the strain ring draws its target
     /// arc from recovery, and a rewound Tuesday was drawing Saturday's.
+    /// `recovery` is the day on screen's, not today's: the strain ring draws its target
+    /// arc from recovery, and a rewound Tuesday was drawing Saturday's.
+    ///
+    /// The ring opens its own screen; the mark beside the title opens how the day's
+    /// call was made. That used to hang off the coaching card, which is gone, and it
+    /// is the one explanation in the app that is about the morning rather than about
+    /// one number.
     private func ringCell(_ signal: Signal, percent: Int?, recovery: Double?) -> some View {
-        NavigationLink {
-            // The day that was tapped, so the screen behind a ring says what the ring
-            // said. Without it every ring on a past day opened on today.
-            SignalDetailView(signal: signal, date: model.viewedDay)
-        } label: {
-            VStack(spacing: 9) {
+        VStack(spacing: 9) {
+            NavigationLink {
+                // The day that was tapped, so the screen behind a ring says what the
+                // ring said. Without it every ring on a past day opened on today.
+                SignalDetailView(signal: signal, date: model.viewedDay)
+            } label: {
                 RingGauge(signal: signal, percent: percent,
                           target: signal == .strain
                               ? StrainScore.target(recovery: recovery) : nil,
                           lineWidth: 9, figureSize: 23)
                     .frame(width: 78, height: 78)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            HStack(spacing: 4) {
                 Text(signal.title)
                     .font(.system(size: 13))
                     .foregroundStyle(Tokens.textSecondary)
+                if model.recommendation != nil, model.day != nil, !model.isRewound {
+                    Button { Haptics.light(); showingWhy = true } label: {
+                        Image(systemName: "info.circle")
+                            .font(.system(size: 12))
+                            .foregroundStyle(Tokens.textTertiary)
+                            .frame(width: 28, height: 28)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("How today's call was made")
+                }
             }
-            .frame(maxWidth: .infinity)
-            .contentShape(Rectangle())
+            .frame(height: 20)
         }
-        .buttonStyle(.plain)
+        .frame(maxWidth: .infinity)
     }
 
     // MARK: - Session

@@ -709,7 +709,6 @@ struct JettFace: View {
             .scaledToFill()
             .frame(width: size, height: size)
             .clipShape(Circle())
-            .overlay(Circle().strokeBorder(Color.primary.opacity(0.08), lineWidth: 0.5))
             .accessibilityHidden(true)
     }
 }
