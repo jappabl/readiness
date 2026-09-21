@@ -39,12 +39,9 @@ struct SignalDetailView: View {
                             .padding(.bottom, 4)
                     } else if signal == .sleep, score.value != nil {
                         // A night with hours but no stages drew a plain ring and said
-                        // nothing, which reads as the screen having failed. The reason
-                        // is never the app: something recorded one block of sleep
-                        // rather than what was in it.
-                        Text("This night was recorded as one block of sleep, so there "
-                             + "are no stages to break down. Deep, REM and light need "
-                             + "a device that stages the night.")
+                        // nothing, which reads as the screen having failed rather than
+                        // as the night having been recorded without structure.
+                        Text(noStages)
                             .font(.system(size: 13))
                             .foregroundStyle(Tokens.textSecondary)
                             .multilineTextAlignment(.center)
@@ -105,6 +102,30 @@ struct SignalDetailView: View {
     }
 
     private var strain: DailyStrainResult? { model.dailyStrain(on: date) }
+
+    private var night: SleepBreakdown? {
+        let calendar = Calendar.current
+        return model.series.last { calendar.isDate($0.date, inSameDayAs: date) }?.sleep
+    }
+
+    /// Why there is no breakdown, in the night's own numbers.
+    ///
+    /// "Nothing stages your sleep" is one of two cases and the app cannot tell them
+    /// apart by assertion. A watch that staged most of a night, beside a second source
+    /// that logged a wider window of plain asleep time, leaves a night that is largely
+    /// staged and still refuses to be split, and saying nothing was recorded is then
+    /// simply false. Report what was actually seen and let the number say which it is.
+    private var noStages: String {
+        guard let night, night.stagedHours > 0, night.asleepHours > 0 else {
+            return "This night was recorded as one block of sleep, so there is nothing "
+                 + "to break down. Deep, REM and light need a device that stages the night."
+        }
+        let staged = night.stagedHours.formatted(.number.precision(.fractionLength(1)))
+        let total = night.asleepHours.formatted(.number.precision(.fractionLength(1)))
+        return "Stages cover \(staged) h of a \(total) h night. The rest carries no "
+             + "label, and the shape of a night is not the same all the way through, "
+             + "so the app leaves it rather than guessing at the gap."
+    }
 
     /// The ring still wants a 0...100, and strain is on its own scale.
     private var percent: Int? {
