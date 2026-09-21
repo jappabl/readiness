@@ -252,6 +252,15 @@ struct OnboardingView: View {
                     }
                 }
             }
+        case .watch:
+            LazyVGrid(columns: columns, spacing: 10) {
+                choice("Yes", detail: "Most nights") {
+                    commit { flow.chooseWatch(wearsOne: true) }
+                }
+                choice("No", detail: "Just my phone") {
+                    commit { flow.chooseWatch(wearsOne: false) }
+                }
+            }
         case .healthDetails:
             OnboardingHealthDetailsView(fields: flow.missingHealthFields,
                 metric: flow.answers.unitsAreMetric, onSave: { details in

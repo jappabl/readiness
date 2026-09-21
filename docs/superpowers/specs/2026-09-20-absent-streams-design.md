@@ -1,6 +1,9 @@
 # Telling "missing today" apart from "your phone cannot measure this"
 
-**Status:** approved, not yet built
+**Status:** built, except for where the two nudges appear
+
+`WatchPresence` decides, `SleepScore.of(_:wearsAWatch:)` filters, onboarding asks, and
+`AppModel.watchNudge` says which nudge is due. Nothing yet shows it: see Still open.
 **Scope:** what the app says about data it does not have
 
 ## The problem

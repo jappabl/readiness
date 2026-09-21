@@ -442,7 +442,11 @@ public enum SleepScore {
     public static let durationContributorID = "duration"
     public static let dipContributorID = "dip"
 
-    public static func of(_ input: SleepInput) -> SignalScore {
+    /// - Parameter wearsAWatch: whether anything on this person can record stages and an
+    ///   overnight heart rate. False excludes those rows from the missing list entirely
+    ///   rather than listing them as absent today: "wear your watch" is advice, and
+    ///   advice somebody cannot take is noise they read every morning for ever.
+    public static func of(_ input: SleepInput, wearsAWatch: Bool = true) -> SignalScore {
         let hours = input.durationHours ?? input.breakdown?.recordedSleepHours
         guard let hours, hours.isFinite, hours > 0 else {
             return SignalScore(kind: .sleep, value: nil, band: nil, contributors: [],
@@ -531,7 +535,12 @@ public enum SleepScore {
         let stagingUsuallyWorks = stagedNights >= BaselineSummary.minimumReadings
         let tonightUnstaged = input.breakdown.map { $0.reconciledStages == nil } ?? false
 
-        let absent = components.filter { $0.fraction == nil }
+        // A stream nothing on this person records is not absent today, it is absent
+        // permanently, and the two read identically until one of them is dropped.
+        let absent = components.filter { component in
+            guard component.fraction == nil else { return false }
+            return wearsAWatch || !needsAWatch(component)
+        }
         let missing = absent.map { component -> String in
             // Same row, right reason. The stage rows are absent because of last night,
             // not because the record is too short to judge it against.
@@ -541,6 +550,9 @@ public enum SleepScore {
             return "\(component.title) last night, which your watch did not finish recording"
         }
         let measured = components.count - absent.count
+        // Decided in the spec: a phone-only sleeper can see a complete score. Their
+        // record is complete for the device they own, and never being able to see a
+        // full ring is the actual complaint.
         let coverage: ScoreCoverage = missing.isEmpty
             ? .full : (measured <= 2 && historyIsThin ? .buildingBaseline : .partial)
         return SignalScore(
@@ -574,6 +586,15 @@ public enum SleepScore {
         /// different sentence from "below your normal", and only the engine knows which
         /// of the two it means.
         var note: String? = nil
+    }
+
+    /// Whether a component can only ever be filled by something worn on the wrist.
+    ///
+    /// Read off the row's own missing label rather than a second list of component ids,
+    /// so a component added to the model cannot quietly fall out of this.
+    private static func needsAWatch(_ component: Component) -> Bool {
+        let label = component.missingLabel.lowercased()
+        return label.contains("stage") || label.contains("heart rate")
     }
 
     static func quality(_ input: SleepInput) -> [Component] {

@@ -99,6 +99,7 @@ extension HealthContextTests {
         flow.confirmObstacles()
         flow.confirmLimitations(none: true)
         flow.chooseUnits(metric: true)
+        flow.chooseWatch(wearsOne: true)
         flow.skipHealth()
         flow.skipHealthDetails()
         #expect(flow.step == .ready)

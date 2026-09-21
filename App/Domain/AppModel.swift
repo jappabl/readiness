@@ -30,6 +30,24 @@ final class AppModel {
 
     private(set) var hasOnboardingHealthData = false
     private(set) var healthProfile = HealthProfile()
+    /// Whether anything this person wears can record stages and an overnight heart rate.
+    ///
+    /// Their onboarding answer, corrected by the record. Somebody who said yes and has
+    /// not produced a stage in four weeks is treated as phone-only, and somebody who
+    /// said no and has produced a week of them has clearly bought one.
+    var wearsWatchToBed: Bool {
+        WatchPresence.hasWatch(
+            saidYes: onboarding.wearsWatchToBed,
+            nightsWithStages: series.reversed().map { $0.sleep?.reconciledStages != nil })
+    }
+
+    /// What to say about the watch, if anything. Nil almost always.
+    var watchNudge: WatchPresence.Nudge? {
+        WatchPresence.nudge(
+            saidYes: onboarding.wearsWatchToBed,
+            nightsWithStages: series.reversed().map { $0.sleep?.reconciledStages != nil })
+    }
+
     var effectiveHealthProfile: HealthProfile {
         healthProfile.fillingMissing(from: onboarding.healthDetails ?? HealthProfile())
     }
@@ -738,7 +756,8 @@ final class AppModel {
             // 75th percentile, so it fired on days that were physiologically unremarkable.
             strain: yesterdaysLoad(before: today),
             sleepingHeartRate: current?.sleepingHeartRate,
-            daytimeHeartRate: current?.wakingHeartRate))
+            daytimeHeartRate: current?.wakingHeartRate),
+                             wearsAWatch: wearsWatchToBed)
     }
     var sleepPercent: Int? { sleepScore.value.map { max(1, Int($0.rounded())) } }
 

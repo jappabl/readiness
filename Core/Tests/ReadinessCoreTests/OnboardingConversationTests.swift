@@ -73,6 +73,7 @@ struct OnboardingConversationTests {
         flow.confirmObstacles()
         flow.confirmLimitations(none: true)
         flow.chooseUnits(metric: true)
+        flow.chooseWatch(wearsOne: true)
         #expect(flow.step == .health)
         #expect(flow.answers.isComplete)
         let answer = flow.latestEditableAnswerID!
@@ -93,6 +94,7 @@ struct OnboardingConversationTests {
         flow.confirmObstacles()
         flow.confirmLimitations(none: true)
         flow.chooseUnits(metric: true)
+        flow.chooseWatch(wearsOne: true)
         flow.beginReading()
         let before = flow.turns.count
         flow.finishReading(hasHealthData: hasData)
@@ -144,6 +146,7 @@ extension OnboardingConversationTests {
         #expect(health.turns.last { $0.isUser }?.reaction == nil)
         health.confirmLimitations(none: true)
         health.chooseUnits(metric: true)
+        health.chooseWatch(wearsOne: true)
         #expect(health.turns.last { $0.isUser }?.reaction == nil)
     }
 }
@@ -194,6 +197,7 @@ struct OnboardingRevealTests {
         flow.confirmLimitations(none: true)
         flow.chooseEquipment(.fullGym)
         flow.chooseUnits(metric: false)
+        flow.chooseWatch(wearsOne: true)
         flow.beginReading()
         return flow
     }

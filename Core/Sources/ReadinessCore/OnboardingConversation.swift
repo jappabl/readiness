@@ -6,7 +6,7 @@ public enum CoachReaction: String, Codable, Sendable {
 
 /// Scripted onboarding. No provider, timer or HealthKit dependency lives here.
 public struct OnboardingConversation: Sendable {
-    public enum Step: Sendable { case goal, frequency, experience, obstacles, limitations, equipment, units, health, reading, healthDetails, ready }
+    public enum Step: Sendable { case goal, frequency, experience, obstacles, limitations, equipment, units, watch, health, reading, healthDetails, ready }
     public struct Turn: Identifiable, Equatable, Sendable {
         public let id: Int
         public let isUser: Bool
@@ -164,6 +164,23 @@ public struct OnboardingConversation: Sendable {
         guard step == .units else { return }
         answers.unitsAreMetric = metric
         answer(metric ? "Kilos" : "Pounds")
+        say("Do you wear a watch to bed?")
+        step = .watch
+    }
+
+    /// Asked once, and never again.
+    ///
+    /// The answer decides whether the app ever mentions sleep stages and overnight heart
+    /// rate to this person. Getting it wrong costs nothing permanent: the record
+    /// corrects it, quickly in one direction and slowly in the other. Somebody who buys
+    /// a watch six months from now is recognised by their data rather than asked again.
+    public mutating func chooseWatch(wearsOne: Bool) {
+        guard step == .watch else { return }
+        answers.wearsWatchToBed = wearsOne
+        answer(wearsOne ? "Yes" : "No")
+        say(wearsOne
+            ? "Good. That gets me your stages and your overnight heart rate."
+            : "No problem. I'll score your sleep on what your phone can see.")
         say("Connect Health so I can use your sleep and activity to guide your training.")
         step = .health
     }

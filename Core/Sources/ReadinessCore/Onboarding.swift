@@ -161,6 +161,9 @@ public struct OnboardingAnswers: Sendable, Codable, Equatable {
     public var equipment: EquipmentAccess?
     /// Only manually supplied gaps. Exact birthday stays local and is never sent.
     public var healthDetails: HealthProfile?
+    /// Whether they said they wear a watch to bed. Nil for anybody who onboarded before
+    /// the question existed, which the record then answers on their behalf.
+    public var wearsWatchToBed: Bool?
 
     public init() {}
 

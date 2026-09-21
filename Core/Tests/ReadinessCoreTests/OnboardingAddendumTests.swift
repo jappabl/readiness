@@ -149,6 +149,7 @@ struct OnboardingAddendumTests {
         var flow = throughExperience()
         flow.confirmObstacles(); flow.confirmLimitations(none: true)
         flow.chooseEquipment(.fullGym); flow.chooseUnits(metric: true)
+        flow.chooseWatch(wearsOne: true)
         return flow
     }
 }
