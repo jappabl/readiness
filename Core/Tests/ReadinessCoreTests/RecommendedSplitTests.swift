@@ -21,18 +21,30 @@ struct RecommendedSplitTests {
                                     limitations: [], frequency: frequency)?.name
     }
 
-    @Test("two days a week is one session repeated, not a rotation")
+    @Test("two days a week is two full body days, not half a rotation")
     func infrequentGetsFullBody() {
         // Half an upper/lower rotation twice a week means each half is trained once a
-        // fortnight, which is not a programme, it is a coincidence.
+        // fortnight, which is not a programme, it is a coincidence. Two full body days
+        // that lead on different patterns cover everything twice.
         #expect(recommended(.rarely) == "Full body")
-        #expect(recommended(.few) == "Full body")
     }
 
-    @Test("five or more days is a rotation")
+    /// Three or four days is upper/lower. Four days is the textbook version and three
+    /// runs it as upper, lower, upper, which still trains everything at least once and
+    /// most of it twice. The app's band covers both, so it has to pick the one that is
+    /// right at the top of the range.
+    @Test("three or four days is an upper/lower rotation")
+    func moderateGetsUpperLower() {
+        #expect(recommended(.few) == "Upper / lower")
+    }
+
+    /// Five is where the standard answer stops being two sessions. Push, pull and legs
+    /// plus upper and lower is how a fifth and sixth session's worth of volume fits
+    /// into five days; six days is push/pull/legs twice.
+    @Test("five days and up is push, pull, legs")
     func frequentGetsASplit() {
-        #expect(recommended(.most) == "Upper / lower")
-        #expect(recommended(.daily) == "Upper / lower")
+        #expect(recommended(.most) == "Push / pull / legs + upper / lower")
+        #expect(recommended(.daily) == "Push / pull / legs")
     }
 
     @Test("with nothing to lift there is still a plan")

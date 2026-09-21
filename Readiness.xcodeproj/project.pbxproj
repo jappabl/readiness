@@ -119,6 +119,8 @@
 		FB3DF503CF598BD1301BFADB /* HealthContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02A1C405C63366A690521580 /* HealthContext.swift */; };
 		BA31BDF8D0C94CDF8989E7BD /* HealthProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4680AA374AB4DFE8829A364 /* HealthProfile.swift */; };
 		26D0B575EB9D475686D604B9 /* StarterPrograms.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58FE1998F6D047D1868FFADF /* StarterPrograms.swift */; };
+		893DE5ABD42F4DC4819D408E /* SplitCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DB414C823234B83AE121FD0 /* SplitCatalog.swift */; };
+		5FD2EB58C2304049AF3688F1 /* ExerciseCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 788F2E5673BB4C84AA232BB7 /* ExerciseCatalog.swift */; };
 		707F1010B8064448940E3A97 /* OnboardingHealthDetailsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D44A39B6D47428C9CA236AC /* OnboardingHealthDetailsView.swift */; };
 /* End PBXBuildFile section */
 
@@ -237,6 +239,8 @@
 		02A1C405C63366A690521580 /* HealthContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HealthContext.swift"; sourceTree = "<group>"; };
 		C4680AA374AB4DFE8829A364 /* HealthProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HealthProfile.swift"; sourceTree = "<group>"; };
 		58FE1998F6D047D1868FFADF /* StarterPrograms.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StarterPrograms.swift"; sourceTree = "<group>"; };
+		0DB414C823234B83AE121FD0 /* SplitCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "SplitCatalog.swift"; path = "Core/Sources/ReadinessCore/SplitCatalog.swift"; sourceTree = SOURCE_ROOT; };
+		788F2E5673BB4C84AA232BB7 /* ExerciseCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "ExerciseCatalog.swift"; path = "Core/Sources/ReadinessCore/ExerciseCatalog.swift"; sourceTree = SOURCE_ROOT; };
 		1D44A39B6D47428C9CA236AC /* OnboardingHealthDetailsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OnboardingHealthDetailsView.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -447,6 +451,8 @@
 				F6A79D73CD5C27838C71B31C /* BaselineEngine.swift */,
 				02A1C405C63366A690521580 /* HealthContext.swift */,
 				58FE1998F6D047D1868FFADF /* StarterPrograms.swift */,
+				0DB414C823234B83AE121FD0 /* SplitCatalog.swift */,
+				788F2E5673BB4C84AA232BB7 /* ExerciseCatalog.swift */,
 				C4680AA374AB4DFE8829A364 /* HealthProfile.swift */,
 				3C35BF053373C3F1604BD3E8 /* CoachContext.swift */,
 				005C7AE9F186267BD0DC0210 /* CoachTools.swift */,
@@ -672,6 +678,8 @@
 				57CD27898124823DCEA4C6C9 /* BaselineEngine.swift in Sources */,
 				FB3DF503CF598BD1301BFADB /* HealthContext.swift in Sources */,
 				26D0B575EB9D475686D604B9 /* StarterPrograms.swift in Sources */,
+				893DE5ABD42F4DC4819D408E /* SplitCatalog.swift in Sources */,
+				5FD2EB58C2304049AF3688F1 /* ExerciseCatalog.swift in Sources */,
 				BA31BDF8D0C94CDF8989E7BD /* HealthProfile.swift in Sources */,
 				BDB82120DDB718BC9BA82964 /* CoachContext.swift in Sources */,
 				2668963A7801D51A4F36BC01 /* CoachTools.swift in Sources */,

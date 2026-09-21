@@ -25,9 +25,26 @@ public enum StarterPrograms {
         public let name: String
         public let exercises: [Exercise]
         public let sets: Int
+        /// The session's middle rep count, kept for anything that wants one number.
         public let reps: Int
         public let rir: Int
         public let progression: TrainingProgression
+        /// Per exercise, in the same order. A heavy press and a lateral raise do not
+        /// belong at the same rep count, and one number for a whole session is how the
+        /// old presets ended up prescribing sets of five lateral raises.
+        public let repsPerExercise: [Int]
+
+        public init(name: String, exercises: [Exercise], sets: Int, reps: Int, rir: Int,
+                    progression: TrainingProgression, repsPerExercise: [Int] = []) {
+            self.name = name
+            self.exercises = exercises
+            self.sets = sets
+            self.reps = reps
+            self.rir = rir
+            self.progression = progression
+            self.repsPerExercise = repsPerExercise.isEmpty
+                ? Array(repeating: reps, count: exercises.count) : repsPerExercise
+        }
     }
 
     public struct Split: Sendable {
@@ -35,116 +52,100 @@ public enum StarterPrograms {
         public let sessions: [Plan]
     }
 
-    private static let catalog: [Exercise] = [
-        .init(name: "Back squat", muscle: .quads, requiredEquipment: .barbell, increment: 5, loadedAreas: [.lowerBack, .knees, .shoulders]),
-        .init(name: "Romanian deadlift", muscle: .hamstrings, requiredEquipment: .barbell, increment: 5, loadedAreas: [.lowerBack, .knees]),
-        .init(name: "Leg press", muscle: .quads, requiredEquipment: .machine, increment: 10, loadedAreas: [.lowerBack, .knees]),
-        .init(name: "Bench press", muscle: .chest, requiredEquipment: .barbell, increment: 5, loadedAreas: [.shoulders]),
-        .init(name: "Barbell row", muscle: .back, requiredEquipment: .barbell, increment: 5, loadedAreas: [.lowerBack, .shoulders]),
-        .init(name: "Overhead press", muscle: .shoulders, requiredEquipment: .barbell, increment: 5, loadedAreas: [.lowerBack, .shoulders]),
-        .init(name: "Goblet squat", muscle: .quads, requiredEquipment: .dumbbells, increment: 5, loadedAreas: [.knees, .lowerBack, .shoulders]),
-        .init(name: "Dumbbell Romanian deadlift", muscle: .hamstrings, requiredEquipment: .dumbbells, increment: 5, loadedAreas: [.lowerBack, .knees]),
-        .init(name: "Dumbbell reverse lunge", muscle: .glutes, requiredEquipment: .dumbbells, increment: 5, loadedAreas: [.knees, .lowerBack]),
-        .init(name: "Dumbbell floor press", muscle: .chest, requiredEquipment: .dumbbells, increment: 5, loadedAreas: [.shoulders]),
-        .init(name: "Dumbbell row", muscle: .back, requiredEquipment: .dumbbells, increment: 5, loadedAreas: [.lowerBack, .shoulders]),
-        .init(name: "Standing dumbbell press", muscle: .shoulders, requiredEquipment: .dumbbells, increment: 5, loadedAreas: [.lowerBack, .shoulders]),
-        .init(name: "Lat pulldown", muscle: .back, requiredEquipment: .machine, increment: 5, loadedAreas: [.shoulders]),
-        .init(name: "Seated leg curl", muscle: .hamstrings, requiredEquipment: .machine, increment: 5, loadedAreas: [.knees]),
-        .init(name: "Dumbbell curl", muscle: .arms, requiredEquipment: .dumbbells, increment: 2.5, loadedAreas: [.shoulders]),
-        .init(name: "Dumbbell lateral raise", muscle: .shoulders, requiredEquipment: .dumbbells, increment: 2.5, loadedAreas: [.shoulders]),
-        .init(name: "Single-leg bodyweight deadlift", muscle: .hamstrings, requiredEquipment: .bodyweight, increment: 0, loadedAreas: [.lowerBack, .knees]),
-        .init(name: "Pike push-up", muscle: .shoulders, requiredEquipment: .bodyweight, increment: 0, loadedAreas: [.shoulders, .lowerBack]),
-        .init(name: "Prone W raise", muscle: .back, requiredEquipment: .bodyweight, increment: 0, loadedAreas: [.shoulders, .lowerBack]),
-        .init(name: "Prone reverse snow angel", muscle: .back, requiredEquipment: .bodyweight, increment: 0, loadedAreas: [.shoulders, .lowerBack]),
-        .init(name: "Dead bug", muscle: .core, requiredEquipment: .bodyweight, increment: 0, loadedAreas: [.lowerBack, .shoulders]),
-        .init(name: "Bodyweight squat", muscle: .quads, requiredEquipment: .bodyweight, increment: 0, loadedAreas: [.knees, .lowerBack]),
-        .init(name: "Glute bridge", muscle: .glutes, requiredEquipment: .bodyweight, increment: 0, loadedAreas: [.lowerBack, .knees]),
-        .init(name: "Reverse lunge", muscle: .quads, requiredEquipment: .bodyweight, increment: 0, loadedAreas: [.knees, .lowerBack]),
-        .init(name: "Push-up", muscle: .chest, requiredEquipment: .bodyweight, increment: 0, loadedAreas: [.shoulders, .lowerBack]),
-        .init(name: "Knee push-up", muscle: .chest, requiredEquipment: .bodyweight, increment: 0, loadedAreas: [.shoulders, .knees]),
-    ]
-
-    private static func available(equipment: EquipmentAccess, limitations: Set<PhysicalLimitation>?) -> [Exercise] {
-        guard let limitations else { return [] }
-        return catalog.filter { exercise in
-            let supported: Bool
-            switch equipment {
-            case .fullGym: supported = true
-            case .dumbbells: supported = exercise.requiredEquipment == .dumbbells || exercise.requiredEquipment == .bodyweight
-            case .bodyweight: supported = exercise.requiredEquipment == .bodyweight
-            }
-            return supported && exercise.loadedAreas.isDisjoint(with: limitations)
-        }
+    /// Bridged from the catalog, so there is one list of exercises rather than two.
+    private static func exercise(_ entry: CatalogExercise) -> Exercise {
+        Exercise(name: entry.name, muscle: entry.muscle,
+                 requiredEquipment: {
+                     switch entry.equipment {
+                     case .barbell: return .barbell
+                     case .machine: return .machine
+                     case .dumbbells: return .dumbbells
+                     case .bodyweight: return .bodyweight
+                     }
+                 }(),
+                 increment: entry.increment,
+                 // Carried through, not dropped. Emptying this makes every test that
+                 // asks "does this plan respect an injury" pass by asking nothing.
+                 loadedAreas: entry.loads)
     }
 
-    public static func allowedExerciseNames(equipment: EquipmentAccess, limitations: Set<PhysicalLimitation>?) -> [String] {
-        available(equipment: equipment, limitations: limitations).map(\.name)
+    public static func allowedExerciseNames(equipment: EquipmentAccess,
+                                            limitations: Set<PhysicalLimitation>?) -> [String] {
+        // The coach's substitution list. Experience is not a filter here: this answers
+        // "what could this person do", and somebody who has been lifting for a decade
+        // asking Jett for a swap should not be offered a beginner's shortlist.
+        ExerciseCatalog.available(equipment: equipment, limitations: limitations,
+                                  experience: .experienced).map(\.name)
+    }
+
+    /// Fill a session's slots with the best exercise available for each.
+    ///
+    /// A slot names the versions it would like in order, then falls back to anything
+    /// else in the same pattern. A slot with nothing left is dropped rather than
+    /// substituted from another pattern: a push day with two rows in it would be worse
+    /// than a push day with five movements.
+    private static func fill(_ template: SplitCatalog.Template,
+                             from allowed: [CatalogExercise],
+                             experience: TrainingExperience) -> Plan? {
+        var used: Set<String> = []
+        var chosen: [Exercise] = []
+        var reps: [Int] = []
+        for slot in template.slots {
+            let candidates = slot.prefer.compactMap { id in
+                allowed.first { $0.id == id }
+            } + allowed.filter { $0.pattern == slot.pattern }
+            guard let pick = candidates.first(where: { !used.contains($0.id) }) else { continue }
+            used.insert(pick.id)
+            chosen.append(exercise(pick))
+            reps.append(slot.reps)
+        }
+        guard chosen.count >= 3 else { return nil }
+        // Sets scale with experience and the rep count does not. Six movements at three
+        // sets is eighteen sets and an hour, which is right for somebody who has been
+        // doing this and a lot for somebody in their first month.
+        return Plan(name: template.name, exercises: chosen,
+                    sets: experience == .new ? 2 : 3,
+                    reps: Int(reps.reduce(0, +) / max(1, reps.count)),
+                    rir: experience == .new ? 3 : 2,
+                    progression: experience.progression,
+                    repsPerExercise: reps)
     }
 
     public static func make(experience: TrainingExperience, equipment: EquipmentAccess,
                             limitations: Set<PhysicalLimitation>?) -> [Plan] {
-        // Prefer a useful mix of movements over the first few catalog entries.
-        // Filtering happens before selection so a restricted exercise cannot be used
-        // merely to reach the intended session length.
-        let allowed = available(equipment: equipment, limitations: limitations)
-        let preferred: [String]
-        switch equipment {
-        case .fullGym:
-            preferred = ["Back squat", "Romanian deadlift", "Leg press", "Seated leg curl", "Glute bridge",
-                         "Bench press", "Barbell row", "Overhead press", "Lat pulldown", "Dumbbell curl", "Dead bug"]
-        case .dumbbells:
-            preferred = ["Goblet squat", "Dumbbell Romanian deadlift", "Dumbbell reverse lunge", "Glute bridge",
-                         "Dumbbell floor press", "Dumbbell row", "Standing dumbbell press", "Dumbbell curl",
-                         "Dumbbell lateral raise", "Dead bug"]
-        case .bodyweight:
-            preferred = ["Bodyweight squat", "Single-leg bodyweight deadlift", "Reverse lunge", "Glute bridge",
-                         "Push-up", "Prone W raise", "Pike push-up", "Prone reverse snow angel", "Dead bug"]
-        }
-        let exercises = preferred.compactMap { name in allowed.first { $0.name == name } }
-        let lower = Array(exercises.filter { $0.muscle.isLowerBody }.prefix(5))
-        let upper = Array(exercises.filter { !$0.muscle.isLowerBody && $0.muscle != .core }.prefix(5))
-        let core = Array(exercises.filter { $0.muscle == .core }.prefix(1))
-        let full = Array(lower.prefix(2)) + Array(upper.prefix(2)) + core
-        return [("Lower body", lower), ("Upper body", upper), ("Full body", full)].compactMap { name, lifts in
-            guard !lifts.isEmpty else { return nil }
-            return Plan(name: name, exercises: lifts, sets: experience == .new ? 2 : 3,
-                        reps: experience == .experienced ? 5 : 8, rir: experience == .new ? 3 : 2,
-                        progression: experience.progression)
-        }
+        splits(experience: experience, equipment: equipment, limitations: limitations)
+            .flatMap(\.sessions)
     }
 
     /// The split to start somebody on, from everything onboarding asked.
     ///
-    /// Frequency is the deciding input and the only one `splits` never saw. Half an
-    /// upper/lower rotation done twice a week trains each half once a fortnight, which
-    /// is not a programme; six full body days in a row is a lot of squatting. So the
-    /// rotation appears once there are enough days to run it.
-    ///
-    /// Never nil for a real answer. Landing on an empty Train tab after answering eight
-    /// questions is the thing this exists to stop.
+    /// Frequency decides the shape of the week, which is the thing that actually
+    /// separates a programme from a list of exercises. Never nil for a real answer:
+    /// landing on an empty Train tab after answering eight questions is the thing this
+    /// exists to stop.
     public static func recommended(experience: TrainingExperience, equipment: EquipmentAccess,
                                    limitations: Set<PhysicalLimitation>?,
                                    frequency: TrainingFrequency) -> Split? {
-        let available = splits(experience: experience, equipment: equipment,
-                               limitations: limitations)
-        let wantsRotation = frequency.sessionsPerWeek.lowerBound >= 5
-        if wantsRotation, let rotation = available.first(where: { $0.sessions.count > 1 }) {
-            return rotation
-        }
-        return available.first(where: { $0.sessions.count == 1 }) ?? available.first
+        let allowed = ExerciseCatalog.available(equipment: equipment, limitations: limitations,
+                                                experience: experience)
+        guard !allowed.isEmpty else { return nil }
+        let sessions = SplitCatalog.week(for: frequency)
+            .compactMap { fill($0, from: allowed, experience: experience) }
+        guard !sessions.isEmpty else { return nil }
+        return Split(name: SplitCatalog.name(for: frequency), sessions: sessions)
     }
 
+    /// Every split worth offering, with the one their week fits first.
     public static func splits(experience: TrainingExperience, equipment: EquipmentAccess,
                               limitations: Set<PhysicalLimitation>?) -> [Split] {
-        let sessions = make(experience: experience, equipment: equipment, limitations: limitations)
-        var result: [Split] = []
-        if let full = sessions.first(where: { $0.name == "Full body" }) {
-            result.append(Split(name: "Full body", sessions: [full]))
+        let allowed = ExerciseCatalog.available(equipment: equipment, limitations: limitations,
+                                                experience: experience)
+        guard !allowed.isEmpty else { return [] }
+        return TrainingFrequency.allCases.compactMap { frequency in
+            let sessions = SplitCatalog.week(for: frequency)
+                .compactMap { fill($0, from: allowed, experience: experience) }
+            guard !sessions.isEmpty else { return nil }
+            return Split(name: SplitCatalog.name(for: frequency), sessions: sessions)
         }
-        if let upper = sessions.first(where: { $0.name == "Upper body" }),
-           let lower = sessions.first(where: { $0.name == "Lower body" }) {
-            result.append(Split(name: "Upper / lower", sessions: [upper, lower]))
-        }
-        return result
     }
 }
