@@ -48,10 +48,18 @@ struct SignalDetailView: View {
                             .padding(.horizontal, 20)
                             .padding(.bottom, 4)
                     }
-                    HStack(spacing: Tokens.cardGap) { figures }
-                    CoachCard(message: coaching,
-                              accessory: (label: "View insights", symbol: "sparkles"),
-                              action: { showingWhy = true })
+                    // The same two surfaces as the dashboard: the figures sit on top
+                    // of what he says about them, their rounded edge and shadow doing
+                    // the separating. It was a card of its own floating below, which
+                    // is a third thing on a screen that already has two.
+                    VStack(spacing: -18) {
+                        HStack(spacing: Tokens.cardGap) { figures }
+                            .zIndex(1)
+                        CoachCard(message: coaching,
+                                  accessory: (label: "View insights", symbol: "sparkles"),
+                                  action: { showingWhy = true },
+                                  topInset: 31)
+                    }
                     timeline
                 }
                 .padding(.horizontal, Tokens.screenMargin)

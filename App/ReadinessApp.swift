@@ -66,6 +66,13 @@ struct ReadinessApp: App {
                     model.attach(container.mainContext)
                     guard !model.needsOnboarding else { return }
                     await model.refresh()
+                    // Anybody who answered the training questions should have a plan.
+                    // Onboarding builds one at the end, so this only ever fires for a
+                    // record that predates that, but it is the whole Train tab and the
+                    // session card on the dashboard, so it heals rather than waits for
+                    // somebody to notice and onboard again. It returns immediately when
+                    // a template already exists.
+                    _ = model.installStarterProgram(in: container.mainContext)
                     model.startBackgroundDelivery { @MainActor in
                         // Health wakes the app when the watch syncs the night, which is
                         // the morning. Without this the decision was only ever reached

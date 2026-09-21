@@ -26,13 +26,17 @@ COACH_PROVIDER = "deepseek"
 COACH_MODEL = "deepseek-flash"
 MEAL_PROVIDER = "deepseek"
 MEAL_MODEL = "deepseek-flash"
-# App Attest stays off until `identify()` can actually verify an attestation. The team
-# ID is no longer the blocker — the project has had one since the signing config landed,
-# and the payload is validated against <teamID>.<bundleID>, so it is filled in here ready.
-# Turning this on before the verification exists would return 501 to every request.
+# App Attest is on: every caller proves it is a real install of this app on real
+# hardware, and the shared development secret is no longer a way in. Verified against
+# Hao's phone before this was flipped, using a dry-run endpoint that disables itself
+# the moment this is "true".
 REQUIRE_ATTESTATION = "true"
 APPLE_TEAM_ID = "V9JX42F864"
 BUNDLE_ID = "com.coachjett.ios"
+# TESTING ONLY, and the one line in this file that must not ship. "*" lifts the
+# free-message cap for every caller. Narrow it to Hao's attested key id, or empty it,
+# before anybody outside this room installs the app.
+UNLIMITED_IDS = "*"
 
 [[durable_objects.bindings]]
 name = "BUCKET"

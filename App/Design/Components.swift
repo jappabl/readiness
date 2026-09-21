@@ -266,17 +266,25 @@ struct CoachCard: View {
     let message: String
     var accessory: (label: String, symbol: String)?
     var action: (() -> Void)?
+    /// Head room for a card resting on top of this one. Nil when it stands alone.
+    var topInset: CGFloat?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Coaching").microLabel()
+            // His face rather than the word "Coaching", and beside what he said rather
+            // than over it. The label was naming the obvious, and a heading above a
+            // sentence he wrote reads as a section of a report. Alongside, it reads as
+            // him saying it.
+            HStack(alignment: .top, spacing: 10) {
+                JettFace(size: 24)
                 Text(message)
                     .font(.system(size: 15))
                     .foregroundStyle(Tokens.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
             .padding(14)
+            .padding(.top, topInset ?? 0)
 
             if let accessory {
                 Divider().overlay(Tokens.hairline)

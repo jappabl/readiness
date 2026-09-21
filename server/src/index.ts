@@ -21,6 +21,10 @@ export interface Env {
   MEAL_PROVIDER: string
   MEAL_MODEL: string
   REQUIRE_ATTESTATION: string
+  /// Installs that skip the free-message cap: a comma-separated list of attested key
+  /// ids, or "*" for every caller. Empty in production. A testing lever, not a
+  /// purchase, so it never touches entitlement.
+  UNLIMITED_IDS?: string
   APPLE_TEAM_ID: string
   BUNDLE_ID: string
   BUCKET: DurableObjectNamespace
@@ -251,6 +255,23 @@ async function secretsMatch(candidate: string | null, expected: string): Promise
   return difference === 0
 }
 
+/**
+ * Whether this install is on the testing allowlist.
+ *
+ * Deliberately separate from entitlement. A subscriber is somebody the App Store says
+ * paid, and marking a tester as one would put a lie in the place that has to stay
+ * honest. This lifts the free-message cap and nothing else.
+ */
+function isUnlimited(id: string, env: Env): boolean {
+  const list = (env.UNLIMITED_IDS ?? "").trim()
+  if (!list) return false
+  if (list === "*") return true
+  return list
+    .split(",")
+    .map((entry) => entry.trim())
+    .includes(id)
+}
+
 async function meter(id: string, isSubscriber: boolean, env: Env): Promise<Response | null> {
   const bucket = env.BUCKET.get(env.BUCKET.idFromName(id))
   const decision = (await (
@@ -346,7 +367,7 @@ async function handleCoach(request: Request, env: Env, id: string): Promise<Resp
     Date.now(),
     env.REQUIRE_ATTESTATION !== "true", // dev mode trusts the claim it cannot yet verify
   )
-  const limited = await meter(id, result.subscriber, env)
+  const limited = await meter(id, result.subscriber || isUnlimited(id, env), env)
   if (limited) return limited
 
   const body = coachBody({

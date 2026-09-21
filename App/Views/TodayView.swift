@@ -226,18 +226,20 @@ struct TodayView: View {
 
             if let rec = model.recommendation, let day = model.day, !model.isRewound {
                 Button { Haptics.light(); showingWhy = true } label: {
-                    VStack(alignment: .leading, spacing: 5) {
-                        Text("Coaching").microLabel()
-                        Text(Copy.call(for: rec, gate: day.readiness.gateApplied,
-                                       hasSession: model.hasProgram))
-                            .font(.system(size: 15))
-                            .foregroundStyle(Tokens.textPrimary)
-                            .lineSpacing(2)
-                            .fixedSize(horizontal: false, vertical: true)
-                        if let note = Copy.confidenceNote(rec.confidence, days: day.daysOfHistory) {
-                            Text(note)
-                                .font(.system(size: 13))
-                                .foregroundStyle(Tokens.textSecondary)
+                    HStack(alignment: .top, spacing: 10) {
+                        JettFace(size: 24)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(Copy.call(for: rec, gate: day.readiness.gateApplied,
+                                           hasSession: model.hasProgram))
+                                .font(.system(size: 15))
+                                .foregroundStyle(Tokens.textPrimary)
+                                .lineSpacing(2)
+                                .fixedSize(horizontal: false, vertical: true)
+                            if let note = Copy.confidenceNote(rec.confidence, days: day.daysOfHistory) {
+                                Text(note)
+                                    .font(.system(size: 13))
+                                    .foregroundStyle(Tokens.textSecondary)
+                            }
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
