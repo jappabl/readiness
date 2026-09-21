@@ -18,6 +18,9 @@ struct OnboardingView: View {
     @State private var receiptAnswerID: Int?
     @State private var deliveryStatus = ""
     @State private var reactedAnswers: Set<Int> = []
+    @Environment(Notifications.self) private var notifications
+    /// Pounds, or kilos when that is how they read everything else.
+    @State private var weightEntry = 170.0
 
     private var settled: Bool { visibleCount == flow.turns.count }
     private var columns: [GridItem] {
@@ -322,6 +325,37 @@ struct OnboardingView: View {
             }
             .font(.subheadline).frame(minHeight: 44).frame(maxWidth: .infinity)
             .tint(Tokens.messageOutgoing).disabled(connecting)
+        case .weight:
+            VStack(spacing: 12) {
+                Text(weightLabel)
+                    .font(.largeTitle.weight(.semibold)).monospacedDigit()
+                    .contentTransition(.numericText())
+                    .foregroundStyle(Tokens.textPrimary)
+                Stepper(value: $weightEntry, in: weightRange, step: 1) { EmptyView() }
+                    .labelsHidden().ticksOnChange(weightEntry)
+                confirmChoice("Use \(weightLabel)") {
+                    commit { flow.recordWeight(weightLabel) }
+                    model.recordOnboardingWeight(weightEntry,
+                                                 metric: flow.answers.unitsAreMetric)
+                }
+                Button("Skip") { commit { flow.skipWeight() } }
+                    .font(.subheadline).frame(minHeight: 44).frame(maxWidth: .infinity)
+                    .tint(Tokens.messageOutgoing)
+            }
+        case .notifications:
+            VStack(spacing: 12) {
+                confirmChoice("Go ahead") {
+                    Task {
+                        // Asked here, so the system sheet lands on somebody who has just
+                        // read what it is for rather than on a stranger.
+                        await notifications.enable()
+                        commit { flow.chooseNotifications(allowed: true) }
+                    }
+                }
+                Button("Not now") { commit { flow.chooseNotifications(allowed: false) } }
+                    .font(.subheadline).frame(minHeight: 44).frame(maxWidth: .infinity)
+                    .tint(Tokens.messageOutgoing)
+            }
         case .ready:
             // No menu of questions. Somebody who has just answered eight of them does
             // not have a ninth ready, and asking for one holds them at the door of an
@@ -336,6 +370,27 @@ struct OnboardingView: View {
         case .reading:
             EmptyView()
         }
+    }
+
+    private var weightRange: ClosedRange<Double> {
+        flow.answers.unitsAreMetric ? 30...250 : 66...550
+    }
+
+    private var weightLabel: String {
+        let unit = flow.answers.unitsAreMetric ? "kg" : "lb"
+        return "\(Int(weightEntry)) \(unit)"
+    }
+
+    /// The same filled capsule the health step uses, so a confirmation looks the same
+    /// wherever it appears in the flow.
+    private func confirmChoice(_ title: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title).font(.body.weight(.semibold))
+                .foregroundStyle(Tokens.messageOnOutgoing)
+                .frame(maxWidth: .infinity, minHeight: 50)
+                .background(Tokens.messageOutgoing, in: Capsule())
+        }
+        .buttonStyle(PressableStyle())
     }
 
     private func choice(_ title: String, detail: String? = nil, symbol: String? = nil,
@@ -436,6 +491,7 @@ struct OnboardingView: View {
                 try? await Task.sleep(for: .milliseconds(reduceMotion ? 600 : 1100))
             }
             model.startBackgroundDelivery()
+            flow.knowsWeight = model.latestWeight != nil
             withAnimation(reduceMotion ? nil : .easeOut(duration: 0.4)) {
                 flow.finishReading(hasHealthData: model.hasOnboardingHealthData,
                                    // Days that actually had something in them.
@@ -466,6 +522,10 @@ struct OnboardingView: View {
 
     private func complete(_ text: String?) {
         model.completeOnboarding(flow.answers, in: context)
+        // Built from what was just answered rather than asked for again on the next
+        // screen. Nil when somebody ruled out every movement, which is the one case
+        // where the app genuinely has nothing safe to suggest.
+        model.installStarterProgram(in: context)
         model.pendingOnboardingConversation = flow.turns.map {
             CoachMessage(role: $0.isUser ? .user : .assistant, text: $0.text, reaction: $0.reaction)
         }

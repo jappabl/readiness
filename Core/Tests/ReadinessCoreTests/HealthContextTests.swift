@@ -102,6 +102,8 @@ extension HealthContextTests {
         flow.chooseWatch(wearsOne: true)
         flow.skipHealth()
         flow.skipHealthDetails()
+        flow.skipWeight()
+        flow.chooseNotifications(allowed: true)
         #expect(flow.step == .ready)
         #expect(flow.answers.goal == .feelBetter)
         #expect(flow.latestEditableAnswerID == nil)

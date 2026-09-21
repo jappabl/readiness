@@ -6,7 +6,7 @@ public enum CoachReaction: String, Codable, Sendable {
 
 /// Scripted onboarding. No provider, timer or HealthKit dependency lives here.
 public struct OnboardingConversation: Sendable {
-    public enum Step: Sendable { case goal, frequency, experience, obstacles, limitations, equipment, units, watch, health, reading, healthDetails, ready }
+    public enum Step: Sendable { case goal, frequency, experience, obstacles, limitations, equipment, units, watch, health, reading, healthDetails, weight, notifications, ready }
     public struct Turn: Identifiable, Equatable, Sendable {
         public let id: Int
         public let isUser: Bool
@@ -228,9 +228,7 @@ public struct OnboardingConversation: Sendable {
     private mutating func routeHealthDetails(_ profile: HealthProfile, today: Date, skipped: Bool, hasHealthData: Bool = false) {
         missingHealthFields = profile.missingFields(on: today)
         if missingHealthFields.isEmpty {
-            say(hasHealthData ? "You're set. Come find me when something comes up."
-                : "You're set. Come find me when something comes up.")
-            step = .ready
+            askForWeightOrFinish()
         } else {
             say(skipped ? "You can connect Health later. Add any missing details here, or skip."
                 : "A few details are missing. Add them if you'd like, or skip.")
@@ -248,16 +246,59 @@ public struct OnboardingConversation: Sendable {
         guard allowed.isValid(on: today) else { return false }
         answers.healthDetails = allowed
         answer("Details added")
-        say("You're set. Come find me when something comes up.")
-        step = .ready
+        askForWeightOrFinish()
         return true
+    }
+
+    /// Whether the weight question is worth asking.
+    ///
+    /// Set by the app once Health has been read. Health knows most people's weight, and
+    /// asking for something already on the phone is the kind of question that makes a
+    /// setup flow feel like paperwork.
+    public var knowsWeight = false
+
+    private mutating func askForWeightOrFinish() {
+        guard !knowsWeight else { return askAboutNotifications() }
+        say("Last couple of things. Roughly what do you weigh?")
+        step = .weight
+    }
+
+    public mutating func recordWeight(_ display: String) {
+        guard step == .weight else { return }
+        answer(display)
+        askAboutNotifications()
+    }
+
+    public mutating func skipWeight() {
+        guard step == .weight else { return }
+        answer("Skip")
+        askAboutNotifications()
+    }
+
+    /// Asked here rather than left in Profile.
+    ///
+    /// The switch used to live below Baselines, Look and a table of model weights, and
+    /// everything the app can start a conversation about was dark for anybody who never
+    /// scrolled that far. Asked at the end, where they have seen what the app does and
+    /// the promise not to overdo it is something they can check against.
+    private mutating func askAboutNotifications() {
+        say("Can I message you? I won't blow up your phone, a few times a week at most, "
+            + "and only when I actually know something.")
+        step = .notifications
+    }
+
+    public mutating func chooseNotifications(allowed: Bool) {
+        guard step == .notifications else { return }
+        answer(allowed ? "Go ahead" : "Not now")
+        say(allowed ? "Noted. I'll keep it worth reading."
+                    : "Fair enough. You'll find me in the app.")
+        step = .ready
     }
 
     public mutating func skipHealthDetails() {
         guard step == .healthDetails else { return }
         answer("Skip for now")
-        say("No problem. Come find me when something comes up.")
-        step = .ready
+        askForWeightOrFinish()
     }
 
     private mutating func answer(_ text: String, reaction: CoachReaction? = nil) {

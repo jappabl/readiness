@@ -89,6 +89,8 @@ struct OnboardingAddendumTests {
         var flow = readyForHealth()
         flow.beginReading()
         flow.finishReading(hasHealthData: true, profile: knownProfile, today: today)
+        if flow.step == .weight { flow.skipWeight() }
+        if flow.step == .notifications { flow.chooseNotifications(allowed: true) }
         #expect(flow.step == .ready)
         #expect(flow.missingHealthFields.isEmpty)
     }
@@ -106,6 +108,8 @@ struct OnboardingAddendumTests {
         #expect(flow.answers.healthDetails?.heightCM == nil)
         #expect(flow.answers.healthDetails?.biologicalSex == nil)
         #expect(flow.answers.healthDetails?.ageYears(on: today) == 30)
+        if flow.step == .weight { flow.skipWeight() }
+        if flow.step == .notifications { flow.chooseNotifications(allowed: true) }
         #expect(flow.step == .ready)
         #expect(!flow.turns.contains { $0.text.contains("1995") })
     }
@@ -114,12 +118,16 @@ struct OnboardingAddendumTests {
         var flow = readyForHealth()
         flow.beginReading()
         flow.finishReading(hasHealthData: false, today: today)
+        if flow.step == .weight { flow.skipWeight() }
+        if flow.step == .notifications { flow.chooseNotifications(allowed: true) }
         #expect(flow.missingHealthFields == [.height, .dateOfBirth, .biologicalSex])
         let invalidAccepted = flow.submitHealthDetails(HealthProfile(heightCM: 3), today: today)
         #expect(!invalidAccepted)
         #expect(flow.step == .healthDetails)
         let partialAccepted = flow.submitHealthDetails(HealthProfile(heightCM: 170), today: today)
         #expect(partialAccepted)
+        if flow.step == .weight { flow.skipWeight() }
+        if flow.step == .notifications { flow.chooseNotifications(allowed: true) }
         #expect(flow.step == .ready)
         #expect(flow.answers.healthDetails?.heightCM == 170)
         #expect(flow.answers.healthDetails?.dateOfBirth == nil)
@@ -130,6 +138,8 @@ struct OnboardingAddendumTests {
         flow.skipHealth(today: today)
         #expect(flow.step == .healthDetails)
         flow.skipHealthDetails()
+        flow.skipWeight()
+        flow.chooseNotifications(allowed: true)
         #expect(flow.step == .ready)
         #expect(flow.answers.isComplete)
         #expect(flow.answers.healthDetails == nil)

@@ -82,8 +82,12 @@ struct OnboardingConversationTests {
         #expect(flow.step == .reading)
         #expect(flow.latestEditableAnswerID == nil)
         flow.finishReading(hasHealthData: false)
+        if flow.step == .weight { flow.skipWeight() }
+        if flow.step == .notifications { flow.chooseNotifications(allowed: true) }
         #expect(flow.step == .healthDetails)
         flow.skipHealthDetails()
+        flow.skipWeight()
+        flow.chooseNotifications(allowed: true)
         #expect(flow.step == .ready)
         #expect(flow.answers.healthDetails == nil)
     }
@@ -98,6 +102,8 @@ struct OnboardingConversationTests {
         flow.beginReading()
         let before = flow.turns.count
         flow.finishReading(hasHealthData: hasData)
+        if flow.step == .weight { flow.skipWeight() }
+        if flow.step == .notifications { flow.chooseNotifications(allowed: true) }
         #expect(flow.turns.count == before + 1)
         for turn in flow.turns where !turn.isUser {
             #expect(turn.text.split(separator: " ").count <= 28)
@@ -206,6 +212,8 @@ struct OnboardingRevealTests {
     func statesTheCount() {
         var flow = atReading(days: 179)
         flow.finishReading(hasHealthData: true, daysRead: 179)
+        if flow.step == .weight { flow.skipWeight() }
+        if flow.step == .notifications { flow.chooseNotifications(allowed: true) }
         let said = flow.turns.map(\.text).joined(separator: " | ")
         #expect(said.contains("179"))
     }
@@ -214,6 +222,8 @@ struct OnboardingRevealTests {
     func onlyTheRevealCharts() {
         var flow = atReading(days: 179)
         flow.finishReading(hasHealthData: true, daysRead: 179)
+        if flow.step == .weight { flow.skipWeight() }
+        if flow.step == .notifications { flow.chooseNotifications(allowed: true) }
         let charted = flow.turns.filter { $0.chart != nil }
         #expect(charted.count == 1)
         #expect(charted.first?.isUser == false)
@@ -223,6 +233,8 @@ struct OnboardingRevealTests {
     func noDataNoChart() {
         var flow = atReading(days: 0)
         flow.finishReading(hasHealthData: false, daysRead: 0)
+        if flow.step == .weight { flow.skipWeight() }
+        if flow.step == .notifications { flow.chooseNotifications(allowed: true) }
         #expect(flow.turns.allSatisfy { $0.chart == nil })
         let said = flow.turns.map(\.text).joined(separator: " | ")
         #expect(!said.contains("0 days"))
@@ -233,6 +245,8 @@ struct OnboardingRevealTests {
     func singularReads() {
         var flow = atReading(days: 1)
         flow.finishReading(hasHealthData: true, daysRead: 1)
+        if flow.step == .weight { flow.skipWeight() }
+        if flow.step == .notifications { flow.chooseNotifications(allowed: true) }
         let said = flow.turns.map(\.text).joined(separator: " | ")
         #expect(said.contains("1 night"))
         #expect(!said.contains("1 nights"))
@@ -245,6 +259,8 @@ struct OnboardingRevealTests {
                                   dateOfBirth: DateComponents(year: 1998, month: 4, day: 2),
                                   biologicalSex: .male)
         flow.finishReading(hasHealthData: true, daysRead: 179, profile: known)
+        if flow.step == .weight { flow.skipWeight() }
+        if flow.step == .notifications { flow.chooseNotifications(allowed: true) }
         #expect(flow.step == .ready)
     }
 
@@ -252,6 +268,8 @@ struct OnboardingRevealTests {
     func revealComesBeforeTheGaps() {
         var flow = atReading(days: 179)
         flow.finishReading(hasHealthData: true, daysRead: 179)
+        if flow.step == .weight { flow.skipWeight() }
+        if flow.step == .notifications { flow.chooseNotifications(allowed: true) }
         #expect(flow.step == .healthDetails)
         // The reveal is not skipped just because something else needs asking.
         #expect(flow.turns.contains { $0.chart != nil })
@@ -265,6 +283,8 @@ struct OnboardingRevealTests {
     func noNormalClaimedTooEarly(days: Int) {
         var flow = atReading(days: days)
         flow.finishReading(hasHealthData: true, daysRead: days)
+        if flow.step == .weight { flow.skipWeight() }
+        if flow.step == .notifications { flow.chooseNotifications(allowed: true) }
         let said = flow.turns.map(\.text).joined(separator: " ")
         #expect(!said.contains("That's your normal now"),
                 "claimed a normal off \(days) days")
@@ -275,6 +295,8 @@ struct OnboardingRevealTests {
     func normalClaimedWhenEarned(days: Int) {
         var flow = atReading(days: days)
         flow.finishReading(hasHealthData: true, daysRead: days)
+        if flow.step == .weight { flow.skipWeight() }
+        if flow.step == .notifications { flow.chooseNotifications(allowed: true) }
         #expect(flow.turns.map(\.text).joined().contains("That's your normal now"))
     }
 }

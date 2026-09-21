@@ -113,6 +113,27 @@ public enum StarterPrograms {
         }
     }
 
+    /// The split to start somebody on, from everything onboarding asked.
+    ///
+    /// Frequency is the deciding input and the only one `splits` never saw. Half an
+    /// upper/lower rotation done twice a week trains each half once a fortnight, which
+    /// is not a programme; six full body days in a row is a lot of squatting. So the
+    /// rotation appears once there are enough days to run it.
+    ///
+    /// Never nil for a real answer. Landing on an empty Train tab after answering eight
+    /// questions is the thing this exists to stop.
+    public static func recommended(experience: TrainingExperience, equipment: EquipmentAccess,
+                                   limitations: Set<PhysicalLimitation>?,
+                                   frequency: TrainingFrequency) -> Split? {
+        let available = splits(experience: experience, equipment: equipment,
+                               limitations: limitations)
+        let wantsRotation = frequency.sessionsPerWeek.lowerBound >= 5
+        if wantsRotation, let rotation = available.first(where: { $0.sessions.count > 1 }) {
+            return rotation
+        }
+        return available.first(where: { $0.sessions.count == 1 }) ?? available.first
+    }
+
     public static func splits(experience: TrainingExperience, equipment: EquipmentAccess,
                               limitations: Set<PhysicalLimitation>?) -> [Split] {
         let sessions = make(experience: experience, equipment: equipment, limitations: limitations)

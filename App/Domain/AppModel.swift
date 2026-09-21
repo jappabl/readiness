@@ -123,7 +123,7 @@ final class AppModel {
     /// samples. A watch that never left the wrist was reported as a part-recorded day once
     /// the app was forty minutes stale, at any hour of the day.
     private(set) var healthReadAt: Date?
-    private(set) var latestWeight: (date: Date, kilograms: Double)?
+    fileprivate(set) var latestWeight: (date: Date, kilograms: Double)?
     private var healthWeight: (date: Date, kilograms: Double)?
     var healthReadError: String?
     private var selectedTemplateID: PersistentIdentifier? {
@@ -497,6 +497,56 @@ final class AppModel {
         }
         try? context.save()
         onboarding = answers
+    }
+
+    /// The weight they gave during setup, so the trend has somewhere to start.
+    func recordOnboardingWeight(_ value: Double, metric: Bool) {
+        guard let context else { return }
+        let kilograms = metric ? value : value / 2.2046226218
+        let log = WeightLog(date: Date(), kilograms: kilograms)
+        context.insert(log)
+        try? context.save()
+        latestWeight = (date: log.date, kilograms: kilograms)
+    }
+
+    /// Builds the programme onboarding already had every answer for.
+    ///
+    /// Experience, equipment and limitations are exactly what the starter catalog takes,
+    /// and frequency decides whether a rotation makes sense. Collecting all four and
+    /// then showing a card that asks somebody to build a training plan was asking the
+    /// same questions twice.
+    ///
+    /// Only when there is nothing there. Somebody reinstalling, or coming back through
+    /// onboarding, keeps whatever they already made.
+    @discardableResult
+    func installStarterProgram(in context: ModelContext) -> String? {
+        let existing = (try? context.fetch(FetchDescriptor<WorkoutTemplate>())) ?? []
+        guard existing.isEmpty else { return nil }
+        guard let experience = onboarding.experience,
+              let equipment = onboarding.equipment,
+              let frequency = onboarding.frequency,
+              let split = StarterPrograms.recommended(
+                experience: experience, equipment: equipment,
+                limitations: onboarding.limitations, frequency: frequency)
+        else { return nil }
+
+        for (order, plan) in split.sessions.enumerated() {
+            let template = WorkoutTemplate(name: plan.name, order: order)
+            context.insert(template)
+            for (index, exercise) in plan.exercises.enumerated() {
+                let row = TemplateExercise(
+                    name: exercise.name, muscleGroup: exercise.muscle,
+                    targetSets: plan.sets, targetReps: plan.reps,
+                    workingWeight: 0, increment: exercise.increment,
+                    targetRIR: plan.rir, order: index)
+                row.template = template
+                template.exercises.append(row)
+                context.insert(row)
+            }
+        }
+        try? context.save()
+        hasProgram = true
+        return split.name
     }
 
     func finishOnboarding() {
