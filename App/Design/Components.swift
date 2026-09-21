@@ -815,3 +815,9 @@ struct FloatingTabBar: View {
         .accessibilityAction(named: "Say a set") { onTalk() }
     }
 }
+
+extension View {
+    /// Leaves room for the floating tab bar. Every scrolling tab needs this; see
+    /// `Tokens.tabBarClearance` for why the safe area does not do it for them.
+    func clearsTabBar() -> some View { padding(.bottom, Tokens.tabBarClearance) }
+}

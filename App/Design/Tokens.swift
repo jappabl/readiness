@@ -110,6 +110,16 @@ enum Tokens {
     static let cardRadius: CGFloat = 18
     static let screenMargin: CGFloat = 16
     static let cardGap: CGFloat = 12
+
+    /// What the floating tab bar occupies at the bottom of every tab.
+    ///
+    /// The bar is added as a `safeAreaInset` on the `TabView`, which reads as though
+    /// every screen inside it would scroll clear of the bar without knowing it exists.
+    /// It does not: the inset applies around the TabView, not inside the navigation
+    /// stacks it contains, so the last thing on a long screen sits under the bar and
+    /// cannot be tapped. Today's screen had a hand-tuned 100 for exactly this and the
+    /// other three did not, which is how the App Attest button ended up unreachable.
+    static let tabBarClearance: CGFloat = 100
 }
 
 extension UIColor {

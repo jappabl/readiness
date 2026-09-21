@@ -165,7 +165,7 @@ struct TodayView: View {
             }
             .padding(.horizontal, Tokens.screenMargin)
             .padding(.top, 2)
-            .padding(.bottom, 100)
+            .clearsTabBar()
         }
         .accessibilityIdentifier("today-overview")
         .refreshable { await model.refresh() }

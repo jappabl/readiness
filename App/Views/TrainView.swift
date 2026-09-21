@@ -21,7 +21,7 @@ struct TrainView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) { program; history }
                     .padding(.horizontal, Tokens.screenMargin)
-                    .padding(.top, 4).padding(.bottom, 16)
+                    .padding(.top, 4).clearsTabBar()
             }
         }
         .navigationTitle("Train")
