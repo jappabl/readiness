@@ -25,9 +25,15 @@ public enum CoachSegments {
         var segments: [CoachSegment] = []
         var pending = ""
 
+        // A blank line is a new message, not a new line. Somebody answering on their
+        // phone sends "Yes, but lighter." and then, a beat later, what to do about it;
+        // three lines stacked in one bubble is a memo, and no amount of good writing
+        // inside it reads as a person. A single newline is only wrapping and stays put.
         func flush() {
-            let trimmed = pending.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !trimmed.isEmpty { segments.append(.text(trimmed)) }
+            for run in pending.components(separatedBy: "\n\n") {
+                let trimmed = run.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !trimmed.isEmpty { segments.append(.text(trimmed)) }
+            }
             pending = ""
         }
 

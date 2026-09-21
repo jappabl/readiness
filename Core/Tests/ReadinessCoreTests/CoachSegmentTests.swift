@@ -16,6 +16,28 @@ struct CoachSegmentTests {
         #expect(CoachSegments.parse("You're flat today.") == [.text("You're flat today.")])
     }
 
+    /// A person answering on their phone sends "Yes, but lighter." and then, a beat
+    /// later, what to do about it. Three lines stacked in one bubble is a memo, and it
+    /// is the single thing that made the answers read as written by a machine however
+    /// good the sentences were.
+    @Test("a blank line is a new message, not a new line")
+    func blankLineSplitsMessages() {
+        #expect(CoachSegments.parse("Yes, but lighter.\n\nTake 15% off the bar.")
+                == [.text("Yes, but lighter."), .text("Take 15% off the bar.")])
+    }
+
+    @Test("a single newline stays inside one message")
+    func singleNewlineHoldsTogether() {
+        // Wrapping is not a beat. Only an empty line between them is.
+        #expect(CoachSegments.parse("Two things.\nFirst one.")
+                == [.text("Two things.\nFirst one.")])
+    }
+
+    @Test("however many blank lines somebody leaves, it is still one break")
+    func extraBlankLinesDoNotMakeEmptyMessages() {
+        #expect(CoachSegments.parse("One.\n\n\n\nTwo.") == [.text("One."), .text("Two.")])
+    }
+
     @Test("a marker becomes a chart between the text around it")
     func markerSplitsText() {
         let parsed = CoachSegments.parse("Lowest in weeks.\n[chart:hrv]\nTake 15% off.")

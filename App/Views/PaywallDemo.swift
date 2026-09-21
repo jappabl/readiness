@@ -44,6 +44,8 @@ struct PaywallDemo: View {
         let question: String
         let lead: String
         var charts: [MetricKind] = []
+        /// True when the answer means nothing without the chart under it.
+        var needsCharts = false
         var step: String?
         var closing: String
     }
@@ -56,7 +58,7 @@ struct PaywallDemo: View {
             .sorted { abs($0.points) > abs($1.points) }
             .map(\.kind) ?? []
 
-        return [
+        let all = [
             // Two charts, because two things moving together is the argument. One
             // metric on its own rarely is.
             Scene(question: "Can I still train legs today?",
@@ -66,12 +68,18 @@ struct PaywallDemo: View {
             Scene(question: "Why do I feel so flat this week?",
                   lead: "Here's what moved.",
                   charts: Array(drivers.prefix(2)),
+                  needsCharts: true,
                   closing: "Everything else is sitting where it usually does."),
             Scene(question: "Make today easier.",
                   lead: "Done. Cut to three sets.",
                   step: "Adjusting today's session",
                   closing: "Same lifts, same loads, less volume. Approve it and I'll update the day."),
         ]
+        // Somebody who has not connected Health has nothing to plot, and the demo will
+        // not draw a chart their data does not support. So the scene whose whole answer
+        // is a chart is dropped rather than played with "Here's what moved." followed
+        // by nothing, which is worse than not showing it.
+        return drivers.isEmpty ? all.filter { !$0.needsCharts } : all
     }
 
     var body: some View {
@@ -107,7 +115,7 @@ struct PaywallDemo: View {
         var parts = [scene.lead]
         parts.append(contentsOf: scene.charts.map { "[chart:\($0.rawValue)]" })
         parts.append(scene.closing)
-        return parts.joined(separator: "\n")
+        return parts.joined(separator: "\n\n")
     }
 
     /// Loops for as long as the paywall is on screen. Reduce Motion gets the finished
@@ -145,12 +153,12 @@ struct PaywallDemo: View {
                 // which is what the live stream does when the model writes one.
                 for kind in scene.charts {
                     try? await Task.sleep(for: .milliseconds(300))
-                    reply += "\n[chart:\(kind.rawValue)]"
+                    reply += "\n\n[chart:\(kind.rawValue)]"
                 }
                 if !scene.charts.isEmpty { try? await Task.sleep(for: .milliseconds(1700)) }
 
                 try? await Task.sleep(for: .milliseconds(400))
-                reply += "\n" + scene.closing
+                reply += "\n\n" + scene.closing
                 try? await Task.sleep(for: .seconds(3))
             }
         }

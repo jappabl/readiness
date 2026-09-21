@@ -14,24 +14,58 @@ struct CoachTurnView: View {
         return "\(speaker): \(message.text)" + reaction
     }
 
+    /// One turn, but not always one bubble.
+    ///
+    /// Jett separates beats with a blank line and each one becomes its own message, the
+    /// way somebody answering on their phone sends "Yes, but lighter." and then, a
+    /// moment later, what to do about it. A chart stands on its own between them rather
+    /// than inside a bubble, because it is a thing shown, not a thing said.
     var body: some View {
-        HStack(alignment: .bottom, spacing: 0) {
-            if outgoing { Spacer(minLength: 44) }
-            bubble.layoutPriority(1)
-            if !outgoing { Spacer(minLength: 36) }
+        VStack(alignment: outgoing ? .trailing : .leading, spacing: 5) {
+            ForEach(Array(parts.enumerated()), id: \.offset) { index, part in
+                switch part {
+                case .text(let text):
+                    row { bubble(text, isFirst: index == 0) }
+                case .chart(let kind):
+                    row { CoachChartCard(kind: kind) }
+                }
+            }
         }
+        .frame(maxWidth: .infinity, alignment: outgoing ? .trailing : .leading)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(spokenLabel)
     }
 
-    private var bubble: some View {
-        content
-            .fixedSize(horizontal: false, vertical: true)
-            .padding(.horizontal, 15)
-            .padding(.vertical, 11)
-            .background(outgoing ? Tokens.messageOutgoing : Tokens.messageIncoming, in: bubbleShape)
-            .overlay(alignment: .topLeading) { reactionBadge }
-            .padding(.top, message.reaction == nil && !reservesReactionSpace ? 0 : 12)
+    /// The user's own words are never split: they wrote one message, so it stays one.
+    private var parts: [CoachSegment] {
+        outgoing ? [.text(message.text)] : CoachSegments.parse(message.text)
+    }
+
+    private func row<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+        HStack(alignment: .bottom, spacing: 0) {
+            if outgoing { Spacer(minLength: 44) }
+            content().layoutPriority(1)
+            if !outgoing { Spacer(minLength: 36) }
+        }
+    }
+
+    private func bubble(_ text: String, isFirst: Bool) -> some View {
+        Group {
+            if outgoing {
+                Text(text).font(.body).foregroundStyle(Tokens.messageOnOutgoing)
+            } else if revealsWords {
+                RevealingText(text: text).font(.body)
+            } else {
+                Text(text).font(.body).foregroundStyle(Tokens.textPrimary)
+            }
+        }
+        .fixedSize(horizontal: false, vertical: true)
+        .padding(.horizontal, 15)
+        .padding(.vertical, 11)
+        .background(outgoing ? Tokens.messageOutgoing : Tokens.messageIncoming, in: bubbleShape)
+        // The badge belongs to the turn, so it hangs off the first bubble in it.
+        .overlay(alignment: .topLeading) { if isFirst { reactionBadge } }
+        .padding(.top, isFirst && (message.reaction != nil || reservesReactionSpace) ? 12 : 0)
     }
 
     private var bubbleShape: UnevenRoundedRectangle {
@@ -39,27 +73,6 @@ struct CoachTurnView: View {
                                bottomLeadingRadius: outgoing ? 20 : 6,
                                bottomTrailingRadius: outgoing ? 6 : 20,
                                topTrailingRadius: 20)
-    }
-
-    @ViewBuilder private var content: some View {
-        if outgoing {
-            Text(message.text).font(.body).foregroundStyle(Tokens.messageOnOutgoing)
-        } else {
-            VStack(alignment: .leading, spacing: 12) {
-                ForEach(Array(CoachSegments.parse(message.text).enumerated()), id: \.offset) { _, segment in
-                    switch segment {
-                    case .text(let text):
-                        if revealsWords {
-                            RevealingText(text: text).font(.body)
-                        } else {
-                            Text(text).font(.body).foregroundStyle(Tokens.textPrimary)
-                        }
-                    case .chart(let kind):
-                        CoachChartCard(kind: kind)
-                    }
-                }
-            }
-        }
     }
 
     @ViewBuilder private var reactionBadge: some View {
