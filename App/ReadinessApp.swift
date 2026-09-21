@@ -99,10 +99,38 @@ struct RootView: View {
     @State private var askingJett = false
     @State private var talking = false
 
+    /// The harness branches compile only in debug, rather than merely being unreachable
+    /// in release.
+    ///
+    /// They were unreachable and still compiled, so `SampleScores`, which is debug-only,
+    /// was named from a release build and the whole configuration failed to build. The
+    /// app had never been built for release, so nothing said so until somebody tried to
+    /// ship it, which is the worst moment to find out.
     var body: some View {
-        // QA: the home cards on their own, so a styling change can be looked at without
-        // a seeded database and a walk through onboarding. Reached only by launch
-        // argument, and the simulator's tap injection wedges often enough to need it.
+        #if DEBUG
+        harnessOrApp
+        #else
+        app
+        #endif
+    }
+
+    @ViewBuilder
+    private var app: some View {
+        // Onboarding is not a tab. It replaces the app until it is done, because a tab
+        // bar offers four destinations to someone who has not said what they want yet.
+        if model.needsOnboarding {
+            OnboardingView()
+        } else {
+            main
+        }
+    }
+
+    #if DEBUG
+    /// QA: the home cards on their own, so a styling change can be looked at without
+    /// a seeded database and a walk through onboarding. Reached only by launch
+    /// argument, and the simulator's tap injection wedges often enough to need it.
+    @ViewBuilder
+    private var harnessOrApp: some View {
         if Self.calendarHarness {
             NavigationStack { CalendarView() }
         } else if let signal = Self.detailHarness {
@@ -120,14 +148,11 @@ struct RootView: View {
             .background(Tokens.canvas.ignoresSafeArea())
         } else if Self.cardGallery {
             CardGallery()
-        // Onboarding is not a tab. It replaces the app until it is done, because a tab
-        // bar offers four destinations to someone who has not said what they want yet.
-        } else if model.needsOnboarding {
-            OnboardingView()
         } else {
-            main
+            app
         }
     }
+    #endif
 
     private static let cardGallery: Bool = {
         #if DEBUG
