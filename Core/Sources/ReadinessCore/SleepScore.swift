@@ -413,6 +413,10 @@ public enum SleepScore {
     /// reads 78.6, and the cost to an ordinary night is two hundredths of a point.
     public static let qualityFloor = 0.70
 
+    /// Below this, unlabelled time is a few stray minutes at the edges of a record and
+    /// saying so every morning is noise rather than honesty.
+    public static let minimumUnlabelledToMention = 0.25
+
     /// Where a full, well-built night lands, and what the breakdown counts down from.
     public static let perfect = 100.0
 
@@ -567,6 +571,16 @@ public enum SleepScore {
             }
             missing.append(component.missingLabel)
         }
+        // The night was broken down, and part of it still carried no label. That part
+        // was counted as light sleep, which is a choice and not a measurement, so it
+        // gets said: a night measured light and a night nothing finished reading look
+        // identical on the ring and are not the same thing.
+        if let night = input.breakdown, night.stagedHours > 0,
+           night.unlabelledHours >= minimumUnlabelledToMention {
+            let hours = night.unlabelledHours.formatted(.number.precision(.fractionLength(1)))
+            missing.append("Stage labels for \(hours) h of the night, counted as light")
+        }
+
         let measured = components.count - absent.count
         // Decided in the spec: a phone-only sleeper can see a complete score. Their
         // record is complete for the device they own, and never being able to see a
@@ -660,9 +674,10 @@ public enum SleepScore {
         /// Note that `awakeHours` is deliberately not reconciled: it sits outside
         /// `asleepHours` and outside this denominator, and it is already scored raw.
         func reconciled(_ keyPath: KeyPath<SleepBreakdown, Double>) -> Double? {
-            guard let night, night.reconciledStages != nil, night.stagedHours > 0
-            else { return nil }
-            return night[keyPath: keyPath] * (night.asleepHours / night.stagedHours)
+            guard let night, night.stagedHours > 0 else { return nil }
+            // Down only, matching `reconciledStages`. A night nothing finished labelling
+            // reports the hours it recorded rather than a share of hours it did not.
+            return night[keyPath: keyPath] * Swift.min(1, night.asleepHours / night.stagedHours)
         }
 
         /// Where tonight's value sits in this sleeper's own distribution, as 0...1.

@@ -56,62 +56,40 @@ public struct SleepBreakdown: Sendable, Equatable {
 
     public init() {}
 
-    /// How much of the night has to carry a stage before the record is describing its
-    /// structure at all.
+    /// Asleep hours that nothing gave a stage to.
     ///
-    /// A night can be recorded as asleep without being classified: an `unspecified` run
-    /// from a second source, or a watch that only staged part of it. Asking merely whether
-    /// *any* stage was recorded made one labelled sample stand for the whole night and
-    /// charged every unclassified hour to the stages as a zero, so the app named a stage
-    /// the device never classified as the night's worst component. That is verbatim the
-    /// failure this predicate exists to prevent, arriving from the other side.
-    ///
-    /// Almost all of the night, because partial staging is never proportional. The
-    /// unclassified part of a night is a contiguous window: the watch starts late, stops
-    /// early, runs out of battery, and sleep architecture is ordered, so the labelled part
-    /// is a biased slice rather than a sample. Rescaling it to fill the night assumes the
-    /// missing hours looked like the recorded ones, and measured over 600 nights at 78-98%
-    /// coverage that assumption named a *different* stage as the night's worst component
-    /// than the full record did on 319 of them, swinging the score by up to 6.7 points in
-    /// both directions. One real night staged from 1.5 h after onset reported "deep sleep
-    /// pulled it down most, 0.5 h against your usual of 1.5" with no caveat anywhere on
-    /// screen.
-    ///
-    /// Over-counting is the opposite case and genuinely is proportional: when two sources
-    /// both covered the whole night and merely disagreed about labels, scaling down to fit
-    /// is exact, and that is what this leaves alone. Under-counting costs a partly staged
-    /// night 0.41 points and its stage ring, against plus or minus five points with the
-    /// wrong stage accused half the time.
-    ///
-    /// Was 0.97, which reads like a rounding allowance and is not one. The denominator
-    /// is the union of every asleep sample from every source, and a second app or a
-    /// phone logging the same night as plain asleep over a slightly wider window adds
-    /// to it without adding to the staged hours. A watch that labelled the whole of its
-    /// own record then lands at 95% of somebody else's, and the night loses its ring.
-    /// Hao wore a watch all night and read "stages cover 7.9 h of an 8.1 h night" with
-    /// no breakdown under it; neither device was wrong and there was nothing to fix.
-    ///
-    /// 0.85 is above the shape the 600 nights actually measured. That failure is a
-    /// contiguous unlabelled window big enough to hide a sleep cycle, and the worked
-    /// example is staging that begins 1.6 h into an eight-hour night, which is 0.80.
-    /// A quarter of an hour of drift between two sources is not the same thing, and
-    /// charging it the same cost every two-source sleeper their stage ring every night.
-    public static let minimumStagedShare = 0.85
+    /// Counted as light sleep rather than scaled into deep and REM. That is the one
+    /// direction this can be wrong in without inventing anything: a stage says it
+    /// happened, and an hour nobody labelled is not evidence of deep sleep.
+    public var unlabelledHours: Double { max(0, asleepHours - stagedHours) }
+
 
     /// Hours that carry a stage. May exceed `asleepHours` when two devices each union
     /// their own samples and the totals are then summed.
     public var stagedHours: Double { deepHours + remHours + coreHours }
 
-    /// The staged hours mapped onto the night that actually held them, or nil when too
-    /// little of it was classified to say what it was made of.
+    /// The staged hours mapped onto the night that actually held them.
     ///
-    /// One scale, both directions. Two devices over-count and are scaled down; a partly
-    /// classified night is scaled up, which assumes the unlabelled part looked like the
-    /// labelled part: a stated assumption, and a far better one than charging it to the
-    /// stages as zeros, which made measuring *less* of a night score it *higher*.
+    /// Scaled down, never up. Two sources that between them label more of the night
+    /// than it held are a proportional error and are reconciled to fit. A night nobody
+    /// finished labelling keeps exactly the deep and REM that were recorded, and the
+    /// hours that carry no label become light sleep.
+    ///
+    /// There used to be a floor under this: below 97%, later 85%, of the night, no
+    /// breakdown at all. The reasoning was that the unlabelled part of a night is a
+    /// contiguous window rather than a sample, so stretching the labelled part to fill
+    /// it invents deep sleep that did not happen, which it measurably did. Giving the
+    /// remainder to light fixes that at the root instead of withholding the night: deep
+    /// and REM can now only ever be hours something actually recorded, so there is
+    /// nothing left for a floor to protect, and a sleeper whose watch stopped early gets
+    /// to see the night it did record.
+    ///
+    /// Nil only when nothing staged any of it, which is a different thing to say.
     public var reconciledStages: (deep: Double, rem: Double, core: Double)? {
-        guard asleepHours > 0, stagedHours > 0,
-              stagedHours >= asleepHours * Self.minimumStagedShare else { return nil }
+        guard asleepHours > 0, stagedHours > 0 else { return nil }
+        guard stagedHours > asleepHours else {
+            return (deepHours, remHours, asleepHours - deepHours - remHours)
+        }
         let scale = asleepHours / stagedHours
         return (deepHours * scale, remHours * scale, coreHours * scale)
     }

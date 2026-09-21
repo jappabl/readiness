@@ -69,6 +69,46 @@ struct PartialStagingTests {
         }
     }
 
+    /// The hours nothing labelled are light sleep, not a share of deep and REM.
+    ///
+    /// Scaling the labelled part up to fill the night is what invented deep sleep that
+    /// never happened. Giving the remainder to light invents nothing: deep and REM are
+    /// exactly the hours something actually recorded, and the night still adds up.
+    @Test("unlabelled hours become light sleep and never deep or REM",
+          arguments: [0.96, 0.9, 0.8, 0.6, 0.4, 0.2])
+    func unlabelledBecomesLight(classified: Double) throws {
+        let tonight = night(1, classified: classified)
+        let stages = try #require(tonight.reconciledStages)
+        #expect(abs(stages.deep - tonight.deepHours) < 0.001,
+                "deep was moved from the \(tonight.deepHours) h that was recorded")
+        #expect(abs(stages.rem - tonight.remHours) < 0.001)
+        #expect(abs(stages.deep + stages.rem + stages.core - tonight.asleepHours) < 0.001,
+                "the stages do not add up to the night")
+        #expect(stages.core >= tonight.coreHours - 0.001,
+                "the unlabelled hours went somewhere other than light")
+    }
+
+    /// Both directions of the same rule. Over-counting is still scaled down to fit,
+    /// because two sources labelling the whole night and merely disagreeing about which
+    /// stage it was is a proportional error, and the night cannot hold nine hours.
+    @Test("two sources that between them stage more than the night still fit in it")
+    func overCountStillFits() throws {
+        let end = date(1)
+        let start = end.addingTimeInterval(-8 * 3600)
+        func slice(_ from: Double, _ to: Double, _ stage: SleepStage) -> SleepInterval {
+            SleepInterval(start: start.addingTimeInterval(from * 3600),
+                          end: start.addingTimeInterval(to * 3600), stage: stage)
+        }
+        // One source calls the whole night core, another stages the same hours.
+        let night = SleepAggregator.byWakeDay(
+            [slice(0, 8, .core), slice(0, 1.5, .deep), slice(1.5, 3.5, .rem)],
+            calendar: calendar)[calendar.startOfDay(for: end)]!
+        let stages = try #require(night.reconciledStages)
+        #expect(abs(stages.deep + stages.rem + stages.core - night.asleepHours) < 0.001,
+                "\(stages) does not fit an \(night.asleepHours) h night")
+        #expect(stages.deep < night.deepHours + 0.001, "deep was not scaled down to fit")
+    }
+
     /// A night a watch staged nearly all of still gets broken down.
     ///
     /// The bar was 97%, which sounds like a rounding allowance and is not: a second
@@ -86,24 +126,28 @@ struct PartialStagingTests {
         #expect(result.contributor("rem") != nil)
     }
 
-    /// And the direction where it does not hold. Under-counting means a *contiguous*
-    /// window of the night was never labelled, so what was labelled is a biased slice of
-    /// an ordered process rather than a sample of it. Rescaling it to fill the night named
-    /// a different stage as the night's worst than the full record did on more than half
-    /// of 600 measured nights, swinging up to 6.7 points either way, with nothing on
-    /// screen to say the record was partial.
+    /// The failure the old floor existed to stop, pinned at the root instead.
     ///
-    /// The bar that stops it moved from 97% to 85%, so this now begins below that rather
-    /// than at 96%. The 600-night finding is about a *contiguous* missing window big
-    /// enough to hide a sleep cycle; a quarter of an hour is not that, and treating the
-    /// two the same cost every two-source sleeper their stage ring every night.
-    @Test("a night only partly labelled does not have its structure guessed",
-          arguments: [0.84, 0.8, 0.76])
-    func underCountIsNotExtrapolated(classified: Double) {
+    /// Rescaling the labelled part to fill the night named a different stage as the
+    /// night's worst than the full record did on more than half of 600 measured nights,
+    /// swinging up to 6.7 points either way. The floor answered that by withholding the
+    /// whole breakdown below 97%, which cost every two-source sleeper their stage ring
+    /// every night for a quarter of an hour of drift.
+    ///
+    /// Nothing is withheld now, and nothing is invented either: deep and REM are the
+    /// hours something actually recorded, and the unlabelled remainder is light. There
+    /// is no arithmetic left that can inflate a stage, which is what the floor was for.
+    @Test("a partly labelled night never reports more deep or REM than was recorded",
+          arguments: [0.96, 0.9, 0.84, 0.8, 0.76, 0.5, 0.2])
+    func underCountIsNotExtrapolated(classified: Double) throws {
+        let tonight = night(1, classified: classified)
         let result = score(classified)
-        #expect(result.contributor("deep") == nil,
-                "deep was extrapolated from \(Int(classified * 100))% of the night")
-        #expect(result.contributor("rem") == nil)
+        let deep = try #require(result.contributor("deep")?.value)
+        let rem = try #require(result.contributor("rem")?.value)
+        #expect(deep <= tonight.deepHours + 0.001,
+                "deep read \(deep) h off \(tonight.deepHours) h of record")
+        #expect(rem <= tonight.remHours + 0.001,
+                "REM read \(rem) h off \(tonight.remHours) h of record")
     }
 
     /// The specific shape that made it wrong, rather than the share: staging that starts
@@ -128,8 +172,11 @@ struct PartialStagingTests {
             history: (2...15).map { self.night($0, classified: 1) },
             strain: nil, napHours: nil, sleepingHeartRate: nil, daytimeHeartRate: nil,
             calendar: calendar))
-        #expect(result.contributor("deep") == nil,
-                "deep was scored off a record that starts after the deep sleep does")
+        // The row exists now, because the hour of deep sleep in the record is real and
+        // worth seeing. What may not happen is the app inflating it to cover the 1.6 h
+        // nothing labelled, or naming it the reason the night was poor.
+        #expect(result.contributor("deep")?.value ?? 0 <= night.deepHours + 0.001,
+                "deep was stretched over a record that starts after the deep sleep does")
         #expect(result.summary.localizedCaseInsensitiveContains("deep") == false,
                 "the summary blamed deep: \(result.summary)")
     }
@@ -148,21 +195,18 @@ struct PartialStagingTests {
         }
     }
 
-    /// Below that, the record is not describing the night's structure and must not be
-    /// read as though a stage were missing rather than unmeasured.
-    @Test("a barely classified night says the stages are missing, not zero",
+    /// A night mostly unlabelled shows what it measured and says what it did with the
+    /// rest. The hours went to light, which is a choice rather than a measurement, and
+    /// a night measured light looks identical on the ring to one nothing finished
+    /// reading. Only the words can tell them apart, so the words have to be there.
+    @Test("a barely classified night says how much of it carried no label",
           arguments: [0.6, 0.4, 0.2])
-    func barelyClassifiedIsMissing(classified: Double) {
+    func barelyClassifiedSaysSo(classified: Double) throws {
         let result = score(classified)
-        #expect(result.contributor("deep") == nil,
-                "deep was scored off \(Int(classified * 100))% of the night")
-        #expect(result.contributor("rem") == nil)
-        // Named per stage rather than as one line, and this used to pass only because the
-        // continuity row happened to say "stages" too.
-        #expect(result.missing.contains { $0.localizedCaseInsensitiveContains("deep") },
-                "nothing on screen says deep sleep was not read: \(result.missing)")
-        #expect(result.missing.contains { $0.localizedCaseInsensitiveContains("rem") },
-                "nothing on screen says REM was not read: \(result.missing)")
+        #expect(result.contributor("deep") != nil)
+        #expect(result.coverage != .full, "a barely read night claimed a complete record")
+        #expect(result.missing.contains { $0.localizedCaseInsensitiveContains("counted as light") },
+                "nothing says the unlabelled hours were counted as light: \(result.missing)")
     }
 
     /// The published hours still fit the night, in this direction too.
@@ -196,8 +240,8 @@ struct PartialStagingTests {
         #expect(abs(try #require(unread.value) - measured) < 10,
                 "a gap moved the score from \(measured) to \(unread.value as Any)")
         #expect(unread.coverage != .full, "an unread night claimed a complete record")
-        #expect(unread.missing.contains { $0.localizedCaseInsensitiveContains("did not finish") },
-                "nothing said the watch had not finished: \(unread.missing)")
+        #expect(unread.missing.contains { $0.localizedCaseInsensitiveContains("counted as light") },
+                "nothing said what became of the unlabelled hours: \(unread.missing)")
     }
 
     private func input(_ breakdown: SleepBreakdown,
