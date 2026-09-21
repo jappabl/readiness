@@ -18,6 +18,8 @@ struct ProfileView: View {
 
     @State private var showingPaywall = false
     @State private var showingSharing = false
+    @State private var attestationResult: String?
+    @State private var checkingAttestation = false
 
     private var profile: UserProfile {
         if let existing = profiles.first { return existing }
@@ -41,6 +43,9 @@ struct ProfileView: View {
                     speaking
                     atTheGym
                     privacy
+                    #if DEBUG
+                    attestation
+                    #endif
                 }
                 .padding(.horizontal, Tokens.screenMargin)
                 .padding(.top, 4)
@@ -437,6 +442,41 @@ struct ProfileView: View {
             }
         }
     }
+
+    /// Whether this install can prove itself to the proxy.
+    ///
+    /// Debug only, and it exists for one afternoon: attestation has to be confirmed
+    /// working on real hardware before the server is told to accept nothing else.
+    /// Flipping that flag blind means the failure mode is an app that cannot reach its
+    /// own backend, on every phone at once.
+    #if DEBUG
+    private var attestation: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            heading("App Attest")
+            ListCard {
+                FieldRow(label: "This install") { Text(AppAttest.status) }
+                Divider().overlay(Tokens.hairline)
+                Button(checkingAttestation ? "Checking..." : "Check attestation") {
+                    Haptics.light()
+                    checkingAttestation = true
+                    Task {
+                        attestationResult = await Backend.attestationCheck()
+                        checkingAttestation = false
+                    }
+                }
+                .disabled(checkingAttestation)
+                .frame(maxWidth: .infinity, alignment: .leading).padding(14)
+                if let attestationResult {
+                    Divider().overlay(Tokens.hairline)
+                    Text(attestationResult)
+                        .font(.footnote).foregroundStyle(Tokens.textSecondary)
+                        .textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading).padding(14)
+                }
+            }
+        }
+    }
+    #endif
 
     private var privacy: some View {
         VStack(alignment: .leading, spacing: 12) {

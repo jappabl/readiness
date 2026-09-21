@@ -141,6 +141,58 @@ function problem(status: number, detail: string, extra?: Record<string, string>)
   })
 }
 
+type AttestOutcome = { ok: true; id: string } | { ok: false; reason: string }
+
+/**
+ * Whether this request carries a valid assertion from a registered install.
+ *
+ * Lifted out of `identify` so that the pre-flight check and the real gate run the same
+ * code. A dry run that verifies something slightly different is worse than no dry run:
+ * it produces confidence and no safety.
+ */
+async function verifyAttested(request: Request, env: Env): Promise<AttestOutcome> {
+  const attestation = request.headers.get("x-jett-attestation")
+  const keyID = request.headers.get("x-jett-key-id")
+  const challenge = request.headers.get("x-jett-challenge")
+  if (!attestation || !keyID || !challenge) {
+    return { ok: false, reason: "the request carried no attestation headers" }
+  }
+  if (!(await challengeIsValid(challenge, env, Date.now()))) {
+    return { ok: false, reason: "the challenge was not one we issued in the last five minutes" }
+  }
+
+  const install = env.ATTEST.get(env.ATTEST.idFromName(keyID))
+  const stored = (await (
+    await install.fetch("https://attest/load", {
+      method: "POST",
+      body: JSON.stringify({ op: "load" }),
+    })
+  ).json()) as { key: AttestedKey | null }
+  if (!stored.key) return { ok: false, reason: "this key has never completed registration" }
+
+  try {
+    // The body is signed along with the challenge, so an assertion captured from one
+    // request cannot be replayed against a different question.
+    const body = new Uint8Array(await request.clone().arrayBuffer())
+    const signed = new Uint8Array(new TextEncoder().encode(challenge).length + body.length)
+    signed.set(new TextEncoder().encode(challenge))
+    signed.set(body, new TextEncoder().encode(challenge).length)
+    const counter = await verifyAssertion({
+      assertion: base64ToBytes(attestation),
+      signedData: signed,
+      key: stored.key,
+      appID: `${env.APPLE_TEAM_ID}.${env.BUNDLE_ID}`,
+    })
+    await install.fetch("https://attest/advance", {
+      method: "POST",
+      body: JSON.stringify({ op: "advance", counter }),
+    })
+    return { ok: true, id: keyID }
+  } catch (error) {
+    return { ok: false, reason: `the assertion did not verify: ${String(error)}` }
+  }
+}
+
 /**
  * Who is calling.
  *
@@ -154,46 +206,13 @@ async function identify(request: Request, env: Env): Promise<{ id: string } | Re
   const requireAttestation = env.REQUIRE_ATTESTATION === "true"
 
   if (requireAttestation) {
-    const keyID = request.headers.get("x-jett-key-id")
-    const challenge = request.headers.get("x-jett-challenge")
-    if (!attestation || !keyID || !challenge) return problem(401, "attestation required")
-    if (!(await challengeIsValid(challenge, env, Date.now()))) {
-      return problem(401, "stale challenge")
-    }
-
-    const install = env.ATTEST.get(env.ATTEST.idFromName(keyID))
-    const stored = (await (
-      await install.fetch("https://attest/load", {
-        method: "POST",
-        body: JSON.stringify({ op: "load" }),
-      })
-    ).json()) as { key: AttestedKey | null }
-    if (!stored.key) return problem(401, "unknown key")
-
-    try {
-      // The body is signed along with the challenge, so an assertion captured from one
-      // request cannot be replayed against a different question.
-      const body = new Uint8Array(await request.clone().arrayBuffer())
-      const signed = new Uint8Array(new TextEncoder().encode(challenge).length + body.length)
-      signed.set(new TextEncoder().encode(challenge))
-      signed.set(body, new TextEncoder().encode(challenge).length)
-      const counter = await verifyAssertion({
-        assertion: base64ToBytes(attestation),
-        signedData: signed,
-        key: stored.key,
-        appID: `${env.APPLE_TEAM_ID}.${env.BUNDLE_ID}`,
-      })
-      await install.fetch("https://attest/advance", {
-        method: "POST",
-        body: JSON.stringify({ op: "advance", counter }),
-      })
-    } catch {
-      // Never say which check failed. The difference between "unknown key" and "bad
-      // signature" is an oracle for somebody probing it.
-      return problem(401, "not authorised")
-    }
+    const outcome = await verifyAttested(request, env)
+    // Never say which check failed. The difference between "unknown key" and "bad
+    // signature" is an oracle for somebody probing it. `/v1/attest/check` says, and
+    // stops existing the moment this branch is the one that runs.
+    if (!outcome.ok) return problem(401, "not authorised")
     // The attested key id, which the client cannot choose.
-    return { id: keyID }
+    return { id: outcome.id }
   }
 
   if (!env.DEV_SHARED_SECRET) return problem(401, "not authorised")
@@ -399,6 +418,17 @@ export default {
       return Response.json({ challenge: await issueChallenge(env) })
     }
     if (url.pathname === "/v1/attest") return await handleAttest(request, env)
+    // A dry run of the gate, for the one job of finding out whether attestation works
+    // on a real device *before* it becomes the only way in. Flipping the flag blind
+    // means the failure mode is an app that cannot reach its own backend.
+    //
+    // It names the reason a proof failed, which is an oracle, so it answers only while
+    // attestation is not yet required: the moment it would be worth probing, it is gone.
+    if (url.pathname === "/v1/attest/check") {
+      if (env.REQUIRE_ATTESTATION === "true") return problem(404, "no such endpoint")
+      const outcome = await verifyAttested(request, env)
+      return Response.json(outcome)
+    }
 
     const who = await identify(request, env)
     if (who instanceof Response) return who

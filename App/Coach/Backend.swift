@@ -48,13 +48,14 @@ enum Backend {
     enum Route: String {
         case coach = "v1/coach"
         case meal = "v1/meal"
+        /// A dry run of the gate. Answers only while attestation is not yet required.
+        case attestCheck = "v1/attest/check"
     }
 
     /// A request to our proxy, carrying proof of who is asking but never a provider key.
     ///
-    /// Synchronous, and therefore unattested. Kept for the development path and for the
-    /// meal estimator, which has no await to hand. Anything that can be async should use
-    /// `attestedRequest` instead.
+    /// Synchronous, and therefore unattested. Everything that talks to the proxy is
+    /// async and uses `attestedRequest`; this is the builder underneath it.
     static func request(_ route: Route, body: [String: Any]) throws -> URLRequest {
         guard let baseURL else { throw CoachError.notConfigured }
         var request = URLRequest(url: baseURL.appendingPathComponent(route.rawValue))
@@ -103,6 +104,31 @@ enum Backend {
     ///
     /// The statuses are the ones the Worker returns, and each maps onto an error the UI
     /// already renders, so the proxy needed no new failure states.
+    /// Whether this install can prove itself to the proxy, and what went wrong if not.
+    ///
+    /// Runs the gate without being gated by it, so attestation can be confirmed working
+    /// on a real device before it becomes the only way in.
+    static func attestationCheck() async -> String {
+        guard let baseURL else { return "No proxy configured" }
+        guard AppAttest.isSupported else { return "Not available on this device" }
+        do {
+            let request = try await attestedRequest(.attestCheck, body: ["probe": true])
+            guard request.value(forHTTPHeaderField: "x-jett-attestation") != nil else {
+                return "The app could not build a proof: \(AppAttest.status)"
+            }
+            let (data, response) = try await URLSession.shared.data(for: request)
+            let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+            guard status == 200 else {
+                return "The check endpoint answered \(status). Deploy the server first."
+            }
+            let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+            if object?["ok"] as? Bool == true { return "Working" }
+            return (object?["reason"] as? String).map { "Rejected: \($0)" } ?? "Rejected"
+        } catch {
+            return "Could not reach the proxy: \(error.localizedDescription)"
+        }
+    }
+
     static func failure(status: Int, body: String, retryAfter: String?) -> CoachError {
         switch status {
         case 401, 501:

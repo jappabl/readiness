@@ -34,7 +34,11 @@ enum MealPhotoEstimator {
         // for twice, and the server has no better view of the photo than this one.
         let request: URLRequest
         if Backend.isProxied {
-            request = try Backend.request(.meal, body: [
+            // Attested like the coach route. It was not, and the comment said the
+            // estimator had no await to hand, which stopped being true when this
+            // function became async: flipping the attestation flag would have left
+            // meal photos as the one thing that could no longer reach the proxy.
+            request = try await Backend.attestedRequest(.meal, body: [
                 "imageBase64": jpeg.base64EncodedString(),
                 "mediaType": "image/jpeg",
                 "note": String(note.prefix(1200)),
