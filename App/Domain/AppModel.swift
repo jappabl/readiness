@@ -624,6 +624,22 @@ final class AppModel {
         (recoveryScore(on: date), sleepScore(on: date), strainScore(on: date, context: context))
     }
 
+    /// Whether a day is worth opening: any of the three scores, or a session logged.
+    ///
+    /// A day can be empty of health data and still be a day somebody trained, and
+    /// recovery alone was deciding for all three.
+    func hasAnything(on date: Date, context: ModelContext? = nil) -> Bool {
+        let day = scores(on: date, context: context)
+        if day.recovery.value != nil || day.sleep.value != nil || day.strain.value != nil {
+            return true
+        }
+        guard let context else { return false }
+        let sessions = (try? context.fetch(FetchDescriptor<WorkoutSession>())) ?? []
+        return sessions.contains {
+            Calendar.current.isDate($0.date, inSameDayAs: date) && !$0.sets.isEmpty
+        }
+    }
+
     func recoveryScore(on date: Date) -> SignalScore {
         let calendar = Calendar.current
         let upToDate = series.filter { $0.date <= Self.endOfDay(date, calendar: calendar) }

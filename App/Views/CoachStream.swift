@@ -329,7 +329,10 @@ struct CoachComposer: View {
         .background(Tokens.messageCanvas, in: RoundedRectangle(cornerRadius: 26))
         .overlay(RoundedRectangle(cornerRadius: 26).strokeBorder(Tokens.hairline, lineWidth: 1))
         .padding(.horizontal, 16)
-        .padding(.bottom, 10)
+        // On top of the safe area, not instead of it. Six rather than ten so the field
+        // lands about where the floating tab bar does on every other screen, and so it
+        // does not sit against the keyboard when the safe area collapses into it.
+        .padding(.bottom, 6)
         .padding(.top, 8)
     }
 }

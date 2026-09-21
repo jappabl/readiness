@@ -195,11 +195,13 @@ public struct SignalScore: Sendable, Equatable, Codable {
         let detail: String
         if let measured = lead.value {
             let formatted = measured.formatted(.number.precision(.fractionLength(0...1)))
+            // A comma, not an em dash. The sweep caught every written string; this
+            // sentence is assembled, so there was nothing to grep and it survived.
             if let comparison = lead.comparison, let label = lead.comparisonLabel {
-                detail = " — \(formatted)\(lead.unit.isEmpty ? "" : " " + lead.unit) against "
+                detail = ", \(formatted)\(lead.unit.isEmpty ? "" : " " + lead.unit) against "
                        + "\(label) of \(comparison.formatted(.number.precision(.fractionLength(0...1))))"
             } else {
-                detail = " — \(formatted)\(lead.unit.isEmpty ? "" : " " + lead.unit)"
+                detail = ", \(formatted)\(lead.unit.isEmpty ? "" : " " + lead.unit)"
             }
         } else {
             detail = ""

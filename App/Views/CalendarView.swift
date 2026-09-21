@@ -142,7 +142,11 @@ struct CalendarView: View {
         }
         .contentShape(.rect)
         .onTapGesture {
-            guard !future, recovery != nil else { return }
+            // Recovery is not the only thing a day can hold. Gating on it meant a day
+            // you trained but wore nothing to bed was dead to the touch, and before any
+            // health data exists that is every day — which reads as the calendar being
+            // broken rather than empty.
+            guard !future, model.hasAnything(on: date, context: context) else { return }
             Haptics.light()
             selected = date
         }

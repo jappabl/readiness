@@ -64,8 +64,10 @@ struct CoachSheet: View {
             composer
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .background(Tokens.messageCanvas)
-        .ignoresSafeArea(.container, edges: .bottom)
+        // The colour reaches the bottom edge; the composer does not. Ignoring the safe
+        // area on the whole stack dragged the field down onto the home indicator, a
+        // measured 10pt off the bottom against the tab bar's 34pt on every other screen.
+        .background(Tokens.messageCanvas.ignoresSafeArea())
         .sheet(isPresented: $showingSharing, onDismiss: {
             if !model.coachSharingAllowed { draft = pendingQuestion }
         }) {
