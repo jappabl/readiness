@@ -432,10 +432,17 @@ final class AppModel {
         }
     }
 
-    func startBackgroundDelivery() {
+    /// - Parameter onRefresh: run after each background refresh, with the new data
+    ///   already in. This is where the morning message belongs: the night lands in
+    ///   Health while the phone is still on a bedside table, and that is the moment it
+    ///   is worth saying something about.
+    func startBackgroundDelivery(onRefresh: (@MainActor @Sendable () async -> Void)? = nil) {
         guard !UserDefaults.standard.bool(forKey: Self.healthSkipKey) else { return }
         healthKit.startBackgroundDelivery { [weak self] in
-            Task { @MainActor in await self?.refresh() }
+            Task { @MainActor in
+                await self?.refresh()
+                await onRefresh?()
+            }
         }
     }
 

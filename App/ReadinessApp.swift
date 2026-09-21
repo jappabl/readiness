@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import UIKit
 
 @main
 struct ReadinessApp: App {
@@ -9,6 +10,20 @@ struct ReadinessApp: App {
     @State private var appearance = Appearance()
     @State private var notifications = Notifications()
     @Environment(\.scenePhase) private var scenePhase
+
+    /// Whether a notification posted now would reach somebody who can read it.
+    ///
+    /// Two ways it would not. iOS drops one posted while the app is in front rather
+    /// than holding it. And the observer fires whenever Health receives data, including
+    /// a watch syncing at three in the morning, which is the one hour of the day this
+    /// app must not wake somebody up in.
+    @MainActor
+    private static func speakingIsWelcome(now: Date = .now,
+                                          calendar: Calendar = .current) -> Bool {
+        guard UIApplication.shared.applicationState != .active else { return false }
+        let hour = calendar.component(.hour, from: now)
+        return hour >= 5 && hour < 23
+    }
 
     private let container = Store.container
 
@@ -51,7 +66,17 @@ struct ReadinessApp: App {
                     model.attach(container.mainContext)
                     guard !model.needsOnboarding else { return }
                     await model.refresh()
-                    model.startBackgroundDelivery()
+                    model.startBackgroundDelivery { @MainActor in
+                        // Health wakes the app when the watch syncs the night, which is
+                        // the morning. Without this the decision was only ever reached
+                        // on the way out of the app, so the morning verdict arrived the
+                        // instant you put the app down, hours late and obviously
+                        // triggered by you rather than by the day.
+                        guard Self.speakingIsWelcome() else { return }
+                        await notifications.considerSpeaking(
+                            model.notificationInput(record: notifications.record,
+                                                    context: container.mainContext))
+                    }
                     // Only ever resumed, never requested here: asking for always-on
                     // location at launch is how that permission gets denied forever.
                     gym.resumeIfAuthorised(workoutsDuring: model.workoutLookup())
