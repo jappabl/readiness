@@ -149,13 +149,13 @@ struct TodayView: View {
                 if let error = model.healthReadError { Text("Health couldn't refresh. \(error)").font(.footnote).foregroundStyle(.secondary) }
                 // The screen below the fold is composed from the goal, not fixed:
                 // someone here to sleep better does not open on a back squat.
-                ForEach(model.homeBlocks, id: \.self) { block in
+                ForEach(blocks, id: \.self) { block in
                     view(for: block)
                 }
                 if !model.isRewound { insight }
                 // A day with nothing on it renders as a void, which reads as the screen
                 // having failed rather than as the day having been quiet.
-                if model.isRewound, model.homeBlocks.isEmpty || !model.hasAnything(
+                if model.isRewound, blocks.isEmpty || !model.hasAnything(
                     on: model.viewedDay, context: context) {
                     Text("Nothing was recorded on this day.")
                         .font(.system(size: 14))
@@ -169,6 +169,32 @@ struct TodayView: View {
         }
         .accessibilityIdentifier("today-overview")
         .refreshable { await model.refresh() }
+    }
+
+    /// The cards for the day on screen.
+    ///
+    /// The composition is built around what somebody is working on next, which is not
+    /// a question a day that has gone can answer. Looking back, the session and the
+    /// meals are what happened, so both show whatever the goal was: somebody training
+    /// to get stronger still ate on Tuesday.
+    ///
+    /// Nutrition only when there is some. An empty log, on a day with no way to add to
+    /// it, is a card about nothing.
+    private var blocks: [HomeBlock] {
+        guard model.isRewound else { return model.homeBlocks }
+        var blocks = model.homeBlocks
+        if !blocks.contains(.session) { blocks.insert(.session, at: 0) }
+        if !blocks.contains(.nutrition), loggedNutrition { blocks.append(.nutrition) }
+        return blocks
+    }
+
+    private var loggedNutrition: Bool {
+        let calendar = Calendar.current
+        guard let shown = model.series.last(where: {
+            calendar.isDate($0.date, inSameDayAs: model.viewedDay)
+        }) else { return false }
+        return shown.dietaryEnergyKcal != nil || shown.proteinGrams != nil
+            || shown.carbohydrateGrams != nil || shown.fatGrams != nil
     }
 
     private func saved(_ message: String) { savedMessage = message }
@@ -372,16 +398,19 @@ struct TodayView: View {
 
     /// What was lifted on the day being read, rather than a session to start.
     @ViewBuilder
+    /// All of them, not the first. Two sessions in a day is a normal thing to do, and
+    /// showing one of them on the screen whose whole job is what happened is a quiet
+    /// lie about the day.
     private var loggedThatDay: some View {
-        let sessions = (try? context.fetch(FetchDescriptor<WorkoutSession>())) ?? []
-        let that = sessions.first {
+        let all = (try? context.fetch(FetchDescriptor<WorkoutSession>())) ?? []
+        let thatDay = all.filter {
             Calendar.current.isDate($0.date, inSameDayAs: model.viewedDay) && !$0.sets.isEmpty
-        }
-        if let that {
+        }.sorted { $0.date < $1.date }
+        return ForEach(thatDay) { session in
             VStack(alignment: .leading, spacing: 12) {
-                Text(that.templateName).sectionHeading()
+                Text(session.templateName).sectionHeading()
                 ListCard {
-                    ForEach(Array(that.orderedSets.enumerated()), id: \.element.id) { index, set in
+                    ForEach(Array(session.orderedSets.enumerated()), id: \.element.id) { index, set in
                         if index > 0 {
                             Divider().overlay(Tokens.hairline).padding(.leading, 14)
                         }

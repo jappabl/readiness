@@ -40,7 +40,13 @@ struct NutritionCard: View {
                     macro("Carbs", carbs); Divider().frame(height: 32)
                     macro("Fat", fat)
                 }
-                if calories == nil { Text("Add your first meal, or sync a food log from Health.").font(.footnote).foregroundStyle(.secondary) }
+                // Only where there is something to do about it. On a day that has
+                // gone there is no meal to add, and the line reads as an instruction
+                // the screen will not carry out.
+                if calories == nil, onLog != nil {
+                    Text("Add your first meal, or sync a food log from Health.")
+                        .font(.footnote).foregroundStyle(.secondary)
+                }
             }.bevelCard()
         }
     }

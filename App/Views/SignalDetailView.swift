@@ -37,6 +37,19 @@ struct SignalDetailView: View {
                         SleepStageKey(stages: stages, columns: 2)
                             .padding(.horizontal, 6)
                             .padding(.bottom, 4)
+                    } else if signal == .sleep, score.value != nil {
+                        // A night with hours but no stages drew a plain ring and said
+                        // nothing, which reads as the screen having failed. The reason
+                        // is never the app: something recorded one block of sleep
+                        // rather than what was in it.
+                        Text("This night was recorded as one block of sleep, so there "
+                             + "are no stages to break down. Deep, REM and light need "
+                             + "a device that stages the night.")
+                            .font(.system(size: 13))
+                            .foregroundStyle(Tokens.textSecondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 20)
+                            .padding(.bottom, 4)
                     }
                     HStack(spacing: Tokens.cardGap) { figures }
                     CoachCard(message: coaching,
