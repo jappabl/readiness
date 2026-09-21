@@ -240,7 +240,11 @@ struct TodayView: View {
                                    hasSession: model.hasProgram))
 
         if !JettMoments.hasWalkedThrough {
-            return Signal.allCases.map { JettBeat(anchor: $0.rawValue, text: $0.meaning) }
+            // Say hello before explaining anything. He used to arrive on somebody's
+            // first morning already mid-sentence about what recovery means, which is a
+            // manual opening itself rather than being greeted by a coach.
+            return [JettBeat(anchor: nil, text: "Hey, welcome in. Let me show you around.")]
+                + Signal.allCases.map { JettBeat(anchor: $0.rawValue, text: $0.meaning) }
                 + [JettBeat(anchor: TodayView.summaryAnchor, text: call)]
         }
         guard !JettMoments.hasGreeted(on: Date()) else { return nil }

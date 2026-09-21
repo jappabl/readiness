@@ -15,6 +15,23 @@ struct TrainView: View {
 
     private var metric: Bool { profiles.first?.unitsAreMetric ?? model.onboarding.unitsAreMetric }
 
+    /// The split being shown. A name that no longer has any sessions in it falls back to
+    /// the first split that does, so deleting the last session of a split cannot leave
+    /// the tab looking empty while sessions exist.
+    private var activeSplit: String {
+        let stored = profiles.first?.activeSplit ?? ""
+        let available = Splits.names(in: templates)
+        return available.contains(stored) ? stored : (available.first ?? "")
+    }
+    private var splitTemplates: [WorkoutTemplate] {
+        templates.filter { $0.splitName == activeSplit }
+    }
+    private func show(_ split: String) {
+        profiles.first?.activeSplit = split
+        expandedTemplates.removeAll()
+        Haptics.selected()
+    }
+
     var body: some View {
         ZStack {
             Tokens.canvas.ignoresSafeArea()
@@ -76,17 +93,42 @@ struct TrainView: View {
         }
     }
 
+    /// The heading names the split, and is the way to change it. One heading that also
+    /// switches rather than a heading plus a picker: there is only ever one answer on
+    /// screen, so the thing showing it is the thing to press.
+    @ViewBuilder
+    private var splitHeading: some View {
+        let names = Splits.names(in: templates)
+        if names.count > 1 {
+            Menu {
+                Picker("Split", selection: Binding(get: { activeSplit }, set: { show($0) })) {
+                    ForEach(names, id: \.self) { Text(Splits.display($0)).tag($0) }
+                }
+            } label: {
+                HStack(spacing: 6) {
+                    Text(Splits.display(activeSplit)).sectionHeading()
+                    Image(systemName: "chevron.down").font(.caption.weight(.semibold))
+                        .foregroundStyle(Tokens.textSecondary)
+                }
+                .contentShape(Rectangle())
+            }
+            .accessibilityLabel("Split: \(Splits.display(activeSplit)). Change split.")
+        } else {
+            Text("Your split").sectionHeading()
+        }
+    }
+
     private var program: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Your split").sectionHeading()
-            if templates.isEmpty {
+            splitHeading
+            if splitTemplates.isEmpty {
                 ListCard {
                     AccessoryRow(symbol: "dumbbell", label: "Choose a starter split") { choosingSplit = true }
                     Divider().overlay(Tokens.hairline)
                     AccessoryRow(symbol: "plus", label: "Create a session") { creatingSession = true }
                 }
             }
-            ForEach(templates) { template in
+            ForEach(splitTemplates) { template in
                 let expanded = expandedTemplates.contains(template.persistentModelID)
                 ListCard {
                     Button {

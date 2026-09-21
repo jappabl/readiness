@@ -196,7 +196,12 @@ public enum StrainScore {
         // Starts at 0.40 rather than 0.50 so a brisk walk escapes the everyday bucket
         // and its cap. Nothing in a desk trace reaches 0.40, so this does not leak.
         Zone(id: "zone1", title: "Very light effort", lowerReserve: 0.40, symbol: "figure.walk.motion"),
-        Zone(id: "zone0", title: "Everyday movement", lowerReserve: 0.0, symbol: "figure.walk"),
+        // "Everyday movement" was a claim, and on a desk day a false one: Hao read
+        // "294.6 min of everyday movement" on an afternoon he had spent sitting down.
+        // The bucket is every waking minute under the first training zone, which is
+        // sitting as much as it is walking, so it is named after the time rather than
+        // after an activity nobody did.
+        Zone(id: "zone0", title: "Daily life", lowerReserve: 0.0, symbol: "clock"),
     ]
 
     /// How much load being awake saturates towards, before the training ramp.
@@ -564,9 +569,9 @@ public enum StrainScore {
     private static func explanation(for zone: Zone) -> String {
         switch zone.id {
         case "zone0":
-            return "Below the first training zone. Walking about, standing, everything "
-                 + "that is not a session. It is not nothing: a long day on your feet "
-                 + "accumulates here, but each minute is worth very little."
+            return "Below the first training zone. Sitting, standing, walking about, "
+                 + "everything that is not a session. It is not nothing: a long day on "
+                 + "your feet accumulates here, but each minute is worth very little."
         case "zone1", "zone2":
             return "Easy aerobic work, the pace you could hold a conversation at. Most "
                  + "endurance training should live here, and it costs little to recover from."

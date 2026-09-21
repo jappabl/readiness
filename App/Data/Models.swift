@@ -9,12 +9,21 @@ import SwiftData
 final class WorkoutTemplate {
     var name: String
     var order: Int
+    /// Which split this session belongs to, by name. Empty means the sessions somebody
+    /// built themselves, which is what every session was before splits existed and is
+    /// therefore what an upgrade finds.
+    ///
+    /// A string rather than a relationship to a Split row: a split has no properties of
+    /// its own beyond its name, and a second table would need a migration that invents
+    /// rows for existing sessions.
+    var splitName: String = ""
     @Relationship(deleteRule: .cascade, inverse: \TemplateExercise.template)
     var exercises: [TemplateExercise] = []
 
-    init(name: String, order: Int = 0) {
+    init(name: String, order: Int = 0, splitName: String = "") {
         self.name = name
         self.order = order
+        self.splitName = splitName
     }
 
     var orderedExercises: [TemplateExercise] { exercises.sorted { $0.order < $1.order } }
@@ -246,6 +255,9 @@ final class UserProfile {
     /// Everything else onboarding collected, as JSON. One column rather than five
     /// because these are read together, written once, and never queried on.
     var onboardingJSON: String = ""
+    /// The split whose sessions the Train tab is showing. Empty is the sessions
+    /// somebody built themselves.
+    var activeSplit: String = ""
 
     init(goal: String = "", limitations: String = "", unitsAreMetric: Bool = false) {
         self.goal = goal
