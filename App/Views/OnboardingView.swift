@@ -111,14 +111,18 @@ struct OnboardingView: View {
                         // delivered, read, reacted and replied arrived inside a second
                         // and a half, which reads as a machine working through a list
                         // rather than somebody picking up their phone.
-                        try await Task.sleep(for: .milliseconds(420))
+                        try await Task.sleep(for: .milliseconds(260))
                         deliveryStatus = "Delivered"
-                        try await Task.sleep(for: .milliseconds(1100))
+                        // Long enough to read as somebody glancing at their phone,
+                        // short enough not to be a wait. The whole delivered-to-read
+                        // stretch was a second and a half, which is a pause rather than
+                        // a beat.
+                        try await Task.sleep(for: .milliseconds(620))
                         deliveryStatus = "Read " + Date().formatted(date: .omitted, time: .shortened)
                         if !reduceMotion { Haptics.wasRead() }
                         // Long enough that reading and reacting are two events. Under
                         // about a third of a second the two taps blur into one.
-                        try await Task.sleep(for: .milliseconds(480))
+                        try await Task.sleep(for: .milliseconds(380))
                         withAnimation(reduceMotion ? nil : .easeOut(duration: 0.34)) {
                             _ = reactedAnswers.insert(answer.id)
                         }
