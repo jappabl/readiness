@@ -5,6 +5,9 @@ import Charts
 /// One signal in full: sky, hero ring, two figures, a short coaching note, timeline.
 struct SignalDetailView: View {
     let signal: Signal
+    /// The day this screen is about. Defaults to today, which is every entry point
+    /// except a ring tapped while the app is rewound.
+    var date: Date = Date()
 
     @Environment(AppModel.self) private var model
     @Environment(\.modelContext) private var context
@@ -13,6 +16,10 @@ struct SignalDetailView: View {
 
     @State private var showingWhy = false
 
+    private var isToday: Bool { Calendar.current.isDateInToday(date) }
+    /// "today" is a word this screen may not use once it can show any other day.
+    private var when: String { isToday ? "today" : "that day" }
+
     var body: some View {
         ZStack {
             SkyBackground(signal: signal)
@@ -20,7 +27,7 @@ struct SignalDetailView: View {
                 VStack(spacing: 16) {
                     HeroRing(signal: signal, percent: percent,
                              target: signal == .strain
-                                 ? StrainScore.target(recovery: model.recoveryScore.value) : nil,
+                                 ? StrainScore.target(recovery: recovery.value) : nil,
                              stages: SleepStages(score: score))
                         .padding(.top, 8)
                         .padding(.bottom, 6)
@@ -49,7 +56,7 @@ struct SignalDetailView: View {
                         .font(.system(size: 17, weight: .bold))
                         .foregroundStyle(Tokens.textPrimary)
                     HStack(spacing: 4) {
-                        Text(Date(), format: .dateTime.month(.wide).day())
+                        Text(date, format: .dateTime.month(.wide).day())
                         Image(systemName: "chevron.down").font(.system(size: 9, weight: .semibold))
                     }
                     .font(.system(size: 12))
@@ -69,13 +76,22 @@ struct SignalDetailView: View {
         }
     }
 
+    /// The same three the rings use, resolved the same way: today keeps the live
+    /// assembly, any other day is rebuilt from the series. The detail screen and the
+    /// ring that opened it have to agree to the point.
+    private var recovery: SignalScore {
+        isToday ? model.recoveryScore : model.recoveryScore(on: date)
+    }
+
     private var score: SignalScore {
         switch signal {
-        case .recovery: return model.recoveryScore
-        case .sleep:    return model.sleepScore
-        case .strain:   return model.strainScore(context: context)
+        case .recovery: return recovery
+        case .sleep:    return model.sleepScore(on: date)
+        case .strain:   return model.strainScore(on: date, context: context)
         }
     }
+
+    private var strain: DailyStrainResult? { model.dailyStrain(on: date) }
 
     /// The ring still wants a 0...100, and strain is on its own scale.
     private var percent: Int? {
@@ -96,7 +112,7 @@ struct SignalDetailView: View {
 
         case .sleep:
             StatCard(symbol: "bed.double", label: "Time asleep",
-                     value: model.latestSleepHours.map {
+                     value: model.sleepHours(on: date).map {
                          $0.formatted(.number.precision(.fractionLength(1))) } ?? "–",
                      unit: "h")
             StatCard(symbol: "target", label: "What you need",
@@ -105,18 +121,19 @@ struct SignalDetailView: View {
                      unit: "h")
 
         case .strain:
-            StatCard(symbol: "flame", label: model.dailyStrain?.metric.label ?? "Activity today",
-                     value: model.dailyStrain.map {
+            StatCard(symbol: "flame",
+                     label: strain?.metric.label ?? "Activity \(when)",
+                     value: strain.map {
                          $0.value.formatted(.number.precision(.fractionLength(0))) } ?? "–",
-                     unit: model.dailyStrain?.metric.unit)
+                     unit: strain?.metric.unit)
             StatCard(symbol: "calendar", label: "Prior recorded days",
-                     value: model.dailyStrain.map { String($0.baselineDays) } ?? "–")
+                     value: strain.map { String($0.baselineDays) } ?? "–")
         }
     }
 
     @ViewBuilder
     private func metricCard(_ kind: MetricKind, symbol: String, label: String) -> some View {
-        if let reading = model.reading(kind) {
+        if let reading = model.reading(kind, on: date) {
             // The arrow points the way the *reading* moved; the colour says whether that
             // was good news. `trendFavourable` exists for exactly this and had no caller,
             // so it defaulted to true and every arrow on this screen was green: a resting
@@ -140,7 +157,9 @@ struct SignalDetailView: View {
     private var coaching: String {
         switch signal {
         case .recovery:
-            guard let reading = model.reading(.hrv) else { return "Still building your baseline." }
+            guard let reading = model.reading(.hrv, on: date) else {
+                return "Still building your baseline."
+            }
             // The week, which is what HRV is scored on, not last night. This sentence and
             // the insights row behind the info button disagreed in sign on a fifth of
             // mornings, because one read the reading and the other read the trend.
@@ -162,9 +181,9 @@ struct SignalDetailView: View {
             Text("Timeline").sectionHeading()
             switch signal {
             case .sleep, .recovery:
-                if let hours = model.latestSleepHours {
+                if let hours = model.sleepHours(on: date) {
                     TimelineRow(symbol: "moon.stars.fill",
-                                badge: model.sleepPercent.map(String.init),
+                                badge: model.sleepPercent(on: date).map(String.init),
                                 title: "Primary sleep",
                                 subtitle: "\(hours.formatted(.number.precision(.fractionLength(1)))) h recorded",
                                 tint: Tokens.sleepLow)
@@ -172,16 +191,16 @@ struct SignalDetailView: View {
                     emptyTimeline("No sleep recorded")
                 }
             case .strain:
-                if let activity = model.dailyStrain {
+                if let activity = strain {
                     TimelineRow(symbol: "figure.walk", badge: nil,
                                 title: activity.metric.label,
-                                subtitle: "\(activity.value.formatted(.number.precision(.fractionLength(0)))) \(activity.metric.unit) recorded in Health today",
+                                subtitle: "\(activity.value.formatted(.number.precision(.fractionLength(0)))) \(activity.metric.unit) recorded in Health \(when)",
                                 tint: Tokens.strainLow)
                 }
-                if todaysSessions.isEmpty && model.dailyStrain == nil {
-                    emptyTimeline("No recorded activities today")
+                if daysSessions.isEmpty && strain == nil {
+                    emptyTimeline("No recorded activities \(when)")
                 } else {
-                    ForEach(todaysSessions) { session in
+                    ForEach(daysSessions) { session in
                         TimelineRow(symbol: "figure.strengthtraining.traditional",
                                     badge: nil,
                                     title: session.templateName,
@@ -193,8 +212,8 @@ struct SignalDetailView: View {
         }
     }
 
-    private var todaysSessions: [WorkoutSession] {
-        sessions.filter { Calendar.current.isDateInToday($0.date) }
+    private var daysSessions: [WorkoutSession] {
+        sessions.filter { Calendar.current.isDate($0.date, inSameDayAs: date) }
     }
 
     private func emptyTimeline(_ message: String) -> some View {

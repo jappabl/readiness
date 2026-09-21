@@ -652,6 +652,28 @@ final class AppModel {
         day?.readings.first { $0.kind == kind }
     }
 
+    /// The assembled day behind whichever date is on screen.
+    ///
+    /// `day` is this morning and only this morning. Rewinding the app left every
+    /// reading on the signal screen pointing at today, so a Tuesday you opened on
+    /// Saturday showed Saturday's HRV under Tuesday's ring.
+    func assembledDay(on date: Date) -> AssembledDay? {
+        let calendar = Calendar.current
+        // Today keeps the live assembly rather than a second one built from the series,
+        // so nothing about the normal screen changes.
+        if calendar.isDateInToday(date) { return day }
+        let upToDate = series.filter { $0.date <= Self.endOfDay(date, calendar: calendar) }
+        let ratio = context.flatMap { computeACWR(from: $0, on: date) }
+        guard let assembled = DayAssembler.assemble(series: upToDate, acwr: ratio,
+                                                    nightScore: sleepScore(on: date).value),
+              calendar.isDate(assembled.date, inSameDayAs: date) else { return nil }
+        return assembled
+    }
+
+    func reading(_ kind: MetricKind, on date: Date) -> MetricReading? {
+        assembledDay(on: date)?.readings.first { $0.kind == kind }
+    }
+
     // MARK: - Ring figures
     //
     // Each ring needs a number, and each of these is a real quantity rather than a
@@ -809,7 +831,10 @@ final class AppModel {
             daytimeHeartRate: current?.wakingHeartRate),
                              wearsAWatch: wearsWatchToBed)
     }
-    var sleepPercent: Int? { sleepScore.value.map { max(1, Int($0.rounded())) } }
+    var sleepPercent: Int? { sleepPercent(on: Date()) }
+    func sleepPercent(on date: Date) -> Int? {
+        sleepScore(on: date).value.map { max(1, Int($0.rounded())) }
+    }
 
     /// Yesterday's strain, but only if it is really strain. See `sleepScore(on:)`.
     private func yesterdaysLoad(before today: Date) -> Double? {
@@ -820,6 +845,20 @@ final class AppModel {
 
     /// The running balance, as its own thing rather than folded into the night's score.
     var sleepDebt: SleepDebt { sleepDebt(on: Date()) }
+
+    /// The most recent weigh-in on or before a day, and the readings behind it.
+    ///
+    /// The card read `latestWeight` and the whole series whatever day was on screen, so
+    /// a rewound Tuesday showed this morning's number over a line that ran past it.
+    func weight(asOf date: Date) -> (latest: (date: Date, kilograms: Double)?, series: [Double]) {
+        guard isRewound else { return (latestWeight, series.compactMap(\.bodyMassKg)) }
+        let end = Self.endOfDay(date)
+        let upToDate = series.filter { $0.date <= end }
+        let readings = upToDate.compactMap(\.bodyMassKg)
+        let last = upToDate.last { $0.bodyMassKg != nil }
+        return (last.flatMap { row in row.bodyMassKg.map { (date: row.date, kilograms: $0) } },
+                readings)
+    }
 
     /// What tonight asks for: their learned baseline, plus what today's load has to be
     /// repaired. The same inputs the sleep score uses, read forward instead of back.
@@ -896,10 +935,15 @@ final class AppModel {
     }
 
     /// Kept as the labelled fallback for anybody without a heart rate trace.
-    var dailyStrain: DailyStrainResult? {
+    var dailyStrain: DailyStrainResult? { dailyStrain(on: Date()) }
+
+    /// End of the day asked for, not its start: the series carries timestamps, and a
+    /// midnight cutoff threw away every reading the day actually produced.
+    func dailyStrain(on date: Date) -> DailyStrainResult? {
         DailyStrain.evaluate(days: series.map { DailyActivity(date: $0.date,
             activeEnergyKcal: $0.activeEnergyKcal, exerciseMinutes: $0.exerciseMinutes,
-            steps: $0.steps, workoutEnergyKcal: $0.workoutEnergyKcal, workoutMinutes: $0.workoutMinutes) })
+            steps: $0.steps, workoutEnergyKcal: $0.workoutEnergyKcal, workoutMinutes: $0.workoutMinutes) },
+            on: Self.endOfDay(date))
     }
 
     func strainScore(context: ModelContext?) -> SignalScore {

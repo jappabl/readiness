@@ -139,7 +139,7 @@ struct TodayView: View {
                 // Above everything, because it is a question and it is rare. It
                 // disappears the moment it is answered and never comes back for that
                 // place.
-                if let place = gym.placeToConfirm {
+                if let place = gym.placeToConfirm, !model.isRewound {
                     GymConfirmCard(visit: place,
                                    onConfirm: { gym.confirmGym(named: $0, at: place) },
                                    onDecline: { gym.declineGym(at: place) })
@@ -182,11 +182,14 @@ struct TodayView: View {
         VStack(spacing: -18) {
             let viewed = model.viewedScores(context: context)
             HStack(spacing: 0) {
-                ringCell(.strain, percent: Self.percent(viewed.strain))
+                ringCell(.strain, percent: Self.percent(viewed.strain),
+                         recovery: viewed.recovery.value)
                 cellDivider
-                ringCell(.recovery, percent: Self.percent(viewed.recovery))
+                ringCell(.recovery, percent: Self.percent(viewed.recovery),
+                         recovery: viewed.recovery.value)
                 cellDivider
-                ringCell(.sleep, percent: Self.percent(viewed.sleep))
+                ringCell(.sleep, percent: Self.percent(viewed.sleep),
+                         recovery: viewed.recovery.value)
             }
             .padding(.vertical, 15)
             .frame(maxWidth: .infinity)
@@ -239,14 +242,18 @@ struct TodayView: View {
         Rectangle().fill(Tokens.hairline).frame(width: 1).padding(.vertical, 2)
     }
 
-    private func ringCell(_ signal: Signal, percent: Int?) -> some View {
+    /// `recovery` is the day on screen's, not today's: the strain ring draws its target
+    /// arc from recovery, and a rewound Tuesday was drawing Saturday's.
+    private func ringCell(_ signal: Signal, percent: Int?, recovery: Double?) -> some View {
         NavigationLink {
-            SignalDetailView(signal: signal)
+            // The day that was tapped, so the screen behind a ring says what the ring
+            // said. Without it every ring on a past day opened on today.
+            SignalDetailView(signal: signal, date: model.viewedDay)
         } label: {
             VStack(spacing: 9) {
                 RingGauge(signal: signal, percent: percent,
                           target: signal == .strain
-                              ? StrainScore.target(recovery: model.recoveryScore.value) : nil,
+                              ? StrainScore.target(recovery: recovery) : nil,
                           lineWidth: 9, figureSize: 23)
                     .frame(width: 78, height: 78)
                 Text(signal.title)
@@ -348,14 +355,15 @@ struct TodayView: View {
                 carbs: shown?.carbohydrateGrams, fat: shown?.fatGrams,
                 onLog: past ? nil : { loggingMeal = true })
         case .weightTrend:
-            WeightTrendCard(latest: model.latestWeight, series: model.series.compactMap(\.bodyMassKg),
+            let weight = model.weight(asOf: model.viewedDay)
+            WeightTrendCard(latest: weight.latest, series: weight.series,
                 metric: model.onboarding.unitsAreMetric,
                 onLog: past ? nil : { loggingWeight = true })
         case .sleepQuality:
             SleepQualityCard(night: shown?.sleep,
                              summary: model.viewedScores(context: context).sleep.summary)
         case .sleepDebt:
-            SleepDebtCard(debt: model.sleepDebt)
+            SleepDebtCard(debt: model.sleepDebt(on: model.viewedDay))
         case .movement:
             MovementCard(activeEnergy: shown?.activeEnergyKcal, steps: shown?.steps,
                          exerciseMinutes: shown?.exerciseMinutes)
