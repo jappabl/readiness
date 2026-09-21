@@ -56,7 +56,8 @@ struct ProfileView: View {
             PaywallView { showingPaywall = false }
         }
         .sheet(item: $editing) { field in
-            NavigationStack {
+            // No chrome. One control, and swiping the sheet down is the way out.
+            Group {
                 OnboardingHealthDetailsView(
                     fields: [field], metric: metric,
                     onSave: { details in
@@ -66,11 +67,6 @@ struct ProfileView: View {
                     onSkip: { editing = nil })
                     .padding(.horizontal, Tokens.screenMargin)
                     .background(Tokens.canvas)
-                    .toolbar {
-                        ToolbarItem(placement: .cancellationAction) {
-                            Button("Cancel") { editing = nil }.tint(Tokens.textPrimary)
-                        }
-                    }
             }
             .presentationDetents([.medium])
         }

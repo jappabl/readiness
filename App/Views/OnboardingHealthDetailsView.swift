@@ -41,8 +41,8 @@ struct OnboardingHealthDetailsView: View {
     var body: some View {
         VStack(spacing: 18) {
             // A single field is somebody correcting one measure from Profile, not a
-            // run through onboarding. "1 of 1" says nothing and "Skip all" is a second
-            // word for the Cancel already in the toolbar.
+            // run through onboarding. "1 of 1" says nothing, and there is nothing to
+            // skip when the sheet already swipes away.
             if fields.count > 1 {
                 HStack {
                     Text("OPTIONAL · \(index + 1) OF \(fields.count)")
@@ -163,9 +163,15 @@ struct OnboardingHealthDetailsView: View {
         }
         .buttonStyle(PressableStyle())
     }
+    /// Skipping is a step in a flow. Correcting one measure from Profile is not a flow,
+    /// and there the sheet already swipes away, so a second word for "leave it" is two
+    /// ways out of a screen with one thing on it.
+    @ViewBuilder
     private func skipButton(_ label: String, action: @escaping () -> Void) -> some View {
-        Button(label, action: action).font(.subheadline)
-            .foregroundStyle(Tokens.textSecondary).frame(minHeight: 44)
+        if fields.count > 1 {
+            Button(label, action: action).font(.subheadline)
+                .foregroundStyle(Tokens.textSecondary).frame(minHeight: 44)
+        }
     }
     private func advance() {
         Haptics.decided()
