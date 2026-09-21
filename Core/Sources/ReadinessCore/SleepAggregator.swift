@@ -82,7 +82,21 @@ public struct SleepBreakdown: Sendable, Equatable {
     /// is exact, and that is what this leaves alone. Under-counting costs a partly staged
     /// night 0.41 points and its stage ring, against plus or minus five points with the
     /// wrong stage accused half the time.
-    public static let minimumStagedShare = 0.97
+    ///
+    /// Was 0.97, which reads like a rounding allowance and is not one. The denominator
+    /// is the union of every asleep sample from every source, and a second app or a
+    /// phone logging the same night as plain asleep over a slightly wider window adds
+    /// to it without adding to the staged hours. A watch that labelled the whole of its
+    /// own record then lands at 95% of somebody else's, and the night loses its ring.
+    /// Hao wore a watch all night and read "stages cover 7.9 h of an 8.1 h night" with
+    /// no breakdown under it; neither device was wrong and there was nothing to fix.
+    ///
+    /// 0.85 is above the shape the 600 nights actually measured. That failure is a
+    /// contiguous unlabelled window big enough to hide a sleep cycle, and the worked
+    /// example is staging that begins 1.6 h into an eight-hour night, which is 0.80.
+    /// A quarter of an hour of drift between two sources is not the same thing, and
+    /// charging it the same cost every two-source sleeper their stage ring every night.
+    public static let minimumStagedShare = 0.85
 
     /// Hours that carry a stage. May exceed `asleepHours` when two devices each union
     /// their own samples and the totals are then summed.

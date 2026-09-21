@@ -69,14 +69,36 @@ struct PartialStagingTests {
         }
     }
 
+    /// A night a watch staged nearly all of still gets broken down.
+    ///
+    /// The bar was 97%, which sounds like a rounding allowance and is not: a second
+    /// source logging the same night as plain asleep over a slightly wider window adds
+    /// to the total without adding to the staged hours, so a watch that labelled all of
+    /// its own record lands at 95% of somebody else's. Hao wore a watch all night, read
+    /// "stages cover 7.9 h of an 8.1 h night", and got no breakdown at all. Neither
+    /// device was wrong and there was nothing for him to fix.
+    @Test("a night missing a few minutes of labelling is still broken down",
+          arguments: [0.99, 0.96, 0.93, 0.9])
+    func nearlyFullyLabelledIsBrokenDown(classified: Double) {
+        let result = score(classified)
+        #expect(result.contributor("deep") != nil,
+                "\(Int(classified * 100))% classified got no deep sleep row")
+        #expect(result.contributor("rem") != nil)
+    }
+
     /// And the direction where it does not hold. Under-counting means a *contiguous*
     /// window of the night was never labelled, so what was labelled is a biased slice of
     /// an ordered process rather than a sample of it. Rescaling it to fill the night named
     /// a different stage as the night's worst than the full record did on more than half
     /// of 600 measured nights, swinging up to 6.7 points either way, with nothing on
     /// screen to say the record was partial.
+    ///
+    /// The bar that stops it moved from 97% to 85%, so this now begins below that rather
+    /// than at 96%. The 600-night finding is about a *contiguous* missing window big
+    /// enough to hide a sleep cycle; a quarter of an hour is not that, and treating the
+    /// two the same cost every two-source sleeper their stage ring every night.
     @Test("a night only partly labelled does not have its structure guessed",
-          arguments: [0.96, 0.9, 0.8, 0.76])
+          arguments: [0.84, 0.8, 0.76])
     func underCountIsNotExtrapolated(classified: Double) {
         let result = score(classified)
         #expect(result.contributor("deep") == nil,
