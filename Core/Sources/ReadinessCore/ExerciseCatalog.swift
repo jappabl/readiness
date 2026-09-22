@@ -80,6 +80,28 @@ public struct CatalogExercise: Sendable, Equatable, Identifiable {
 /// equipment level, fits in the binary and is always there.
 public enum ExerciseCatalog {
 
+    /// What each movement actually loads, which is not the same as what it trains.
+    ///
+    /// `loads` used to be generous: every upper-body movement claimed the shoulder,
+    /// curls and triceps pushdowns included. The filter is a hard exclusion, so
+    /// declaring a shoulder injury deleted the entire upper body. A tester coming back
+    /// from one was handed a single session, Lower, for ever: no rows, no pulldowns, no
+    /// arms. Somebody who cannot press can still row and curl, and answering an injury
+    /// by deleting half of training is not caution, it is uselessness wearing caution's
+    /// coat.
+    ///
+    /// The line drawn here: a movement claims a joint when that joint takes the load.
+    /// For the shoulder that is pressing in any direction, anything overhead, hanging
+    /// from a bar, a deep fly stretch, and bearing weight through the arm. A horizontal
+    /// row, a curl, a pushdown and the rear-delt rehab work do not.
+    ///
+    /// The knee had the same fault in the other direction: a bad knee deleted the lower
+    /// body, because a hip hinge and a calf raise both claimed it. A Romanian deadlift
+    /// is a hinge with soft knees and a calf raise happens below them. Squatting,
+    /// lunging, stepping, a leg extension and a deadlift do claim the knee.
+    ///
+    /// Not a clinical judgement and no substitute for one. It is the difference between
+    /// a list somebody can train from and a list with nothing in it.
     public static let all: [CatalogExercise] = [
         // Horizontal press
         .init("bench", "Barbell bench press", .horizontalPress, .chest, .barbell,
@@ -113,17 +135,17 @@ public enum ExerciseCatalog {
         .init("bb-row", "Barbell row", .horizontalPull, .back, .barbell,
               increment: 5, loads: [.lowerBack, .shoulders], needsExperience: true),
         .init("chest-row", "Chest-supported row", .horizontalPull, .back, .machine,
-              increment: 5, loads: [.shoulders]),
+              increment: 5, loads: []),
         .init("cable-row", "Seated cable row", .horizontalPull, .back, .machine,
-              increment: 5, loads: [.shoulders]),
+              increment: 5, loads: []),
         .init("db-row", "One-arm dumbbell row", .horizontalPull, .back, .dumbbells,
-              increment: 5, loads: [.shoulders]),
+              increment: 5, loads: []),
         .init("db-chest-row", "Chest-supported dumbbell row", .horizontalPull, .back, .dumbbells,
-              increment: 5, loads: [.shoulders]),
+              increment: 5, loads: []),
         .init("inverted-row", "Inverted row", .horizontalPull, .back, .bodyweight,
-              increment: 0, loads: [.shoulders]),
+              increment: 0, loads: []),
         .init("towel-row", "Towel row", .horizontalPull, .back, .bodyweight,
-              increment: 0, loads: [.shoulders]),
+              increment: 0, loads: []),
 
         // Vertical pull
         .init("pullup", "Pull-up", .verticalPull, .back, .bodyweight,
@@ -149,13 +171,13 @@ public enum ExerciseCatalog {
         .init("deadlift", "Deadlift", .hinge, .hamstrings, .barbell,
               increment: 10, loads: [.lowerBack, .knees], needsExperience: true),
         .init("bb-rdl", "Romanian deadlift", .hinge, .hamstrings, .barbell,
-              increment: 5, loads: [.lowerBack, .knees], needsExperience: true),
+              increment: 5, loads: [.lowerBack], needsExperience: true),
         .init("db-rdl", "Dumbbell Romanian deadlift", .hinge, .hamstrings, .dumbbells,
-              increment: 5, loads: [.lowerBack, .knees]),
+              increment: 5, loads: [.lowerBack]),
         .init("back-ext", "Back extension", .hinge, .hamstrings, .machine,
               increment: 5, loads: [.lowerBack]),
         .init("sl-rdl", "Single-leg Romanian deadlift", .hinge, .hamstrings, .bodyweight,
-              increment: 0, loads: [.lowerBack, .knees]),
+              increment: 0, loads: [.lowerBack]),
         .init("glute-bridge", "Glute bridge", .hinge, .glutes, .bodyweight,
               increment: 0, loads: [.lowerBack]),
 
@@ -185,29 +207,29 @@ public enum ExerciseCatalog {
         .init("rear-delt-fly", "Rear delt fly", .shoulderIsolation, .shoulders, .dumbbells,
               increment: 2.5, loads: [.shoulders]),
         .init("face-pull", "Face pull", .backIsolation, .back, .machine,
-              increment: 5, loads: [.shoulders]),
+              increment: 5, loads: []),
         .init("prone-ytw", "Prone Y-T-W raise", .backIsolation, .back, .bodyweight,
-              increment: 0, loads: [.shoulders]),
+              increment: 0, loads: []),
         .init("snow-angel", "Prone reverse snow angel", .backIsolation, .back, .bodyweight,
-              increment: 0, loads: [.shoulders]),
+              increment: 0, loads: []),
 
         // Arms
         .init("bb-curl", "Barbell curl", .bicep, .arms, .barbell,
-              increment: 5, loads: [.shoulders]),
+              increment: 5, loads: []),
         .init("db-curl", "Dumbbell curl", .bicep, .arms, .dumbbells,
-              increment: 2.5, loads: [.shoulders]),
+              increment: 2.5, loads: []),
         .init("incline-curl", "Incline dumbbell curl", .bicep, .arms, .dumbbells,
-              increment: 2.5, loads: [.shoulders]),
+              increment: 2.5, loads: []),
         .init("hammer-curl", "Hammer curl", .bicep, .arms, .dumbbells,
-              increment: 2.5, loads: [.shoulders]),
+              increment: 2.5, loads: []),
         .init("chin-up", "Chin-up", .bicep, .arms, .bodyweight,
               increment: 0, loads: [.shoulders]),
         .init("pushdown", "Triceps pushdown", .tricep, .arms, .machine,
-              increment: 5, loads: [.shoulders]),
+              increment: 5, loads: []),
         .init("overhead-ext", "Overhead triceps extension", .tricep, .arms, .dumbbells,
               increment: 2.5, loads: [.shoulders]),
         .init("skullcrusher", "Skullcrusher", .tricep, .arms, .dumbbells,
-              increment: 2.5, loads: [.shoulders]),
+              increment: 2.5, loads: []),
         .init("chair-dip", "Chair dip", .tricep, .arms, .bodyweight,
               increment: 0, loads: [.shoulders]),
         .init("diamond-pushup", "Diamond push-up", .tricep, .arms, .bodyweight,
@@ -217,15 +239,15 @@ public enum ExerciseCatalog {
         .init("leg-ext", "Leg extension", .quadIsolation, .quads, .machine,
               increment: 5, loads: [.knees]),
         .init("leg-curl", "Seated leg curl", .hamstringIsolation, .hamstrings, .machine,
-              increment: 5, loads: [.knees]),
+              increment: 5, loads: []),
         .init("nordic", "Nordic curl", .hamstringIsolation, .hamstrings, .bodyweight,
               increment: 0, loads: [.knees]),
         .init("calf-raise", "Standing calf raise", .calf, .quads, .machine,
-              increment: 10, loads: [.knees]),
+              increment: 10, loads: []),
         .init("db-calf", "Dumbbell calf raise", .calf, .quads, .dumbbells,
-              increment: 5, loads: [.knees]),
+              increment: 5, loads: []),
         .init("bw-calf", "Calf raise", .calf, .quads, .bodyweight,
-              increment: 0, loads: [.knees]),
+              increment: 0, loads: []),
 
         // Core
         .init("dead-bug", "Dead bug", .core, .core, .bodyweight, increment: 0, loads: [.lowerBack]),

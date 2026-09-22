@@ -90,13 +90,28 @@ struct RecommendedSplitTests {
         }
     }
 
-    @Test("somebody who ruled out everything gets no plan, and that is the honest answer")
-    func everythingRuledOutMeansNoPlan() {
-        // Every exercise in the catalog loads a back, a knee or a shoulder. Somebody
-        // who has restricted all three has no safe starting programme, and inventing
-        // one for them is the single worst thing this could do.
+    @Test("ruling out everything leaves what is left, not nothing")
+    func everythingRuledOutStillLeavesWhatIsSafe() {
+        // This used to expect no plan at all, on the premise that every exercise in the
+        // catalogue loads a back, a knee or a shoulder. The premise was the bug: curls,
+        // pushdowns, seated rows and calf raises claimed joints they do not load, so
+        // declaring one injury deleted half of training and declaring three deleted all
+        // of it. Somebody carrying all three can still row, curl and raise a calf.
+        let split = StarterPrograms.recommended(
+            experience: .regular, equipment: .fullGym,
+            limitations: Set(PhysicalLimitation.allCases), frequency: .few)
+        let exercises = split?.sessions.flatMap(\.exercises) ?? []
+        #expect(!exercises.isEmpty)
+        #expect(exercises.allSatisfy { $0.loadedAreas.isEmpty },
+                "something loading a restricted joint survived")
+    }
+
+    /// The honest-nothing case still exists, and it is the one that matters: the injury
+    /// question has not been answered, so the app does not know and will not guess.
+    @Test("no answer about injuries still means no plan")
+    func noPlanUntilTheInjuryQuestionIsAnswered() {
         #expect(StarterPrograms.recommended(
             experience: .regular, equipment: .fullGym,
-            limitations: Set(PhysicalLimitation.allCases), frequency: .few) == nil)
+            limitations: nil, frequency: .few) == nil)
     }
 }

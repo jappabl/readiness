@@ -467,12 +467,12 @@ struct ExerciseSwapSheet: View {
             all = ExerciseCatalog.alternatives(
                 to: known,
                 equipment: model.onboarding.equipment ?? .fullGym,
-                limitations: model.trainingLimitations ?? [],
+                limitations: model.trainingLimitations,
                 experience: model.onboarding.experience ?? .regular)
         } else {
             all = ExerciseCatalog.available(
                 equipment: model.onboarding.equipment ?? .fullGym,
-                limitations: model.trainingLimitations ?? [],
+                limitations: model.trainingLimitations,
                 experience: model.onboarding.experience ?? .regular)
         }
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -488,6 +488,36 @@ struct ExerciseSwapSheet: View {
         !typedName.isEmpty && !options.contains { $0.name.localizedCaseInsensitiveCompare(typedName) == .orderedSame }
     }
 
+    /// The exercise they typed, when the catalogue knows it and is deliberately not
+    /// offering it.
+    ///
+    /// Typing was added so a session could be built by hand, and it walked straight past
+    /// the filter that the whole list exists to apply: a tester with a declared shoulder
+    /// injury typed "Overhead press" into their leg day and the app saved it without a
+    /// word. Free text cannot be policed in general, and the app has no business
+    /// refusing somebody their own training. It does have a duty to say what it knows.
+    private var typedButRuledOut: CatalogExercise? {
+        guard let match = ExerciseCatalog.named(typedName) else { return nil }
+        let allowed = ExerciseCatalog.available(
+            equipment: model.onboarding.equipment ?? .fullGym,
+            limitations: model.trainingLimitations,
+            experience: model.onboarding.experience ?? .regular)
+        return allowed.contains(where: { $0.id == match.id }) ? nil : match
+    }
+
+    /// Why this one is not in the list, in the words of the answer they gave.
+    private func warning(for exercise: CatalogExercise) -> String {
+        let hit = (model.trainingLimitations ?? []).filter { exercise.loads.contains($0) }
+        if !hit.isEmpty {
+            let named = hit.map(\.title.localizedLowercase).sorted().joined(separator: " and ")
+            return "You told Jett about your \(named). This one loads that."
+        }
+        if exercise.needsExperience, model.onboarding.experience == .new {
+            return "This is one to learn with somebody watching before you load it."
+        }
+        return "This needs equipment you said you do not have."
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -501,7 +531,29 @@ struct ExerciseSwapSheet: View {
                             .textInputAutocapitalization(.sentences)
                             .padding(.horizontal, 14).padding(.vertical, 12)
                             .background(Tokens.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                        if canUseTypedName {
+                        if let ruledOut = typedButRuledOut {
+                            // Named, explained, and still theirs to choose. Saying
+                            // nothing was the bug; refusing would be the other one.
+                            VStack(alignment: .leading, spacing: 10) {
+                                Label(warning(for: ruledOut), systemImage: "exclamationmark.triangle")
+                                    .font(.system(size: 14))
+                                    .foregroundStyle(Tokens.alert)
+                                Button {
+                                    Haptics.decided()
+                                    onPick(ruledOut)
+                                    dismiss()
+                                } label: {
+                                    Text("Add it anyway")
+                                        .font(.body.weight(.medium))
+                                        .frame(maxWidth: .infinity, minHeight: 44)
+                                }
+                                .buttonStyle(.plain)
+                                .foregroundStyle(Tokens.textPrimary)
+                            }
+                            .padding(14)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(Tokens.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        } else if canUseTypedName {
                             Button {
                                 Haptics.decided()
                                 onName(typedName)
@@ -519,9 +571,9 @@ struct ExerciseSwapSheet: View {
                             .foregroundStyle(Tokens.accent)
                             .background(Tokens.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                         }
-                        if options.isEmpty {
+                        if options.isEmpty && typedButRuledOut == nil {
                             EmptyStateView(message: emptyMessage)
-                        } else {
+                        } else if !options.isEmpty {
                             ListCard {
                                 ForEach(Array(options.enumerated()), id: \.element.id) { index, option in
                                     if index > 0 {

@@ -102,9 +102,18 @@ struct StarterProgramTests {
     }
 
     @Test func limitationsRemoveConflictingStarterExercisesAndSubstitutions() {
+        // Ruling out all three used to leave nothing, because every movement in the
+        // catalogue claimed a back, a knee or a shoulder. It claimed too much: a seated
+        // row does not load a shoulder and a calf raise does not load a knee. What is
+        // left for somebody carrying all three is small and seated, which is the honest
+        // answer, and a good deal more use than an empty screen.
         let everything = StarterPrograms.make(experience: .new, equipment: .fullGym,
                                               limitations: Set(PhysicalLimitation.allCases))
-        #expect(everything.flatMap(\.exercises).isEmpty)
+        let left = everything.flatMap(\.exercises).map(\.name)
+        #expect(!left.isEmpty)
+        #expect(left.allSatisfy { name in
+            ExerciseCatalog.named(name)?.loads.isEmpty == true
+        }, "something that loads a restricted joint survived: \(left)")
         #expect(!StarterPrograms.allowedExerciseNames(equipment: .dumbbells,
                                                       limitations: [.shoulders])
             .contains("Dumbbell bench press"))
@@ -192,5 +201,58 @@ struct StarterProgramTests {
         let unclassified = CoachProfileSummary(health: HealthProfile(), answers: answers,
                                                limitations: "Ankle fracture")
         #expect(unclassified.allowedExercises == [])
+    }
+}
+
+/// What an injury leaves behind.
+///
+/// A tester came back from a shoulder injury, told the app, and was given one session
+/// for ever: Lower. No rows, no pulldowns, no arms, no chest. Every upper-body movement
+/// in the catalogue claimed the shoulder, curls included, and the filter is a hard
+/// exclusion, so declaring the injury deleted half of training. He wrote that the app's
+/// one job was not handing him something that hurts, and closed it.
+@Suite("An injury narrows training rather than deleting it")
+struct InjuryStillLeavesAProgrammeTests {
+
+    @Test("every limitation still leaves something for the upper body",
+          arguments: [PhysicalLimitation.shoulders, .lowerBack, .knees])
+    func upperBodySurvives(_ limit: PhysicalLimitation) throws {
+        let split = try #require(StarterPrograms.recommended(
+            experience: .experienced, equipment: .fullGym,
+            limitations: [limit], frequency: .few))
+        #expect(split.sessions.count == 2, "\(limit) collapsed the week to \(split.sessions.count)")
+        let names = split.sessions.flatMap(\.exercises).map(\.name)
+        #expect(!names.isEmpty)
+    }
+
+    /// The point of the filter still holds: what it excludes, it excludes.
+    @Test func aShoulderStillRulesOutPressingAndHanging() {
+        let allowed = ExerciseCatalog.available(equipment: .fullGym, limitations: [.shoulders],
+                                                experience: .experienced).map(\.name)
+        for banned in ["Barbell bench press", "Overhead press", "Machine shoulder press",
+                       "Push-up", "Pull-up", "Chin-up", "Lateral raise", "Dumbbell fly"] {
+            #expect(!allowed.contains(banned), "\(banned) was offered to a bad shoulder")
+        }
+    }
+
+    /// And what it does not exclude is enough to train with.
+    @Test func aShoulderStillLeavesRowsAndArms() {
+        let allowed = ExerciseCatalog.available(equipment: .fullGym, limitations: [.shoulders],
+                                                experience: .experienced).map(\.name)
+        for kept in ["Seated cable row", "Chest-supported row", "Face pull",
+                     "Barbell curl", "Triceps pushdown"] {
+            #expect(allowed.contains(kept), "\(kept) was withheld from a bad shoulder")
+        }
+    }
+
+    /// "None" is the word the app itself writes into the Profile field, and its own
+    /// parser could not read it. Unreadable means different things at different call
+    /// sites, so the same answer both emptied and unlocked the catalogue.
+    @Test func theAppCanReadItsOwnWordForNoInjuries() {
+        #expect(PhysicalLimitation.from(profileText: "None") == [])
+        #expect(PhysicalLimitation.from(profileText: "none") == [])
+        #expect(PhysicalLimitation.from(profileText: "") == [])
+        #expect(PhysicalLimitation.from(profileText: "Shoulders") == [.shoulders])
+        #expect(PhysicalLimitation.from(profileText: "Ankle fracture") == nil)
     }
 }

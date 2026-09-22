@@ -115,9 +115,17 @@ public enum PhysicalLimitation: String, Sendable, Codable, CaseIterable {
     }
     /// Only the structured labels can be safely mapped to this small starter catalog.
     /// Other Profile text is still sent to Jett, but cannot be treated as "no limits".
+    ///
+    /// "None" is one of the structured labels, because it is the word the app itself
+    /// writes into the field when somebody says they have no injuries. It used to come
+    /// back as unreadable, and unreadable means different things at different call
+    /// sites: the coach's profile takes it as "allow nothing", the exercise picker took
+    /// it as "no limits at all". The same answer therefore both emptied and unlocked the
+    /// catalogue depending on who asked.
     public static func from(profileText: String) -> Set<PhysicalLimitation>? {
         let text = profileText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return [] }
+        if text.caseInsensitiveCompare("None") == .orderedSame { return [] }
         var result: Set<PhysicalLimitation> = []
         for part in text.split(separator: ",", omittingEmptySubsequences: false) {
             let label = part.trimmingCharacters(in: .whitespacesAndNewlines)
