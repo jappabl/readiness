@@ -51,7 +51,7 @@
           "introductoryOffer": {
             "internalID": "41500002",
             "paymentMode": "free",
-            "subscriptionPeriod": "P1W"
+            "subscriptionPeriod": "P2W"
           },
           "localizations": [
             {
@@ -74,14 +74,14 @@
           "groupNumber": 1,
           "internalID": "31500002",
           "introductoryOffer": {
-            "internalID": "41500002",
+            "internalID": "41500009",
             "paymentMode": "free",
-            "subscriptionPeriod": "P1W"
+            "subscriptionPeriod": "P2W"
           },
           "localizations": [
             {
-              "description": "Coach Jett, without limits.",
-              "displayName": "Yearly",
+              "description": "Coach Jett, without limits. One of the first 100.",
+              "displayName": "Founding yearly",
               "locale": "en_US"
             }
           ],
