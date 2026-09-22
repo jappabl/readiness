@@ -96,20 +96,12 @@ struct ClaudeCoachProvider: CoachProvider {
             ])
         }
 
-        guard let apiKey, !apiKey.isEmpty else { throw CoachError.notConfigured }
-        var request = URLRequest(url: Self.endpoint)
-        request.httpMethod = "POST"
-        request.timeoutInterval = 120
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
-        request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
-        request.httpBody = try JSONSerialization.data(withJSONObject: CoachRequest.body(
-            model: Self.model,
-            rules: CoachPrompt.rules,
-            data: CoachPrompt.data(context: context, unitsAreMetric: unitsAreMetric),
-            messages: messages,
-            offersTools: offersTools))
-        return request
+        // There is no second route. Talking to the provider from the device meant a
+        // second copy of the rules living in the app, kept in step with the server's by
+        // hand, and it only ever shaped a path that cannot ship: it needs an API key on
+        // the device and the proxy requires attestation. A local path running a
+        // different prompt is not a test of anything.
+        throw CoachError.notConfigured
     }
 
     private func runTurn(apiKey: String?, context: CoachContext, messages: [[String: Any]],
