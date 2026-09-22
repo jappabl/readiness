@@ -508,8 +508,9 @@ struct ProfileView: View {
                      + "it cannot recall data already sent. Health data is not used for advertising.")
             footnote("Sleep uses duration and recorded continuity, plus regularity when enough history exists. Duration alone is not a sleep score. "
                      + "Heart metrics cannot tell us how stressed you feel. Training guidance, not medical advice.")
-            footnote("Meal photos and portion notes go to the same places, and only when you approve "
-                     + "an estimate. No Health history is sent for meal estimates.")
+            footnote("A meal photo and its portion notes go to the same places as soon as you "
+                     + "attach one, so the estimate can be read off it. You check every number "
+                     + "before anything is logged. No Health history is sent for meal estimates.")
         }
     }
 }

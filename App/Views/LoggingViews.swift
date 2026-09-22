@@ -81,7 +81,6 @@ struct MealLogView: View {
     @State private var busy = false
     @State private var estimating = false
     @State private var message: String?
-    @State private var showConsent = false
     @State private var started = false
     @State private var estimateTask: Task<Void, Never>?
     @State private var estimateRevision = UUID()
@@ -107,14 +106,6 @@ struct MealLogView: View {
                 .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { cancelEstimate(); photoLoadTask?.cancel(); dismiss() }.disabled(busy) } }
                 .interactiveDismissDisabled(busy)
                 .fullScreenCover(isPresented: $camera) { MealCamera { image in usePhoto(image); camera = false } onCancel: { camera = false } }
-                .confirmationDialog("Estimate with DeepSeek?", isPresented: $showConsent, titleVisibility: .visible) {
-                    Button("Send photo and estimate") {
-                        Haptics.decided()
-                        UserDefaults.standard.set(true, forKey: Self.consentKey)
-                        estimate()
-                    }
-                    Button("Cancel", role: .cancel) {}
-                } message: { Text("Your meal photo and portion notes are sent to DeepSeek to be read. No Health history is sent, and you check the numbers before anything is logged. Asked once.") }
                 .onAppear { if !started { started = true; openCamera() } }
                 .onChange(of: selectedPhoto) { _, item in
                     guard let item else { return }
@@ -171,9 +162,17 @@ struct MealLogView: View {
     private var hero: some View {
         ZStack(alignment: .bottom) {
             if let photo {
-                Image(uiImage: photo)
-                    .resizable().scaledToFill()
-                    .frame(height: 300).frame(maxWidth: .infinity)
+                // The box decides the size and the picture fills it. Written the other
+                // way round, an image told to fill and then given a height claims the
+                // width its own aspect ratio wants, and clipping only trims what is
+                // drawn, never what was claimed. A landscape photo therefore made this
+                // whole screen wider than the phone: the name read "vocado", 320 kcal
+                // read "B20", the fat card ran off the right edge. An overlay cannot
+                // change what it is laid over, so it cannot do that again.
+                Color.clear
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 300)
+                    .overlay { Image(uiImage: photo).resizable().scaledToFill() }
                     .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
             } else {
                 RoundedRectangle(cornerRadius: 24, style: .continuous)
@@ -322,11 +321,14 @@ struct MealLogView: View {
         estimateRevision = UUID()
         estimating = false
     }
-    /// Asked once, then remembered. A photo does leave the device, so the question is
-    /// owed; asking it again every single meal is not consent, it is a toll booth.
-    private static let consentKey = "meal.photoEstimateConsent"
-    private var hasConsented: Bool { UserDefaults.standard.bool(forKey: Self.consentKey) }
-
+    /// Attaching a photo is the instruction, and nothing stands between it and the
+    /// reading.
+    ///
+    /// There used to be a sheet here asking permission to send the photo to DeepSeek by
+    /// name. Naming the vendor told people nothing they could act on, and a modal in
+    /// front of the one action the screen exists for is a toll booth. What the photo and
+    /// notes are used for is written down under Data in Profile, where somebody can read
+    /// it without being stopped mid-lunch.
     private func usePhoto(_ image: UIImage) {
         cancelEstimate()
         photo = image
@@ -339,7 +341,7 @@ struct MealLogView: View {
         message = nil
         // The shutter is the instruction. Nobody photographs their lunch and then wants
         // to be asked whether they meant it.
-        if hasConsented { estimate() } else { showConsent = true }
+        estimate()
     }
     private func estimate() {
         guard let photo, !estimating, !loadingPhoto else { return }
