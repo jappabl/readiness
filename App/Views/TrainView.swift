@@ -118,8 +118,63 @@ struct TrainView: View {
         }
     }
 
+    /// Exercises in the split that load something the person said is a problem.
+    ///
+    /// Checked every time this screen draws, rather than once when the sessions were
+    /// built. An injury answered at onboarding shaped the sessions made there and then
+    /// nothing ever looked again: a tester declared a shoulder, added an overhead press
+    /// by hand, set every injury and cleared them all, and the press sat in their leg
+    /// day through all of it without a word.
+    private var conflicts: [(template: WorkoutTemplate, conflict: ProgrammeConflicts.Conflict)] {
+        let limits = model.trainingLimitations
+        return splitTemplates.flatMap { template in
+            ProgrammeConflicts.among(template.orderedExercises.map(\.name), limitations: limits)
+                .map { (template: template, conflict: $0) }
+        }
+    }
+
+    /// Named, and left to them.
+    ///
+    /// Deliberately not a repair. Rewriting somebody's own programme because a profile
+    /// field changed is the app deciding it knows better than the person who wrote it,
+    /// and the day it gets that wrong it deletes work they meant to keep.
+    @ViewBuilder
+    private var conflictNotice: some View {
+        let found = conflicts
+        if !found.isEmpty {
+            VStack(alignment: .leading, spacing: 10) {
+                Label("Worth a look, given what you told Jett", systemImage: "exclamationmark.triangle")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(Tokens.alert)
+                ListCard {
+                    ForEach(Array(found.enumerated()), id: \.offset) { index, row in
+                        if index > 0 { Divider().overlay(Tokens.hairline).padding(.leading, 14) }
+                        Button { Haptics.light(); editingTemplate = row.template } label: {
+                            HStack(spacing: 12) {
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(row.conflict.exercise)
+                                        .font(.body.weight(.medium))
+                                        .foregroundStyle(Tokens.textPrimary)
+                                    Text("\(row.template.name) · \(row.conflict.sentence)")
+                                        .font(.caption)
+                                        .foregroundStyle(Tokens.textSecondary)
+                                }
+                                Spacer(minLength: 8)
+                                Image(systemName: "chevron.right").font(.caption.weight(.semibold))
+                                    .foregroundStyle(Tokens.textSecondary)
+                            }
+                            .frame(minHeight: 44).padding(14).contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+    }
+
     private var program: some View {
         VStack(alignment: .leading, spacing: 12) {
+            conflictNotice
             splitHeading
             if splitTemplates.isEmpty {
                 ListCard {
@@ -248,6 +303,20 @@ struct LiveWorkoutView: View {
         guard let current else { return 0 }
         return session.sets.filter { $0.exerciseName == current.name && !$0.isWarmup }.count
     }
+
+    /// Pick up where the session actually is, not at the top of the list.
+    ///
+    /// The index is view state and started at zero every time the screen opened. Within
+    /// one sitting that is right, because it advances as sets land; reopening a session
+    /// somebody had walked away from put them back on an exercise they had already
+    /// finished, asking for set four of three.
+    private func resume() {
+        let planned = exercises.map(\.targetSets)
+        let logged = exercises.map { exercise in
+            session.sets.filter { $0.exerciseName == exercise.name && !$0.isWarmup }.count
+        }
+        exerciseIndex = SessionProgress.resumeIndex(planned: planned, logged: logged)
+    }
     /// The ceiling is kept even though a wheel cannot overshoot it, because the spoken
     /// path writes here too and a misheard number is the same bad set.
     private var enteredLoad: Double? {
@@ -362,6 +431,7 @@ struct LiveWorkoutView: View {
             }
             .tint(Tokens.accent)
             .onAppear {
+                resume()
                 prepareSet()
                 // The phone spends most of a workout face down on a bench, so the Lock
                 // Screen is the only surface the app has during the part it is for.

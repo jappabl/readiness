@@ -293,3 +293,52 @@ public enum ExerciseCatalog {
             .filter { $0.pattern == exercise.pattern && $0.id != exercise.id }
     }
 }
+
+/// What is in somebody's programme that their injuries say should not be.
+///
+/// An injury answered at onboarding shapes the sessions built there, and then nothing
+/// ever looks again. A tester declared a shoulder, later added an overhead press by
+/// hand, then set every injury and cleared them all, and through all of it the press sat
+/// in their leg day unremarked. The app asked the question once and then stopped caring
+/// about the answer.
+///
+/// Deliberately a report rather than a repair. Rewriting somebody's own programme
+/// because a profile field changed is the app deciding it knows better than the person
+/// who wrote it, and the day it gets that wrong it deletes work they meant to keep.
+/// Naming what conflicts and leaving the choice with them costs nothing and cannot be
+/// wrong in that direction.
+public enum ProgrammeConflicts {
+
+    public struct Conflict: Sendable, Equatable {
+        public let exercise: String
+        public let limitations: Set<PhysicalLimitation>
+        public init(exercise: String, limitations: Set<PhysicalLimitation>) {
+            self.exercise = exercise
+            self.limitations = limitations
+        }
+
+        /// What to say about it, in the words of the answer they gave.
+        public var sentence: String {
+            let named = limitations.map(\.title.localizedLowercase).sorted()
+                .joined(separator: " and ")
+            return "loads your \(named)"
+        }
+    }
+
+    /// Which of these exercises load something the person said is a problem.
+    ///
+    /// A name the catalogue does not know is not a conflict. The app has no idea what
+    /// somebody's own "Reverse hyper" loads, and guessing from the word would be worse
+    /// than staying quiet.
+    public static func among(_ exerciseNames: [String],
+                             limitations: Set<PhysicalLimitation>?) -> [Conflict] {
+        guard let limitations, !limitations.isEmpty else { return [] }
+        var seen: Set<String> = []
+        return exerciseNames.compactMap { name in
+            guard seen.insert(name).inserted,
+                  let known = ExerciseCatalog.named(name) else { return nil }
+            let hit = known.loads.intersection(limitations)
+            return hit.isEmpty ? nil : Conflict(exercise: name, limitations: hit)
+        }
+    }
+}
