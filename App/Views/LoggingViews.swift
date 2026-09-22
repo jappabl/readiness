@@ -337,14 +337,40 @@ struct MealLogView: View {
             .disabled(!canSave)
             .padding(.horizontal, Tokens.screenMargin)
             .padding(.top, 10)
-            .padding(.bottom, 8)
+            .padding(.bottom, blocker == nil ? 8 : 2)
+            if let blocker, !busy {
+                Text(blocker)
+                    .font(.system(size: 13))
+                    .foregroundStyle(Tokens.textSecondary)
+                    .padding(.bottom, 8)
+            }
         }
         .background(.regularMaterial)
     }
 
-    private var canSave: Bool {
-        !busy && !estimating && !loadingPhoto && nutrition != nil
-            && !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    private var canSave: Bool { blocker == nil }
+
+    /// Why the button is dim, when it is.
+    ///
+    /// It used to just sit there. A tester ended up with 405,010 g of protein against no
+    /// calories, watched Log meal stay dead, and wrote that the app lets numbers mean
+    /// nothing and will not tell you. It does reject them, silently, which from the
+    /// outside is the same as being broken: two testers reported meal logging as
+    /// completely non-functional when the form was refusing one field.
+    ///
+    /// Nil means nothing is wrong. Anything else is shown under the button.
+    private var blocker: String? {
+        if busy || estimating || loadingPhoto { return nil }
+        if name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return "Give the meal a name."
+        }
+        guard number(calories) != nil else { return "Add the calories." }
+        for (label, text) in [("Protein", protein), ("Carbs", carbs), ("Fat", fat)]
+        where macro(text) == nil {
+            return "\(label) isn't a number."
+        }
+        if nutrition == nil { return "Those numbers are outside anything a meal can be." }
+        return nil
     }
     private func openCamera() {
         guard UIImagePickerController.isSourceTypeAvailable(.camera) else { message = "Camera isn't available here. Choose a photo or enter a meal."; return }

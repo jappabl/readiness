@@ -13,6 +13,42 @@ public enum StrainEngine {
     /// A set within 3 reps of failure is the one that drives adaptation and fatigue.
     public static let hardSetRIRThreshold = 3
 
+    /// The three answers the logger offers, and the reps in reserve each one means.
+    ///
+    /// They live here, beside the threshold they have to agree with. They did not, and
+    /// the disagreement was invisible: the screen preselected the button for a plan
+    /// written at 2 reps in reserve, that button was labelled Comfortable, and 2 is
+    /// inside the engine's line for a hard set. A tester rated nothing, logged three
+    /// sets, and was told he had done three hard ones while the screen had said
+    /// Comfortable the whole time.
+    ///
+    /// Comfortable now sits the far side of the threshold, so what the button says and
+    /// what the arithmetic counts cannot come apart again.
+    public enum Effort: Int, Sendable, CaseIterable {
+        case allOut = 0
+        case hard = 1
+        case comfortable = 4
+
+        public var title: String {
+            switch self {
+            case .allOut: return "All out"
+            case .hard: return "Hard"
+            case .comfortable: return "Comfortable"
+            }
+        }
+
+        public var isHardSet: Bool { rawValue <= hardSetRIRThreshold }
+    }
+
+    /// Which of the three a stored reps-in-reserve belongs to.
+    ///
+    /// Anything at or inside the threshold is hard, because that is what the threshold
+    /// means. Only a set with more than three left in the tank is comfortable.
+    public static func effort(forRIR value: Int) -> Effort {
+        if value <= 0 { return .allOut }
+        return value <= hardSetRIRThreshold ? .hard : .comfortable
+    }
+
     public static func sessionLoad(sets: [LiftSet], sessionRPE: Double) -> SessionLoad {
         let working = sets.filter { !$0.isWarmup }
         let volume = working.reduce(0.0) { $0 + $1.load * Double($1.reps) }

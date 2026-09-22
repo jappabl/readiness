@@ -362,38 +362,23 @@ struct LiveWorkoutView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("How hard was that?").microLabel()
             HStack(spacing: 8) {
-                // Four in reserve, not three. Three is inside the engine's own line for a
-                // hard set, so a session where somebody answered Comfortable to every
-                // question came back saying "Hard sets: 12". The word and the arithmetic
-                // have to agree, and with only three answers on offer there was no way
-                // to log a set that was genuinely easy.
-                effortOption("Comfortable", rir: StrainEngine.hardSetRIRThreshold + 1)
-                effortOption("Hard", rir: 1)
-                effortOption("All out", rir: 0)
+                // The three answers and the reps in reserve they mean both live in the
+                // engine, beside the threshold they have to agree with. They were here,
+                // and drifted out of step with it twice in one day.
+                effortOption(.comfortable)
+                effortOption(.hard)
+                effortOption(.allOut)
             }
         }
     }
 
-    /// Which of the three a stored reps-in-reserve belongs to.
-    ///
-    /// The plan's own target is 2 or 3 depending on experience, and matching on equality
-    /// meant arriving at this screen with nothing selected at all, which reads as a
-    /// question that has not been answered rather than one with a sensible default.
-    private func effortBucket(_ value: Int) -> Int {
-        switch value {
-        case 0: return 0
-        case 1: return 1
-        default: return StrainEngine.hardSetRIRThreshold + 1
-        }
-    }
-
-    private func effortOption(_ label: String, rir value: Int) -> some View {
-        let selected = effortBucket(rir) == value
+    private func effortOption(_ effort: StrainEngine.Effort) -> some View {
+        let selected = StrainEngine.effort(forRIR: rir) == effort
         return Button {
             Haptics.selected()
-            rir = value
+            rir = effort.rawValue
         } label: {
-            Text(label)
+            Text(effort.title)
                 .font(.system(size: 15, weight: selected ? .semibold : .regular))
                 .foregroundStyle(selected ? Tokens.messageOnOutgoing : Tokens.textPrimary)
                 .frame(maxWidth: .infinity, minHeight: 44)
@@ -659,7 +644,10 @@ struct LiveWorkoutView: View {
             ?? lastTime(current.name)
         weight = last?.load ?? (current.workingWeight > 0 ? current.workingWeight : 0)
         reps = last?.reps ?? current.targetReps
-        rir = last?.rir ?? current.targetRIR
+        // Snapped to one of the three answers, so what is highlighted is what gets
+        // logged. It was the plan's raw target, which for an experienced lifter is two:
+        // the screen preselected Comfortable and the set went down as a hard one.
+        rir = StrainEngine.effort(forRIR: last?.rir ?? current.targetRIR).rawValue
     }
 
     private func lastTime(_ exercise: String) -> LoggedSet? {

@@ -15,9 +15,30 @@ struct CalendarView: View {
     @Environment(\.modelContext) private var context
 
     @State private var month: Date = Calendar.current.startOfDay(for: Date())
-
+    /// Every logged session, so a month can be drawn without asking the store once per
+    /// cell. `hasAnything` fetches all of them each time it is called, which is fine for
+    /// one tap and thirty-five table scans for one screen.
+    @Query private var sessions: [WorkoutSession]
 
     private let calendar = Calendar.current
+
+    /// The days in view that have something on them.
+    ///
+    /// The dot used to mean "this day has a recovery score" and the tap meant "this day
+    /// has anything at all", so a day you trained without wearing a watch drew the same
+    /// faint dot as a day that never happened, and only one of them answered. A tester
+    /// tapped yesterday and the day before, got nothing either time, and reported the
+    /// calendar as dead. One meaning now, used for both.
+    private var daysWithSomething: Set<Date> {
+        var result: Set<Date> = []
+        for day in model.series where model.hasAnything(on: day.date) {
+            result.insert(calendar.startOfDay(for: day.date))
+        }
+        for session in sessions where !session.sets.isEmpty {
+            result.insert(calendar.startOfDay(for: session.date))
+        }
+        return result
+    }
 
     var body: some View {
         ZStack {
@@ -128,15 +149,19 @@ struct CalendarView: View {
         let recovery = model.recoveryScore(on: date).value
         let isToday = calendar.isDateInToday(date)
         let future = date > Date()
+        let has = daysWithSomething.contains(calendar.startOfDay(for: date))
         return VStack(spacing: 4) {
             Text(date, format: .dateTime.day())
                 .font(.system(size: 14, weight: isToday ? .bold : .medium))
                 .monospacedDigit()
-                .foregroundStyle(future ? Tokens.textTertiary : Tokens.textPrimary)
+                .foregroundStyle(future || !has ? Tokens.textTertiary : Tokens.textPrimary)
+            // Drawn only where there is something to open. A dot under every past day
+            // is an affordance the day cannot honour.
             Circle()
                 .fill(dot(recovery))
                 .frame(width: 7, height: 7)
-                .opacity(recovery == nil ? 0.25 : 1)
+                .opacity(recovery == nil ? 0.3 : 1)
+                .opacity(has ? 1 : 0)
         }
         .frame(maxWidth: .infinity)
         .frame(height: 46)
@@ -152,7 +177,7 @@ struct CalendarView: View {
             // you trained but wore nothing to bed was dead to the touch, and before any
             // health data exists that is every day, which reads as the calendar being
             // broken rather than empty.
-            guard !future, model.hasAnything(on: date, context: context) else { return }
+            guard !future, has else { return }
             Haptics.light()
             // Rewind the app rather than open a report about the day. Today is the tab
             // that shows a day, and a second screen that also shows one is two answers

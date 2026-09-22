@@ -192,3 +192,39 @@ struct EffortLabelTests {
         #expect(load.closeToFailureShare == 1)
     }
 }
+
+/// The word on the button and the arithmetic behind it, part two.
+///
+/// Comfortable was moved outside the hard-set threshold, and the logger still
+/// preselected the button from the plan's own target of two reps in reserve. Two is
+/// inside the threshold, so the screen said Comfortable and the engine counted a hard
+/// set. A tester rated nothing, logged three sets and was told he had done three hard
+/// ones.
+@Suite("The button and the count agree")
+struct EffortBucketTests {
+
+    @Test("every answer the logger offers lands on the right side of the line",
+          arguments: StrainEngine.Effort.allCases)
+    func eachAnswerIsConsistentWithItsOwnName(effort: StrainEngine.Effort) {
+        #expect(StrainEngine.effort(forRIR: effort.rawValue) == effort,
+                "\(effort.title) does not map back to itself")
+        #expect(effort.isHardSet == (effort != .comfortable))
+    }
+
+    /// The plan's own target for an experienced lifter is two, which is hard work, and
+    /// the preselected button has to say so.
+    @Test func aplanWrittenAtTwoRepsInReserveReadsAsHard() {
+        #expect(StrainEngine.effort(forRIR: 2) == .hard)
+        #expect(StrainEngine.effort(forRIR: 3) == .hard)
+    }
+
+    @Test func onlyRealSlackIsComfortable() {
+        #expect(StrainEngine.effort(forRIR: 4) == .comfortable)
+        #expect(StrainEngine.effort(forRIR: 8) == .comfortable)
+    }
+
+    @Test func nothingLeftIsAllOut() {
+        #expect(StrainEngine.effort(forRIR: 0) == .allOut)
+        #expect(StrainEngine.effort(forRIR: -2) == .allOut, "a nonsense value is not comfortable")
+    }
+}
