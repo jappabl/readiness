@@ -54,6 +54,13 @@ class_name = "RateBucket"
 name = "ATTEST"
 class_name = "AttestedInstall"
 
+# One object for the whole service, holding one number: the last member issued. A
+# counter two simultaneous registrations can both read hands out member fourteen twice,
+# and "first 100" stops being a fact anybody can check.
+[[durable_objects.bindings]]
+name = "ROLL"
+class_name = "MemberRoll"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["RateBucket"]
@@ -61,4 +68,8 @@ new_sqlite_classes = ["RateBucket"]
 [[migrations]]
 tag = "v2"
 new_sqlite_classes = ["AttestedInstall"]
+
+[[migrations]]
+tag = "v3"
+new_sqlite_classes = ["MemberRoll"]
 

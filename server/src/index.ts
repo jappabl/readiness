@@ -21,6 +21,7 @@ export interface Env {
   MEAL_PROVIDER: string
   MEAL_MODEL: string
   REQUIRE_ATTESTATION: string
+  ROLL: DurableObjectNamespace
   /// Installs that skip the free-message cap: a comma-separated list of attested key
   /// ids, or "*" for every caller. Empty in production. A testing lever, not a
   /// purchase, so it never touches entitlement.
@@ -40,25 +41,51 @@ export interface Env {
  * would both read the same counter and both be accepted, which is precisely the replay
  * the counter exists to stop.
  */
+/**
+ * The member roll. One object for the whole service, holding one number.
+ *
+ * Every install is given the next one the first time it registers, and the first
+ * hundred are founders. A promise with a number in it has to be countable by something,
+ * and a counter that two simultaneous registrations can both read is a promise that
+ * hands out member fourteen twice.
+ */
+export class MemberRoll implements DurableObject {
+  constructor(private state: DurableObjectState) {}
+
+  async fetch(): Promise<Response> {
+    return await this.state.blockConcurrencyWhile(async () => {
+      const issued = (await this.state.storage.get<number>("issued")) ?? 0
+      const member = issued + 1
+      await this.state.storage.put("issued", member)
+      return Response.json({ member })
+    })
+  }
+}
+
 export class AttestedInstall implements DurableObject {
   constructor(private state: DurableObjectState) {}
 
   async fetch(request: Request): Promise<Response> {
     const body = (await request.json()) as
-      | { op: "register"; key: AttestedKey }
+      | { op: "register"; key: AttestedKey; member: number }
       | { op: "load" }
       | { op: "advance"; counter: number }
 
     return await this.state.blockConcurrencyWhile(async () => {
       const stored = await this.state.storage.get<AttestedKey>("key")
+      const member = await this.state.storage.get<number>("member")
       switch (body.op) {
         case "register":
           // Registering twice is not an error, but it must not reset a counter: that
-          // would hand a replayed assertion a clean slate.
+          // would hand a replayed assertion a clean slate. The member number is the
+          // same bargain for a different reason: re-registering must not spend a
+          // second place from the roll, or a hundred founders becomes however many
+          // times the first hundred people reinstalled.
           if (!stored) await this.state.storage.put("key", body.key)
-          return Response.json({ ok: true })
+          if (member === undefined) await this.state.storage.put("member", body.member)
+          return Response.json({ ok: true, member: member ?? body.member })
         case "load":
-          return Response.json({ key: stored ?? null })
+          return Response.json({ key: stored ?? null, member: member ?? null })
         case "advance":
           if (!stored) return Response.json({ ok: false })
           await this.state.storage.put("key", { ...stored, counter: body.counter })
@@ -343,11 +370,20 @@ async function handleAttest(request: Request, env: Env): Promise<Response> {
       appID: `${env.APPLE_TEAM_ID}.${env.BUNDLE_ID}`,
     })
     const install = env.ATTEST.get(env.ATTEST.idFromName(body.keyId))
-    await install.fetch("https://attest/register", {
-      method: "POST",
-      body: JSON.stringify({ op: "register", key }),
-    })
-    return Response.json({ ok: true })
+    // Claimed before the install is asked, because the install is the only thing that
+    // can tell us whether it already holds one, and a number claimed for an install
+    // that turns out to have one is simply not stored. A gap in the roll costs nothing;
+    // handing the same number to two people costs the only thing the roll is for.
+    const claimed = await (
+      await env.ROLL.get(env.ROLL.idFromName("roll")).fetch("https://roll/claim")
+    ).json<{ member: number }>()
+    const registered = await (
+      await install.fetch("https://attest/register", {
+        method: "POST",
+        body: JSON.stringify({ op: "register", key, member: claimed.member }),
+      })
+    ).json<{ member: number }>()
+    return Response.json({ ok: true, member: registered.member })
   } catch (error) {
     // Same bargain as `/v1/attest/check`: the reason a registration was refused is an
     // oracle, and it is also the only way to find out why a real device is being turned

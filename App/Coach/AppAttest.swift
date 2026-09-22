@@ -22,6 +22,22 @@ enum AppAttest {
     private static let service = DCAppAttestService.shared
     private static let keyIDKey = "attest.keyID"
     private static let attestedKey = "attest.registered"
+    private static let memberKey = "member.number"
+
+    /// Which member this install is, issued by the server the first time it registered.
+    ///
+    /// Anchored to the install, which is the honest place for it: App Attest generates a
+    /// fresh key on a reinstall, so a deleted app comes back as a new member. The
+    /// founder price does not, because a subscription lives on the Apple account and
+    /// survives the same reinstall. Somebody can lose the badge and keep what they paid
+    /// for, which is the right way round.
+    private(set) static var member: Int? {
+        get {
+            let stored = UserDefaults.standard.integer(forKey: memberKey)
+            return stored > 0 ? stored : nil
+        }
+        set { UserDefaults.standard.set(newValue ?? 0, forKey: memberKey) }
+    }
 
     static var isSupported: Bool { service.isSupported }
 
@@ -97,6 +113,12 @@ enum AppAttest {
         }
         keyID = key
         isRegistered = true
+        // Issued once, on the registration that created this install. A later
+        // registration returns the same number rather than spending another.
+        if let body = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let issued = body["member"] as? Int, issued > 0 {
+            member = issued
+        }
         lastFailure = nil
     }
 

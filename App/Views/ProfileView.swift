@@ -43,6 +43,7 @@ struct ProfileView: View {
                     speaking
                     atTheGym
                     privacy
+                    membership
                     #if DEBUG
                     attestation
                     #endif
@@ -482,6 +483,26 @@ struct ProfileView: View {
         }
     }
     #endif
+
+    /// Which member they are, and nothing else.
+    ///
+    /// Only drawn once the server has issued a number. An install that has not
+    /// registered yet has no number, and inventing one, or showing a placeholder, would
+    /// put a stranger in the founding hundred.
+    @ViewBuilder
+    private var membership: some View {
+        if let badge = FoundingMember.badge(AppAttest.member) {
+            VStack(alignment: .leading, spacing: 12) {
+                ListCard {
+                    FieldRow(label: badge) {
+                        if let member = AppAttest.member, FoundingMember.isFounder(member) {
+                            Text("Founding member").foregroundStyle(Tokens.accent)
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     private var privacy: some View {
         VStack(alignment: .leading, spacing: 12) {
