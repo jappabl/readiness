@@ -664,17 +664,22 @@ struct InfoButton: View {
         .buttonStyle(.plain)
         .accessibilityLabel("What is \(title)?")
         .popover(isPresented: $showing) {
-            VStack(alignment: .leading, spacing: 8) {
-                Text(title)
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(Tokens.textPrimary)
-                Text(explanation)
-                    .font(.system(size: 14))
-                    .foregroundStyle(Tokens.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(title)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(Tokens.textPrimary)
+                    Text(explanation)
+                        .font(.system(size: 14))
+                        .foregroundStyle(Tokens.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(18)
             }
-            .padding(18)
+            .scrollBounceBehavior(.basedOnSize)
             .frame(width: 290)
+            .frame(maxHeight: 420)
             // The host of this button is often a card that clamps itself to one line,
             // and that clamp reaches into the popover and truncates the explanation.
             .lineLimit(nil)
@@ -798,15 +803,25 @@ struct InfoDot: View {
         .buttonStyle(.plain)
         .accessibilityLabel("About this")
         .popover(isPresented: $showing) {
-            Text(text)
-                .font(.system(size: 15))
-                .lineSpacing(3)
-                .foregroundStyle(Tokens.textPrimary)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: 292, alignment: .leading)
-                .padding(.horizontal, 22)
-                .padding(.vertical, 20)
-                .presentationCompactAdaptation(.popover)
+            // Scrollable, because a popover clips rather than grows. A long enough
+            // explanation lost its first line and its last: a tester opened the one
+            // setting that says when Jett messages you, found it truncated at both ends
+            // with nothing to scroll, and wrote that he could not read the only thing he
+            // came to Profile for.
+            ScrollView {
+                Text(text)
+                    .font(.system(size: 15))
+                    .lineSpacing(3)
+                    .foregroundStyle(Tokens.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 22)
+                    .padding(.vertical, 20)
+            }
+            .scrollBounceBehavior(.basedOnSize)
+            .frame(width: 292)
+            .frame(maxHeight: 420)
+            .presentationCompactAdaptation(.popover)
         }
     }
 }

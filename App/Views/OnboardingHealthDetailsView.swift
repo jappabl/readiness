@@ -19,7 +19,14 @@ struct OnboardingHealthDetailsView: View {
         self.fields = fields; self.onSave = onSave; self.onSkip = onSkip
         _metricHeight = State(initialValue: metric)
         _rulerValue = State(initialValue: metric ? 170 : 67)
-        _birthday = State(initialValue: Calendar.current.date(byAdding: .year, value: -25, to: Date())!)
+        // The first of January, not today's date twenty-five years ago. Subtracting
+        // years from now leaves the month and day where they are, so the wheel opened on
+        // somebody's birthday being the day they installed the app: two testers noticed,
+        // and one of them left it, so his profile now says an age he never gave. A
+        // placeholder should look like one.
+        let january = DateComponents(year: Calendar.current.component(.year, from: Date()) - 25,
+                                     month: 1, day: 1)
+        _birthday = State(initialValue: Calendar.current.date(from: january) ?? Date())
     }
 
     private var current: HealthProfile.Field { fields[index] }

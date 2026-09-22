@@ -19,8 +19,6 @@ struct TodayView: View {
     @Query(sort: \WeightLog.date) private var weightLogs: [WeightLog]
     @State private var loggingMeal = false
     @State private var editingTemplate: WorkoutTemplate?
-    @State private var savedMessage: String?
-    @State private var showSaved = false
 
     static let summaryAnchor = "summary"
 
@@ -57,7 +55,6 @@ struct TodayView: View {
         .sheet(item: $editingTemplate) { template in
             TemplateEditorView(template: template) { model.selectToday($0); editingTemplate = nil }
         }
-        .alert("Saved", isPresented: $showSaved) { Button("OK", role: .cancel) { savedMessage = nil } } message: { Text(savedMessage ?? "") }
         .sheet(isPresented: $showingAdjust) { AdjustSessionView() }
         .sheet(isPresented: $showingWhy) {
             if let day = model.day, let rec = model.recommendation {
@@ -188,19 +185,26 @@ struct TodayView: View {
                 summaryCard
                 if !model.isRewound { checkInPrompt }
                 if let error = model.healthReadError { Text("Health couldn't refresh. \(error)").font(.footnote).foregroundStyle(.secondary) }
-                // The screen below the fold is composed from the goal, not fixed:
-                // someone here to sleep better does not open on a back squat.
-                ForEach(blocks, id: \.self) { block in
-                    view(for: block)
-                }
-                if !model.isRewound { insight }
                 // A day with nothing on it renders as a void, which reads as the screen
                 // having failed rather than as the day having been quiet. A line of grey
                 // text in the middle of nothing does not fix that; somebody standing in
                 // the empty room does.
-                if model.isRewound, blocks.isEmpty || !model.hasAnything(
-                    on: model.viewedDay, context: context) {
+                //
+                // Instead of the cards, not after them. It used to be both: a page of
+                // cards full of dashes and zeroes, and then, under all of it, a man
+                // saying nothing was recorded. The cards had already said that six
+                // times, and he landed under the tab bar, clipped by the bottom of the
+                // screen, which a tester reported as the app's avatar turning into a
+                // giant torso.
+                if emptyPastDay {
                     EmptyStateView(message: "Nothing was recorded on this day.")
+                } else {
+                    // The screen below the fold is composed from the goal, not fixed:
+                    // someone here to sleep better does not open on a back squat.
+                    ForEach(blocks, id: \.self) { block in
+                        view(for: block)
+                    }
+                    if !model.isRewound { insight }
                 }
             }
             .padding(.horizontal, Tokens.screenMargin)
@@ -209,6 +213,22 @@ struct TodayView: View {
         }
         .accessibilityIdentifier("today-overview")
         .refreshable { await model.refresh() }
+    }
+
+    /// Whether today already holds a finished session, in which case Today shows it
+    /// rather than the next thing in the split.
+    private var finishedSomethingToday: Bool {
+        guard !model.isRewound,
+              let all = try? context.fetch(FetchDescriptor<WorkoutSession>()) else { return false }
+        return all.contains {
+            Calendar.current.isDateInToday($0.date) && $0.isComplete && !$0.sets.isEmpty
+        }
+    }
+
+    /// A day already gone with nothing on it at all.
+    private var emptyPastDay: Bool {
+        model.isRewound
+            && (blocks.isEmpty || !model.hasAnything(on: model.viewedDay, context: context))
     }
 
     /// The cards for the day on screen.
@@ -278,8 +298,12 @@ struct TodayView: View {
         jettMomentArmed = false
     }
 
-    private func saved(_ message: String) { savedMessage = message }
-    private func showSaveResult() { if savedMessage != nil { showSaved = true } }
+    /// Nothing. The card behind the sheet already shows the new number, and a grey
+    /// system alert saying "Meal saved" over a screen reading "450 kcal logged" is the
+    /// app telling somebody what they can see, in the one piece of UI that looks like it
+    /// came from a different application. A tester said exactly that.
+    private func saved(_ message: String) {}
+    private func showSaveResult() {}
 
     // MARK: - Rings and coaching, one card
 
@@ -455,7 +479,13 @@ struct TodayView: View {
         case .session:
             // A plan is a thing you are about to do. On a day already gone the only
             // honest version is what was actually lifted, which the history holds.
-            if past { loggedThatDay } else { session }
+            //
+            // And on a day already trained. Finishing a session used to swap Today's
+            // plan for the next one in the split with no sign anything had been saved:
+            // two testers described watching a workout they had just finished disappear,
+            // one of them saying the app looked like it had eaten it. What you did
+            // outranks what you were going to do.
+            if past || finishedSomethingToday { loggedThatDay } else { session }
         case .programPrompt:
             if !past { programPrompt }
         case .nutrition:
