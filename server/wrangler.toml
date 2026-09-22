@@ -33,10 +33,15 @@ MEAL_MODEL = "deepseek-flash"
 REQUIRE_ATTESTATION = "true"
 APPLE_TEAM_ID = "V9JX42F864"
 BUNDLE_ID = "com.coachjett.ios"
-# TESTING ONLY, and the one line in this file that must not ship. "*" lifts the
-# free-message cap for every caller. Narrow it to Hao's attested key id, or empty it,
-# before anybody outside this room installs the app.
-UNLIMITED_IDS = "*"
+# Empty, which is the shipping value. "*" lifted the free-message cap for every caller
+# and was the one line in this file that could not go out.
+#
+# Empty rather than a list of testers on purpose: TestFlight exists to test what ships,
+# and a tester who never meets the cap never tests the cap, the paywall or the upgrade,
+# which is the part most likely to be broken and the only part that earns anything. Add
+# a specific attested key id here, comma separated, if somebody genuinely needs more
+# while testing something else.
+UNLIMITED_IDS = ""
 
 [[durable_objects.bindings]]
 name = "BUCKET"
