@@ -15,6 +15,7 @@
 		AE2D561E76F545B195BE919A /* SleepScore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68F3AB85F79946D3BBC4A7E8 /* SleepScore.swift */; };
 		942B43426B398BC0D4B8E2CB /* UsualBedtime.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CD49C73884DA3E86D6303C9 /* UsualBedtime.swift */; };
 		AFECC2FD73F74759B378CC25 /* FoodLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D8BB139FB4C4604BDDD7DD5 /* FoodLog.swift */; };
+		B1CE7A0011EE44A2900D0003 /* WeightTrend.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1CE7A0011EE44A2900D0004 /* WeightTrend.swift */; };
 		FCF62ED827454EC0B1080A35 /* MealPhotoEstimator.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4F62BB82A7B412C869F000E /* MealPhotoEstimator.swift */; };
 		F87758D2AAFC41B8A5E9D327 /* LoggingViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53FE074D7CB046BD9FD9B072 /* LoggingViews.swift */; };
 		E0A87F301E1A4D0AA2227104 /* THIRD-PARTY-NOTICES.txt in Resources */ = {isa = PBXBuildFile; fileRef = E0A87F301E1A4D0AA2227103 /* THIRD-PARTY-NOTICES.txt */; };
@@ -62,6 +63,7 @@
 		F7A13A0A58D5EA34A47F332E /* ProgramViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1B13F77AD2D8F94F4953163 /* ProgramViews.swift */; };
 		03F7423240A620AD290DA7E0 /* SessionViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D172633C7AC91EFD03D370B /* SessionViews.swift */; };
 		F4DA05AA778706DA63AA2EA5 /* SignalDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8EC7DE941CACCBD1BF749F9 /* SignalDetailView.swift */; };
+		B1CE7A0011EE44A2900D0001 /* WeightDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1CE7A0011EE44A2900D0002 /* WeightDetailView.swift */; };
 		70D07957F0C74B5AA46BAF1C /* CalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4F3EA3EBE864EF391B7D9AD /* CalendarView.swift */; };
 		CF0AA57D606C48A894B2CB5E /* InsightsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D16EF9A0AB8846CEB4E6FA31 /* InsightsView.swift */; };
 		C8BCF5A58DAB426A95E2240F /* JettTour.swift in Sources */ = {isa = PBXBuildFile; fileRef = F92B52D1E9C04305B8119276 /* JettTour.swift */; };
@@ -133,6 +135,7 @@
 		68F3AB85F79946D3BBC4A7E8 /* SleepScore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "SleepScore.swift"; path = "Core/Sources/ReadinessCore/SleepScore.swift"; sourceTree = SOURCE_ROOT; };
 		2CD49C73884DA3E86D6303C9 /* UsualBedtime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UsualBedtime.swift"; sourceTree = "<group>"; };
 		3D8BB139FB4C4604BDDD7DD5 /* FoodLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "FoodLog.swift"; path = "Core/Sources/ReadinessCore/FoodLog.swift"; sourceTree = SOURCE_ROOT; };
+		B1CE7A0011EE44A2900D0004 /* WeightTrend.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "WeightTrend.swift"; path = "Core/Sources/ReadinessCore/WeightTrend.swift"; sourceTree = SOURCE_ROOT; };
 		D4F62BB82A7B412C869F000E /* MealPhotoEstimator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "MealPhotoEstimator.swift"; path = "App/Coach/MealPhotoEstimator.swift"; sourceTree = SOURCE_ROOT; };
 		53FE074D7CB046BD9FD9B072 /* LoggingViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "LoggingViews.swift"; path = "App/Views/LoggingViews.swift"; sourceTree = SOURCE_ROOT; };
 		E0A87F301E1A4D0AA2227103 /* THIRD-PARTY-NOTICES.txt */ = {isa = PBXFileReference; lastKnownFileType = file; name = "THIRD-PARTY-NOTICES.txt"; path = "App/THIRD-PARTY-NOTICES.txt"; sourceTree = SOURCE_ROOT; };
@@ -181,6 +184,7 @@
 		D1B13F77AD2D8F94F4953163 /* ProgramViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProgramViews.swift"; sourceTree = "<group>"; };
 		5D172633C7AC91EFD03D370B /* SessionViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SessionViews.swift"; sourceTree = "<group>"; };
 		A8EC7DE941CACCBD1BF749F9 /* SignalDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SignalDetailView.swift"; sourceTree = "<group>"; };
+		B1CE7A0011EE44A2900D0002 /* WeightDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WeightDetailView.swift"; sourceTree = "<group>"; };
 		A4F3EA3EBE864EF391B7D9AD /* CalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CalendarView.swift"; sourceTree = "<group>"; };
 		D16EF9A0AB8846CEB4E6FA31 /* InsightsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "InsightsView.swift"; sourceTree = "<group>"; };
 		F92B52D1E9C04305B8119276 /* JettTour.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "JettTour.swift"; path = "App/Views/JettTour.swift"; sourceTree = SOURCE_ROOT; };
@@ -305,6 +309,7 @@
 				B1453BC247AC4FBFB2B245E8 /* DailyStrain.swift */,
 				68F3AB85F79946D3BBC4A7E8 /* SleepScore.swift */,
 				3D8BB139FB4C4604BDDD7DD5 /* FoodLog.swift */,
+				B1CE7A0011EE44A2900D0004 /* WeightTrend.swift */,
 				D4F62BB82A7B412C869F000E /* MealPhotoEstimator.swift */,
 				53FE074D7CB046BD9FD9B072 /* LoggingViews.swift */,
 				FD4B53768B1618CC75DD100A /* App */,
@@ -425,6 +430,7 @@
 				D1B13F77AD2D8F94F4953163 /* ProgramViews.swift */,
 				5D172633C7AC91EFD03D370B /* SessionViews.swift */,
 				A8EC7DE941CACCBD1BF749F9 /* SignalDetailView.swift */,
+				B1CE7A0011EE44A2900D0002 /* WeightDetailView.swift */,
 				A4F3EA3EBE864EF391B7D9AD /* CalendarView.swift */,
 				D16EF9A0AB8846CEB4E6FA31 /* InsightsView.swift */,
 				F92B52D1E9C04305B8119276 /* JettTour.swift */,
@@ -619,6 +625,7 @@
 				AE2D561E76F545B195BE919A /* SleepScore.swift in Sources */,
 				942B43426B398BC0D4B8E2CB /* UsualBedtime.swift in Sources */,
 				AFECC2FD73F74759B378CC25 /* FoodLog.swift in Sources */,
+				B1CE7A0011EE44A2900D0003 /* WeightTrend.swift in Sources */,
 				FCF62ED827454EC0B1080A35 /* MealPhotoEstimator.swift in Sources */,
 				F87758D2AAFC41B8A5E9D327 /* LoggingViews.swift in Sources */,
 				58FD71D67A497BE6E4037D13 /* ClaudeCoachProvider.swift in Sources */,
@@ -660,6 +667,7 @@
 				F7A13A0A58D5EA34A47F332E /* ProgramViews.swift in Sources */,
 				03F7423240A620AD290DA7E0 /* SessionViews.swift in Sources */,
 				F4DA05AA778706DA63AA2EA5 /* SignalDetailView.swift in Sources */,
+				B1CE7A0011EE44A2900D0001 /* WeightDetailView.swift in Sources */,
 				70D07957F0C74B5AA46BAF1C /* CalendarView.swift in Sources */,
 				CF0AA57D606C48A894B2CB5E /* InsightsView.swift in Sources */,
 				C8BCF5A58DAB426A95E2240F /* JettTour.swift in Sources */,

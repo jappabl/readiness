@@ -65,7 +65,16 @@ struct WeightTrendCard: View {
     let latest: (date: Date, kilograms: Double)?
     let series: [Double]
     let metric: Bool
+    /// Every weigh-in with its date, so the card can say what changed rather than only
+    /// what today is. The sparkline was the only answer to "is it moving", and it does
+    /// not appear until the second reading, so somebody who had weighed in once saw a
+    /// number with nothing beside it and concluded the app had no history at all.
+    var dated: [WeightTrend.Reading] = []
     var onLog: (() -> Void)?
+    var onOpen: (() -> Void)?
+
+    private var change: WeightTrend.Change? { WeightTrend.latestChange(in: dated) }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
@@ -75,22 +84,46 @@ struct WeightTrendCard: View {
                         .font(.subheadline.weight(.semibold)).sectionAction()
                 }
             }
-            VStack(alignment: .leading, spacing: 12) {
-                if let latest {
-                    HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        Text(BodyMass.display(kilograms: latest.kilograms, metric: metric), format: .number.precision(.fractionLength(1)))
-                            .font(.system(size: 30, weight: .semibold)).monospacedDigit()
-                        Text(metric ? "kg" : "lb").font(.subheadline).foregroundStyle(.secondary)
-                        Spacer()
-                        Text(latest.date, format: .dateTime.month(.abbreviated).day()).font(.caption).foregroundStyle(.secondary)
-                    }
-                    if series.count > 1 {
-                        Sparkline(values: Array(series.suffix(28)), tint: Tokens.jettTint).frame(height: 36)
-                        Text("Recent readings").font(.caption).foregroundStyle(.secondary)
-                    }
-                } else { Text("Add a weigh-in to start your trend.").font(.subheadline).foregroundStyle(.secondary) }
-            }.bevelCard()
+            Button {
+                guard let onOpen else { return }
+                Haptics.light(); onOpen()
+            } label: {
+                VStack(alignment: .leading, spacing: 12) {
+                    if let latest {
+                        HStack(alignment: .firstTextBaseline, spacing: 6) {
+                            Text(BodyMass.display(kilograms: latest.kilograms, metric: metric), format: .number.precision(.fractionLength(1)))
+                                .font(.system(size: 30, weight: .semibold)).monospacedDigit()
+                            Text(metric ? "kg" : "lb").font(.subheadline).foregroundStyle(.secondary)
+                            Spacer()
+                            if let change {
+                                Text(changeText(change)).font(.caption).foregroundStyle(.secondary)
+                            } else {
+                                Text(latest.date, format: .dateTime.month(.abbreviated).day()).font(.caption).foregroundStyle(.secondary)
+                            }
+                        }
+                        if series.count > 1 {
+                            Sparkline(values: Array(series.suffix(28)), tint: Tokens.jettTint).frame(height: 36)
+                        }
+                    } else { Text("Add a weigh-in to start your trend.").font(.subheadline).foregroundStyle(.secondary) }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
+                .bevelCard()
+            }
+            .buttonStyle(.plain)
+            .disabled(onOpen == nil)
+            .foregroundStyle(Tokens.textPrimary)
         }
+    }
+
+    /// Down 1.4 lb since Sep 14. The date it is measured from is half the fact: a kilo
+    /// over a week and a kilo overnight are not the same news.
+    private func changeText(_ change: WeightTrend.Change) -> String {
+        let size = abs(BodyMass.display(kilograms: change.kilograms, metric: metric))
+            .formatted(.number.precision(.fractionLength(1)))
+        let unit = metric ? "kg" : "lb"
+        let word = change.isDown ? "Down" : "Up"
+        return "\(word) \(size) \(unit) since \(change.from.formatted(.dateTime.month(.abbreviated).day()))"
     }
 }
 

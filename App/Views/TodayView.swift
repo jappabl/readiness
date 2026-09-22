@@ -15,6 +15,8 @@ struct TodayView: View {
     @State private var showingAdjust = false
     @State private var activeSession: WorkoutSession?
     @State private var loggingWeight = false
+    @State private var openingWeight = false
+    @Query(sort: \WeightLog.date) private var weightLogs: [WeightLog]
     @State private var loggingMeal = false
     @State private var editingTemplate: WorkoutTemplate?
     @State private var savedMessage: String?
@@ -49,6 +51,7 @@ struct TodayView: View {
             NavigationStack { ProgramSetupView { model.selectToday($0); pickingProgram = false } }
         }
         .sheet(item: $activeSession) { LiveWorkoutView(session: $0) }
+        .navigationDestination(isPresented: $openingWeight) { WeightDetailView() }
         .sheet(isPresented: $loggingWeight, onDismiss: showSaveResult) { WeightLogView { saved($0) } }
         .sheet(isPresented: $loggingMeal, onDismiss: showSaveResult) { MealLogView { saved($0) } }
         .sheet(item: $editingTemplate) { template in
@@ -61,6 +64,17 @@ struct TodayView: View {
                 WhyView(day: day, recommendation: rec)
             }
         }
+    }
+
+    /// Every weigh-in with its date, from Health and from what was logged here, one a
+    /// day. The card needs dates to say what changed; the series it already had is a
+    /// bare list of numbers.
+    private var weighIns: [WeightTrend.Reading] {
+        let fromHealth = model.series.compactMap { day in
+            day.bodyMassKg.map { WeightTrend.Reading(date: day.date, kilograms: $0) }
+        }
+        let fromLogs = weightLogs.map { WeightTrend.Reading(date: $0.date, kilograms: $0.kilograms) }
+        return WeightTrend.daily(fromHealth + fromLogs)
     }
 
     /// The last six days that have anything recorded on them. Today is the screen you
@@ -445,7 +459,9 @@ struct TodayView: View {
             let weight = model.weight(asOf: model.viewedDay)
             WeightTrendCard(latest: weight.latest, series: weight.series,
                 metric: model.onboarding.unitsAreMetric,
-                onLog: past ? nil : { loggingWeight = true })
+                dated: weighIns,
+                onLog: past ? nil : { loggingWeight = true },
+                onOpen: { openingWeight = true })
         case .sleepQuality:
             SleepQualityCard(night: shown?.sleep,
                              summary: model.viewedScores(context: context).sleep.summary)
