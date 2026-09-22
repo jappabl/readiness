@@ -172,6 +172,25 @@ struct OnboardingView: View {
         }
     }
 
+    /// Done, in a row that is always there.
+    ///
+    /// It used to appear the moment the first option was chosen, which pushed the whole
+    /// grid up between one tap and the next. On a multi-select that is exactly when
+    /// somebody is reaching for their second option, and it lands on the space the chip
+    /// used to occupy. Every tester who moved quickly through these two questions
+    /// reported a chip as dead, and four of them concluded the app was broken. The space
+    /// is reserved now, so nothing moves under a thumb.
+    private func doneRow(enabled: Bool, action: @escaping () -> Void) -> some View {
+        Button("Done", action: action)
+            .font(.body.weight(.semibold))
+            .frame(minHeight: 44)
+            .frame(maxWidth: .infinity, alignment: .trailing)
+            .tint(Tokens.messageOutgoing)
+            .opacity(enabled ? 1 : 0)
+            .disabled(!enabled)
+            .accessibilityHidden(!enabled)
+    }
+
     private func edit(_ turnID: Int) {
         Haptics.light()
         withAnimation(reduceMotion ? nil : .easeOut(duration: 0.3)) {
@@ -257,11 +276,8 @@ struct OnboardingView: View {
                     }
                     choice("None") { commit { flow.confirmLimitations(none: true) } }
                 }
-                if flow.answers.limitations?.isEmpty == false {
-                    Button("Done") { commit { flow.confirmLimitations() } }
-                        .font(.body.weight(.semibold))
-                        .frame(minHeight: 44).frame(maxWidth: .infinity, alignment: .trailing)
-                        .tint(Tokens.messageOutgoing)
+                doneRow(enabled: flow.answers.limitations?.isEmpty == false) {
+                    commit { flow.confirmLimitations() }
                 }
             }
         case .equipment:
@@ -303,12 +319,8 @@ struct OnboardingView: View {
                     // screen moved the button somebody had just learned to look for.
                     choice("Nothing") { commit { flow.confirmObstacles(none: true) } }
                 }
-                if !flow.answers.obstacles.isEmpty {
-                    Button("Done") { commit { flow.confirmObstacles() } }
-                        .font(.body.weight(.semibold))
-                        .frame(minHeight: 44)
-                        .frame(maxWidth: .infinity, alignment: .trailing)
-                        .tint(Tokens.messageOutgoing)
+                doneRow(enabled: !flow.answers.obstacles.isEmpty) {
+                    commit { flow.confirmObstacles() }
                 }
             }
         case .units:
@@ -477,7 +489,12 @@ struct OnboardingView: View {
         visibleCount = flow.turns.count
         reactedAnswers = Set(flow.turns.filter { $0.isUser && $0.reaction != nil }.map(\.id))
         receiptAnswerID = flow.turns.last(where: \.isUser)?.id
-        deliveryStatus = "Read " + Date().formatted(date: .omitted, time: .shortened)
+        // No time on a resumed conversation. It used to stamp the current one, so an
+        // answer given at 1:19 read "Read 1:21" after a relaunch and "Read 1:24" after
+        // the next: a tester watched the timestamps climb on messages nobody had sent
+        // and said the chat felt like it was replaying itself. We do not know when it
+        // was read, so we do not say.
+        deliveryStatus = "Read"
     }
 
     private func scrollAfterLayout(_ proxy: ScrollViewProxy) {
