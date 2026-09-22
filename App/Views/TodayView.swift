@@ -92,6 +92,10 @@ struct TodayView: View {
         HStack {
             // The date is a way back into the week, not a label. A shortcut for the
             // last few days, with the calendar behind it for anything older.
+            // A chevron that opens nothing is worse than no chevron. On a fresh
+            // install there is no history, so this menu had no items, and two testers
+            // tapped the date repeatedly and reported it as broken. It looks like the
+            // other dropdowns in the app, which do work.
             Menu {
                 ForEach(recentDays, id: \.self) { day in
                     Button {
@@ -111,13 +115,16 @@ struct TodayView: View {
                     } else {
                         Text("Today, ") + Text(Date(), format: .dateTime.month(.wide).day())
                     }
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(Tokens.textSecondary)
+                    if !recentDays.isEmpty {
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(Tokens.textSecondary)
+                    }
                 }
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundStyle(Tokens.textPrimary)
             }
+            .disabled(recentDays.isEmpty)
             Spacer()
             // The only thing that ever sits here, and only while the screen is showing
             // a day that has already happened. Text and a symbol rather than a filled

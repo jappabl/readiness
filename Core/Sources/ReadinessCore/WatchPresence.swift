@@ -69,3 +69,25 @@ public enum WatchPresence {
         return .gotOne
     }
 }
+
+extension WatchPresence {
+
+    /// What to say on the recovery screen when there is no number on it.
+    ///
+    /// It said "Still building your baseline" to everybody, which is true of a new
+    /// phone-and-watch user and a lie to somebody who does not own a watch: the baseline
+    /// is not being built, it is never coming. A tester said no to the watch question
+    /// during onboarding, watched the ring show a dash, and spent the session unable to
+    /// tell whether the app was broken or whether she was.
+    ///
+    /// Recovery is read from overnight heart data, which a phone on a bedside table
+    /// cannot see. Saying so once is worth more than a dash that looks like a bug for
+    /// ever, and it is the difference between somebody deciding the app is broken and
+    /// somebody deciding what to do about it.
+    public static func recoveryNote(hasReading: Bool, hasWatch: Bool) -> String? {
+        if hasReading { return nil }
+        return hasWatch
+            ? "Still building your baseline."
+            : "Recovery is read from your heart overnight, so it needs a watch in bed. Sleep and strain work without one."
+    }
+}

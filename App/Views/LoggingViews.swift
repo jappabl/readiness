@@ -141,10 +141,18 @@ struct MealLogView: View {
                             .foregroundStyle(Tokens.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
-                    // Notes sit under the picture and above the numbers, because they
-                    // belong to the reading rather than to its result.
-                    notes.disabled(estimating || busy || loadingPhoto)
+                    // The name comes first, because it is the field somebody is looking
+                    // for. Notes sat here for a few hours today, on the reasoning that
+                    // they belong to the reading rather than its result, and two testers
+                    // typed their dinner straight into them: the first box under the
+                    // photo is the one people fill in, whatever it is labelled. With the
+                    // name still empty the Log meal button stayed dead, and both of them
+                    // reported that logging a meal does not work.
+                    //
+                    // What the notes needed was not a better position. It was reaching
+                    // the model at all, which Read again does from anywhere on the page.
                     readout.disabled(estimating || busy || loadingPhoto)
+                    notes.disabled(estimating || busy || loadingPhoto)
                     Toggle("Save to Apple Health", isOn: $health)
                         .font(.system(size: 14))
                         .foregroundStyle(Tokens.textSecondary)

@@ -107,3 +107,31 @@ struct WatchNudgeTests {
         #expect(WatchPresence.nudge(saidYes: nil, nightsWithStages: nights(staged: 9, then: 0)) == nil)
     }
 }
+
+/// What the recovery screen says when it has no number to show.
+///
+/// "Still building your baseline" is true of somebody a week into owning a watch and a
+/// lie to somebody who owns none: the baseline is not being built. A tester answered no
+/// to the watch question, saw a dash, and could not tell whether the app was broken.
+@Suite("Recovery with nothing to show")
+struct RecoveryNoteTests {
+
+    @Test func areadingNeedsNoExcuse() {
+        #expect(WatchPresence.recoveryNote(hasReading: true, hasWatch: true) == nil)
+        #expect(WatchPresence.recoveryNote(hasReading: true, hasWatch: false) == nil)
+    }
+
+    @Test func awatchWithNoHistoryYetIsStillBuilding() {
+        #expect(WatchPresence.recoveryNote(hasReading: false, hasWatch: true)
+                == "Still building your baseline.")
+    }
+
+    /// The whole point: do not promise a number that is not coming.
+    @Test func noWatchIsToldSoRatherThanLeftWaiting() throws {
+        let note = try #require(WatchPresence.recoveryNote(hasReading: false, hasWatch: false))
+        #expect(note.contains("needs a watch"))
+        #expect(!note.contains("building"))
+        // And it says what does still work, so the answer is not only bad news.
+        #expect(note.contains("Sleep and strain"))
+    }
+}

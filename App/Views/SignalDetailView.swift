@@ -183,7 +183,12 @@ struct SignalDetailView: View {
         switch signal {
         case .recovery:
             guard let reading = model.reading(.hrv, on: date) else {
-                return "Still building your baseline."
+                // Not the same sentence for everybody. "Still building your baseline" is
+                // true of a new watch and a lie to somebody who owns none, and the app
+                // asked that question during onboarding.
+                return WatchPresence.recoveryNote(hasReading: false,
+                                                  hasWatch: model.wearsWatchToBed)
+                    ?? "Still building your baseline."
             }
             // The week, which is what HRV is scored on, not last night. This sentence and
             // the insights row behind the info button disagreed in sign on a fifth of
