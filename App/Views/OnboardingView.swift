@@ -137,9 +137,19 @@ struct OnboardingView: View {
             // thumb aimed at the top-left choice and landing an inch high rewound the
             // conversation instead. It looked exactly like the app refusing to take an
             // answer, because nothing on screen said what had happened.
+            // The word Edit, and nothing else.
+            //
+            // The bubble was a button too. Removing the gutter beside it stopped the
+            // worst of it, but three testers still lost answers to a tap they did not
+            // know they had made: one reported being unable to get past the injuries
+            // question, one found the chat "silently jumping backward", and one tapped
+            // the privacy disclosure under an answer and watched that answer vanish. A
+            // control nobody can see is a control nobody meant to press, and the visible
+            // one is four characters away.
             answerWithReceipt(message, turnID: turn.id, editable: editable,
                               reservesReactionSpace: turn.reaction != nil,
-                              onEdit: editable ? { edit(turn.id) } : nil)
+                              onEdit: editable ? { edit(turn.id) } : nil,
+                              tappableBubble: false)
             .accessibilityRemoveTraits(editable ? [] : .isButton)
             .accessibilityAddTraits(editable ? .isButton : [])
             .accessibilityLabel("You: \(turn.text)" + (message.reaction.map { ". Jett reacted with \($0.rawValue)" } ?? ""))
@@ -173,10 +183,12 @@ struct OnboardingView: View {
 
     private func answerWithReceipt(_ message: CoachMessage, turnID: Int, editable: Bool,
                                    reservesReactionSpace: Bool = false,
-                                   onEdit: (() -> Void)? = nil) -> some View {
+                                   onEdit: (() -> Void)? = nil,
+                                   tappableBubble: Bool = true) -> some View {
         VStack(alignment: .trailing, spacing: 4) {
             CoachTurnView(message: message, reservesReactionSpace: reservesReactionSpace,
-                          revealsWords: message.role == .assistant, onTap: onEdit)
+                          revealsWords: message.role == .assistant,
+                          onTap: tappableBubble ? onEdit : nil)
             if receiptAnswerID == turnID {
                 HStack(spacing: 5) {
                     Text(deliveryStatus)
@@ -184,6 +196,11 @@ struct OnboardingView: View {
                         Text("·").accessibilityHidden(true)
                         Button("Edit", action: onEdit)
                             .buttonStyle(.plain)
+                            // The only way back now, so it gets a thumb-sized target
+                            // rather than the eleven points its text occupies.
+                            .padding(.vertical, 12)
+                            .padding(.leading, 8)
+                            .contentShape(Rectangle())
                             .accessibilityLabel("Change this answer")
                     }
                 }
