@@ -122,3 +122,73 @@ struct MealEstimateDecodingTests {
         }
     }
 }
+
+/// What somebody actually types into a meal.
+///
+/// A tester entered a name, 200 kcal and 20g of protein and watched the Log meal button
+/// stay grey for ever. Every macro had to parse or the whole meal was invalid, and a
+/// blank box does not parse, so leaving carbs and fat alone made the meal unloggable
+/// with nothing on screen saying so. He wrote that the button was decoration.
+@Suite("Macros somebody left blank")
+struct BlankMacroTests {
+    private func macro(_ text: String) -> Double? {
+        FoodNumber.macro(text, decimalSeparator: ".")
+    }
+
+    @Test func aBoxLeftAloneIsTheZeroItsPlaceholderShows() {
+        #expect(macro("") == 0)
+        #expect(macro("   ") == 0)
+    }
+
+    /// Blank and wrong are different answers. Reading "abc" as zero would log a meal
+    /// somebody did not describe.
+    @Test func somethingTypedStillHasToBeANumber() {
+        #expect(macro("abc") == nil)
+        #expect(macro("12g") == nil)
+        #expect(macro("20") == 20)
+        #expect(macro("20.5") == 20.5)
+    }
+
+    /// The calories are the one figure a meal cannot do without, and they go through the
+    /// strict reading rather than this one.
+    @Test func caloriesAreNotAMacro() {
+        #expect(FoodNumber.parse("", decimalSeparator: ".") == nil)
+    }
+
+    /// The whole reason for the change: a meal with calories and protein and nothing else
+    /// is a meal.
+    @Test func calorieAndProteinOnlyIsAValidMeal() throws {
+        let values = MealNutrition(calories: 200,
+                                   protein: try #require(macro("20")),
+                                   carbs: try #require(macro("")),
+                                   fat: try #require(macro("")))
+        #expect(values.isValid)
+    }
+}
+
+/// The word on the button and the arithmetic behind it have to agree.
+///
+/// A tester rated every set of a session "Comfortable" and the summary told him "Hard
+/// sets: 12". Comfortable was three reps in reserve, and three is inside the engine's own
+/// line for a hard set, so every answer on offer counted as hard and the stat could never
+/// read zero.
+@Suite("Comfortable is not a hard set")
+struct EffortLabelTests {
+
+    private func set(rir: Int) -> LiftSet {
+        LiftSet(load: 100, reps: 10, rir: rir, muscleGroup: .chest)
+    }
+
+    @Test func aComfortableSetIsNotCountedAsAHardOne() {
+        let comfortable = StrainEngine.hardSetRIRThreshold + 1
+        let load = StrainEngine.sessionLoad(sets: [set(rir: comfortable)], sessionRPE: 5)
+        #expect(load.hardSetsByMuscle.values.reduce(0, +) == 0)
+        #expect(load.closeToFailureShare == 0)
+    }
+
+    @Test func hardAndAllOutStillAre() {
+        let load = StrainEngine.sessionLoad(sets: [set(rir: 1), set(rir: 0)], sessionRPE: 8)
+        #expect(load.hardSetsByMuscle[.chest] == 2)
+        #expect(load.closeToFailureShare == 1)
+    }
+}

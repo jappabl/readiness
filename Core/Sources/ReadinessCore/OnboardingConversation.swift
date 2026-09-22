@@ -2,12 +2,42 @@ import Foundation
 
 public enum CoachReaction: String, Codable, Sendable {
     case heart, like, muscle, running
+
+    /// When Jett reacts to an answer, and to which ones.
+    ///
+    /// They used to land almost everywhere: a heart on "Just starting", a thumbs up on
+    /// "3-4 days a week". A tester read them as decoration he had not added and that did
+    /// not mean anything, which is what a reaction becomes when it arrives whatever you
+    /// said. A reaction that is always there carries no information.
+    ///
+    /// So the rule is that Jett reacts where a person would and stays quiet otherwise.
+    /// Three cases and no fourth:
+    ///
+    /// - 💪 when somebody says they want to get strong or big. That is the answer people
+    ///   are pleased to give.
+    /// - 🏃 when somebody says they train five, six or seven days a week. That is a
+    ///   number worth acknowledging.
+    ///
+    /// Everything else gets nothing. Not the experience question, where hearting a
+    /// beginner for being a beginner is a pat on the head, and not the two questions
+    /// about what hurts and what is in the way: those answers cost something to give and
+    /// are already met with a sentence that says so in words, which is worth more than a
+    /// heart stuck on somebody's bad knee.
+    public static func toGoals(_ goals: Set<TrainingGoal>) -> CoachReaction? {
+        if goals.contains(.getStronger) || goals.contains(.buildMuscle) { return .muscle }
+        return nil
+    }
+
+    public static func toFrequency(_ frequency: TrainingFrequency) -> CoachReaction? {
+        frequency == .most || frequency == .daily ? .running : nil
+    }
+
 }
 
 /// Scripted onboarding. No provider, timer or HealthKit dependency lives here.
-public struct OnboardingConversation: Sendable {
-    public enum Step: Sendable { case goal, frequency, experience, obstacles, limitations, equipment, units, watch, health, reading, healthDetails, weight, notifications, ready }
-    public struct Turn: Identifiable, Equatable, Sendable {
+public struct OnboardingConversation: Sendable, Codable {
+    public enum Step: String, Sendable, Codable { case goal, frequency, experience, obstacles, limitations, equipment, units, watch, health, reading, healthDetails, weight, notifications, ready }
+    public struct Turn: Identifiable, Equatable, Sendable, Codable {
         public let id: Int
         public let isUser: Bool
         public let text: String
@@ -22,7 +52,15 @@ public struct OnboardingConversation: Sendable {
     public private(set) var turns: [Turn] = []
     public private(set) var missingHealthFields: [HealthProfile.Field] = []
     private var nextID = 0
-    private var lastAnswer: (id: Int, step: Step, count: Int)?
+    /// A struct rather than a tuple so the conversation can be written to disk. Half an
+    /// answered onboarding used to die with the app: a tester force quit while stuck and
+    /// came back to "Hey, I'm Jett" with every answer gone, twice.
+    private struct LastAnswer: Sendable, Codable {
+        let id: Int
+        let step: Step
+        let count: Int
+    }
+    private var lastAnswer: LastAnswer?
 
     public static let starterQuestions = [
         "How should I train this week?",
@@ -51,9 +89,8 @@ public struct OnboardingConversation: Sendable {
     public mutating func confirmGoals() {
         guard step == .goal, !answers.selectedGoals.isEmpty else { return }
         let titles = answers.orderedGoals.map(\.title)
-        let reaction: CoachReaction = answers.impliesLifting ? .muscle
-            : answers.selectedGoals.contains(.feelBetter) ? .heart : .like
-        answer(titles.joined(separator: ", "), reaction: reaction)
+        answer(titles.joined(separator: ", "),
+               reaction: CoachReaction.toGoals(answers.selectedGoals))
         let acknowledgement: String
         if answers.selectedGoals.count >= 3 { acknowledgement = "The whole upgrade. I'll spare you the superhero origin story." }
         else if answers.selectedGoals.contains(.buildMuscle) && answers.selectedGoals.contains(.loseFat) { acknowledgement = "Build muscle and lean out. Steady progress, no crash diets." }
@@ -70,7 +107,7 @@ public struct OnboardingConversation: Sendable {
         guard step == .frequency else { return }
         answers.frequency = frequency
         answer(frequency == .daily ? frequency.title : "\(frequency.title) days a week",
-               reaction: frequency == .most || frequency == .daily ? .running : frequency == .few ? .like : nil)
+               reaction: CoachReaction.toFrequency(frequency))
         let acknowledgement: String
         switch frequency {
         case .rarely: acknowledgement = "We'll leave room for life." 
@@ -85,7 +122,7 @@ public struct OnboardingConversation: Sendable {
     public mutating func chooseExperience(_ experience: TrainingExperience) {
         guard step == .experience else { return }
         answers.experience = experience
-        answer(experience.title, reaction: experience == .new ? .heart : nil)
+        answer(experience.title, reaction: nil)
         let acknowledgement: String
         switch experience {
         case .new: acknowledgement = "Fresh start. No catching up to do."
@@ -102,8 +139,14 @@ public struct OnboardingConversation: Sendable {
         else { answers.obstacles.insert(obstacle) }
     }
 
-    public mutating func confirmObstacles() {
+    /// `none` is somebody saying nothing is in the way, which is an answer. It clears
+    /// anything half-selected, the way the same button does on the injuries question:
+    /// the two multi-select questions are the same question shape and behaved
+    /// differently, one offering a Skip in the footer and the other a None among the
+    /// choices, so the way forward moved between two consecutive screens.
+    public mutating func confirmObstacles(none: Bool = false) {
         guard step == .obstacles else { return }
+        if none { answers.obstacles = [] }
         let titles = Obstacle.allCases.filter { answers.obstacles.contains($0) }.map(\.title)
         answer(titles.isEmpty ? "Nothing to add" : titles.joined(separator: ", "),
                reaction: nil)
@@ -302,7 +345,7 @@ public struct OnboardingConversation: Sendable {
     }
 
     private mutating func answer(_ text: String, reaction: CoachReaction? = nil) {
-        lastAnswer = (nextID, step, turns.count)
+        lastAnswer = LastAnswer(id: nextID, step: step, count: turns.count)
         turns.append(Turn(id: nextID, isUser: true, text: text, reaction: reaction))
         nextID += 1
     }

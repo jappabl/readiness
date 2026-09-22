@@ -7,7 +7,7 @@ struct OnboardingView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dynamicTypeSize) private var typeSize
-    @State private var flow = OnboardingConversation()
+    @State private var flow = OnboardingDraft.restore() ?? OnboardingConversation()
     @State private var visibleCount = 0
     @State private var connecting = false
     @State private var connectionDone = false
@@ -74,6 +74,7 @@ struct OnboardingView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Tokens.messageCanvas.ignoresSafeArea())
+        .onAppear { resumeIfSaved() }
         .task(id: flow.turns.count) {
             visibleCount = min(visibleCount, flow.turns.count)
             do {
@@ -278,14 +279,20 @@ struct OnboardingView: View {
                             flow.toggleObstacle(obstacle)
                         }
                     }
+                    // "Nothing" sits among the choices, not as a Skip in the footer.
+                    // This and the injuries question are the same question twice, and
+                    // they used to disagree about where the way out was: a grey Skip
+                    // under one, a None among the choices of the other, so the next
+                    // screen moved the button somebody had just learned to look for.
+                    choice("Nothing") { commit { flow.confirmObstacles(none: true) } }
                 }
-                Button(flow.answers.obstacles.isEmpty ? "Skip" : "Done") {
-                    commit { flow.confirmObstacles() }
+                if !flow.answers.obstacles.isEmpty {
+                    Button("Done") { commit { flow.confirmObstacles() } }
+                        .font(.body.weight(.semibold))
+                        .frame(minHeight: 44)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                        .tint(Tokens.messageOutgoing)
                 }
-                .font(.body.weight(.semibold))
-                .frame(minHeight: 44)
-                .frame(maxWidth: .infinity, alignment: .trailing)
-                .tint(Tokens.messageOutgoing)
             }
         case .units:
             LazyVGrid(columns: columns, spacing: 10) {
@@ -441,6 +448,19 @@ struct OnboardingView: View {
             receiptAnswerID = flow.turns.last(where: \.isUser)?.id
             deliveryStatus = "Sent"
         }
+        OnboardingDraft.save(flow)
+    }
+
+    /// Put a resumed conversation on screen whole rather than replaying it.
+    ///
+    /// The reveal animation exists for a turn that just arrived. Running it over eight
+    /// answers somebody gave yesterday would make them watch their own onboarding back.
+    private func resumeIfSaved() {
+        guard !flow.turns.isEmpty, visibleCount == 0 else { return }
+        visibleCount = flow.turns.count
+        reactedAnswers = Set(flow.turns.filter { $0.isUser && $0.reaction != nil }.map(\.id))
+        receiptAnswerID = flow.turns.last(where: \.isUser)?.id
+        deliveryStatus = "Read " + Date().formatted(date: .omitted, time: .shortened)
     }
 
     private func scrollAfterLayout(_ proxy: ScrollViewProxy) {
@@ -509,6 +529,37 @@ struct OnboardingView: View {
             CoachMessage(role: $0.isUser ? .user : .assistant, text: $0.text, reaction: $0.reaction)
         }
         Haptics.committed()
+        OnboardingDraft.clear()
         model.finishOnboarding()
     }
+}
+
+/// Half an answered onboarding, kept across launches.
+///
+/// It used to die with the app. A tester force quit twice while stuck on a question and
+/// came back both times to "Hey, I'm Jett" with eight answers gone, which is the point
+/// most people stop reinstalling an app rather than answer it all a third time.
+///
+/// Not saved during the health read, which is the one step that is a running task rather
+/// than a question: resuming into it would be resuming into a spinner that nothing is
+/// feeding. The save from the question before it stands, so a crash there comes back to
+/// the last thing somebody actually answered.
+enum OnboardingDraft {
+    private static let key = "onboarding.draft"
+
+    static func save(_ flow: OnboardingConversation) {
+        guard flow.step != .reading, flow.step != .ready else { return }
+        guard let data = try? JSONEncoder().encode(flow) else { return }
+        UserDefaults.standard.set(data, forKey: key)
+    }
+
+    static func restore() -> OnboardingConversation? {
+        guard let data = UserDefaults.standard.data(forKey: key),
+              let flow = try? JSONDecoder().decode(OnboardingConversation.self, from: data),
+              !flow.turns.isEmpty
+        else { return nil }
+        return flow
+    }
+
+    static func clear() { UserDefaults.standard.removeObject(forKey: key) }
 }

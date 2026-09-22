@@ -92,8 +92,12 @@ struct MealLogView: View {
     private func number(_ text: String) -> Double? {
         FoodNumber.parse(text, decimalSeparator: Locale.current.decimalSeparator ?? ".")
     }
+    private func macro(_ text: String) -> Double? {
+        FoodNumber.macro(text, decimalSeparator: Locale.current.decimalSeparator ?? ".")
+    }
     private var nutrition: MealNutrition? {
-        guard let kcal = number(calories), let p = number(protein), let c = number(carbs), let f = number(fat) else { return nil }
+        guard let kcal = number(calories), let p = macro(protein),
+              let c = macro(carbs), let f = macro(fat) else { return nil }
         let values = MealNutrition(calories: kcal, protein: p, carbs: c, fat: f)
         return values.isValid ? values : nil
     }
@@ -326,7 +330,12 @@ struct MealLogView: View {
     private func usePhoto(_ image: UIImage) {
         cancelEstimate()
         photo = image
-        name = ""; calories = ""; protein = ""; carbs = ""; fat = ""; note = ""
+        // Whatever they already typed stays. It used to all be wiped the moment a photo
+        // was attached, including the portion notes, which are an input to the estimate
+        // and were therefore deleted a line before being read: the note field exists to
+        // improve the reading and never reached it. A successful estimate overwrites
+        // these anyway, and a failed one now leaves somebody holding what they wrote
+        // instead of an empty form.
         message = nil
         // The shutter is the instruction. Nobody photographs their lunch and then wants
         // to be asked whether they meant it.

@@ -109,4 +109,18 @@ public enum FoodNumber {
               number.isFinite else { return nil }
         return number
     }
+
+    /// A macro box that was left alone, read as the zero its own placeholder shows.
+    ///
+    /// `parse` answers nil for blank, meaning unreadable, and one unreadable macro made a
+    /// whole meal invalid. Somebody who typed a name, 200 kcal and 20g of protein watched
+    /// the Log meal button stay grey for ever with nothing on screen saying why, because
+    /// they had not filled in carbs and fat. Almost nobody knows the carbs in their
+    /// dinner and the form never claimed they had to.
+    ///
+    /// Blank and wrong stay different answers: something typed still has to be a number.
+    public static func macro(_ text: String, decimalSeparator: String) -> Double? {
+        text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            ? 0 : parse(text, decimalSeparator: decimalSeparator)
+    }
 }

@@ -136,17 +136,28 @@ extension OnboardingConversationTests {
 
 
 extension OnboardingConversationTests {
-    @Test func reactionsMatchTheAnswerAndSurviveInTheTranscript() {
+    /// Two reactions in the whole conversation, and both are earned.
+    ///
+    /// They used to land on nearly every answer: a heart for saying you are new, a thumbs
+    /// up for three days a week. A tester read them as decoration he had not added and
+    /// that did not mean anything, which is what a reaction becomes when it arrives
+    /// whatever you said.
+    @Test func jettReactsToWhatIsWorthReactingToAndNothingElse() {
         var strength = OnboardingConversation()
         strength.toggleGoal(.getStronger); strength.confirmGoals()
         #expect(strength.turns.first { $0.isUser }?.reaction == .muscle)
         strength.chooseFrequency(.daily)
         #expect(strength.turns.last { $0.isUser }?.reaction == .running)
+
+        // Feeling better is not a flex and two days a week is not a marathon, so neither
+        // gets a badge. The sentence Jett replies with is where the warmth goes.
         var health = OnboardingConversation()
         health.toggleGoal(.feelBetter); health.confirmGoals()
-        #expect(health.turns.first { $0.isUser }?.reaction == .heart)
+        #expect(health.turns.first { $0.isUser }?.reaction == nil)
         health.chooseFrequency(.few)
+        #expect(health.turns.last { $0.isUser }?.reaction == nil)
         health.chooseExperience(.regular)
+        #expect(health.turns.last { $0.isUser }?.reaction == nil)
         health.toggleObstacle(.stress)
         health.confirmObstacles()
         #expect(health.turns.last { $0.isUser }?.reaction == nil)
@@ -154,6 +165,18 @@ extension OnboardingConversationTests {
         health.chooseUnits(metric: true)
         health.chooseWatch(wearsOne: true)
         #expect(health.turns.last { $0.isUser }?.reaction == nil)
+    }
+
+    /// Nothing in the way is an answer, not a question left blank, and it is given the
+    /// same way as "None" on the injuries question right after it. The two used to
+    /// disagree: a Skip in the footer of one, a None among the choices of the other.
+    @Test func nothingInTheWayIsAnAnswerLikeAnyOther() {
+        var flow = readyForObstacles()
+        flow.toggleObstacle(.sleep)
+        flow.confirmObstacles(none: true)
+        #expect(flow.answers.obstacles.isEmpty)
+        #expect(flow.turns.last { $0.isUser }?.text == "Nothing to add")
+        #expect(flow.turns.last?.text.contains("clear runway") == true)
     }
 }
 
@@ -172,7 +195,6 @@ extension OnboardingConversationTests {
         flow.chooseFrequency(.rarely)
         #expect(flow.turns.last?.text.contains("room for life") == true)
         flow.chooseExperience(.new)
-        #expect(flow.turns.last { $0.isUser }?.reaction == .heart)
         #expect(flow.turns.last?.text.contains("No catching up") == true)
     }
     @Test func sleepStressAndFoodAreAcknowledgedWithoutCelebrating() {
@@ -298,5 +320,76 @@ struct OnboardingRevealTests {
         if flow.step == .weight { flow.skipWeight() }
         if flow.step == .notifications { flow.chooseNotifications(allowed: true) }
         #expect(flow.turns.map(\.text).joined().contains("That's your normal now"))
+    }
+}
+
+/// A half-answered conversation has to survive being written down.
+///
+/// It used to die with the app. A tester force quit twice while stuck on a question and
+/// came back both times to "Hey, I'm Jett" with eight answers gone, which is the point
+/// most people delete an app rather than answer it all a third time.
+@Suite("Onboarding survives being put down")
+struct OnboardingDraftTests {
+
+    private func halfway() -> OnboardingConversation {
+        var flow = OnboardingConversation()
+        flow.toggleGoal(.getStronger); flow.confirmGoals()
+        flow.chooseFrequency(.most)
+        flow.chooseExperience(.regular)
+        flow.toggleObstacle(.sleep); flow.confirmObstacles()
+        return flow
+    }
+
+    private func roundTrip(_ flow: OnboardingConversation) throws -> OnboardingConversation {
+        let data = try JSONEncoder().encode(flow)
+        return try JSONDecoder().decode(OnboardingConversation.self, from: data)
+    }
+
+    @Test func everyAnswerAndEveryWordComesBack() throws {
+        let before = halfway()
+        let after = try roundTrip(before)
+        #expect(after.step == before.step)
+        #expect(after.turns.map(\.text) == before.turns.map(\.text))
+        #expect(after.turns.map(\.reaction) == before.turns.map(\.reaction))
+        #expect(after.answers == before.answers)
+    }
+
+    /// Coming back has to leave somebody able to carry on, not just able to read what
+    /// they said. The conversation's own bookkeeping travels with it.
+    @Test func theConversationCarriesOnFromWhereItStopped() throws {
+        var after = try roundTrip(halfway())
+        after.confirmLimitations(none: true)
+        #expect(after.step == .equipment)
+        after.chooseEquipment(.fullGym)
+        #expect(after.answers.equipment == .fullGym)
+    }
+
+    /// Including the one piece of bookkeeping that is not an answer: which turn can still
+    /// be changed. Losing it would leave a resumed conversation with no way back.
+    @Test func theLastAnswerIsStillEditableAfterwards() throws {
+        let before = halfway()
+        let after = try roundTrip(before)
+        #expect(after.latestEditableAnswerID == before.latestEditableAnswerID)
+        var edited = after
+        let id = try #require(after.latestEditableAnswerID)
+        edited.editAnswer(id: id)
+        #expect(edited.step == .obstacles)
+        #expect(edited.turns.count < after.turns.count)
+    }
+
+    /// A conversation that reached the health read is mid-task rather than mid-question,
+    /// and the fields it is waiting on are part of what has to come back with it.
+    @Test func whatTheHealthReadWasMissingSurvivesToo() throws {
+        var flow = halfway()
+        flow.confirmLimitations(none: true)
+        flow.chooseEquipment(.fullGym)
+        flow.chooseUnits(metric: false)
+        flow.chooseWatch(wearsOne: true)
+        flow.beginReading()
+        flow.finishReading(hasHealthData: true, daysRead: 30,
+                           profile: HealthProfile(), today: Date())
+        let after = try roundTrip(flow)
+        #expect(after.missingHealthFields == flow.missingHealthFields)
+        #expect(after.step == flow.step)
     }
 }

@@ -293,7 +293,12 @@ struct LiveWorkoutView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("How hard was that?").microLabel()
             HStack(spacing: 8) {
-                effortOption("Comfortable", rir: 3)
+                // Four in reserve, not three. Three is inside the engine's own line for a
+                // hard set, so a session where somebody answered Comfortable to every
+                // question came back saying "Hard sets: 12". The word and the arithmetic
+                // have to agree, and with only three answers on offer there was no way
+                // to log a set that was genuinely easy.
+                effortOption("Comfortable", rir: StrainEngine.hardSetRIRThreshold + 1)
                 effortOption("Hard", rir: 1)
                 effortOption("All out", rir: 0)
             }
@@ -309,7 +314,7 @@ struct LiveWorkoutView: View {
         switch value {
         case 0: return 0
         case 1: return 1
-        default: return 3
+        default: return StrainEngine.hardSetRIRThreshold + 1
         }
     }
 
