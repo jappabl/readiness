@@ -4,12 +4,19 @@ import UIKit
 
 enum MealPhotoEstimator {
     enum Failure: LocalizedError {
-        case missingKey, invalidPhoto, service(Int), invalidResponse, noFoodFound
+        case missingKey, notVerified, invalidPhoto, service(Int), invalidResponse, noFoodFound
         var errorDescription: String? {
             switch self {
             case .missingKey: return "Photo estimates aren't configured on this device yet. You can still enter the meal below."
             case .invalidPhoto: return "Couldn't read this photo. Try another, or enter the meal below."
-            case .service(let code): return code == 401 ? "The DeepSeek key wasn't accepted. You can still enter your meal." : "Couldn't estimate this photo right now. Try again or enter your meal."
+            // A 401 through the proxy is this install failing to prove it is a real
+            // one, and there is no key on the device to be at fault: the message used
+            // to blame "the DeepSeek key", which named a provider the person never
+            // chose and a credential they do not have. The old wording survives only
+            // for a developer build talking to the provider directly, which is the one
+            // case where a key exists and can be wrong.
+            case .notVerified: return "Couldn't verify this copy of the app, so the estimate didn't run. You can still enter your meal."
+            case .service(let code): return code == 401 ? "The key on this device wasn't accepted. You can still enter your meal." : "Couldn't estimate this photo right now. Try again or enter your meal."
             case .invalidResponse: return "Couldn't read an estimate back. Try a clearer photo or enter your meal."
             // A different sentence from a broken response, because it is a different
             // thing: the photo was read and there was no food in it.
@@ -60,7 +67,10 @@ enum MealPhotoEstimator {
         }
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let response = response as? HTTPURLResponse else { throw Failure.invalidResponse }
-        guard (200...299).contains(response.statusCode) else { throw Failure.service(response.statusCode) }
+        guard (200...299).contains(response.statusCode) else {
+            throw response.statusCode == 401 && Backend.isProxied
+                ? Failure.notVerified : Failure.service(response.statusCode)
+        }
         guard let object = try JSONSerialization.jsonObject(with: data) as? [String: Any],
               let content = object["content"] as? [[String: Any]] else { throw Failure.invalidResponse }
         let text = content.filter { $0["type"] as? String == "text" }.compactMap { $0["text"] as? String }.joined()
