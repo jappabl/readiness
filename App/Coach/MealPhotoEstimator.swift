@@ -5,6 +5,9 @@ import UIKit
 enum MealPhotoEstimator {
     enum Failure: LocalizedError {
         case missingKey, notVerified, invalidPhoto, service(Int), invalidResponse, noFoodFound
+        /// What the model actually said, when it said something we could not use.
+        /// Debug builds only: it is a diagnostic, not a sentence for anybody to read.
+        case unusable(String)
         var errorDescription: String? {
             switch self {
             case .missingKey: return "Photo estimates aren't configured on this device yet. You can still enter the meal below."
@@ -21,6 +24,7 @@ enum MealPhotoEstimator {
             // A different sentence from a broken response, because it is a different
             // thing: the photo was read and there was no food in it.
             case .noFoodFound: return "I couldn't find food in that one. Try another angle, or enter the meal below."
+            case .unusable(let reply): return "Couldn't use that reply: \(reply)"
             }
         }
     }
@@ -76,8 +80,25 @@ enum MealPhotoEstimator {
         let text = content.filter { $0["type"] as? String == "text" }.compactMap { $0["text"] as? String }.joined()
         guard let start = text.firstIndex(of: "{"), let end = text.lastIndex(of: "}"), start <= end else { throw Failure.invalidResponse }
         do { return try MealEstimate.decode(Data(text[start...end].utf8)) }
-        catch is MealEstimate.NoFoodFound { throw Failure.noFoodFound }
-        catch { throw Failure.invalidResponse }
+        catch is MealEstimate.NoFoodFound {
+            // Two clear photographs of food came back as "no food found", which is not
+            // something the code can explain about itself: the request is well formed,
+            // the image is well under the size limit, and the same route read an avocado
+            // correctly the day before. The only missing evidence is what the model
+            // actually replied, and we were throwing it away. A debug build keeps it.
+            #if DEBUG
+            throw Failure.unusable(String(text.prefix(300)))
+            #else
+            throw Failure.noFoodFound
+            #endif
+        }
+        catch {
+            #if DEBUG
+            throw Failure.unusable(String(text.prefix(300)))
+            #else
+            throw Failure.invalidResponse
+            #endif
+        }
     }
 }
 
