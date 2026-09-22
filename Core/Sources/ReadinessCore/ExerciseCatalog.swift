@@ -57,10 +57,26 @@ public struct CatalogExercise: Sendable, Equatable, Identifiable {
     /// A split squat is harder than a leg press and perfectly safe to fail, so it is not
     /// on this list.
     public let needsExperience: Bool
+    /// Whether this needs something to hang from.
+    ///
+    /// "Bodyweight" was being read as "needs nothing", and a pull-up is not nothing. Two
+    /// testers training in a bedroom, one on a yoga mat and one with a pair of
+    /// dumbbells, were handed pull-ups and told that was their session. A bar is
+    /// equipment; the app just never had a word for it.
+    ///
+    /// The answer is to ask, not to delete. A pull-up is the best back exercise
+    /// available without weights, and a doorway bar is twenty pounds: dropping it from
+    /// every bodyweight plan would leave those plans with no vertical pull at all, which
+    /// is a worse programme than the one that assumed too much.
+    ///
+    /// Only the honest cases. A chair dip needs a chair and a decline push-up needs a
+    /// bed, and everybody has both.
+    public let needsBar: Bool
 
     init(_ id: String, _ name: String, _ pattern: MovementPattern, _ muscle: MuscleGroup,
          _ equipment: ExerciseEquipment, increment: Double,
-         loads: Set<PhysicalLimitation>, needsExperience: Bool = false) {
+         loads: Set<PhysicalLimitation>, needsExperience: Bool = false,
+         needsBar: Bool = false) {
         self.id = id
         self.name = name
         self.pattern = pattern
@@ -69,6 +85,7 @@ public struct CatalogExercise: Sendable, Equatable, Identifiable {
         self.increment = increment
         self.loads = loads
         self.needsExperience = needsExperience
+        self.needsBar = needsBar
     }
 }
 
@@ -143,13 +160,13 @@ public enum ExerciseCatalog {
         .init("db-chest-row", "Chest-supported dumbbell row", .horizontalPull, .back, .dumbbells,
               increment: 5, loads: []),
         .init("inverted-row", "Inverted row", .horizontalPull, .back, .bodyweight,
-              increment: 0, loads: []),
+              increment: 0, loads: [], needsBar: true),
         .init("towel-row", "Towel row", .horizontalPull, .back, .bodyweight,
               increment: 0, loads: []),
 
         // Vertical pull
         .init("pullup", "Pull-up", .verticalPull, .back, .bodyweight,
-              increment: 0, loads: [.shoulders]),
+              increment: 0, loads: [.shoulders], needsBar: true),
         .init("pulldown", "Lat pulldown", .verticalPull, .back, .machine,
               increment: 5, loads: [.shoulders]),
         .init("db-pullover", "Dumbbell pullover", .verticalPull, .back, .dumbbells,
@@ -223,7 +240,7 @@ public enum ExerciseCatalog {
         .init("hammer-curl", "Hammer curl", .bicep, .arms, .dumbbells,
               increment: 2.5, loads: []),
         .init("chin-up", "Chin-up", .bicep, .arms, .bodyweight,
-              increment: 0, loads: [.shoulders]),
+              increment: 0, loads: [.shoulders], needsBar: true),
         .init("pushdown", "Triceps pushdown", .tricep, .arms, .machine,
               increment: 5, loads: []),
         .init("overhead-ext", "Overhead triceps extension", .tricep, .arms, .dumbbells,
@@ -253,7 +270,7 @@ public enum ExerciseCatalog {
         .init("dead-bug", "Dead bug", .core, .core, .bodyweight, increment: 0, loads: [.lowerBack]),
         .init("plank", "Plank", .core, .core, .bodyweight, increment: 0, loads: [.lowerBack, .shoulders]),
         .init("hanging-raise", "Hanging knee raise", .core, .core, .bodyweight,
-              increment: 0, loads: [.shoulders, .lowerBack]),
+              increment: 0, loads: [.shoulders, .lowerBack], needsBar: true),
     ]
 
     private static let byID: [String: CatalogExercise] = Dictionary(
@@ -269,12 +286,18 @@ public enum ExerciseCatalog {
     /// Nil limitations means the injury question has not been answered, and prescribing
     /// a back squat before knowing about somebody's back is the one mistake here worth
     /// refusing to make.
+    /// `hasBar` defaults to true because that is what the app assumed before it had a
+    /// word for a bar, and because including a pull-up for somebody who turns out not to
+    /// have one costs them a swap, while excluding it costs everybody else the best
+    /// back exercise there is without weights.
     public static func available(equipment: EquipmentAccess,
                                  limitations: Set<PhysicalLimitation>?,
-                                 experience: TrainingExperience) -> [CatalogExercise] {
+                                 experience: TrainingExperience,
+                                 hasBar: Bool = true) -> [CatalogExercise] {
         guard let limitations else { return [] }
         return all.filter { exercise in
             exercise.equipment.available(to: equipment)
+                && (!exercise.needsBar || hasBar || equipment == .fullGym)
                 && exercise.loads.isDisjoint(with: limitations)
                 && (!exercise.needsExperience || experience != .new)
         }
