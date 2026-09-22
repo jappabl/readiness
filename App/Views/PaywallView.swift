@@ -15,6 +15,12 @@ struct PaywallView: View {
     @Environment(\.openURL) private var openURL
 
     @State private var selected: String = Subscriptions.yearlyID
+
+    /// The yearly row this person is actually offered, which is the founding one when
+    /// they are one of the hundred.
+    private var defaultSelection: String {
+        store.founderYearly?.id ?? Subscriptions.yearlyID
+    }
     @State private var working = false
 
     var body: some View {
@@ -36,7 +42,13 @@ struct PaywallView: View {
                 footer
             }
         }
-        .task { if store.products.isEmpty { await store.load() } }
+        .task {
+            if store.products.isEmpty { await store.load() }
+            // A founder's default is their own yearly row, not the standard one they are
+            // never shown: selecting a product that is not on screen leaves the button
+            // buying something invisible.
+            selected = defaultSelection
+        }
         .onChange(of: store.isSubscribed) { _, subscribed in
             if subscribed { Haptics.committed(); onDone() }
         }
@@ -85,7 +97,7 @@ struct PaywallView: View {
                     .font(.system(size: 13))
                     .foregroundStyle(Tokens.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
-                ForEach(store.products, id: \.id) { product in
+                ForEach(store.offered, id: \.id) { product in
                     planRow(product)
                 }
             }
@@ -94,7 +106,8 @@ struct PaywallView: View {
 
     private func planRow(_ product: Product) -> some View {
         let isSelected = selected == product.id
-        let isYearly = product.id == Subscriptions.yearlyID
+        let isFounder = product.id == Subscriptions.founderYearlyID
+        let isYearly = product.id == Subscriptions.yearlyID || isFounder
         return Button {
             Haptics.decided()
             selected = product.id
@@ -105,7 +118,7 @@ struct PaywallView: View {
                     .foregroundStyle(isSelected ? Tokens.accent : Tokens.hairline)
                 VStack(alignment: .leading, spacing: 3) {
                     HStack(spacing: 7) {
-                        Text(isYearly ? "Yearly" : "Monthly")
+                        Text(isFounder ? "Founding yearly" : (isYearly ? "Yearly" : "Monthly"))
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundStyle(Tokens.textPrimary)
                         if let saving = yearlySaving, isYearly {
@@ -140,7 +153,8 @@ struct PaywallView: View {
     /// Worked out from the real prices, never hardcoded: a "save 40%" badge that does
     /// not match what is charged is a lie with a number on it.
     private var yearlySaving: String? {
-        guard let yearly = store.yearly, let monthly = store.monthly else { return nil }
+        guard let yearly = store.founderYearly ?? store.yearly,
+              let monthly = store.monthly else { return nil }
         let fullYear = monthly.price * 12
         guard fullYear > 0, yearly.price < fullYear else { return nil }
         let share = (fullYear - yearly.price) / fullYear

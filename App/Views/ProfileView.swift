@@ -34,6 +34,7 @@ struct ProfileView: View {
             Tokens.canvas.ignoresSafeArea()
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
+                    membership
                     about
                     memory
                     subscription
@@ -43,7 +44,6 @@ struct ProfileView: View {
                     speaking
                     atTheGym
                     privacy
-                    membership
                     #if DEBUG
                     attestation
                     #endif
@@ -484,23 +484,49 @@ struct ProfileView: View {
     }
     #endif
 
-    /// Which member they are, and nothing else.
+    /// Which member they are, at the top, where a name goes.
+    ///
+    /// It sat under the privacy footnotes, which is where things go to be filed rather
+    /// than read, and a number somebody is meant to feel something about cannot live
+    /// under four paragraphs about Health permissions. This is the one line on the
+    /// screen about who they are rather than about what the app knows.
     ///
     /// Only drawn once the server has issued a number. An install that has not
-    /// registered yet has no number, and inventing one, or showing a placeholder, would
-    /// put a stranger in the founding hundred.
+    /// registered has none, and a placeholder would put a stranger in the hundred.
     @ViewBuilder
     private var membership: some View {
-        if let badge = FoundingMember.badge(AppAttest.member) {
-            VStack(alignment: .leading, spacing: 12) {
-                ListCard {
-                    FieldRow(label: badge) {
-                        if let member = AppAttest.member, FoundingMember.isFounder(member) {
-                            Text("Founding member").foregroundStyle(Tokens.accent)
-                        }
-                    }
+        if let member = AppAttest.member, member >= 1 {
+            let founding = FoundingMember.isFounder(member)
+            HStack(spacing: 14) {
+                JettFace(size: 44)
+                VStack(alignment: .leading, spacing: 2) {
+                    // The number is the thing. Big, and monospaced so #11 and #14 are
+                    // the same width: a badge that reflows as it counts up looks like a
+                    // bug the first hundred times somebody sees it.
+                    Text("#\(member)")
+                        .font(.system(size: 34, weight: .bold))
+                        .monospacedDigit()
+                        .foregroundStyle(Tokens.textPrimary)
+                    Text(founding ? "Founding member" : "Member")
+                        .font(.system(size: 13, weight: founding ? .semibold : .regular))
+                        // Colour for meaning: it says one of the first hundred, and
+                        // nothing else on this screen is.
+                        .foregroundStyle(founding ? Tokens.accent : Tokens.textSecondary)
                 }
+                Spacer(minLength: 0)
             }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Tokens.surface,
+                        in: RoundedRectangle(cornerRadius: Tokens.cardRadius, style: .continuous))
+            .overlay {
+                // A hairline, not a glow. The number carries it.
+                RoundedRectangle(cornerRadius: Tokens.cardRadius, style: .continuous)
+                    .strokeBorder(founding ? Tokens.accent.opacity(0.35) : .clear, lineWidth: 1)
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(founding ? "Founding member, number \(member)"
+                                         : "Member number \(member)")
         }
     }
 

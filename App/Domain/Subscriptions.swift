@@ -17,7 +17,11 @@ final class Subscriptions {
 
     static let monthlyID = "com.coachjett.ios.pro.monthly"
     static let yearlyID = "com.coachjett.ios.pro.yearly"
-    static let productIDs = [yearlyID, monthlyID]
+    /// The founding hundred's yearly price, offered instead of the standard one and only
+    /// to them. In the same subscription group as the other two, which is the thing App
+    /// Store Connect will not let anybody change afterwards.
+    static let founderYearlyID = "com.coachjett.ios.pro.yearly.founding"
+    static let productIDs = [yearlyID, monthlyID, founderYearlyID]
 
     private(set) var products: [Product] = []
     private(set) var isSubscribed = false
@@ -48,6 +52,24 @@ final class Subscriptions {
 
     var yearly: Product? { products.first { $0.id == Self.yearlyID } }
     var monthly: Product? { products.first { $0.id == Self.monthlyID } }
+    var founderYearly: Product? { products.first { $0.id == Self.founderYearlyID } }
+
+    /// What this person can actually buy.
+    ///
+    /// The founding hundred are offered their yearly price instead of the standard one,
+    /// never beside it: two yearly rows differing only in price is a puzzle rather than
+    /// an offer. Everybody else never sees that it exists, because a discount somebody
+    /// cannot take is an advert for having arrived too late.
+    var offered: [Product] {
+        let isFounder = AppAttest.member.map(FoundingMember.isFounder) ?? false
+        return products.filter { product in
+            switch product.id {
+            case Self.founderYearlyID: return isFounder
+            case Self.yearlyID: return !isFounder
+            default: return true
+            }
+        }
+    }
 
     func load() async {
         isLoading = true

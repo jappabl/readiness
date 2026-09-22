@@ -157,6 +157,8 @@ struct RootView: View {
                     .padding(.top, 40)
             }
             .background(Tokens.canvas.ignoresSafeArea())
+        } else if Self.paywallHarness {
+            PaywallView {}
         } else if Self.cardGallery {
             CardGallery()
         } else {
@@ -164,6 +166,16 @@ struct RootView: View {
         }
     }
     #endif
+
+    /// `--paywall`, for the plans on their own. The real route to this screen runs
+    /// through five free answers and a working proxy, which a simulator cannot have.
+    private static let paywallHarness: Bool = {
+        #if DEBUG
+        ProcessInfo.processInfo.arguments.contains("--paywall")
+        #else
+        false
+        #endif
+    }()
 
     private static let cardGallery: Bool = {
         #if DEBUG
