@@ -92,9 +92,15 @@ public enum HomeComposition {
         // empty screen, and not a session that does not exist.
         let lead: HomeBlock = hasProgram ? .session : .programPrompt
         let body: [HomeBlock]
+        // Nutrition is on every goal's screen, because it is the only way into the app
+        // to log a meal at all. Two testers went looking for it and concluded the app
+        // could not do it: one was here to get stronger, the other to come back from an
+        // injury, and neither goal put the card anywhere. Where it sits still varies,
+        // which was the real intent: somebody counting calories opens on them, and
+        // somebody here to lift reaches them after their session.
         switch goal {
         case .getStronger:
-            body = [lead, .sleepDebt]
+            body = [lead, .sleepDebt, .nutrition]
         case .buildMuscle:
             body = [lead, .nutrition, .weightTrend, .sleepDebt]
         case .loseFat:
@@ -102,7 +108,7 @@ public enum HomeComposition {
             // The session stays, below it, so training does not quietly disappear.
             body = [.nutrition, .weightTrend, .session, .sleepDebt]
         case .feelBetter:
-            body = [.sleepQuality, .sleepDebt, .movement, .session]
+            body = [.sleepQuality, .sleepDebt, .movement, .session, .nutrition]
         }
 
         // A promised session with no programme behind it is a broken promise.

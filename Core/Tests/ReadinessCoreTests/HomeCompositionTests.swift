@@ -46,12 +46,29 @@ struct HomeCompositionTests {
         #expect(blocks.contains(.nutrition))
     }
 
+    /// Nobody asked to be put on a diet, so food is last rather than absent.
+    ///
+    /// This used to require that the card was not there at all. It is the only way into
+    /// the app to log a meal, so leaving it out did not spare anybody a diet, it just
+    /// meant two testers went looking for food logging and concluded the app could not
+    /// do it. Where it sits is the part that carries the meaning.
     @Test("feeling better leads with sleep and movement, not food")
-    func healthLeadsWithSleep() {
+    func healthLeadsWithSleep() throws {
         let blocks = HomeComposition.blocks(for: .feelBetter, hasProgram: true)
         #expect(blocks.first == .sleepQuality)
         #expect(blocks.contains(.movement))
-        #expect(!blocks.contains(.nutrition), "nobody asked to be put on a diet")
+        let food = try #require(blocks.firstIndex(of: .nutrition))
+        let sleep = try #require(blocks.firstIndex(of: .sleepQuality))
+        let movement = try #require(blocks.firstIndex(of: .movement))
+        #expect(food > sleep && food > movement, "food led the screen for somebody who never asked")
+    }
+
+    /// Reachable whatever somebody said they were here for. Logging a meal has no other
+    /// entry point in the app.
+    @Test("every goal can log a meal", arguments: TrainingGoal.allCases)
+    func nutritionIsAlwaysReachable(goal: TrainingGoal) {
+        #expect(HomeComposition.blocks(for: goal, hasProgram: true).contains(.nutrition))
+        #expect(HomeComposition.blocks(for: goal, hasProgram: false).contains(.nutrition))
     }
 
     @Test("building muscle surfaces protein, losing fat surfaces it too")

@@ -334,7 +334,13 @@ struct InsightsView: View {
         case .unavailable: return "Nothing recorded yet"
         // No "today": this sheet can be opened on any day, and the heading was the
         // one word on it that could not be.
-        default: return "Not counted"
+        //
+        // "Not counted" was also a claim the list underneath contradicts. These are
+        // things the app did not have, not things it decided to ignore, and one of them
+        // says so outright: "Your age, so your maximum heart rate is assumed" is age
+        // being used, from a guess, rather than being left out. A tester read the two
+        // together, could not tell whether age counted or not, and gave up.
+        default: return "What was missing"
         }
     }
 }
