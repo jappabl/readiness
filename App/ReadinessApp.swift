@@ -157,6 +157,12 @@ struct RootView: View {
                     .padding(.top, 40)
             }
             .background(Tokens.canvas.ignoresSafeArea())
+        } else if Self.confettiHarness {
+            ZStack {
+                Tokens.messageCanvas.ignoresSafeArea()
+                Text("Confetti").foregroundStyle(Tokens.textSecondary)
+                Confetti().ignoresSafeArea()
+            }
         } else if Self.paywallHarness {
             PaywallView {}
         } else if Self.cardGallery {
@@ -166,6 +172,15 @@ struct RootView: View {
         }
     }
     #endif
+
+    /// `--confetti`, for the one animation in this app, on its own.
+    private static let confettiHarness: Bool = {
+        #if DEBUG
+        ProcessInfo.processInfo.arguments.contains("--confetti")
+        #else
+        false
+        #endif
+    }()
 
     /// `--paywall`, for the plans on their own. The real route to this screen runs
     /// through five free answers and a working proxy, which a simulator cannot have.

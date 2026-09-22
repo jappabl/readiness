@@ -18,6 +18,7 @@ struct OnboardingView: View {
     @Environment(Notifications.self) private var notifications
     /// Pounds, or kilos when that is how they read everything else.
     @State private var weightEntry = 170.0
+    @State private var celebrating = false
 
     private var settled: Bool { visibleCount == flow.turns.count }
     private var columns: [GridItem] {
@@ -74,7 +75,19 @@ struct OnboardingView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Tokens.messageCanvas.ignoresSafeArea())
+        // Over everything, hit testing nothing. It is the only thing in this app that
+        // celebrates, and it happens once, to a hundred people.
+        .overlay { if celebrating { Confetti().ignoresSafeArea() } }
         .onAppear { resumeIfSaved() }
+        // Registered here rather than lazily on the first message to Jett, because the
+        // member number is issued by that registration and somebody has to be told
+        // theirs while they are still in the conversation where it means something.
+        // Failing is fine and silent: the number arrives on the first request instead,
+        // and Profile shows it whenever it turns up.
+        .task {
+            guard let baseURL = Backend.baseURL, AppAttest.member == nil else { return }
+            try? await AppAttest.register(baseURL: baseURL)
+        }
         .task(id: flow.turns.count) {
             visibleCount = min(visibleCount, flow.turns.count)
             do {
@@ -191,6 +204,38 @@ struct OnboardingView: View {
             .accessibilityHidden(!enabled)
     }
 
+    /// Told once, to a hundred people, in the conversation where it happened.
+    ///
+    /// Not a card and not a sheet: it belongs in the chat, because being one of the
+    /// first hundred is something Jett tells you, not something the app files under
+    /// your account. Everybody else sees nothing here at all. Their number is in
+    /// Profile, and a consolation message for not being early is worse than silence.
+    @ViewBuilder
+    private var foundingWelcome: some View {
+        if let member = AppAttest.member, FoundingMember.isFounder(member) {
+            HStack(spacing: 12) {
+                Text("#\(member)")
+                    .font(.system(size: 30, weight: .bold))
+                    .monospacedDigit()
+                    .foregroundStyle(Tokens.messageOutgoing)
+                Text("You're a founding member!")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(Tokens.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Tokens.messageIncoming,
+                        in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .transition(.scale(scale: 0.92).combined(with: .opacity))
+            .onAppear {
+                Haptics.committed()
+                celebrating = true
+            }
+        }
+    }
+
     private func edit(_ turnID: Int) {
         Haptics.light()
         withAnimation(reduceMotion ? nil : .easeOut(duration: 0.3)) {
@@ -215,8 +260,11 @@ struct OnboardingView: View {
                         Text("·").accessibilityHidden(true)
                         Button("Edit", action: onEdit)
                             .buttonStyle(.plain)
-                            // The only way back now, so it gets a thumb-sized target
-                            // rather than the eleven points its text occupies.
+                            // The only way back, so it gets a thumb-sized target rather
+                            // than the eleven points its text occupies. The padding is
+                            // taken back out of the layout below, because the first
+                            // version of this pushed the whole receipt a centimetre
+                            // clear of the bubble it belongs to and read as a gap.
                             .padding(.vertical, 12)
                             .padding(.leading, 8)
                             .contentShape(Rectangle())
@@ -226,6 +274,7 @@ struct OnboardingView: View {
                 .font(.caption2)
                 .foregroundStyle(Tokens.textTertiary)
                 .contentTransition(.opacity)
+                .padding(.vertical, -12)
             }
         }
     }
@@ -395,12 +444,15 @@ struct OnboardingView: View {
             // not have a ninth ready, and asking for one holds them at the door of an
             // app they have not seen yet. The same four starters are waiting in the
             // chat for whenever they do have something.
-            Button("Let's go") { complete() }
+            VStack(spacing: 14) {
+                foundingWelcome
+                Button("Let's go") { complete() }
                 .font(.body.weight(.semibold))
                 .foregroundStyle(Tokens.messageOnOutgoing)
-                .frame(maxWidth: .infinity, minHeight: 50)
-                .background(Tokens.messageOutgoing, in: Capsule())
-                .buttonStyle(.plain)
+                    .frame(maxWidth: .infinity, minHeight: 50)
+                    .background(Tokens.messageOutgoing, in: Capsule())
+                    .buttonStyle(.plain)
+            }
         case .reading:
             EmptyView()
         }

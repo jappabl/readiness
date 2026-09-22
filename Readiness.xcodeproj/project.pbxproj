@@ -65,6 +65,7 @@
 		F7A13A0A58D5EA34A47F332E /* ProgramViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1B13F77AD2D8F94F4953163 /* ProgramViews.swift */; };
 		03F7423240A620AD290DA7E0 /* SessionViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D172633C7AC91EFD03D370B /* SessionViews.swift */; };
 		F4DA05AA778706DA63AA2EA5 /* SignalDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8EC7DE941CACCBD1BF749F9 /* SignalDetailView.swift */; };
+		B1CE7A0011EE44A2900D000B /* Confetti.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1CE7A0011EE44A2900D000C /* Confetti.swift */; };
 		B1CE7A0011EE44A2900D0001 /* WeightDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1CE7A0011EE44A2900D0002 /* WeightDetailView.swift */; };
 		70D07957F0C74B5AA46BAF1C /* CalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4F3EA3EBE864EF391B7D9AD /* CalendarView.swift */; };
 		CF0AA57D606C48A894B2CB5E /* InsightsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D16EF9A0AB8846CEB4E6FA31 /* InsightsView.swift */; };
@@ -188,6 +189,7 @@
 		D1B13F77AD2D8F94F4953163 /* ProgramViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProgramViews.swift"; sourceTree = "<group>"; };
 		5D172633C7AC91EFD03D370B /* SessionViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SessionViews.swift"; sourceTree = "<group>"; };
 		A8EC7DE941CACCBD1BF749F9 /* SignalDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SignalDetailView.swift"; sourceTree = "<group>"; };
+		B1CE7A0011EE44A2900D000C /* Confetti.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "Confetti.swift"; path = "App/Design/Confetti.swift"; sourceTree = SOURCE_ROOT; };
 		B1CE7A0011EE44A2900D0002 /* WeightDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WeightDetailView.swift"; sourceTree = "<group>"; };
 		A4F3EA3EBE864EF391B7D9AD /* CalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CalendarView.swift"; sourceTree = "<group>"; };
 		D16EF9A0AB8846CEB4E6FA31 /* InsightsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "InsightsView.swift"; sourceTree = "<group>"; };
@@ -436,6 +438,7 @@
 				D1B13F77AD2D8F94F4953163 /* ProgramViews.swift */,
 				5D172633C7AC91EFD03D370B /* SessionViews.swift */,
 				A8EC7DE941CACCBD1BF749F9 /* SignalDetailView.swift */,
+				B1CE7A0011EE44A2900D000C /* Confetti.swift */,
 				B1CE7A0011EE44A2900D0002 /* WeightDetailView.swift */,
 				A4F3EA3EBE864EF391B7D9AD /* CalendarView.swift */,
 				D16EF9A0AB8846CEB4E6FA31 /* InsightsView.swift */,
@@ -675,6 +678,7 @@
 				F7A13A0A58D5EA34A47F332E /* ProgramViews.swift in Sources */,
 				03F7423240A620AD290DA7E0 /* SessionViews.swift in Sources */,
 				F4DA05AA778706DA63AA2EA5 /* SignalDetailView.swift in Sources */,
+				B1CE7A0011EE44A2900D000B /* Confetti.swift in Sources */,
 				B1CE7A0011EE44A2900D0001 /* WeightDetailView.swift in Sources */,
 				70D07957F0C74B5AA46BAF1C /* CalendarView.swift in Sources */,
 				CF0AA57D606C48A894B2CB5E /* InsightsView.swift in Sources */,

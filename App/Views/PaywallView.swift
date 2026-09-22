@@ -15,6 +15,7 @@ struct PaywallView: View {
     @Environment(\.openURL) private var openURL
 
     @State private var selected: String = Subscriptions.yearlyID
+    @State private var redeeming = false
 
     /// The yearly row this person is actually offered, which is the founding one when
     /// they are one of the hundred.
@@ -48,6 +49,11 @@ struct PaywallView: View {
             // never shown: selecting a product that is not on screen leaves the button
             // buying something invisible.
             selected = defaultSelection
+        }
+        // Apple's own sheet, not ours. Redemption is an App Store transaction and the
+        // only correct interface for it is the one people already recognise.
+        .offerCodeRedemption(isPresented: $redeeming) { result in
+            if case .success = result { Task { await store.refreshEntitlement() } }
         }
         .onChange(of: store.isSubscribed) { _, subscribed in
             if subscribed { Haptics.committed(); onDone() }
@@ -183,8 +189,15 @@ struct PaywallView: View {
                 buy()
             }
 
+            // Redeem sits in the row that already exists, beside Restore, because that
+            // is the row for the things a few people need and nobody else should have
+            // to look at. Most codes never touch this screen at all: a one-tap
+            // redemption link hands the whole job to the App Store and returns, so the
+            // app needs no surface for it. This is here for the person holding a code
+            // they were sent as text.
             HStack(spacing: 18) {
                 Button("Restore") { Task { working = true; await store.restore(); working = false } }
+                Button("Redeem") { redeeming = true }
                 Button("Terms") { open(Backend.termsURL) }
                 Button("Privacy") { open(Backend.privacyURL) }
             }
