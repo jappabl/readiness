@@ -256,3 +256,79 @@ struct InjuryStillLeavesAProgrammeTests {
         #expect(PhysicalLimitation.from(profileText: "Ankle fracture") == nil)
     }
 }
+
+/// A bar is equipment, and the app had no word for one.
+///
+/// "Bodyweight" meant "needs nothing", so a tester training on a yoga mat in her room
+/// was handed a pull-up, and another with dumbbells and no gym got pull-ups and dips.
+/// Deleting them was the wrong answer: a pull-up is the best pulling movement available
+/// without weights, and dropping it leaves a bodyweight plan with no vertical pull at
+/// all. So the app asks, and only of the people for whom a wrong guess costs the whole
+/// back session.
+@Suite("Something to hang from")
+struct PullUpBarTests {
+
+    private let hangs = ["Pull-up", "Chin-up", "Inverted row", "Hanging knee raise"]
+
+    @Test func nothingToHangFromMeansNoneOfThem() {
+        let names = StarterPrograms.make(experience: .regular, equipment: .bodyweight,
+                                         limitations: [], hasBar: false).flatMap(\.exercises).map(\.name)
+        #expect(!names.isEmpty, "a bodyweight plan still has to exist")
+        for lift in hangs {
+            #expect(!names.contains(lift), "\(lift) was prescribed to somebody with nowhere to hang")
+        }
+    }
+
+    /// And the point of asking rather than deleting: somebody who has a bar keeps the
+    /// best thing they can do with it.
+    @Test func abarBringsBackTheBestPullThereIs() {
+        let names = StarterPrograms.make(experience: .regular, equipment: .bodyweight,
+                                         limitations: [], hasBar: true).flatMap(\.exercises).map(\.name)
+        #expect(names.contains { hangs.contains($0) })
+    }
+
+    /// Without a bar there is still back work, because that was the whole objection to
+    /// deleting them.
+    @Test func thereIsStillSomethingToPullWithoutABar() {
+        let allowed = ExerciseCatalog.available(equipment: .bodyweight, limitations: [],
+                                                experience: .regular, hasBar: false)
+        #expect(allowed.contains { $0.muscle == .back })
+    }
+
+    /// A full gym has bars whatever anybody answered, and the question is never asked
+    /// there, so it must not be possible to answer it away.
+    @Test func agymHasBarsRegardless() {
+        let names = ExerciseCatalog.available(equipment: .fullGym, limitations: [],
+                                              experience: .regular, hasBar: false).map(\.name)
+        #expect(names.contains("Pull-up"))
+    }
+
+    /// The question is only put to the people it matters for.
+    @Test func onlySomebodyWithNoEquipmentIsAsked() {
+        for equipment in [EquipmentAccess.fullGym, .dumbbells] {
+            var flow = OnboardingConversation()
+            flow.toggleGoal(.getStronger); flow.confirmGoals()
+            flow.chooseFrequency(.few)
+            flow.chooseExperience(.regular)
+            flow.confirmObstacles()
+            flow.confirmLimitations(none: true)
+            flow.chooseEquipment(equipment)
+            #expect(flow.step == .units, "\(equipment) was asked about a pull-up bar")
+        }
+    }
+
+    @Test func somebodyWithNoEquipmentIsAskedAndTheAnswerSticks() {
+        var flow = OnboardingConversation()
+        flow.toggleGoal(.getStronger); flow.confirmGoals()
+        flow.chooseFrequency(.few)
+        flow.chooseExperience(.regular)
+        flow.confirmObstacles()
+        flow.confirmLimitations(none: true)
+        flow.chooseEquipment(.bodyweight)
+        #expect(flow.step == .pullUpBar)
+        #expect(!flow.answers.isComplete, "the answer is required once it has been asked")
+        flow.choosePullUpBar(has: false)
+        #expect(flow.answers.hasPullUpBar == false)
+        #expect(flow.step == .units)
+    }
+}

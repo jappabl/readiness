@@ -94,7 +94,8 @@ struct ProgramSetupView: View {
     private var starters: [StarterPrograms.Split] {
         StarterPrograms.splits(experience: model.onboarding.experience ?? .new,
                                equipment: model.onboarding.equipment ?? .bodyweight,
-                               limitations: model.trainingLimitations)
+                               limitations: model.trainingLimitations,
+                               hasBar: model.onboarding.hasPullUpBar ?? true)
     }
 
     /// How many days it asks for, and nothing else. It used to name every session and
@@ -468,12 +469,14 @@ struct ExerciseSwapSheet: View {
                 to: known,
                 equipment: model.onboarding.equipment ?? .fullGym,
                 limitations: model.trainingLimitations,
-                experience: model.onboarding.experience ?? .regular)
+                experience: model.onboarding.experience ?? .regular,
+                hasBar: model.onboarding.hasPullUpBar ?? true)
         } else {
             all = ExerciseCatalog.available(
                 equipment: model.onboarding.equipment ?? .fullGym,
                 limitations: model.trainingLimitations,
-                experience: model.onboarding.experience ?? .regular)
+                experience: model.onboarding.experience ?? .regular,
+                hasBar: model.onboarding.hasPullUpBar ?? true)
         }
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return all }
@@ -501,7 +504,8 @@ struct ExerciseSwapSheet: View {
         let allowed = ExerciseCatalog.available(
             equipment: model.onboarding.equipment ?? .fullGym,
             limitations: model.trainingLimitations,
-            experience: model.onboarding.experience ?? .regular)
+            experience: model.onboarding.experience ?? .regular,
+            hasBar: model.onboarding.hasPullUpBar ?? true)
         return allowed.contains(where: { $0.id == match.id }) ? nil : match
     }
 

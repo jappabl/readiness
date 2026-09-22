@@ -36,7 +36,7 @@ public enum CoachReaction: String, Codable, Sendable {
 
 /// Scripted onboarding. No provider, timer or HealthKit dependency lives here.
 public struct OnboardingConversation: Sendable, Codable {
-    public enum Step: String, Sendable, Codable { case goal, frequency, experience, obstacles, limitations, equipment, units, watch, health, reading, healthDetails, weight, notifications, ready }
+    public enum Step: String, Sendable, Codable { case goal, frequency, experience, obstacles, limitations, equipment, pullUpBar, units, watch, health, reading, healthDetails, weight, notifications, ready }
     public struct Turn: Identifiable, Equatable, Sendable, Codable {
         public let id: Int
         public let isUser: Bool
@@ -202,7 +202,26 @@ public struct OnboardingConversation: Sendable, Codable {
         case .dumbbells: acknowledgement = "Dumbbells will do nicely."
         case .bodyweight: acknowledgement = "You bring the equipment. Bodyweight it is."
         }
+        // Only asked of somebody training with nothing, because that is the only answer
+        // where getting it wrong takes their whole back session away rather than costing
+        // them one swap. A pull-up is the best pulling movement available without
+        // weights, and whether they own a doorway bar is not something the app can read
+        // off anything else. A full gym has bars; a dumbbell owner still has rows.
+        if equipment == .bodyweight {
+            say("\(acknowledgement) Anything to hang from? A doorway bar counts.")
+            step = .pullUpBar
+            return
+        }
         say("\(acknowledgement) Pounds or kilos?")
+        step = .units
+    }
+
+    public mutating func choosePullUpBar(has: Bool) {
+        guard step == .pullUpBar else { return }
+        answers.hasPullUpBar = has
+        answer(has ? "Yes" : "No")
+        say(has ? "Pull-ups it is. Best thing you can do without weights. Pounds or kilos?"
+                : "No problem, we'll work around it. Pounds or kilos?")
         step = .units
     }
 

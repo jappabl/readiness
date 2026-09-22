@@ -112,8 +112,10 @@ public enum StarterPrograms {
     }
 
     public static func make(experience: TrainingExperience, equipment: EquipmentAccess,
-                            limitations: Set<PhysicalLimitation>?) -> [Plan] {
-        splits(experience: experience, equipment: equipment, limitations: limitations)
+                            limitations: Set<PhysicalLimitation>?,
+                            hasBar: Bool = true) -> [Plan] {
+        splits(experience: experience, equipment: equipment, limitations: limitations,
+               hasBar: hasBar)
             .flatMap(\.sessions)
     }
 
@@ -125,9 +127,10 @@ public enum StarterPrograms {
     /// exists to stop.
     public static func recommended(experience: TrainingExperience, equipment: EquipmentAccess,
                                    limitations: Set<PhysicalLimitation>?,
-                                   frequency: TrainingFrequency) -> Split? {
+                                   frequency: TrainingFrequency,
+                                   hasBar: Bool = true) -> Split? {
         let allowed = ExerciseCatalog.available(equipment: equipment, limitations: limitations,
-                                                experience: experience)
+                                                experience: experience, hasBar: hasBar)
         guard !allowed.isEmpty else { return nil }
         let sessions = SplitCatalog.week(for: frequency)
             .compactMap { fill($0, from: allowed, experience: experience) }
@@ -137,9 +140,10 @@ public enum StarterPrograms {
 
     /// Every split worth offering, with the one their week fits first.
     public static func splits(experience: TrainingExperience, equipment: EquipmentAccess,
-                              limitations: Set<PhysicalLimitation>?) -> [Split] {
+                              limitations: Set<PhysicalLimitation>?,
+                              hasBar: Bool = true) -> [Split] {
         let allowed = ExerciseCatalog.available(equipment: equipment, limitations: limitations,
-                                                experience: experience)
+                                                experience: experience, hasBar: hasBar)
         guard !allowed.isEmpty else { return [] }
         return TrainingFrequency.allCases.compactMap { frequency in
             let sessions = SplitCatalog.week(for: frequency)

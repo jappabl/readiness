@@ -311,8 +311,10 @@ public enum ExerciseCatalog {
     public static func alternatives(to exercise: CatalogExercise,
                                     equipment: EquipmentAccess,
                                     limitations: Set<PhysicalLimitation>?,
-                                    experience: TrainingExperience) -> [CatalogExercise] {
-        available(equipment: equipment, limitations: limitations, experience: experience)
+                                    experience: TrainingExperience,
+                                    hasBar: Bool = true) -> [CatalogExercise] {
+        available(equipment: equipment, limitations: limitations,
+                  experience: experience, hasBar: hasBar)
             .filter { $0.pattern == exercise.pattern && $0.id != exercise.id }
     }
 }

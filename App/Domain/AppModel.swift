@@ -553,7 +553,8 @@ final class AppModel {
               let frequency = onboarding.frequency,
               let split = StarterPrograms.recommended(
                 experience: experience, equipment: equipment,
-                limitations: onboarding.limitations, frequency: frequency)
+                limitations: onboarding.limitations, frequency: frequency,
+                hasBar: onboarding.hasPullUpBar ?? true)
         else { return nil }
 
         for (order, plan) in split.sessions.enumerated() {

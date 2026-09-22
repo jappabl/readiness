@@ -288,6 +288,15 @@ struct OnboardingView: View {
                     }
                 }
             }
+        case .pullUpBar:
+            LazyVGrid(columns: columns, spacing: 10) {
+                choice("Yes", detail: "Bar or beam") {
+                    commit { flow.choosePullUpBar(has: true) }
+                }
+                choice("No", detail: "Floor only") {
+                    commit { flow.choosePullUpBar(has: false) }
+                }
+            }
         case .watch:
             LazyVGrid(columns: columns, spacing: 10) {
                 choice("Yes", detail: "Most nights") {

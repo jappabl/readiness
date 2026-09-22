@@ -172,6 +172,9 @@ public struct OnboardingAnswers: Sendable, Codable, Equatable {
     /// Whether they said they wear a watch to bed. Nil for anybody who onboarded before
     /// the question existed, which the record then answers on their behalf.
     public var wearsWatchToBed: Bool?
+    /// Whether there is anything to hang from. Only asked of somebody training with no
+    /// equipment at all, and nil for everybody else, who has one either way.
+    public var hasPullUpBar: Bool?
 
     public init() {}
 
@@ -192,7 +195,8 @@ public struct OnboardingAnswers: Sendable, Codable, Equatable {
 
     public var isComplete: Bool {
         guard !selectedGoals.isEmpty, frequency != nil, experience != nil, limitations != nil else { return false }
-        return equipment != nil
+        guard let equipment else { return false }
+        return equipment != .bodyweight || hasPullUpBar != nil
     }
 
     /// Re-entering a flow must not erase details that its read-first UI omitted.
