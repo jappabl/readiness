@@ -180,12 +180,11 @@ public struct OnboardingAnswers: Sendable, Codable, Equatable {
     public mutating func setGoals(_ selected: Set<TrainingGoal>) {
         goals = selected
         goal = orderedGoals.first
-        if !impliesLifting { equipment = nil }
     }
 
     public var isComplete: Bool {
         guard !selectedGoals.isEmpty, frequency != nil, experience != nil, limitations != nil else { return false }
-        return !impliesLifting || equipment != nil
+        return equipment != nil
     }
 
     /// Re-entering a flow must not erase details that its read-first UI omitted.

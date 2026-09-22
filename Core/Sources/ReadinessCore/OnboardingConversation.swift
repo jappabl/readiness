@@ -180,17 +180,20 @@ public struct OnboardingConversation: Sendable, Codable {
         if none { answers.limitations = [] }
         guard let limits = answers.limitations, none || !limits.isEmpty else { return }
         answer(limits.isEmpty ? "None" : answers.limitationsText ?? "", reaction: nil)
-        if answers.impliesLifting {
-            say(limits.isEmpty ? "Good to know. What equipment can you use?" : "I'll work around those limits. What equipment can you use?")
-            step = .equipment
-        } else {
-            say(limits.isEmpty ? "Good to know. Pounds or kilos?" : "I'll keep those limits in mind. Pounds or kilos?")
-            step = .units
-        }
+        // Asked of everybody, whatever they said they were here for.
+        //
+        // It used to be skipped unless the goal was strength or size, on the reasoning
+        // that nobody else needed a barbell programme. They get one anyway: the app
+        // builds a split for every goal. So somebody here to lose fat was never asked,
+        // defaulted to owning nothing, and was handed pull-ups and dips while a pair of
+        // dumbbells sat in the room. Meanwhile the coach's own permission screen told
+        // him it sends his equipment, which the app had never collected.
+        say(limits.isEmpty ? "Good to know. What equipment can you use?" : "I'll work around those limits. What equipment can you use?")
+        step = .equipment
     }
 
     public mutating func chooseEquipment(_ equipment: EquipmentAccess) {
-        guard step == .equipment, answers.impliesLifting else { return }
+        guard step == .equipment else { return }
         answers.equipment = equipment
         answer(equipment.title)
         let acknowledgement: String

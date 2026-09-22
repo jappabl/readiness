@@ -276,6 +276,10 @@ struct TemplateEditorView: View {
                             // it over would start somebody's first machine press at the
                             // weight they bench.
                             exercises[index].workingWeight = 0
+                        } onName: { typed in
+                            guard let index = exercises.firstIndex(where: { $0.id == target.id }) else { return }
+                            exercises[index].name = typed
+                            exercises[index].workingWeight = 0
                         } onRemove: {
                             exercises.removeAll { $0.id == target.id }
                         }
@@ -439,20 +443,49 @@ struct ExerciseEditorRow: View {
 struct ExerciseSwapSheet: View {
     let current: TrainingExerciseDraft
     let onPick: (CatalogExercise) -> Void
+    /// A name the catalogue does not have. Every gym has a machine nobody else does.
+    var onName: (String) -> Void = { _ in }
     let onRemove: () -> Void
 
     @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
+    @State private var query = ""
+    @FocusState private var typing: Bool
 
     private var known: CatalogExercise? { ExerciseCatalog.named(current.name) }
 
+    /// Everything on offer: the alternatives to a known movement, or the whole catalogue
+    /// when there is nothing to be an alternative to.
+    ///
+    /// A session built from scratch starts with a row that has no name, so there was
+    /// nothing to compare it with and the sheet said so and offered only Remove. Since
+    /// this sheet had replaced the name field, that left no way to say what the exercise
+    /// was: creating a session by hand was dead from the moment it opened.
     private var options: [CatalogExercise] {
-        guard let known else { return [] }
-        return ExerciseCatalog.alternatives(
-            to: known,
-            equipment: model.onboarding.equipment ?? .fullGym,
-            limitations: model.trainingLimitations ?? [],
-            experience: model.onboarding.experience ?? .regular)
+        let all: [CatalogExercise]
+        if let known {
+            all = ExerciseCatalog.alternatives(
+                to: known,
+                equipment: model.onboarding.equipment ?? .fullGym,
+                limitations: model.trainingLimitations ?? [],
+                experience: model.onboarding.experience ?? .regular)
+        } else {
+            all = ExerciseCatalog.available(
+                equipment: model.onboarding.equipment ?? .fullGym,
+                limitations: model.trainingLimitations ?? [],
+                experience: model.onboarding.experience ?? .regular)
+        }
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return all }
+        return all.filter { $0.name.localizedCaseInsensitiveContains(trimmed) }
+    }
+
+    private var typedName: String { query.trimmingCharacters(in: .whitespacesAndNewlines) }
+
+    /// The catalogue does not know every machine in every gym. Anything typed that does
+    /// not match becomes the name, rather than being refused.
+    private var canUseTypedName: Bool {
+        !typedName.isEmpty && !options.contains { $0.name.localizedCaseInsensitiveCompare(typedName) == .orderedSame }
     }
 
     var body: some View {
@@ -461,6 +494,31 @@ struct ExerciseSwapSheet: View {
                 Tokens.canvas.ignoresSafeArea()
                 ScrollView {
                     VStack(alignment: .leading, spacing: 18) {
+                        TextField(known == nil ? "Search, or type any exercise" : "Search", text: $query)
+                            .font(.system(size: 16))
+                            .focused($typing)
+                            .autocorrectionDisabled()
+                            .textInputAutocapitalization(.sentences)
+                            .padding(.horizontal, 14).padding(.vertical, 12)
+                            .background(Tokens.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        if canUseTypedName {
+                            Button {
+                                Haptics.decided()
+                                onName(typedName)
+                                dismiss()
+                            } label: {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "plus")
+                                    Text("Use \u{201C}\(typedName)\u{201D}")
+                                        .font(.body.weight(.medium))
+                                    Spacer(minLength: 8)
+                                }
+                                .frame(minHeight: 44).padding(14).contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .foregroundStyle(Tokens.accent)
+                            .background(Tokens.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        }
                         if options.isEmpty {
                             EmptyStateView(message: emptyMessage)
                         } else {
@@ -517,10 +575,11 @@ struct ExerciseSwapSheet: View {
         }
     }
 
-    /// Two different silences, and they are not the same news.
+    /// Three different silences, and they are not the same news.
     private var emptyMessage: String {
-        known == nil
-            ? "This one was added by hand, so there is nothing to compare it with. You can still remove it."
+        if !typedName.isEmpty { return "Nothing in the list matches that. You can still use the name you typed." }
+        return known == nil
+            ? "Nothing here fits the equipment and limits you gave. You can type a name instead."
             : "Nothing else trains this the way you have it set up. You can remove it instead."
     }
 }

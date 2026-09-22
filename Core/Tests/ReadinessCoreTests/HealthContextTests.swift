@@ -98,6 +98,7 @@ extension HealthContextTests {
         flow.chooseExperience(.new)
         flow.confirmObstacles()
         flow.confirmLimitations(none: true)
+        flow.chooseEquipment(.bodyweight)
         flow.chooseUnits(metric: true)
         flow.chooseWatch(wearsOne: true)
         flow.skipHealth()

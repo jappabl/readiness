@@ -141,8 +141,10 @@ struct MealLogView: View {
                             .foregroundStyle(Tokens.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
-                    readout.disabled(estimating || busy || loadingPhoto)
+                    // Notes sit under the picture and above the numbers, because they
+                    // belong to the reading rather than to its result.
                     notes.disabled(estimating || busy || loadingPhoto)
+                    readout.disabled(estimating || busy || loadingPhoto)
                     Toggle("Save to Apple Health", isOn: $health)
                         .font(.system(size: 14))
                         .foregroundStyle(Tokens.textSecondary)
@@ -274,12 +276,40 @@ struct MealLogView: View {
         .background(Tokens.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
+    /// What the picture does not show, and the way to send it.
+    ///
+    /// This box did nothing at all. It is an input to the estimate, the estimate runs the
+    /// moment a photo arrives, and the box is empty at that moment, so nothing anybody
+    /// typed here ever reached the model. It is not saved with the meal either. A field
+    /// that silently discards what you write is worse than no field.
+    ///
+    /// Deliberately still after the photo rather than before it. Nothing stands in front
+    /// of the shutter, and until you have seen what the reading got wrong you are
+    /// guessing at what to tell it: "half of this" is worth writing once a whole avocado
+    /// has come back at 320.
     private var notes: some View {
-        TextField("Portion notes, sauces, anything hidden", text: $note, axis: .vertical)
-            .font(.system(size: 15))
-            .lineLimit(1...3)
-            .padding(.horizontal, 14).padding(.vertical, 12)
-            .background(Tokens.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        VStack(alignment: .trailing, spacing: 8) {
+            TextField("Portion notes, sauces, anything hidden", text: $note, axis: .vertical)
+                .font(.system(size: 15))
+                .lineLimit(1...3)
+                .padding(.horizontal, 14).padding(.vertical, 12)
+                .background(Tokens.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            if canReadAgain {
+                Button { Haptics.light(); estimate() } label: {
+                    Label("Read again", systemImage: "arrow.clockwise")
+                        .font(.system(size: 14, weight: .semibold))
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(Tokens.accent)
+                .frame(minHeight: 36)
+                .accessibilityHint("Estimate the photo again, using these notes")
+            }
+        }
+    }
+
+    private var canReadAgain: Bool {
+        photo != nil && !estimating && !loadingPhoto && !busy
+            && !note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     private var logButton: some View {

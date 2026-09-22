@@ -22,13 +22,14 @@ struct OnboardingAddendumTests {
         flow.confirmObstacles()
         #expect(flow.step == .limitations)
         flow.confirmLimitations(none: true)
-        if goal.impliesLifting {
-            #expect(flow.step == .equipment)
-            #expect(!flow.answers.isComplete)
-            flow.chooseEquipment(.dumbbells)
-        } else {
-            #expect(flow.answers.equipment == nil)
-        }
+        // Asked whatever the goal is. It used to be skipped for losing fat and feeling
+        // better, on the reasoning that neither needs a barbell programme. Both get one:
+        // the app builds a split for every goal, so skipping the question left somebody
+        // defaulted to owning nothing and handed pull-ups and dips with a pair of
+        // dumbbells sitting in the room.
+        #expect(flow.step == .equipment)
+        #expect(!flow.answers.isComplete)
+        flow.chooseEquipment(.dumbbells)
         #expect(flow.step == .units)
         #expect(flow.answers.isComplete)
     }

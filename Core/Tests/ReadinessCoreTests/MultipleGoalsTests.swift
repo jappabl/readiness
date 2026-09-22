@@ -68,7 +68,9 @@ struct MultipleGoalsTests {
         #expect(flow.answers.isComplete)
     }
 
-    @Test func nonliftingCombinationSkipsEquipment() {
+    /// Somebody here to lose fat and feel better still gets a training plan, so they are
+    /// still asked what they can train with.
+    @Test func everyGoalIsAskedWhatTheyCanTrainWith() {
         var flow = OnboardingConversation()
         flow.toggleGoal(.feelBetter)
         flow.toggleGoal(.loseFat)
@@ -77,11 +79,12 @@ struct MultipleGoalsTests {
         flow.chooseExperience(.new)
         flow.confirmObstacles()
         flow.confirmLimitations(none: true)
+        #expect(flow.step == .equipment)
+        #expect(!flow.answers.isComplete)
+        flow.chooseEquipment(.dumbbells)
+        #expect(flow.answers.equipment == .dumbbells)
         #expect(flow.step == .units)
-        #expect(flow.answers.equipment == nil)
         #expect(flow.answers.isComplete)
-        flow.chooseEquipment(.fullGym)
-        #expect(flow.answers.equipment == nil)
     }
 
     @Test func selectedGoalsRoundTripAndLegacyAnswersStillLoad() throws {
@@ -95,13 +98,15 @@ struct MultipleGoalsTests {
         #expect(legacy.selectedGoals == [.feelBetter])
     }
 
-    @Test func removingLastLiftingGoalClearsEquipment() {
+    /// Changing your mind about why you are training does not change what is in your
+    /// room. Dropping the lifting goals used to wipe the equipment answer, which was the
+    /// other half of never asking for it.
+    @Test func changingGoalsKeepsWhatTheyToldUsTheyOwn() {
         var answers = OnboardingAnswers()
         answers.setGoals([.buildMuscle, .feelBetter])
         answers.equipment = .fullGym
         answers.setGoals([.feelBetter, .loseFat])
-        #expect(!answers.impliesLifting)
-        #expect(answers.equipment == nil)
+        #expect(answers.equipment == .fullGym)
     }
 
     @Test func mixedGoalsContributeHomeCardsWithoutDuplicates() {
