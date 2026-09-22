@@ -11,6 +11,10 @@
 export const PRODUCT_IDS = [
   "com.coachjett.ios.pro.monthly",
   "com.coachjett.ios.pro.yearly",
+  // The founding hundred pay less for the same thing, which App Store Connect can
+  // only express as a separate product in the same group. It has to be named here or
+  // the people who paid first are the only ones the server calls freeloaders.
+  "com.coachjett.ios.pro.yearly.founding",
 ] as const
 
 export interface TransactionPayload {

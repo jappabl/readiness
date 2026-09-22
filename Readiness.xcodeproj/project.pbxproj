@@ -23,6 +23,7 @@
 		E0A87F301E1A4D0AA2227104 /* THIRD-PARTY-NOTICES.txt in Resources */ = {isa = PBXBuildFile; fileRef = E0A87F301E1A4D0AA2227103 /* THIRD-PARTY-NOTICES.txt */; };
 		E0A87F301E1A4D0AA2227102 /* Onboarding.riv in Resources */ = {isa = PBXBuildFile; fileRef = E0A87F301E1A4D0AA2227101 /* Onboarding.riv */; };
 		7559CC8D141A93DBF5685EEB /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6F9973165E2B0FD4A3AAC566 /* Assets.xcassets */; };
+		E0A87F301E1A4D0AA2227111 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = E0A87F301E1A4D0AA2227110 /* PrivacyInfo.xcprivacy */; };
 		D3044245B5C9457DB81D0F5A /* RiveRuntime.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 49A1D7FFCBF64F3A8A42C5E3 /* RiveRuntime.xcframework */; };
 		60FCFF2119B043AAB29DEA7D /* RiveRuntime.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 49A1D7FFCBF64F3A8A42C5E3 /* RiveRuntime.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		FE15FC9A7F34489A80B47855 /* Jett.riv in Resources */ = {isa = PBXBuildFile; fileRef = 0F4B1A7BEA4E4BB28065BC11 /* Jett.riv */; };
@@ -148,6 +149,7 @@
 		0D98DAD3689D87A13BB0FEF1 /* Readiness.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Readiness.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		8CFC39A16F9B9B06CE4648BB /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		2AFF84FB9571D12AFA48462D /* Readiness.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Readiness.entitlements; sourceTree = "<group>"; };
+		E0A87F301E1A4D0AA2227110 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = App/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		6F9973165E2B0FD4A3AAC566 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = App/Assets.xcassets; sourceTree = "<group>"; };
 		3779549DC90963FFB7EC5B96 /* ClaudeCoachProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ClaudeCoachProvider.swift"; sourceTree = "<group>"; };
 		CBCC3151D19B79D645F78D9A /* CoachProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CoachProvider.swift"; sourceTree = "<group>"; };
@@ -335,6 +337,7 @@
 				E0A87F301E1A4D0AA2227101 /* Onboarding.riv */,
 				8CFC39A16F9B9B06CE4648BB /* Info.plist */,
 				2AFF84FB9571D12AFA48462D /* Readiness.entitlements */,
+				E0A87F301E1A4D0AA2227110 /* PrivacyInfo.xcprivacy */,
 				786F9325F29F7C3BE8A6717D /* Products */,
 				1B288008ED15D00DC01A4A82 /* LiveActivity */,
 			);
@@ -611,6 +614,7 @@
 				E0A87F301E1A4D0AA2227104 /* THIRD-PARTY-NOTICES.txt in Resources */,
 				E0A87F301E1A4D0AA2227102 /* Onboarding.riv in Resources */,
 				0DF6ECC7EE2545BEBDBD8DAF /* Readiness.storekit in Resources */,
+				E0A87F301E1A4D0AA2227111 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

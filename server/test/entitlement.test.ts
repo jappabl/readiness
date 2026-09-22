@@ -53,6 +53,14 @@ describe("the claims that decide entitlement", () => {
   test("the yearly product counts too", () => {
     expect(checkClaims({ ...live, productId: PRODUCT_IDS[1] }, BUNDLE, NOW).subscriber).toBe(true)
   })
+
+  // The founder product is a third product in the same subscription group, not a
+  // discount applied to the yearly one, so it arrives with its own id. A list that
+  // does not name it tells the first hundred people they are not subscribers.
+  test("the founding yearly product counts too", () => {
+    const founding = { ...live, productId: "com.coachjett.ios.pro.yearly.founding" }
+    expect(checkClaims(founding, BUNDLE, NOW).subscriber).toBe(true)
+  })
 })
 
 describe("the unverified-signature guard", () => {

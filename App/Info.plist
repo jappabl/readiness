@@ -8,6 +8,11 @@
 	     and it only costs anything while something is actually animating. -->
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<!-- The app's only cryptography is HTTPS to our own Worker and Apple's own App
+	     Attest. Both are exempt, and without this key every single upload stops and
+	     asks the question by hand before the build reaches a tester. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
@@ -62,16 +67,20 @@
 		<key>UIApplicationSupportsMultipleScenes</key>
 		<true/>
 	</dict>
+	<!-- Location only. `processing` was here for a BGTaskScheduler job that was never
+	     written, and a background mode the app does not use is something App Review
+	     rejects rather than ignores. -->
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>location</string>
-		<string>processing</string>
 	</array>
 	<key>UILaunchScreen</key>
 	<dict/>
+	<!-- arm64. `armv7` is the old Xcode template value, and it claims this app needs a
+	     32-bit device, which nothing running iOS 17 is. -->
 	<key>UIRequiredDeviceCapabilities</key>
 	<array>
-		<string>armv7</string>
+		<string>arm64</string>
 	</array>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
