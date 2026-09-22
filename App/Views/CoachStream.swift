@@ -7,6 +7,16 @@ struct CoachTurnView: View {
     /// Onboarding only. The live coach already streams its text in token by token, and
     /// revealing words on top of that would animate the same arrival twice.
     var revealsWords = false
+    /// What tapping this turn does, when it is still yours to change.
+    ///
+    /// Deliberately carried down to the bubble rather than applied to the whole turn by
+    /// whoever builds it. A turn's row spans the screen, so a button wrapped around it
+    /// makes the empty gutter beside an answer tappable too, and that gutter sits
+    /// directly above the next question's choices. A tester spent ten minutes unable to
+    /// get past the injuries screen: every near miss above the top row of buttons landed
+    /// in the gutter and silently rewound onboarding a question, so the app looked like
+    /// it was refusing to accept an answer.
+    var onTap: (() -> Void)? = nil
     private var outgoing: Bool { message.role == .user }
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private var spokenLabel: String {
@@ -27,7 +37,7 @@ struct CoachTurnView: View {
                 Group {
                     switch part {
                     case .text(let text):
-                        row { bubble(text, isFirst: index == 0) }
+                        row { tappable { bubble(text, isFirst: index == 0) } }
                     case .chart(let kind):
                         row { CoachChartCard(kind: kind) }
                     }
@@ -47,6 +57,15 @@ struct CoachTurnView: View {
     /// The user's own words are never split: they wrote one message, so it stays one.
     private var parts: [CoachSegment] {
         outgoing ? [.text(message.text)] : CoachSegments.parse(message.text)
+    }
+
+    @ViewBuilder
+    private func tappable<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+        if let onTap {
+            Button(action: onTap) { content() }.buttonStyle(.plain)
+        } else {
+            content()
+        }
     }
 
     private func row<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {

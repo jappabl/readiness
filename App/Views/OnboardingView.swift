@@ -130,19 +130,15 @@ struct OnboardingView: View {
                                    reaction: reactedAnswers.contains(turn.id) ? turn.reaction : nil)
         let editable = turn.id == flow.latestEditableAnswerID && settled && !connecting
         if turn.isUser {
-            Button {
-                guard editable else { return }
-                Haptics.light()
-                withAnimation(reduceMotion ? nil : .easeOut(duration: 0.3)) {
-                    flow.editAnswer(id: turn.id)
-                    visibleCount = flow.turns.count
-                    receiptAnswerID = nil
-                }
-            } label: {
-                answerWithReceipt(message, turnID: turn.id, editable: editable, reservesReactionSpace: turn.reaction != nil)
-            }
-            .buttonStyle(.plain)
-            .allowsHitTesting(editable)
+            // The tap lives on the bubble and on the word Edit, never on the turn as a
+            // whole. A button around the turn made the empty gutter beside the answer
+            // tappable, and that gutter sits directly above the next question, so a
+            // thumb aimed at the top-left choice and landing an inch high rewound the
+            // conversation instead. It looked exactly like the app refusing to take an
+            // answer, because nothing on screen said what had happened.
+            answerWithReceipt(message, turnID: turn.id, editable: editable,
+                              reservesReactionSpace: turn.reaction != nil,
+                              onEdit: editable ? { edit(turn.id) } : nil)
             .accessibilityRemoveTraits(editable ? [] : .isButton)
             .accessibilityAddTraits(editable ? .isButton : [])
             .accessibilityLabel("You: \(turn.text)" + (message.reaction.map { ". Jett reacted with \($0.rawValue)" } ?? ""))
@@ -165,15 +161,30 @@ struct OnboardingView: View {
         }
     }
 
+    private func edit(_ turnID: Int) {
+        Haptics.light()
+        withAnimation(reduceMotion ? nil : .easeOut(duration: 0.3)) {
+            flow.editAnswer(id: turnID)
+            visibleCount = flow.turns.count
+            receiptAnswerID = nil
+        }
+    }
+
     private func answerWithReceipt(_ message: CoachMessage, turnID: Int, editable: Bool,
-                                   reservesReactionSpace: Bool = false) -> some View {
+                                   reservesReactionSpace: Bool = false,
+                                   onEdit: (() -> Void)? = nil) -> some View {
         VStack(alignment: .trailing, spacing: 4) {
             CoachTurnView(message: message, reservesReactionSpace: reservesReactionSpace,
-                          revealsWords: message.role == .assistant)
+                          revealsWords: message.role == .assistant, onTap: onEdit)
             if receiptAnswerID == turnID {
                 HStack(spacing: 5) {
                     Text(deliveryStatus)
-                    if editable { Text("·").accessibilityHidden(true); Text("Edit") }
+                    if editable, let onEdit {
+                        Text("·").accessibilityHidden(true)
+                        Button("Edit", action: onEdit)
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Change this answer")
+                    }
                 }
                 .font(.caption2)
                 .foregroundStyle(Tokens.textTertiary)
