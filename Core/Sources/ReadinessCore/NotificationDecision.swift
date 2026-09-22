@@ -148,3 +148,58 @@ public enum NotificationDecision {
         return spent
     }
 }
+
+/// When it is acceptable for Jett to speak at all, before anything is decided about
+/// whether he has something worth saying.
+///
+/// Two different things could wake this app up, and they carry different evidence. One
+/// is somebody putting the app down, which says nothing about whether they want to hear
+/// from it in ten minutes. The other is their watch handing over a finished night, which
+/// happens because they woke up and it synced: that is not a guess about whether they
+/// are awake, it is a record of it.
+///
+/// The clock used to govern both. Anybody whose night ended between eleven at night and
+/// five in the morning had the one message the app exists to send dropped on the floor,
+/// and a night nurse never got a morning verdict at all.
+public enum SpeakingWindow {
+
+    public enum Trigger: Sendable, Equatable {
+        /// They closed the app. No evidence either way, so the clock decides.
+        case appClosed
+        /// Their watch just handed over a finished night, which only happens because
+        /// they woke and it synced.
+        case nightSynced
+    }
+
+    /// Nobody is woken by this app. The window exists for the case where all we have is
+    /// the time of day.
+    public static let quietFrom = 23
+    public static let quietUntil = 5
+
+    /// Long enough to be sure somebody is up and not simply turning over.
+    ///
+    /// A watch syncs the moment a night ends, which can be a few minutes before anybody
+    /// has their eyes properly open. Twelve minutes is the difference between arriving
+    /// with somebody's morning and arriving in the middle of it.
+    public static let wakeSettlingDelay: TimeInterval = 12 * 60
+
+    public static func allows(_ trigger: Trigger, at now: Date,
+                              calendar: Calendar = .current) -> Bool {
+        switch trigger {
+        // Evidence beats the clock. They are demonstrably awake, whatever the hour.
+        case .nightSynced: return true
+        case .appClosed:
+            let hour = calendar.component(.hour, from: now)
+            return hour >= quietUntil && hour < quietFrom
+        }
+    }
+
+    /// How long to wait before speaking, once it has been decided that speaking is
+    /// allowed.
+    public static func delay(after trigger: Trigger) -> TimeInterval {
+        switch trigger {
+        case .nightSynced: return wakeSettlingDelay
+        case .appClosed: return 0
+        }
+    }
+}

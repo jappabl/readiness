@@ -18,11 +18,11 @@ struct ReadinessApp: App {
     /// a watch syncing at three in the morning, which is the one hour of the day this
     /// app must not wake somebody up in.
     @MainActor
-    private static func speakingIsWelcome(now: Date = .now,
-                                          calendar: Calendar = .current) -> Bool {
-        guard UIApplication.shared.applicationState != .active else { return false }
-        let hour = calendar.component(.hour, from: now)
-        return hour >= 5 && hour < 23
+    /// The clock no longer decides this on its own. Which trigger woke the app is the
+    /// evidence, and `SpeakingWindow` holds the rule; all that is left here is that
+    /// nothing is posted to somebody who is looking at the app.
+    private static func speakingIsWelcome() -> Bool {
+        UIApplication.shared.applicationState != .active
     }
 
     private let container = Store.container
@@ -85,9 +85,15 @@ struct ReadinessApp: App {
                         // instant you put the app down, hours late and obviously
                         // triggered by you rather than by the day.
                         guard Self.speakingIsWelcome() else { return }
+                        // Health woke us because the watch synced a finished night,
+                        // which only happens because somebody woke up. That is a record
+                        // of being awake rather than a guess about it, so the quiet
+                        // hours do not apply: a night that ended at four in the morning
+                        // used to have its verdict dropped on the floor.
                         await notifications.considerSpeaking(
                             model.notificationInput(record: notifications.record,
-                                                    context: container.mainContext))
+                                                    context: container.mainContext),
+                            trigger: .nightSynced)
                     }
                     // Only ever resumed, never requested here: asking for always-on
                     // location at launch is how that permission gets denied forever.

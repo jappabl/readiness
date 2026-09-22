@@ -64,8 +64,10 @@ final class Notifications {
     /// The record is written only after the notification is accepted. Persisting it any
     /// earlier would burn the day and the coin for a message nobody saw, which the
     /// engine's own documentation warns about.
-    func considerSpeaking(_ input: NotificationDecision.Input) async {
+    func considerSpeaking(_ input: NotificationDecision.Input,
+                          trigger: SpeakingWindow.Trigger = .appClosed) async {
         guard isEnabled, systemStatus == .authorized else { return }
+        guard SpeakingWindow.allows(trigger, at: input.now) else { return }
         guard let outcome = NotificationDecision.next(input) else { return }
 
         let content = UNMutableNotificationContent()
@@ -75,8 +77,14 @@ final class Notifications {
         // stacking into a column of Jett.
         content.threadIdentifier = "coach-jett"
 
-        let request = UNNotificationRequest(identifier: UUID().uuidString,
-                                            content: content, trigger: nil)
+        // A watch hands over a finished night the moment it ends, which can be minutes
+        // before somebody has their eyes properly open. Twelve minutes is the difference
+        // between arriving with their morning and arriving in the middle of it.
+        let delay = SpeakingWindow.delay(after: trigger)
+        let request = UNNotificationRequest(
+            identifier: UUID().uuidString, content: content,
+            trigger: delay > 0 ? UNTimeIntervalNotificationTrigger(timeInterval: delay,
+                                                                   repeats: false) : nil)
         do {
             try await center.add(request)
             record = outcome.record
