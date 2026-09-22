@@ -409,9 +409,17 @@ struct CoachSharingSheet: View {
                         .foregroundStyle(Tokens.messageOutgoing)
                         .accessibilityHidden(true)
                     Text("Chat with Jett").font(.title2.bold())
-                    Text("Jett's replies are written by an AI model. With your permission, we send:")
+                    // "We send your biological sex" read as a statement about data the
+                    // app holds, and a tester who had skipped that optional question
+                    // said so: either the sheet was lying or it was collecting a blank.
+                    // It was neither. The list is what can go, and each line only goes
+                    // when there is something in it, which the sheet now says once
+                    // rather than hedging every item.
+                    Text("Jett's replies are written by an AI model. With your permission, we send whichever of these you have given the app:")
                     Label("Your messages, goals, physical limits, training experience, equipment, check-ins, and training plan", systemImage: "bubble.left")
                     Label("Age, height, biological sex, and summaries of sleep, heart metrics, activity, workouts, body measurements, and logged nutrition", systemImage: "heart.text.clipboard")
+                    Text("Anything you skipped or never recorded is not sent, and Jett is not told a guess in its place.")
+                        .font(.subheadline).foregroundStyle(Tokens.textTertiary)
                     Text("This goes to Coach Jett's server, which passes it to the AI provider that writes the reply. Your birthday and raw Health records stay on your phone. Turn sharing off anytime in Profile.")
                         .font(.subheadline).foregroundStyle(Tokens.textTertiary)
                 }

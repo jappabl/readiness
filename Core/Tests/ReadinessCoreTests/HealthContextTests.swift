@@ -125,3 +125,31 @@ extension HealthContextTests {
         #expect(measured.today == health.metrics[0].recordedOn)
     }
 }
+
+/// "Anything you skipped or never recorded is not sent, and Jett is not told a guess in
+/// its place."
+///
+/// The consent sheet says that now, so the code has to keep it. A tester skipped the
+/// optional biological sex question, then read the sheet saying his biological sex is
+/// sent, and concluded the app was either lying or shipping a blank.
+@Suite("What is skipped is not sent")
+struct SkippedDetailsAreNotSentTests {
+
+    @Test func aprofileWithNothingInItSaysNothingAboutTheBody() {
+        let brief = CoachProfileSummary(health: HealthProfile(), answers: OnboardingAnswers(),
+                                        limitations: nil).brief.lowercased()
+        #expect(!brief.contains("biological sex"))
+        #expect(!brief.contains("height"))
+        #expect(!brief.contains("age "))
+    }
+
+    @Test func whatWasGivenIsSentAndWhatWasNotIsNotGuessedAt() {
+        var health = HealthProfile()
+        health.heightCM = 170
+        let brief = CoachProfileSummary(health: health, answers: OnboardingAnswers(),
+                                        limitations: nil).brief.lowercased()
+        #expect(brief.contains("height 170"))
+        // Skipped, so absent. Not "unknown", not a default, not a median.
+        #expect(!brief.contains("biological sex"))
+    }
+}
