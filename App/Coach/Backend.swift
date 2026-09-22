@@ -35,16 +35,6 @@ enum Backend {
     static var termsURL: String { (baseURL ?? legalHome).appendingPathComponent("legal/terms").absoluteString }
     static var privacyURL: String { (baseURL ?? legalHome).appendingPathComponent("legal/privacy").absoluteString }
 
-    /// Stands in for App Attest until the project has a team id to attest against.
-    /// Debug builds only: a shipped app must never carry a shared secret.
-    static var developmentSecret: String? {
-        #if DEBUG
-        ProcessInfo.processInfo.environment["JETT_DEV_SECRET"]
-        #else
-        nil
-        #endif
-    }
-
     enum Route: String {
         case coach = "v1/coach"
         case meal = "v1/meal"
@@ -62,9 +52,6 @@ enum Backend {
         request.httpMethod = "POST"
         request.timeoutInterval = route == .coach ? 120 : 45
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        if let developmentSecret {
-            request.setValue(developmentSecret, forHTTPHeaderField: "x-jett-dev-secret")
-        }
         // The server decides entitlement from this, rather than trusting a boolean.
         if let signed = Entitlement.signedTransaction {
             request.setValue(signed, forHTTPHeaderField: "x-jett-transaction")

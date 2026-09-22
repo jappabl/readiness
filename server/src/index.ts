@@ -15,7 +15,10 @@ import { base64ToBytes, verifyAssertion, verifyAttestation, type AttestedKey } f
 export interface Env {
   ANTHROPIC_API_KEY: string
   DEEPSEEK_API_KEY: string
-  DEV_SHARED_SECRET?: string
+  /// Signs the anti-replay challenge. A secret, set with `wrangler secret put`, never
+  /// a value from `wrangler.toml`: everything in that file ships in the open, and a
+  /// challenge anybody can mint is not a challenge.
+  CHALLENGE_SECRET?: string
   COACH_PROVIDER: string
   COACH_MODEL: string
   MEAL_PROVIDER: string
@@ -101,20 +104,29 @@ export class AttestedInstall implements DurableObject {
  * Signed rather than stored: the Worker has no session to keep it in, and a challenge
  * that carries its own expiry and its own signature needs no round trip to validate.
  */
-async function issueChallenge(env: Env): Promise<string> {
+export async function issueChallenge(env: Env): Promise<string> {
+  const secret = env.CHALLENGE_SECRET
+  // Fail closed. This used to fall back to the bundle id, which is printed in the
+  // app's own Info.plist and sits in the App Store URL, so every challenge could be
+  // minted by anybody who knew the name of the app. A fallback key is worse than no
+  // key: the door still opens, and from outside it looks locked.
+  if (!secret) throw new Error("no challenge secret")
   const payload = `${Date.now()}.${crypto.randomUUID()}`
-  const signature = await hmac(payload, env.DEV_SHARED_SECRET ?? env.BUNDLE_ID)
-  return `${payload}.${signature}`
+  return `${payload}.${await hmac(payload, secret)}`
 }
 
 const CHALLENGE_LIFETIME_MS = 5 * 60 * 1000
 
-async function challengeIsValid(challenge: string, env: Env, now: number): Promise<boolean> {
+export async function challengeIsValid(challenge: string, env: Env, now: number): Promise<boolean> {
+  const secret = env.CHALLENGE_SECRET
+  if (!secret) return false
   const parts = challenge.split(".")
   if (parts.length !== 3) return false
   const [issued, nonce, signature] = parts as [string, string, string]
-  const expected = await hmac(`${issued}.${nonce}`, env.DEV_SHARED_SECRET ?? env.BUNDLE_ID)
-  if (signature !== expected) return false
+  const expected = await hmac(`${issued}.${nonce}`, secret)
+  // Compared the slow way on purpose: `!==` returns at the first differing byte, and
+  // the number of bytes it got through is a measurement of how close a guess was.
+  if (!(await secretsMatch(signature, expected))) return false
   const age = now - Number(issued)
   return Number.isFinite(age) && age >= 0 && age < CHALLENGE_LIFETIME_MS
 }
@@ -227,40 +239,26 @@ async function verifyAttested(request: Request, env: Env): Promise<AttestOutcome
 /**
  * Who is calling.
  *
- * App Attest is the layer that stops someone pointing curl at this. It stays off until
- * the verification below exists: the team ID it validates <teamID>.<bundleID> against is
- * in `wrangler.toml` now, so that is no longer what is missing. While it is off, a shared
- * development secret is required instead, so the endpoint is never simply open.
+ * App Attest, and nothing else. There used to be a second way in behind a shared
+ * development secret, for the stretch before attestation was verified. It has not been
+ * reachable since `REQUIRE_ATTESTATION` went to "true", and unreachable authentication
+ * code is the kind that rots without anybody noticing, so it is gone.
+ *
+ * `REQUIRE_ATTESTATION` still exists and still means something, but something narrower:
+ * it gates the `/v1/attest/check` diagnostic. Turning it off no longer opens this door,
+ * it only lets a device ask why its proof was refused.
+ *
+ * What this costs: the Simulator cannot reach the coach at all. App Attest does not
+ * exist there, so it never could.
  */
 async function identify(request: Request, env: Env): Promise<{ id: string } | Response> {
-  const attestation = request.headers.get("x-jett-attestation")
-  const requireAttestation = env.REQUIRE_ATTESTATION === "true"
-
-  if (requireAttestation) {
-    const outcome = await verifyAttested(request, env)
-    // Never say which check failed. The difference between "unknown key" and "bad
-    // signature" is an oracle for somebody probing it. `/v1/attest/check` says, and
-    // stops existing the moment this branch is the one that runs.
-    if (!outcome.ok) return problem(401, "not authorised")
-    // The attested key id, which the client cannot choose.
-    return { id: outcome.id }
-  }
-
-  if (!env.DEV_SHARED_SECRET) return problem(401, "not authorised")
-  if (!(await secretsMatch(request.headers.get("x-jett-dev-secret"), env.DEV_SHARED_SECRET))) {
-    return problem(401, "not authorised")
-  }
-  // One principal, not a claimed identity.
-  //
-  // This used to trust an `x-jett-install` header and meter against it, which meant the
-  // free tier and the burst bucket both reset by sending a different string. The smoke
-  // test for this worker changed that header between runs to get a clean bucket, which
-  // is the bypass being used as a convenience without anyone noticing.
-  //
-  // Holding the development secret already means holding the keys, so in this mode
-  // everyone is the same caller. When App Attest lands, the id becomes the attested key
-  // id, which the client cannot choose.
-  return { id: "dev-shared" }
+  const outcome = await verifyAttested(request, env)
+  // Never say which check failed. The difference between "unknown key" and "bad
+  // signature" is an oracle for somebody probing it. `/v1/attest/check` says, and only
+  // while attestation is not yet the only way in.
+  if (!outcome.ok) return problem(401, "not authorised")
+  // The attested key id, which the client cannot choose.
+  return { id: outcome.id }
 }
 
 /**
@@ -478,6 +476,7 @@ export default {
 
     // Both before identification, because they are how an install becomes identifiable.
     if (url.pathname === "/v1/challenge") {
+      if (!env.CHALLENGE_SECRET) return problem(503, "not configured")
       return Response.json({ challenge: await issueChallenge(env) })
     }
     if (url.pathname === "/v1/attest") return await handleAttest(request, env)
