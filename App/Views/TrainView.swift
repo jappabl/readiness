@@ -283,6 +283,7 @@ struct LiveWorkoutView: View {
     @State private var restRemaining = 0
     @State private var restTimer: Timer?
     @State private var showingFinish = false
+    @State private var swapping = false
     /// Pounds, always, whatever the wheel is showing.
     @State private var weight = 0.0
     @State private var reps = 8
@@ -436,6 +437,19 @@ struct LiveWorkoutView: View {
                     dismiss()
                 }
             }
+            .sheet(isPresented: $swapping) {
+                if let current {
+                    ExerciseSwapSheet(current: TrainingExerciseDraft(current)) { pick in
+                        replace(current, withName: pick.name, muscle: pick.muscle,
+                                increment: pick.increment)
+                    } onName: { typed in
+                        replace(current, withName: typed, muscle: current.muscleGroup,
+                                increment: current.increment)
+                    } onRemove: {
+                        drop(current)
+                    }
+                }
+            }
             .alert("Set wasn’t saved", isPresented: $saveError) {
                 Button("OK", role: .cancel) {}
             } message: { Text("Please try logging the set again.") }
@@ -447,14 +461,34 @@ struct LiveWorkoutView: View {
             HStack(alignment: .center, spacing: 6) {
                 step(-1, symbol: "chevron.left", label: "Previous exercise",
                      enabled: exerciseIndex > 0)
-                VStack(alignment: .leading, spacing: 5) {
-                    Text(exercise.name).font(.title2.weight(.bold))
-                        .foregroundStyle(Tokens.textPrimary)
-                    Text(setsLogged < exercise.targetSets
-                         ? "Set \(setsLogged + 1) of \(exercise.targetSets)"
-                         : "Set \(setsLogged + 1)")
-                        .font(.subheadline).foregroundStyle(Tokens.textSecondary)
+                // The name is the way out of an exercise you cannot do.
+                //
+                // Swapping used to exist only in the editor, before a session starts,
+                // which is the one moment you do not yet know the machine is taken or
+                // that your shoulder disagrees with the plan. A tester found himself
+                // stuck with a movement mid-workout and said the only way out was to
+                // abandon the session.
+                Button {
+                    Haptics.light()
+                    swapping = true
+                } label: {
+                    VStack(alignment: .leading, spacing: 5) {
+                        HStack(spacing: 7) {
+                            Text(exercise.name).font(.title2.weight(.bold))
+                                .foregroundStyle(Tokens.textPrimary)
+                                .multilineTextAlignment(.leading)
+                            Image(systemName: "arrow.left.arrow.right")
+                                .font(.footnote).foregroundStyle(Tokens.textSecondary)
+                        }
+                        Text(setsLogged < exercise.targetSets
+                             ? "Set \(setsLogged + 1) of \(exercise.targetSets)"
+                             : "Set \(setsLogged + 1)")
+                            .font(.subheadline).foregroundStyle(Tokens.textSecondary)
+                    }
+                    .contentShape(Rectangle())
                 }
+                .buttonStyle(.plain)
+                .accessibilityHint("Swap this exercise for a similar one")
                 Spacer(minLength: 4)
                 step(1, symbol: "chevron.right", label: "Next exercise",
                      enabled: exerciseIndex < exercises.count - 1)
@@ -648,6 +682,34 @@ struct LiveWorkoutView: View {
         // logged. It was the plan's raw target, which for an experienced lifter is two:
         // the screen preselected Comfortable and the set went down as a hard one.
         rir = StrainEngine.effort(forRIR: last?.rir ?? current.targetRIR).rawValue
+    }
+
+    /// Change the exercise in the plan, from inside the workout.
+    ///
+    /// The template is edited, not a copy of it, so the swap holds tomorrow as well:
+    /// somebody swapping mid-session is usually telling the app something lasting about
+    /// the movement rather than about this afternoon. Sets already logged keep the name
+    /// they were logged under, because they happened.
+    private func replace(_ exercise: TemplateExercise, withName name: String,
+                         muscle: MuscleGroup, increment: Double) {
+        exercise.name = name
+        exercise.muscleGroupRaw = muscle.rawValue
+        exercise.increment = increment
+        // The old working weight belongs to the old movement.
+        exercise.workingWeight = 0
+        try? context.save()
+        prepareSet()
+        showActivity()
+    }
+
+    private func drop(_ exercise: TemplateExercise) {
+        guard let template else { return }
+        template.exercises.removeAll { $0 === exercise }
+        context.delete(exercise)
+        try? context.save()
+        exerciseIndex = min(exerciseIndex, max(0, exercises.count - 1))
+        prepareSet()
+        showActivity()
     }
 
     private func lastTime(_ exercise: String) -> LoggedSet? {
