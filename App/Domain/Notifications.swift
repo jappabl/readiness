@@ -26,6 +26,9 @@ final class Notifications {
     /// leaves the foreground, and this is the belt to that braces.
     private let foreground = ForegroundPresenter()
 
+    /// Fixed, so scheduling again replaces the pending one rather than stacking a
+    /// second warning about the same charge.
+    private static let trialReminderID = "trial.ending"
     private static let enabledKey = "notifications.enabled"
     private static let recordKey = "notifications.record"
     private let center = UNUserNotificationCenter.current()
@@ -56,7 +59,40 @@ final class Notifications {
 
     func disable() {
         isEnabled = false
-        center.removeAllPendingNotificationRequests()
+        // Everything Jett had queued up, and nothing about money. Somebody who has asked
+        // the coach to be quiet has not asked to be charged without warning, and the
+        // trial reminder is the one message here they cannot get anywhere else in time.
+        Task { [center] in
+            let pending = await center.pendingNotificationRequests()
+            center.removePendingNotificationRequests(withIdentifiers:
+                pending.map(\.identifier).filter { $0 != Self.trialReminderID })
+        }
+    }
+
+    /// The only notification this app sends about money.
+    ///
+    /// Deliberately not gated on `isEnabled`. That switch is for the coach; this is a
+    /// warning that a card is about to be charged, and the two are not the same
+    /// question. It does still need the system permission, because nothing can be sent
+    /// without it.
+    ///
+    /// Pass nil to withdraw it: the trial ended, or renewal was turned off, or the
+    /// subscription went away.
+    func updateTrialReminder(_ charge: Subscriptions.TrialCharge?, now: Date = .now) async {
+        center.removePendingNotificationRequests(withIdentifiers: [Self.trialReminderID])
+        guard let charge, systemStatus == .authorized else { return }
+        guard let fire = TrialReminder.fireDate(trialEnds: charge.ends, now: now) else { return }
+
+        let content = UNMutableNotificationContent()
+        content.body = TrialReminder.body(priceLine: charge.priceLine)
+        content.sound = .default
+        // Not threaded with the coach on purpose. This is the one message that should
+        // not collapse into a stack of Jett saying things about sleep.
+        let request = UNNotificationRequest(
+            identifier: Self.trialReminderID, content: content,
+            trigger: UNTimeIntervalNotificationTrigger(
+                timeInterval: fire.timeIntervalSince(now), repeats: false))
+        try? await center.add(request)
     }
 
     /// Asks the engine, and posts whatever it returns.

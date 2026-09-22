@@ -25,6 +25,12 @@ final class Subscriptions {
 
     private(set) var products: [Product] = []
     private(set) var isSubscribed = false
+    /// A free trial that is still on course to become a charge, if there is one.
+    ///
+    /// Read by the app root and handed to `Notifications`, which is the only thing that
+    /// owns the notification centre. Nil covers every reason there is nothing to warn
+    /// about: not subscribed, past the trial, or renewal already turned off.
+    private(set) var trialCharge: TrialCharge?
     private(set) var isLoading = false
     /// Set when a purchase fails for a reason worth telling the user about. A cancel is
     /// not one of those.
@@ -84,15 +90,25 @@ final class Subscriptions {
         await refreshEntitlement()
     }
 
+    /// A free trial that has not been cancelled, and when it turns into money.
+    struct TrialCharge: Equatable {
+        let ends: Date
+        /// "$8.99 a month", as the store itself renders it.
+        let priceLine: String
+    }
+
     /// True when any transaction in the Pro group is currently entitling the user.
     func refreshEntitlement() async {
         var entitled = false
+        var trial: TrialCharge?
         for await result in Transaction.currentEntitlements {
             guard case .verified(let transaction) = result else { continue }
             if Self.productIDs.contains(transaction.productID), transaction.revocationDate == nil {
                 entitled = true
+                if let found = await trialCharge(for: transaction) { trial = found }
             }
         }
+        trialCharge = trial
         if entitled != isSubscribed {
             Self.log.notice("entitlement changed to \(entitled)")
         }
@@ -100,6 +116,37 @@ final class Subscriptions {
         // The server is told by Apple, not by us, so the signed form travels with every
         // request and has to be refreshed whenever this is.
         await Entitlement.refresh()
+    }
+
+    /// Is this transaction a free trial that is still going to be charged for?
+    ///
+    /// Three ways to be nil, and all three mean the same thing to the caller: there is
+    /// nothing worth warning anybody about. Not a trial, no product to read a price
+    /// off, or renewal already turned off by somebody who has made their decision.
+    private func trialCharge(for transaction: Transaction) async -> TrialCharge? {
+        guard Self.isFreeTrial(transaction), let ends = transaction.expirationDate else { return nil }
+        guard let product = products.first(where: { $0.id == transaction.productID }) else {
+            // Products load after the first entitlement refresh on a cold start. That
+            // refresh runs again once they are in, so this is a wait, not a miss.
+            return nil
+        }
+        let statuses = (try? await product.subscription?.status) ?? []
+        for status in statuses {
+            guard case .verified(let renewal) = status.renewalInfo else { continue }
+            if renewal.currentProductID == transaction.productID, !renewal.willAutoRenew {
+                return nil
+            }
+        }
+        return TrialCharge(ends: ends, priceLine: product.periodDescription)
+    }
+
+    /// `Transaction.offer` is the current spelling and needs iOS 17.2. This app runs on
+    /// 17.0, so the deprecated property is the fallback rather than the floor.
+    private static func isFreeTrial(_ transaction: Transaction) -> Bool {
+        if #available(iOS 17.2, *) {
+            return transaction.offer?.paymentMode == .freeTrial
+        }
+        return transaction.offerType == .introductory
     }
 
     /// Returns true when the user came away subscribed.

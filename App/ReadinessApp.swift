@@ -61,6 +61,13 @@ struct ReadinessApp: App {
                     model.wantsToFinishWorkout = true
                 }
                 .task { await store.load() }
+                // The one notification about money, kept in step with the one thing
+                // that decides whether it is still true. Re-runs when the trial appears,
+                // when renewal is turned off, and when the subscription goes away, which
+                // are the three moments the pending reminder is wrong.
+                .task(id: store.trialCharge) {
+                    await notifications.updateTrialReminder(store.trialCharge)
+                }
                 .task {
                     #if DEBUG
                     if let key = ProcessInfo.processInfo.environment["JETT_DEEPSEEK_API_KEY"], !key.isEmpty {
