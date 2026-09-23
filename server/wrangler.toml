@@ -33,6 +33,11 @@ MEAL_MODEL = "deepseek-flash"
 REQUIRE_ATTESTATION = "true"
 APPLE_TEAM_ID = "V9JX42F864"
 BUNDLE_ID = "com.coachjett.ios"
+# The app's numeric Apple ID, from App Store Connect: the app, then App Information,
+# then Apple ID. Needed to verify production purchases. Empty refuses them, which is
+# safe but means nobody who buys from the App Store gets Pro. TestFlight purchases
+# are sandbox and do not need it. Must be set before the app goes on sale.
+APP_APPLE_ID = ""
 # Empty, which is the shipping value. "*" lifted the free-message cap for every caller
 # and was the one line in this file that could not go out.
 #

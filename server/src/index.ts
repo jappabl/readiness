@@ -6,7 +6,8 @@
  * provider key.
  */
 import { freshBucket, meterDecision, type MeterState } from "./limits"
-import { entitlement } from "./entitlement"
+import { entitlement, type Trust } from "./entitlement"
+import { APPLE_ROOT_G3 } from "./apple-root"
 import { coachBody, mealBody, trim } from "./prompt"
 import { InvalidRequest, parseCoachBody, parseMealBody, MAX_MESSAGES } from "./schema"
 import { legalPage } from "./legal"
@@ -31,6 +32,10 @@ export interface Env {
   UNLIMITED_IDS?: string
   APPLE_TEAM_ID: string
   BUNDLE_ID: string
+  /// The app's numeric Apple ID from App Store Connect, needed to verify production
+  /// purchases. Empty until the app record exists; production purchases fail closed
+  /// until then, and sandbox ones, which is all TestFlight makes, do not need it.
+  APP_APPLE_ID?: string
   BUCKET: DurableObjectNamespace
   /// One object per attested key, holding its public key and its counter.
   ATTEST: DurableObjectNamespace
@@ -393,13 +398,22 @@ async function handleAttest(request: Request, env: Env): Promise<Response> {
   }
 }
 
+/** Apple's root and nothing else. The only place anything is trusted to sign a purchase. */
+function trustFor(env: Env): Trust {
+  const appAppleId = Number(env.APP_APPLE_ID)
+  return {
+    bundleId: env.BUNDLE_ID,
+    roots: [APPLE_ROOT_G3],
+    appAppleId: Number.isInteger(appAppleId) && appAppleId > 0 ? appAppleId : undefined,
+  }
+}
+
 async function handleCoach(request: Request, env: Env, id: string): Promise<Response> {
   const parsed = parseCoachBody(await request.json())
   const result = await entitlement(
     request.headers.get("x-jett-transaction") ?? undefined,
-    env.BUNDLE_ID,
+    trustFor(env),
     Date.now(),
-    env.REQUIRE_ATTESTATION !== "true", // dev mode trusts the claim it cannot yet verify
   )
   const limited = await meter(id, result.subscriber || isUnlimited(id, env), env)
   if (limited) return limited

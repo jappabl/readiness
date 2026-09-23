@@ -5,8 +5,10 @@
  * signed by Apple, so the server can decide entitlement without trusting a boolean from
  * the app and without building accounts.
  *
- * Two halves, and they are not equally finished. See `verifySignature`.
+ * Two halves: `verifiedPayload` proves Apple signed it, then `checkClaims` decides
+ * whether what Apple signed is a live subscription to this app.
  */
+import { Buffer } from "node:buffer"
 
 export const PRODUCT_IDS = [
   "com.coachjett.ios.pro.monthly",
@@ -71,39 +73,71 @@ export function checkClaims(
   return { subscriber: true, productId }
 }
 
+/** What to trust, and which app this is. */
+export interface Trust {
+  bundleId: string
+  /** Base64 DER. Production passes Apple's root and nothing else. */
+  roots: string[]
+  /**
+   * The app's numeric Apple ID from App Store Connect. Apple's library refuses to check
+   * a production purchase without it, so until it is configured production purchases
+   * fail closed. Sandbox purchases, which is everything TestFlight makes, do not need it.
+   */
+  appAppleId?: number
+}
+
 /**
- * Signature verification.
+ * Checked by Apple's own library rather than by anything written here. Validating the
+ * certificate chain up to Apple's root is the kind of code that looks right and is not,
+ * and a mistake in it hands a free subscription to anybody who can build a token.
  *
- * NOT FINISHED, AND DELIBERATELY NOT FAKED. Verifying a StoreKit JWS properly means
- * validating the `x5c` certificate chain up to Apple's root CA and checking the leaf
- * before trusting its key. Hand-rolling X.509 chain validation is the kind of thing
- * that looks right and is not, and a bug here hands a free subscription to anyone who
- * can craft a token.
+ * Imported inside the call, not at the top of the file: a dependency of Apple's library
+ * generates random values the moment it loads, and the Workers runtime refuses that at
+ * global scope. Loaded here, it runs inside a request, which is allowed.
  *
- * Use Apple's own `app-store-server-library` (it runs under `nodejs_compat`) or an
- * audited JOSE library that does full chain validation against a pinned Apple root.
- * Until that is wired in, this throws rather than returning a permissive default, so a
- * half-built verifier cannot quietly grant entitlement in production.
+ * Online checks are off. On, every coach message would wait on a round trip to Apple's
+ * certificate status service, and what it guards against is Apple revoking its own
+ * intermediate. Off, certificate validity is judged at the transaction's signed date,
+ * which the signature covers.
  */
-export async function verifySignature(_jws: string, allowUnverified: boolean): Promise<void> {
-  if (allowUnverified) return
-  throw new Error(
-    "StoreKit JWS signature verification is not implemented. Wire in Apple's " +
-      "app-store-server-library before enabling entitlement checks in production.",
+async function verifiedPayload(jws: string, trust: Trust): Promise<TransactionPayload> {
+  // Read before verifying, and used for one thing only: which of Apple's two
+  // environments to check it against. Every other environment is refused, because
+  // Apple's library skips the signature entirely for Xcode and local testing, and
+  // routing a purchase that merely claims to be from Xcode there would be a free pass.
+  const claimed = decodeJWSPayload(jws).environment
+  if (claimed !== "Sandbox" && claimed !== "Production") throw new Error("unsupported environment")
+
+  const { SignedDataVerifier, Environment } = await import("@apple/app-store-server-library")
+  const verifier = new SignedDataVerifier(
+    trust.roots.map((root) => Buffer.from(root, "base64")),
+    false,
+    claimed === "Production" ? Environment.PRODUCTION : Environment.SANDBOX,
+    trust.bundleId,
+    trust.appAppleId,
   )
+  const payload = await verifier.verifyAndDecodeTransaction(jws)
+  return {
+    bundleId: payload.bundleId,
+    productId: payload.productId,
+    expiresDate: payload.expiresDate,
+    purchaseDate: payload.purchaseDate,
+    revocationDate: payload.revocationDate,
+    environment: payload.environment,
+  }
 }
 
 export async function entitlement(
   jws: string | undefined,
-  bundleId: string,
+  trust: Trust,
   nowMs: number,
-  allowUnverified: boolean,
 ): Promise<EntitlementResult> {
   if (!jws) return { subscriber: false, reason: "no transaction" }
   try {
-    await verifySignature(jws, allowUnverified)
-    return checkClaims(decodeJWSPayload(jws), bundleId, nowMs)
+    return checkClaims(await verifiedPayload(jws, trust), trust.bundleId, nowMs)
   } catch (error) {
-    return { subscriber: false, reason: (error as Error).message }
+    // Apple's exceptions carry a status rather than a message, and neither reaches the
+    // client. Refusal is the only outcome that matters here.
+    return { subscriber: false, reason: error instanceof Error && error.message ? error.message : "not verified" }
   }
 }
