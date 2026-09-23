@@ -29,10 +29,17 @@ struct CalendarView: View {
     /// faint dot as a day that never happened, and only one of them answered. A tester
     /// tapped yesterday and the day before, got nothing either time, and reported the
     /// calendar as dead. One meaning now, used for both.
+    ///
+    /// Only the month in view, worked out once per drawing. It was every day of the
+    /// history, all three scores each, asked again by every cell: with six months of
+    /// Health data that is thousands of score calculations, and the tab never finished
+    /// drawing.
     private var daysWithSomething: Set<Date> {
+        let recorded = Set(model.series.map { calendar.startOfDay(for: $0.date) })
         var result: Set<Date> = []
-        for day in model.series where model.hasAnything(on: day.date) {
-            result.insert(calendar.startOfDay(for: day.date))
+        for date in cells.compactMap(\.date) {
+            let day = calendar.startOfDay(for: date)
+            if recorded.contains(day), model.hasAnything(on: date) { result.insert(day) }
         }
         for session in sessions where !session.sets.isEmpty {
             result.insert(calendar.startOfDay(for: session.date))
@@ -118,11 +125,12 @@ struct CalendarView: View {
     // MARK: - Grid
 
     private var grid: some View {
-        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 7),
+        let marked = daysWithSomething
+        return LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 7),
                   spacing: 6) {
             ForEach(cells, id: \.id) { cell in
                 if let date = cell.date {
-                    dayCell(date)
+                    dayCell(date, has: marked.contains(calendar.startOfDay(for: date)))
                 } else {
                     Color.clear.frame(height: 46)
                 }
@@ -145,11 +153,10 @@ struct CalendarView: View {
         return blanks + days
     }
 
-    private func dayCell(_ date: Date) -> some View {
+    private func dayCell(_ date: Date, has: Bool) -> some View {
         let recovery = model.recoveryScore(on: date).value
         let isToday = calendar.isDateInToday(date)
         let future = date > Date()
-        let has = daysWithSomething.contains(calendar.startOfDay(for: date))
         return VStack(spacing: 4) {
             Text(date, format: .dateTime.day())
                 .font(.system(size: 14, weight: isToday ? .bold : .medium))
