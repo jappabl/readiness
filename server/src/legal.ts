@@ -12,7 +12,7 @@
  * has not been reviewed by anybody qualified.
  */
 
-const UPDATED = "20 September 2026"
+const UPDATED = "22 September 2026"
 
 function page(title: string, body: string): Response {
   return new Response(
@@ -42,41 +42,78 @@ it never does.</p>
 <ul>
   <li>Every raw Health record it reads: heart rate samples, sleep periods, workouts,
       steps, weight, nutrition. These are read on the device and are never uploaded.</li>
-  <li>Your date of birth. Only your age is ever sent anywhere.</li>
-  <li>Your conversations with Jett, and the short list of things he remembers.</li>
-  <li>Your logged sets, sessions and check-ins.</li>
+  <li>Your date of birth. It is turned into an age on the device, and only the age is
+      ever sent anywhere.</li>
   <li>Anything to do with where you are. Gym detection compares your location against
       gyms you named yourself, entirely on the device. No location leaves it, ever.</li>
+  <li>Your logged sets and sessions, your check-ins, your conversations with Jett and the
+      short list of things he remembers. These are stored only on your iPhone. Parts of
+      them travel with a question to Jett, as the next section describes, but our server
+      does not keep them.</li>
 </ul>
 
 <h2>What is sent, and only if you allow it</h2>
-<p>AI coaching is off until you turn it on. While it is on, asking Jett a question sends
-a summary of your day to our server, which forwards it to the AI provider that writes the
-reply. That summary contains scores, averages and the readings behind them, your goal,
-your training plan, your check-in answers and the conversation itself. It never contains
-raw samples or timeseries; that is enforced by an automated test.</p>
-<p>A meal photo is sent to the same provider only when you take one and approve it.</p>
-<p>Turning sharing off stops any future request. It cannot recall something already
-sent.</p>
+<p>AI coaching is off until you turn it on. While it is on, asking Jett a question sends a
+summary to our server, which forwards it to the AI provider that writes the reply. That
+summary can contain:</p>
+<ul>
+  <li>today's scores and the readings behind them, their 7 and 28 day averages, and your
+      daily scores for the last 14 days;</li>
+  <li>daily totals you record, such as activity, food, caffeine, alcohol and mindful
+      minutes;</li>
+  <li>your age, height and biological sex, if Health has them;</li>
+  <li>your goal, training experience, equipment, and any injury or limitation you told
+      the app about;</li>
+  <li>today's session, with its exercises, sets, reps and loads;</li>
+  <li>your check-in answers, the things Jett remembers, and the conversation itself.</li>
+</ul>
+<p>It never contains a raw Health sample; an automated test fails if one ever appears.</p>
+<p>A meal photo goes the same way, and only when you take one and approve it. Taking the
+photo is the choice, so the AI coaching switch does not cover it.</p>
+<p>Turning AI coaching off in Profile stops any future coaching request. It cannot recall
+something already sent.</p>
+
+<h2>What our server keeps</h2>
+<p>Our server does not store your summaries, your conversations or your photos. It passes
+them to the AI provider and keeps nothing of them. For each install it keeps only:</p>
+<ul>
+  <li>a key that proves requests come from a genuine copy of the app, and a counter that
+      stops an old request being replayed;</li>
+  <li>your member number;</li>
+  <li>counts used for rate limits and the free message allowance;</li>
+  <li>if Apple refunds a purchase, that purchase's transaction ID, so the refund ends it.</li>
+</ul>
+<p>The app has no accounts, so none of this is linked to your name, your email or your
+Apple Account.</p>
 
 <h2>Who else sees it</h2>
-<p>The AI provider processes the request to produce the reply. There are no analytics
-services, no advertising networks, and no data brokers. Nothing is sold, and Health data
-is never used for advertising. There are no accounts, so there is nothing tied to an
-identity beyond the install itself.</p>
+<p>The AI provider processes each request to produce the reply, under its own terms for
+what it keeps. Our server runs on Cloudflare, which carries requests to and from it. Apple
+checks that the app is genuine and handles subscriptions. There are no analytics services,
+no advertising networks, and no data brokers. Nothing is sold, and Health data is never
+used for advertising.</p>
+
+<h2>Dictation</h2>
+<p>Logging a set by voice uses Apple's speech recognition. On iPhones that support it, the
+words are recognised on the device. On others, Apple processes the audio under its own
+privacy policy. The app never sends audio to our server.</p>
 
 <h2>Payments</h2>
-<p>Subscriptions are handled by Apple. We never see your payment details. Our server sees
-only whether an install currently holds a subscription.</p>
+<p>Subscriptions are handled by Apple. We never see your payment details. With each
+question to Jett, the app sends Apple's signed record of your subscription, so our server
+can check that it is real and current. It is checked and discarded, unless Apple later
+tells us that purchase was refunded.</p>
 
 <h2>Deleting it</h2>
 <p>Deleting the app removes everything stored on the device, which is almost all of it.
-You can clear the conversation and any individual thing Jett remembers from Profile at
-any time.</p>
+You can clear the conversation and forget anything Jett remembers from Profile at any
+time. The server records above belong to the install, not to you, so once the app is
+deleted nothing uses them again.</p>
 
 <h2>Children</h2>
-<p>Coach Jett is not intended for children under 13, and adult calorie and weight targets
-are withheld from anybody who tells us they are under 18.</p>
+<p>Coach Jett is not intended for children under 13. The app does not set calorie or
+weight targets itself, and Jett is instructed not to give adult calorie or weight-loss
+targets to anybody whose age shows they are under 18.</p>
 
 <h2>Contact</h2>
 <p>Questions about any of this: <a href="mailto:hlincontacts@gmail.com">hlincontacts@gmail.com</a>.</p>
