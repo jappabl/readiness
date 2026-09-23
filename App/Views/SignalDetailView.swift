@@ -15,6 +15,7 @@ struct SignalDetailView: View {
     @Query private var sessions: [WorkoutSession]
 
     @State private var showingWhy = false
+    @State private var sharing = false
 
     private var isToday: Bool { Calendar.current.isDateInToday(date) }
     /// "today" is a word this screen may not use once it can show any other day.
@@ -82,16 +83,27 @@ struct SignalDetailView: View {
                 }
             }
             ToolbarItem(placement: .topBarTrailing) {
-                Button { Haptics.light(); showingWhy = true } label: {
-                    Image(systemName: "info.circle").font(.system(size: 16))
+                HStack(spacing: 2) {
+                    if shareCard.isShareable {
+                        Button { Haptics.light(); sharing = true } label: {
+                            Image(systemName: "square.and.arrow.up").font(.system(size: 16))
+                        }
+                        .tint(Tokens.textPrimary)
+                        .accessibilityLabel("Share \(signal.title.lowercased())")
+                    }
+                    Button { Haptics.light(); showingWhy = true } label: {
+                        Image(systemName: "info.circle").font(.system(size: 16))
+                    }
+                    .tint(Tokens.textPrimary)
+                    .accessibilityLabel("How this is calculated")
                 }
-                .tint(Tokens.textPrimary)
-                .accessibilityLabel("How this is calculated")
             }
         }
         .sheet(isPresented: $showingWhy) {
             InsightsView(score: score, date: date)
         }
+        .offersShareCardOnScreenshot(shareCard.isShareable) { sharing = true }
+        .sheet(isPresented: $sharing) { ShareCardSheet(data: shareCard) }
     }
 
     /// The same three the rings use, resolved the same way: today keeps the live
@@ -110,6 +122,21 @@ struct SignalDetailView: View {
     }
 
     private var strain: DailyStrainResult? { model.dailyStrain(on: date) }
+
+    /// This signal leading, the other two under it, on the same numbers Today's rings
+    /// show for this day. The call only on today, which is the only day it is advice for.
+    private var shareCard: ShareCardData {
+        func ring(_ score: SignalScore) -> Int? { score.value.map { max(1, Int($0.rounded())) } }
+        let rec = isToday ? model.recommendation : nil
+        return ShareCardData(
+            date: date, hero: signal,
+            strain: ring(model.strainScore(on: date, context: context)),
+            recovery: ring(recovery), sleep: ring(model.sleepScore(on: date)),
+            headline: rec.map { Copy.headline(for: $0.state) },
+            call: rec.flatMap { rec in model.day.map {
+                Copy.call(for: rec, gate: $0.readiness.gateApplied, hasSession: model.hasProgram)
+            } })
+    }
 
     /// Why there is no breakdown. Only one case left: a night nothing staged at all.
     /// A night staged in part now shows the part it recorded, with the rest as light.

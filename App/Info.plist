@@ -59,6 +59,8 @@
 	<string>Coach Jett notices when you have been at your gym for a few minutes so Jett can offer to take the session down while you rest. Your location is only ever compared against gyms you have named yourself, and never leaves this device.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Coach Jett notices when you have been at your gym for a few minutes so Jett can offer to take the session down while you rest. Your location is only ever compared against gyms you have named yourself, and never leaves this device.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Save a share card of your day to Photos.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Say what you just lifted and Coach Jett writes the set down, so you never have to type between sets.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>

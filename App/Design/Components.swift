@@ -110,6 +110,9 @@ struct RingGauge: View {
     var target: Double?
     var lineWidth: CGFloat = 11
     var figureSize: CGFloat = 22
+    /// False for a still image, which has no appearance to animate from: a share card
+    /// rendered off screen would otherwise capture an empty track.
+    var animates = true
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var animated = false
@@ -148,7 +151,7 @@ struct RingGauge: View {
             }
 
             Circle()
-                .trim(from: 0, to: animated ? fraction : 0)
+                .trim(from: 0, to: animated || !animates ? fraction : 0)
                 .stroke(AngularGradient(colors: signal.ring(forPercent: percent), center: .center,
                                         startAngle: .degrees(0),
                                         // Compress the ramp into the drawn arc, so a

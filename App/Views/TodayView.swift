@@ -10,6 +10,7 @@ struct TodayView: View {
     /// the beats mid-flight and take him off the screen halfway through his own sentence.
     @State private var jettMomentArmed = true
     @State private var showingWhy = false
+    @State private var sharing = false
     @State private var showingCheckIn = false
     @State private var pickingProgram = false
     @State private var showingAdjust = false
@@ -44,6 +45,8 @@ struct TodayView: View {
             }
         }
         .safeAreaInset(edge: .top, spacing: 0) { header }
+        .offersShareCardOnScreenshot(shareCard.isShareable) { sharing = true }
+        .sheet(isPresented: $sharing) { ShareCardSheet(data: shareCard) }
         .sheet(isPresented: $showingCheckIn) { CheckInView() }
         .sheet(isPresented: $pickingProgram) {
             NavigationStack { ProgramSetupView { model.selectToday($0); pickingProgram = false } }
@@ -144,6 +147,10 @@ struct TodayView: View {
                 .buttonStyle(.plain)
                 .transition(.opacity.combined(with: .offset(x: 8)))
                 .accessibilityLabel("Back to today")
+            }
+            if shareCard.isShareable {
+                ShareCardButton { sharing = true }
+                    .padding(.trailing, -12)
             }
         }
         .padding(.horizontal, Tokens.screenMargin)
@@ -304,6 +311,20 @@ struct TodayView: View {
     /// came from a different application. A tester said exactly that.
     private func saved(_ message: String) {}
     private func showSaveResult() {}
+
+    /// The day on screen as a card. Recovery leads, because it is the morning's news.
+    private var shareCard: ShareCardData {
+        let viewed = model.viewedScores(context: context)
+        let rec = model.isRewound ? nil : model.recommendation
+        return ShareCardData(
+            date: model.viewedDay, hero: .recovery,
+            strain: Self.percent(viewed.strain), recovery: Self.percent(viewed.recovery),
+            sleep: Self.percent(viewed.sleep),
+            headline: rec.map { Copy.headline(for: $0.state) },
+            call: rec.flatMap { rec in model.day.map {
+                Copy.call(for: rec, gate: $0.readiness.gateApplied, hasSession: model.hasProgram)
+            } })
+    }
 
     // MARK: - Rings and coaching, one card
 
