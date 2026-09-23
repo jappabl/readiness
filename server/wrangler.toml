@@ -37,7 +37,7 @@ BUNDLE_ID = "com.coachjett.ios"
 # then Apple ID. Needed to verify production purchases. Empty refuses them, which is
 # safe but means nobody who buys from the App Store gets Pro. TestFlight purchases
 # are sandbox and do not need it. Must be set before the app goes on sale.
-APP_APPLE_ID = ""
+APP_APPLE_ID = "6815046416"
 # Empty, which is the shipping value. "*" lifted the free-message cap for every caller
 # and was the one line in this file that could not go out.
 #
