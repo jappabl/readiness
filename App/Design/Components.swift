@@ -57,10 +57,12 @@ enum Signal: String, CaseIterable, Identifiable {
         // app and recolouring it by verdict cost more in recognition than it bought in
         // information: the number is right there. Strain keeps its own ramp because a
         // hard day is not a bad day. Recovery is the one that carries a verdict.
+        // The band, not cutoffs of its own: these were Whoop's 67 and 34 after the bands
+        // moved to 58 and 15, so a 21 drew red while Jett called it normal.
         guard self == .recovery, let percent else { return ring }
-        switch percent {
-        case 67...: return [Tokens.recoveryLow, Tokens.recoveryHigh, Tokens.recoveryDeep]
-        case 34..<67: return [Tokens.strainHigh, Tokens.strainLow, Tokens.strainDeep]
+        switch ScoreBand.recovery(percent: Double(percent)) {
+        case .green: return [Tokens.recoveryLow, Tokens.recoveryHigh, Tokens.recoveryDeep]
+        case .yellow: return [Tokens.strainHigh, Tokens.strainLow, Tokens.strainDeep]
         default: return [Tokens.alertSoft, Tokens.alert, Tokens.alertDeep]
         }
     }
