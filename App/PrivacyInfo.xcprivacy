@@ -10,7 +10,8 @@
 	<key>NSPrivacyTrackingDomains</key>
 	<array/>
 
-	<!-- What actually leaves the phone, and only that.
+	<!-- What actually leaves the phone, and only that. The answers in App Store
+	     Connect's App Privacy section must say the same five things.
 	     Location never does: gym presence is compared on device against gyms the
 	     person named themselves. Dictation is Apple's, on device where the phone
 	     supports it. Subscription status is a signed Apple transaction the server
@@ -49,6 +50,36 @@
 			     photo leaving the phone, which is the thing this key is for. -->
 			<key>NSPrivacyCollectedDataType</key>
 			<string>NSPrivacyCollectedDataTypePhotosorVideos</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+		<dict>
+			<!-- What you type to Jett, sent with the summary so he can answer it. The
+			     same terms as the health data: not kept by us, but it leaves the phone. -->
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeOtherUserContent</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+		<dict>
+			<!-- The App Attest key ID for this install, which the server keeps with its
+			     member number and rate limits. It proves requests come from a genuine
+			     copy of the app. It names an install, not a person, and there are no
+			     accounts to link it to. -->
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeDeviceID</string>
 			<key>NSPrivacyCollectedDataTypeLinked</key>
 			<false/>
 			<key>NSPrivacyCollectedDataTypeTracking</key>
