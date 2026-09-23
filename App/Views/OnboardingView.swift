@@ -270,7 +270,11 @@ struct OnboardingView: View {
                 .font(.caption2)
                 .foregroundStyle(Tokens.textTertiary)
                 .contentTransition(.opacity)
-                .padding(.vertical, -12)
+                // Takes back the Edit button's tap padding, and only when that button
+                // is there. Applied to a receipt with no Edit it pulled "Read" twelve
+                // points up into the bubble above, which is what testers saw after
+                // the Health step and on the last answer.
+                .padding(.vertical, editable && onEdit != nil ? -12 : 0)
             }
         }
     }

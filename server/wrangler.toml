@@ -9,6 +9,13 @@ compatibility_flags = ["nodejs_compat"]
 # front doors than it needs.
 preview_urls = false
 
+# Its own address on our domain. Some school and workplace filters intercept every
+# *.workers.dev connection (a Manhattan Beach USD filter did, on 23 Sep 2026), which
+# made the coach and meal photos fail on those networks. The workers.dev address stays
+# on for the builds that shipped with it.
+routes = [{ pattern = "api.coachjett.com", custom_domain = true }]
+workers_dev = true
+
 # Secrets are never committed. Set them with:
 #   wrangler secret put ANTHROPIC_API_KEY
 #   wrangler secret put DEEPSEEK_API_KEY

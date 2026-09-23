@@ -46,7 +46,7 @@
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>JettProxyURL</key>
-	<string>https://coachjett-proxy.hlincontacts.workers.dev</string>
+	<string>https://api.coachjett.com</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
