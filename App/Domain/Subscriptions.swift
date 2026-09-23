@@ -58,7 +58,19 @@ final class Subscriptions {
 
     var yearly: Product? { products.first { $0.id == Self.yearlyID } }
     var monthly: Product? { products.first { $0.id == Self.monthlyID } }
-    var founderYearly: Product? { products.first { $0.id == Self.founderYearlyID } }
+    /// Nil for anybody outside the first hundred, even though the product always exists.
+    /// It used to be simply "the founding product if loaded", and the paywall took its
+    /// default selection and its savings badge from it, so everybody got the founder
+    /// price selected. Everything that asks for it now gets the member's answer.
+    var founderYearly: Product? {
+        offeredYearlyID == Self.founderYearlyID ? products.first { $0.id == Self.founderYearlyID } : nil
+    }
+
+    /// Which yearly plan this member is sold, decided in one place.
+    private var offeredYearlyID: String {
+        FoundingMember.yearlyProductID(member: AppAttest.member,
+                                       standard: Self.yearlyID, founding: Self.founderYearlyID)
+    }
 
     /// What this person can actually buy.
     ///
@@ -67,11 +79,9 @@ final class Subscriptions {
     /// an offer. Everybody else never sees that it exists, because a discount somebody
     /// cannot take is an advert for having arrived too late.
     var offered: [Product] {
-        let isFounder = AppAttest.member.map(FoundingMember.isFounder) ?? false
-        return products.filter { product in
+        products.filter { product in
             switch product.id {
-            case Self.founderYearlyID: return isFounder
-            case Self.yearlyID: return !isFounder
+            case Self.founderYearlyID, Self.yearlyID: return product.id == offeredYearlyID
             default: return true
             }
         }

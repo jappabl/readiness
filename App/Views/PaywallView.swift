@@ -216,12 +216,12 @@ struct PaywallView: View {
     }
 
     private var callToAction: String {
-        let product = store.products.first { $0.id == selected }
+        let product = store.offered.first { $0.id == selected }
         return product?.introductoryDescription == nil ? "Subscribe" : "Start free trial"
     }
 
     private func buy() {
-        guard let product = store.products.first(where: { $0.id == selected }) else { return }
+        guard let product = store.offered.first(where: { $0.id == selected }) else { return }
         working = true
         Task {
             await store.purchase(product)

@@ -36,4 +36,22 @@ struct FoundingMemberTests {
         #expect(FoundingMember.placesLeft(issued: 100) == nil)
         #expect(FoundingMember.placesLeft(issued: 5000) == nil)
     }
+
+    // The yearly plan somebody is sold. The paywall used to take the founding product
+    // whenever it merely existed, which it always does, so member 101 onwards had the
+    // founder price selected and one tap bought it.
+    @Test("only the first hundred are sold the founding yearly plan")
+    func yearlyPlanFollowsTheNumber() {
+        let standard = "com.coachjett.ios.pro.yearly"
+        let founding = "com.coachjett.ios.pro.yearly.founding"
+        for member in [1, 7, 100] {
+            #expect(FoundingMember.yearlyProductID(member: member, standard: standard, founding: founding) == founding)
+        }
+        for member in [101, 150, 100_000, 0, -3] {
+            #expect(FoundingMember.yearlyProductID(member: member, standard: standard, founding: founding) == standard)
+        }
+        // No number yet is not a founder: the server issues numbers, and the app does not
+        // get to assume one it has not been given.
+        #expect(FoundingMember.yearlyProductID(member: nil, standard: standard, founding: founding) == standard)
+    }
 }

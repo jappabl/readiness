@@ -17,6 +17,17 @@ public enum FoundingMember {
         member >= 1 && member <= limit
     }
 
+    /// The yearly plan this member is sold: the founding one for the first hundred, the
+    /// standard one for everybody else, never both. No number yet is not a founder.
+    ///
+    /// The one place that decides it, because the paywall used to decide it twice. The
+    /// list of plans asked the member number; the default selection only asked whether
+    /// the founding product existed, which it always does. So from member 101 onwards the
+    /// founder price was selected and one tap bought it.
+    public static func yearlyProductID(member: Int?, standard: String, founding: String) -> String {
+        member.map(isFounder) == true ? founding : standard
+    }
+
     /// What to call somebody, given their number.
     ///
     /// Never "Member #0" and never a negative: a number the server has not issued yet is
