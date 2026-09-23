@@ -358,9 +358,9 @@ public struct OnboardingConversation: Sendable, Codable {
         say(allowed ? "Noted. I'll keep it worth reading."
                     : "Fair enough. You'll find me in the app.")
         // A person behind the app, said once, at the moment somebody has just finished
-        // setting it up and knows what it does. The number itself lives in Profile.
+        // setting it up and knows what it does. "text Hao" is a link where it is drawn.
         say("One more thing. If anything's broken or annoying, text Hao. He built me, "
-            + "and it goes straight to his phone. The button's in Profile.")
+            + "and it goes straight to his phone. It's in Profile too.")
         step = .ready
     }
 

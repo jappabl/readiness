@@ -23,6 +23,11 @@ struct RevealingText: View {
         // Laid out as one wrapping paragraph rather than a stack of word views, so the
         // line breaks are the same before and after the reveal and nothing reflows.
         Text(attributed)
+            .environment(\.openURL, OpenURLAction { url in
+                guard url == TextHao.link else { return .systemAction }
+                TextHao.open(screen: "Onboarding")
+                return .handled
+            })
             .task(id: text) {
                 guard !reduceMotion else { revealed = words.count; return }
                 revealed = 0
@@ -47,6 +52,13 @@ struct RevealingText: View {
             piece.foregroundColor = index < revealed ? Tokens.textPrimary : .clear
             result += piece
             if index < words.count - 1 { result += AttributedString(" ") }
+        }
+        // "text Hao" becomes the way to do it, once the sentence has landed. Linked
+        // any earlier, the link's own colour would show words the reveal is still
+        // holding back.
+        if revealed >= words.count, let range = result.range(of: TextHao.inlinePhrase) {
+            result[range].link = TextHao.link
+            result[range].foregroundColor = Tokens.accent
         }
         return result
     }

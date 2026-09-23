@@ -1,3 +1,5 @@
+import Contacts
+import ContactsUI
 import MessageUI
 import SwiftUI
 import UIKit
@@ -11,6 +13,14 @@ import UIKit
 enum TextHao {
 
     private static let delegate = ComposeDelegate()
+
+    /// The words in Jett's messages that open this, and the link they carry. Never leaves
+    /// the app: the view that draws the words handles it itself.
+    static let inlinePhrase = "text Hao"
+    static let link = URL(string: "coachjett://text-hao")!
+
+    /// Whether the save-his-number card has been offered. Once is helpful; twice is a nag.
+    private static let contactOfferedKey = "texthao.contact.offered"
 
     /// Opens Messages to Hao, with a picture of the screen they were on.
     ///
@@ -77,10 +87,35 @@ enum TextHao {
         return top
     }
 
+    /// Hao replies from a number nobody has saved, and with Filter Unknown Senders on,
+    /// that reply goes to a list people rarely open. So after the first message actually
+    /// sent, iOS's own card offers to save him, with the reason on it. Declining is one
+    /// tap, and it is never offered again.
+    private static func offerContact() {
+        guard !UserDefaults.standard.bool(forKey: contactOfferedKey), let top = topController()
+        else { return }
+        UserDefaults.standard.set(true, forKey: contactOfferedKey)
+        let contact = CNMutableContact()
+        contact.givenName = "Hao"
+        contact.organizationName = "Coach Jett"
+        contact.phoneNumbers = [CNLabeledValue(label: "Coach Jett",
+                                               value: CNPhoneNumber(stringValue: FeedbackMessage.recipient))]
+        let card = CNContactViewController(forUnknownContact: contact)
+        card.contactStore = CNContactStore()
+        card.allowsActions = false
+        card.message = "Save Hao so his reply doesn't land in Unknown Senders."
+        card.navigationItem.rightBarButtonItem = UIBarButtonItem(
+            systemItem: .done, primaryAction: UIAction { [weak card] _ in card?.dismiss(animated: true) })
+        top.present(UINavigationController(rootViewController: card), animated: true)
+    }
+
     private final class ComposeDelegate: NSObject, MFMessageComposeViewControllerDelegate {
         func messageComposeViewController(_ controller: MFMessageComposeViewController,
                                           didFinishWith result: MessageComposeResult) {
-            controller.dismiss(animated: true)
+            controller.dismiss(animated: true) {
+                guard result == .sent else { return }
+                MainActor.assumeIsolated { TextHao.offerContact() }
+            }
         }
     }
 }
