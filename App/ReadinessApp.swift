@@ -172,6 +172,8 @@ struct RootView: View {
             }
         } else if Self.paywallHarness {
             PaywallView {}
+        } else if Self.mealHarness {
+            MealLogView { _ in }
         } else if Self.cardGallery {
             CardGallery()
         } else {
@@ -184,6 +186,16 @@ struct RootView: View {
     private static let confettiHarness: Bool = {
         #if DEBUG
         ProcessInfo.processInfo.arguments.contains("--confetti")
+        #else
+        false
+        #endif
+    }()
+
+    /// `--meal-log`, for the meal review screen on its own. Pair it with
+    /// `--fake-meal-estimate` on the Simulator, which has no camera and no App Attest.
+    private static let mealHarness: Bool = {
+        #if DEBUG
+        ProcessInfo.processInfo.arguments.contains("--meal-log")
         #else
         false
         #endif

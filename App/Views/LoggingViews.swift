@@ -86,6 +86,10 @@ struct MealLogView: View {
     @State private var estimateRevision = UUID()
     @State private var photoLoadTask: Task<Void, Never>?
     @State private var loadingPhoto = false
+    /// How much of what was photographed was really there, as a multiple of what the
+    /// model assumed. Only offered once there is an estimate to correct.
+    @State private var portion: Double = 1
+    @State private var estimated = false
     let onSaved: (String) -> Void
 
     private func number(_ text: String) -> Double? {
@@ -260,7 +264,55 @@ struct MealLogView: View {
                 macroPill("Carbs", $carbs, Tokens.strainLow)
                 macroPill("Fat", $fat, Tokens.sleepLow)
             }
+
+            if estimated { portionRow }
         }
+    }
+
+    /// The one correction a photo most needs. Models name food well and misjudge how
+    /// much of it there is, and the model's guess is already in the name ("about 1
+    /// cup"), so this says how the plate compares to that. Same surface as the macros,
+    /// because it is the same kind of thing: a number about this meal you can change.
+    private var portionRow: some View {
+        HStack(spacing: 4) {
+            Text("Portion")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(Tokens.textSecondary)
+                .textCase(.uppercase)
+            Spacer(minLength: 8)
+            ForEach(MealPortion.choices, id: \.self) { choice in
+                Button { setPortion(choice) } label: {
+                    Text(MealPortion.label(choice))
+                        .font(.system(size: 17, weight: choice == portion ? .bold : .regular))
+                        .monospacedDigit()
+                        .foregroundStyle(choice == portion ? Tokens.accent : Tokens.textPrimary)
+                        .frame(minWidth: 44, minHeight: 44)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(Self.portionNames[choice] ?? MealPortion.label(choice))
+                .accessibilityAddTraits(choice == portion ? .isSelected : [])
+            }
+        }
+        .padding(.leading, 13).padding(.trailing, 6)
+        .background(Tokens.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
+    private static let portionNames: [Double: String] = [
+        0.5: "Half the portion", 1: "The portion as estimated",
+        1.5: "One and a half times the portion", 2: "Double the portion",
+    ]
+
+    /// Scales what is on screen by the ratio, so a macro corrected by hand survives the
+    /// tap. Does nothing while a number is not a number, rather than guessing one.
+    private func setPortion(_ choice: Double) {
+        guard choice != portion, let current = nutrition else { return }
+        Haptics.light()
+        let next = MealPortion.rescale(current, from: portion, to: choice)
+        calories = next.calories.formatted(.number.grouping(.never).precision(.fractionLength(0)))
+        protein = next.protein.formatted(.number.grouping(.never).precision(.fractionLength(0...1)))
+        carbs = next.carbs.formatted(.number.grouping(.never).precision(.fractionLength(0...1)))
+        fat = next.fat.formatted(.number.grouping(.never).precision(.fractionLength(0...1)))
+        portion = choice
     }
 
     private func macroPill(_ label: String, _ text: Binding<String>, _ tint: Color) -> some View {
@@ -413,6 +465,9 @@ struct MealLogView: View {
         estimateRevision = revision
         let portionNote = note
         estimating = true; message = nil
+        // A new reading replaces the old one, so whatever portion was chosen for the old
+        // one no longer means anything.
+        estimated = false; portion = 1
         estimateTask = Task {
             defer { if estimateRevision == revision { estimating = false } }
             do {
@@ -424,6 +479,7 @@ struct MealLogView: View {
                 protein = result.protein.formatted(.number.grouping(.never).precision(.fractionLength(0)))
                 carbs = result.carbs.formatted(.number.grouping(.never).precision(.fractionLength(0)))
                 fat = result.fat.formatted(.number.grouping(.never).precision(.fractionLength(0)))
+                estimated = true
                 // The numbers are already on screen and editable. Saying so would be
                 // describing the interface to somebody looking at it.
                 message = nil

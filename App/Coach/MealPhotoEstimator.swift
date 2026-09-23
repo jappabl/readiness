@@ -30,6 +30,14 @@ enum MealPhotoEstimator {
     }
 
     static func estimate(image: UIImage, note: String) async throws -> MealEstimate {
+        #if DEBUG
+        // `--fake-meal-estimate`: the Simulator has no App Attest, so the real route
+        // cannot run there, and the review screen still has to be looked at.
+        if ProcessInfo.processInfo.arguments.contains("--fake-meal-estimate") {
+            try await Task.sleep(for: .milliseconds(600))
+            return MealEstimate(name: "Grapes, about 1 cup", calories: 104, protein: 1.1, carbs: 27, fat: 0.2)
+        }
+        #endif
         let key = MealPhotoKey.read()
         // Through the proxy there is no key on the device to be missing.
         guard Backend.isProxied || !(key ?? "").isEmpty else { throw Failure.missingKey }

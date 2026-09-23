@@ -15,6 +15,41 @@ public struct MealNutrition: Codable, Sendable, Equatable {
     }
 }
 
+extension MealNutrition {
+    /// Every number times the same factor. A portion is all of the food, so it is never
+    /// one macro on its own.
+    public func scaled(by factor: Double) -> MealNutrition {
+        MealNutrition(calories: calories * factor, protein: protein * factor,
+                      carbs: carbs * factor, fat: fat * factor)
+    }
+}
+
+/// How much of what was photographed was really there.
+///
+/// Portion is the part of a photo estimate nobody has solved. Models name the food well
+/// and misjudge the amount by around a third, and depth sensors narrow that less than
+/// they promise, because they cannot see the oil. What the research says closes most of
+/// the gap is the person saying so, and four choices is the quickest way to let them.
+public enum MealPortion {
+    public static let choices: [Double] = [0.5, 1, 1.5, 2]
+
+    public static func label(_ portion: Double) -> String {
+        switch portion {
+        case 0.5: "½"
+        case 1.5: "1½"
+        default: "\(portion.formatted(.number.precision(.fractionLength(0...1))))×"
+        }
+    }
+
+    /// From one portion to another, scaling what is on screen by the ratio rather than
+    /// going back to the model's numbers, so a macro the person corrected by hand
+    /// survives the tap. Anything that is not a real portion changes nothing.
+    public static func rescale(_ nutrition: MealNutrition, from: Double, to: Double) -> MealNutrition {
+        guard from.isFinite, to.isFinite, from > 0, to > 0 else { return nutrition }
+        return nutrition.scaled(by: to / from)
+    }
+}
+
 /// What a model said is in the photo.
 ///
 /// Decoded leniently on purpose. This JSON is written by a language model, not by an

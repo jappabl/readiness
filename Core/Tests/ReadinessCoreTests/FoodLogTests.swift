@@ -228,3 +228,45 @@ struct EffortBucketTests {
         #expect(StrainEngine.effort(forRIR: -2) == .allOut, "a nonsense value is not comfortable")
     }
 }
+
+/// Portion is the part of a photo estimate nobody has solved: models name the food well
+/// and misjudge how much of it there is by around a third. The fix the research points
+/// to is the person, so the review screen lets them say how much was really there.
+@Suite("Correcting the portion a photo was read at")
+struct MealPortionTests {
+    let meal = MealNutrition(calories: 550, protein: 40, carbs: 30, fat: 25)
+
+    @Test("the choices are half, one, one and a half, and double")
+    func choices() {
+        #expect(MealPortion.choices == [0.5, 1, 1.5, 2])
+        #expect(MealPortion.choices.map(MealPortion.label) == ["½", "1×", "1½", "2×"])
+    }
+
+    @Test("scaling multiplies every number, calories and macros alike")
+    func scaling() {
+        #expect(meal.scaled(by: 2) == MealNutrition(calories: 1100, protein: 80, carbs: 60, fat: 50))
+        #expect(meal.scaled(by: 1) == meal)
+    }
+
+    // Moving between portions scales what is on screen by the ratio, not the model's
+    // original numbers, so a macro the person already corrected by hand survives the
+    // tap instead of being quietly put back.
+    @Test("moving between portions scales what is there by the ratio")
+    func ratio() {
+        #expect(MealPortion.rescale(meal, from: 1, to: 2) == meal.scaled(by: 2))
+        #expect(MealPortion.rescale(meal, from: 2, to: 0.5) == meal.scaled(by: 0.25))
+    }
+
+    @Test("half and back again is exactly where it started")
+    func roundTrip() {
+        let there = MealPortion.rescale(meal, from: 1, to: 0.5)
+        #expect(MealPortion.rescale(there, from: 0.5, to: 1) == meal)
+    }
+
+    @Test("a portion that is not a portion changes nothing")
+    func nonsense() {
+        #expect(MealPortion.rescale(meal, from: 0, to: 2) == meal)
+        #expect(MealPortion.rescale(meal, from: 1, to: -1) == meal)
+        #expect(MealPortion.rescale(meal, from: .nan, to: 2) == meal)
+    }
+}
