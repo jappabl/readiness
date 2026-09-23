@@ -383,3 +383,198 @@ struct NotificationDecisionTests {
         #expect(outcome?.moment == .newInsight)
     }
 }
+
+/// Booking the bedtime target ahead, so it arrives whether or not the app happens to be
+/// open in the ninety minutes before bed. Deciding it only at those moments meant it
+/// almost never arrived at all.
+@Suite("Planning the bedtime target ahead")
+struct BedtimePlanTests {
+
+    private let calendar: Calendar = {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "UTC")!
+        return calendar
+    }()
+    private let morning = Date(timeIntervalSince1970: 1_800_000_000)
+    private var bedtime: Date { morning.addingTimeInterval(14 * 3600) }
+    private var fireAt: Date { bedtime.addingTimeInterval(-BedtimeTarget.leadMinutes * 60) }
+    private let unusual = SleepNeed(hours: 8.9, baseline: 8.0, strainAdjustment: 0.7,
+                                    napCredit: 0, learnedShare: 1)
+    private let ordinary = SleepNeed(hours: 8.1, baseline: 8.0, strainAdjustment: 0.1,
+                                     napCredit: 0, learnedShare: 1)
+
+    private func score(_ kind: SignalKind) -> SignalScore {
+        SignalScore(kind: kind, value: 72, band: nil, contributors: [], coverage: .full,
+                    neutral: 50, gate: nil, modelVersion: "test")
+    }
+
+    private func input(now: Date? = nil, need: SleepNeed? = nil, usualBedtime: Date? = nil,
+                       debt: Double = 0,
+                       record: NotificationRecord = NotificationRecord()) -> NotificationDecision.Input {
+        NotificationDecision.Input(
+            now: now ?? morning, recovery: score(.recovery), sleep: score(.sleep),
+            recentSleepScores: [], tonightsNeed: need, sleepDebtHours: debt,
+            usualBedtime: usualBedtime, record: record, calendar: calendar)
+    }
+
+    private func coinsLeft(_ record: NotificationRecord, at now: Date) -> Int {
+        var state = record.budget
+        var left = 0
+        while NotificationBudget.consume(state, now: now).allowed {
+            state = NotificationBudget.consume(state, now: now).state
+            left += 1
+        }
+        return left
+    }
+
+    @Test("an unusual night is booked for an hour before the usual bedtime, in the morning")
+    func booksAhead() {
+        let plan = NotificationDecision.bedtimeBooking(input(need: unusual, usualBedtime: bedtime)).plan
+        #expect(plan?.fireAt == fireAt)
+        #expect(plan?.body == BedtimeTarget.sentence(need: unusual))
+        #expect(plan?.record.lastBedtimeTarget == fireAt)
+        #expect(coinsLeft(plan!.record, at: morning) == NotificationBudget.capacity - 1)
+    }
+
+    @Test("an ordinary night withdraws any booking")
+    func ordinaryNight() {
+        #expect(NotificationDecision.bedtimeBooking(input(need: ordinary, usualBedtime: bedtime)) == .withdraw)
+    }
+
+    // A phone woken in the background while locked cannot read Health. Not knowing is
+    // not the same as the night being ordinary, and must not cancel a booking.
+    @Test("missing inputs leave any booking alone")
+    func missingInputs() {
+        #expect(NotificationDecision.bedtimeBooking(input(need: unusual)) == .leave)
+        #expect(NotificationDecision.bedtimeBooking(input(usualBedtime: bedtime)) == .leave)
+        #expect(NotificationDecision.bedtimeBooking(input()) == .leave)
+    }
+
+    @Test("a time already past is not booked, and is left to the window")
+    func pastIsNotBooked() {
+        let late = input(now: bedtime.addingTimeInterval(-30 * 60), need: unusual,
+                         usualBedtime: bedtime)
+        #expect(NotificationDecision.bedtimeBooking(late) == .leave)
+        #expect(NotificationDecision.bedtimeBooking(input(now: fireAt, need: unusual,
+                                                       usualBedtime: bedtime)) == .leave)
+    }
+
+    // The app plans on every refresh. Each one must replace the booking, not pay again.
+    @Test("booking the same night again refreshes the words and costs nothing")
+    func rebookingIsFree() {
+        let first = NotificationDecision.bedtimeBooking(input(need: unusual, usualBedtime: bedtime)).plan!
+        var record = first.record
+        for hour in 1...8 {
+            let again = NotificationDecision.bedtimeBooking(input(
+                now: morning.addingTimeInterval(Double(hour) * 3600), need: unusual,
+                usualBedtime: bedtime, debt: 3, record: record)).plan
+            #expect(again?.fireAt == fireAt)
+            record = again?.record ?? record
+        }
+        #expect(coinsLeft(record, at: morning) == coinsLeft(first.record, at: morning))
+    }
+
+    // The window path and the booking share one record, so one night is one message.
+    @Test("once booked, the window stays quiet that evening")
+    func bookingSilencesTheWindow() {
+        let plan = NotificationDecision.bedtimeBooking(input(need: unusual, usualBedtime: bedtime)).plan!
+        let inWindow = NotificationDecision.next(input(
+            now: bedtime.addingTimeInterval(-20 * 60), need: unusual,
+            usualBedtime: bedtime, record: plan.record))
+        #expect(inWindow?.moment != .bedtimeTarget)
+    }
+
+    @Test("once the window has already spoken, nothing more is booked that night")
+    func windowSilencesTheBooking() {
+        let spoke = NotificationDecision.next(input(
+            now: bedtime.addingTimeInterval(-85 * 60), need: unusual, usualBedtime: bedtime))!
+        #expect(spoke.moment == .bedtimeTarget)
+        let plan = NotificationDecision.bedtimeBooking(input(
+            now: bedtime.addingTimeInterval(-80 * 60), need: unusual,
+            usualBedtime: bedtime, record: spoke.record))
+        #expect(plan == .leave)
+    }
+
+    @Test("an empty allowance books nothing")
+    func emptyAllowance() {
+        var record = NotificationRecord()
+        record.budget = NotificationBudget.State(tokens: 0, updated: morning)
+        #expect(NotificationDecision.bedtimeBooking(input(need: unusual, usualBedtime: bedtime,
+                                                       record: record)) == .leave)
+    }
+
+    @Test("the next unusual night is booked again")
+    func nextNight() {
+        let first = NotificationDecision.bedtimeBooking(input(need: unusual, usualBedtime: bedtime)).plan!
+        let tomorrow = NotificationDecision.bedtimeBooking(input(
+            now: morning.addingTimeInterval(24 * 3600), need: unusual,
+            usualBedtime: bedtime.addingTimeInterval(24 * 3600), record: first.record)).plan
+        #expect(tomorrow?.fireAt == fireAt.addingTimeInterval(24 * 3600))
+    }
+
+    // A night that flaps, unusual then ordinary then unusual, is paid for once.
+    @Test("a withdrawn and rebooked night costs one coin")
+    func flappingNight() {
+        let first = NotificationDecision.bedtimeBooking(input(need: unusual, usualBedtime: bedtime)).plan!
+        #expect(NotificationDecision.bedtimeBooking(input(
+            now: morning.addingTimeInterval(3600), need: ordinary, usualBedtime: bedtime,
+            record: first.record)) == .withdraw)
+        let again = NotificationDecision.bedtimeBooking(input(
+            now: morning.addingTimeInterval(7200), need: unusual, usualBedtime: bedtime,
+            record: first.record)).plan
+        #expect(again?.fireAt == fireAt)
+        #expect(coinsLeft(again!.record, at: morning) == coinsLeft(first.record, at: morning))
+    }
+
+    // Usual bedtime moves during the day: the booking follows it rather than keeping
+    // the old time or sending twice.
+    @Test("a later usual bedtime moves the booking")
+    func bedtimeMoves() {
+        let first = NotificationDecision.bedtimeBooking(input(need: unusual, usualBedtime: bedtime)).plan!
+        let later = bedtime.addingTimeInterval(40 * 60)
+        let moved = NotificationDecision.bedtimeBooking(input(
+            now: morning.addingTimeInterval(3600), need: unusual, usualBedtime: later,
+            record: first.record)).plan
+        #expect(moved?.fireAt == later.addingTimeInterval(-BedtimeTarget.leadMinutes * 60))
+    }
+
+    // A bedtime after midnight books the evening before, and that evening's window stays
+    // quiet because the booking already speaks for it.
+    @Test("a bedtime after midnight is booked the evening before, once")
+    func pastMidnight() {
+        let lateBed = morning.addingTimeInterval(16 * 3600 + 30 * 60)
+        let plan = NotificationDecision.bedtimeBooking(input(need: unusual, usualBedtime: lateBed)).plan!
+        #expect(plan.fireAt == lateBed.addingTimeInterval(-3600))
+        let inWindow = NotificationDecision.next(input(
+            now: lateBed.addingTimeInterval(-20 * 60), need: unusual,
+            usualBedtime: lateBed, record: plan.record))
+        #expect(inWindow?.moment != .bedtimeTarget)
+    }
+
+    // The words are for a lock screen: they must stand alone and fit.
+    @Test("the booked words stand alone on a lock screen")
+    func lockScreenWords() {
+        let plan = NotificationDecision.bedtimeBooking(input(need: unusual, usualBedtime: bedtime,
+                                                             debt: 4)).plan!
+        #expect(plan.body.count < 110)
+        #expect(!plan.body.contains("\u{2014}"))
+        #expect(plan.body.hasSuffix("."))
+    }
+
+    // The app books first and then asks `next` with what it just booked. If the copy
+    // dropped anything, the window would decide on a different night than was booked.
+    @Test("carrying a new record keeps everything else about the moment")
+    func withRecordKeepsTheRest() {
+        let original = input(now: fireAt.addingTimeInterval(-600), need: unusual,
+                             usualBedtime: bedtime, debt: 2)
+        var record = NotificationRecord()
+        record.lastBedtimeTarget = fireAt
+        let carried = original.with(record: record)
+        #expect(carried.record == record)
+        #expect(carried.now == original.now)
+        #expect(carried.tonightsNeed == original.tonightsNeed)
+        #expect(carried.usualBedtime == original.usualBedtime)
+        #expect(carried.sleepDebtHours == original.sleepDebtHours)
+        #expect(carried.calendar == original.calendar)
+    }
+}

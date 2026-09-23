@@ -14,6 +14,10 @@ public enum BedtimeTarget {
     /// How long before the usual bedtime the message may go out.
     public static let windowMinutes = 90.0
 
+    /// How long before the usual bedtime a booked message arrives. Inside the window, and
+    /// early enough to finish the evening rather than be told to drop it.
+    public static let leadMinutes = 60.0
+
     /// Whether now is inside the window before tonight's usual bedtime.
     ///
     /// Bounded on both sides: a target delivered after bedtime is a reproach rather than
@@ -21,6 +25,15 @@ public enum BedtimeTarget {
     public static func isDue(now: Date, usualBedtime: Date) -> Bool {
         let secondsUntil = usualBedtime.timeIntervalSince(now)
         return secondsUntil > 0 && secondsUntil <= windowMinutes * 60
+    }
+
+    /// Whether a message at `sent` already spoke for the night ending at `bedtime`.
+    ///
+    /// By bedtime, not by calendar day: a bedtime after midnight is announced the
+    /// evening before, and a calendar-day check let the window speak a second time a
+    /// few minutes after midnight.
+    public static func covers(_ sent: Date, bedtime: Date) -> Bool {
+        sent >= bedtime.addingTimeInterval(-windowMinutes * 60) && sent <= bedtime
     }
 
     /// The sentence to send, or nil when tonight is an ordinary night.

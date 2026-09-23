@@ -29,6 +29,8 @@ final class Notifications {
     /// Fixed, so scheduling again replaces the pending one rather than stacking a
     /// second warning about the same charge.
     private static let trialReminderID = "trial.ending"
+    /// Fixed for the same reason: every refresh rebooks tonight's, replacing it.
+    private static let bedtimeTargetID = "bedtime.target"
     private static let enabledKey = "notifications.enabled"
     private static let recordKey = "notifications.record"
     private let center = UNUserNotificationCenter.current()
@@ -103,6 +105,11 @@ final class Notifications {
     func considerSpeaking(_ input: NotificationDecision.Input,
                           trigger: SpeakingWindow.Trigger = .appClosed) async {
         guard isEnabled, systemStatus == .authorized else { return }
+        // Before the speaking window, because booking is not speaking: whatever woke
+        // the app, the message itself goes out an hour before bed. Then the decision
+        // below knows about it, so the same night is never announced twice.
+        await bookBedtime(input)
+        let input = input.with(record: record)
         guard SpeakingWindow.allows(trigger, at: input.now) else { return }
         guard let outcome = NotificationDecision.next(input) else { return }
 
@@ -123,13 +130,43 @@ final class Notifications {
                                                                    repeats: false) : nil)
         do {
             try await center.add(request)
-            record = outcome.record
-            if let data = try? JSONEncoder().encode(record) {
-                UserDefaults.standard.set(data, forKey: Self.recordKey)
-            }
+            save(outcome.record)
         } catch {
             // Nothing was shown, so nothing is spent. The same decision can be made
             // again on the next refresh.
+        }
+    }
+
+    /// Books, rebooks or withdraws tonight's bedtime target.
+    private func bookBedtime(_ input: NotificationDecision.Input) async {
+        switch NotificationDecision.bedtimeBooking(input) {
+        case .leave:
+            return
+        case .withdraw:
+            center.removePendingNotificationRequests(withIdentifiers: [Self.bedtimeTargetID])
+        case .book(let plan):
+            let wait = plan.fireAt.timeIntervalSinceNow
+            guard wait > 0 else { return }
+            let content = UNMutableNotificationContent()
+            content.body = plan.body
+            content.sound = .default
+            content.threadIdentifier = "coach-jett"
+            let request = UNNotificationRequest(
+                identifier: Self.bedtimeTargetID, content: content,
+                trigger: UNTimeIntervalNotificationTrigger(timeInterval: wait, repeats: false))
+            do {
+                try await center.add(request)
+                save(plan.record)
+            } catch {
+                // Not booked, so not recorded: the next refresh tries again.
+            }
+        }
+    }
+
+    private func save(_ newRecord: NotificationRecord) {
+        record = newRecord
+        if let data = try? JSONEncoder().encode(newRecord) {
+            UserDefaults.standard.set(data, forKey: Self.recordKey)
         }
     }
 }

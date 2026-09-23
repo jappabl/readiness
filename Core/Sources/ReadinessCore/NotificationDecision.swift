@@ -42,6 +42,14 @@ public enum NotificationDecision {
             self.record = record
             self.calendar = calendar
         }
+
+        /// The same moment, knowing about something just booked or sent.
+        public func with(record: NotificationRecord) -> Input {
+            Input(now: now, recovery: recovery, sleep: sleep,
+                  recentSleepScores: recentSleepScores, tonightsNeed: tonightsNeed,
+                  sleepDebtHours: sleepDebtHours, usualBedtime: usualBedtime,
+                  insight: insight, record: record, calendar: calendar)
+        }
     }
 
     public struct Outcome: Equatable, Sendable {
@@ -106,8 +114,8 @@ public enum NotificationDecision {
     private static func bedtimeTarget(_ input: Input) -> Outcome? {
         guard let need = input.tonightsNeed, let bedtime = input.usualBedtime,
               BedtimeTarget.isDue(now: input.now, usualBedtime: bedtime),
-              !input.record.alreadySentToday(.bedtimeTarget, now: input.now,
-                                             calendar: input.calendar),
+              !(input.record.lastBedtimeTarget.map {
+                  BedtimeTarget.covers($0, bedtime: bedtime) } ?? false),
               let body = BedtimeTarget.sentence(need: need,
                                                 debtHours: input.sleepDebtHours)
         else { return nil }
@@ -117,6 +125,70 @@ public enum NotificationDecision {
         else { return nil }
         record.lastBedtimeTarget = input.now
         return Outcome(moment: .bedtimeTarget, body: body, record: record)
+    }
+
+    /// A bedtime target booked for later tonight.
+    public struct BedtimePlan: Equatable, Sendable {
+        public let fireAt: Date
+        public let body: String
+        /// Persist only once the booking is accepted, for the same reason as
+        /// `Outcome.record`.
+        public let record: NotificationRecord
+    }
+
+    /// What to do with tonight's booking.
+    public enum BedtimeBooking: Equatable, Sendable {
+        /// Book it, replacing any earlier booking for tonight.
+        case book(BedtimePlan)
+        /// The data says tonight is ordinary after all: take any booking back.
+        case withdraw
+        /// Nothing to change. Also the answer when the inputs are missing, because a
+        /// phone woken while locked cannot read Health, and "I could not look" must not
+        /// cancel a night that was worth announcing.
+        case leave
+
+        public var plan: BedtimePlan? {
+            if case .book(let plan) = self { return plan }
+            return nil
+        }
+    }
+
+    /// The bedtime target, booked ahead for `BedtimeTarget.leadMinutes` before the usual
+    /// bedtime.
+    ///
+    /// Deciding it only when the app happened to be awake inside the window meant it
+    /// almost never arrived. It still can arrive that way: the window path in `next` and
+    /// this share `lastBedtimeTarget`, so a night gets one message whichever way it goes.
+    /// A booking stores the time it will go out, so a future value means "booked" and a
+    /// past one today means "already said".
+    ///
+    /// A withdrawn booking keeps its coin. That is the price of having booked it, and it
+    /// stops a night that flaps between ordinary and not from being paid for twice.
+    public static func bedtimeBooking(_ input: Input) -> BedtimeBooking {
+        guard let need = input.tonightsNeed, let bedtime = input.usualBedtime
+        else { return .leave }
+        guard let body = BedtimeTarget.sentence(need: need, debtHours: input.sleepDebtHours)
+        else { return .withdraw }
+        let fireAt = bedtime.addingTimeInterval(-BedtimeTarget.leadMinutes * 60)
+        // Too late to book, and a booking already due is going out now. Inside the
+        // window, `next` can still say it if nothing was booked.
+        guard fireAt > input.now else { return .leave }
+
+        if let last = input.record.lastBedtimeTarget {
+            // Booked and not yet sent: every refresh rebooks it, with tonight's words,
+            // and pays nothing more.
+            if last > input.now {
+                var record = input.record
+                record.lastBedtimeTarget = fireAt
+                return .book(BedtimePlan(fireAt: fireAt, body: body, record: record))
+            }
+            // Already said for this bedtime, by the window.
+            if BedtimeTarget.covers(last, bedtime: bedtime) { return .leave }
+        }
+        guard var record = spend(input.record, moment: .bedtimeTarget, now: input.now)
+        else { return .leave }
+        record.lastBedtimeTarget = fireAt
+        return .book(BedtimePlan(fireAt: fireAt, body: body, record: record))
     }
 
     private static func newInsight(_ input: Input) -> Outcome? {
