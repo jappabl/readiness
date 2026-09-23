@@ -8,6 +8,9 @@
 import { freshBucket, meterDecision, type MeterState } from "./limits"
 import { entitlement, type Trust } from "./entitlement"
 import { APPLE_ROOT_G3 } from "./apple-root"
+import { refundEvent, verifiedNotification } from "./refunds"
+
+export { RefundLedger } from "./refunds"
 import { coachBody, mealBody, trim } from "./prompt"
 import { InvalidRequest, parseCoachBody, parseMealBody, MAX_MESSAGES } from "./schema"
 import { legalPage } from "./legal"
@@ -39,6 +42,8 @@ export interface Env {
   BUCKET: DurableObjectNamespace
   /// One object per attested key, holding its public key and its counter.
   ATTEST: DurableObjectNamespace
+  /// One object per refunded transaction, holding Apple's latest word on it.
+  REFUNDS: DurableObjectNamespace
 }
 
 /**
@@ -407,12 +412,59 @@ function trustFor(env: Env): Trust {
   }
 }
 
+async function refundedTransaction(transactionId: string, env: Env): Promise<boolean> {
+  const ledger = env.REFUNDS.get(env.REFUNDS.idFromName(transactionId))
+  const response = await ledger.fetch("https://refunds/status", { method: "POST", body: "{}" })
+  return (await response.json<{ revoked: boolean }>()).revoked
+}
+
+/**
+ * Where Apple posts App Store Server Notifications, version 2.
+ *
+ * Open to anybody, because Apple is the caller and carries no key of ours. That is safe
+ * only because every notification is verified against Apple's root before anything is
+ * recorded; otherwise anybody could post a refund for somebody else's transaction and
+ * switch their subscription off.
+ *
+ * Apple treats 200 to 206 as delivered and retries on any 4xx or 5xx. So a notification
+ * we cannot verify gets a 401: if the cause is ours, say APP_APPLE_ID not yet set, the
+ * retry lands once it is fixed. Production retries for days; sandbox tries once.
+ */
+export async function handleAppleNotification(request: Request, env: Env, trust: Trust = trustFor(env)): Promise<Response> {
+  let signedPayload: unknown
+  try {
+    signedPayload = ((await request.json()) as { signedPayload?: unknown }).signedPayload
+  } catch {
+    return problem(400, "expected JSON")
+  }
+  if (typeof signedPayload !== "string" || !signedPayload) return problem(400, "signedPayload is required")
+
+  let notification: Awaited<ReturnType<typeof verifiedNotification>>
+  try {
+    notification = await verifiedNotification(signedPayload, trust)
+  } catch {
+    return problem(401, "not verified")
+  }
+
+  const event = refundEvent(notification.type)
+  if (!event || !notification.transactionId) return new Response(null, { status: 200 })
+
+  const ledger = env.REFUNDS.get(env.REFUNDS.idFromName(notification.transactionId))
+  // A failure to record is a 5xx, so Apple sends it again.
+  await ledger.fetch("https://refunds/record", {
+    method: "POST",
+    body: JSON.stringify({ op: "record", event, at: notification.signedDate }),
+  })
+  return new Response(null, { status: 200 })
+}
+
 async function handleCoach(request: Request, env: Env, id: string): Promise<Response> {
   const parsed = parseCoachBody(await request.json())
   const result = await entitlement(
     request.headers.get("x-jett-transaction") ?? undefined,
     trustFor(env),
     Date.now(),
+    (transactionId) => refundedTransaction(transactionId, env),
   )
   const limited = await meter(id, result.subscriber || isUnlimited(id, env), env)
   if (limited) return limited
@@ -493,6 +545,8 @@ export default {
       return Response.json({ challenge: await issueChallenge(env) })
     }
     if (url.pathname === "/v1/attest") return await handleAttest(request, env)
+    // Before identification too: Apple is the caller, and it cannot attest.
+    if (url.pathname === "/v1/apple/notifications") return await handleAppleNotification(request, env)
     // A dry run of the gate, for the one job of finding out whether attestation works
     // on a real device *before* it becomes the only way in. Flipping the flag blind
     // means the failure mode is an app that cannot reach its own backend.

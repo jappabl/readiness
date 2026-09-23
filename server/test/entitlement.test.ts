@@ -1,9 +1,9 @@
 import { Buffer } from "node:buffer"
-import { createHash, createPrivateKey, sign } from "node:crypto"
-import { readFileSync } from "node:fs"
+import { createHash } from "node:crypto"
 import { describe, expect, test } from "vitest"
 import { APPLE_ROOT_G3 } from "../src/apple-root"
 import { checkClaims, decodeJWSPayload, entitlement, PRODUCT_IDS } from "../src/entitlement"
+import { CHAIN, purchase, signed, TEST_ROOT } from "./storekit"
 
 const BUNDLE = "com.coachjett.ios"
 const NOW = 1_700_000_000_000
@@ -66,47 +66,6 @@ describe("the claims that decide entitlement", () => {
     expect(checkClaims(founding, BUNDLE, NOW).subscriber).toBe(true)
   })
 })
-
-/**
- * Signed for real, by a chain generated for these tests alone (test/fixtures/storekit).
- * It carries the same certificate markers Apple's does, so it exercises the whole path
- * Apple's library takes, and it is trusted only when a test passes it in. Production
- * trusts Apple's root and nothing else.
- *
- * The test certificates run to 2046; signing uses the real clock because the library
- * judges certificate validity at the transaction's own signedDate.
- */
-const fixture = (file: string) => decodeURIComponent(new URL(`./fixtures/storekit/${file}`, import.meta.url).pathname)
-const pemBody = (file: string) => readFileSync(fixture(file), "utf8").replace(/-----[^-]+-----|\s/g, "")
-const LEAF_KEY = createPrivateKey(readFileSync(fixture("leaf.pkcs8.pem")))
-const CHAIN = [pemBody("leaf.pem"), pemBody("int.pem"), pemBody("root.pem")]
-const TEST_ROOT = pemBody("root.pem")
-
-function signed(payload: object, chain: string[] = CHAIN): string {
-  const header = Buffer.from(JSON.stringify({ alg: "ES256", x5c: chain })).toString("base64url")
-  const body = Buffer.from(JSON.stringify(payload)).toString("base64url")
-  const signature = Buffer.from(
-    sign("sha256", Buffer.from(`${header}.${body}`), { key: LEAF_KEY, dsaEncoding: "ieee-p1363" }),
-  ).toString("base64url")
-  return `${header}.${body}.${signature}`
-}
-
-function purchase(overrides: object = {}) {
-  const now = Date.now()
-  return {
-    transactionId: "2000000000000001",
-    originalTransactionId: "2000000000000001",
-    bundleId: BUNDLE,
-    productId: PRODUCT_IDS[0],
-    purchaseDate: now - 86_400_000,
-    expiresDate: now + 30 * 86_400_000,
-    signedDate: now,
-    environment: "Sandbox",
-    type: "Auto-Renewable Subscription",
-    inAppOwnershipType: "PURCHASED",
-    ...overrides,
-  }
-}
 
 const trustingTests = { bundleId: BUNDLE, roots: [TEST_ROOT] }
 const trustingApple = { bundleId: BUNDLE, roots: [APPLE_ROOT_G3] }

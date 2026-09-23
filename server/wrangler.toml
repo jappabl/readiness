@@ -59,6 +59,13 @@ class_name = "RateBucket"
 name = "ATTEST"
 class_name = "AttestedInstall"
 
+# One per refunded transaction, holding Apple's latest word on it: refunded, or the
+# refund reversed. A Durable Object so the two landing together cannot both read the
+# old record and both write.
+[[durable_objects.bindings]]
+name = "REFUNDS"
+class_name = "RefundLedger"
+
 # One object for the whole service, holding one number: the last member issued. A
 # counter two simultaneous registrations can both read hands out member fourteen twice,
 # and "first 100" stops being a fact anybody can check.
@@ -77,4 +84,8 @@ new_sqlite_classes = ["AttestedInstall"]
 [[migrations]]
 tag = "v3"
 new_sqlite_classes = ["MemberRoll"]
+
+[[migrations]]
+tag = "v4"
+new_sqlite_classes = ["RefundLedger"]
 

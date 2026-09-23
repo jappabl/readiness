@@ -20,6 +20,8 @@ export const PRODUCT_IDS = [
 ] as const
 
 export interface TransactionPayload {
+  /** One billing period's purchase. A renewal or a new subscription gets a new one. */
+  transactionId?: string
   bundleId?: string
   productId?: string
   /** Epoch milliseconds. */
@@ -100,24 +102,30 @@ export interface Trust {
  * intermediate. Off, certificate validity is judged at the transaction's signed date,
  * which the signature covers.
  */
-async function verifiedPayload(jws: string, trust: Trust): Promise<TransactionPayload> {
-  // Read before verifying, and used for one thing only: which of Apple's two
-  // environments to check it against. Every other environment is refused, because
-  // Apple's library skips the signature entirely for Xcode and local testing, and
-  // routing a purchase that merely claims to be from Xcode there would be a free pass.
-  const claimed = decodeJWSPayload(jws).environment
-  if (claimed !== "Sandbox" && claimed !== "Production") throw new Error("unsupported environment")
-
+export async function verifierFor(claimedEnvironment: unknown, trust: Trust) {
+  // The environment is read before anything is verified, and used for one thing only:
+  // which of Apple's two environments to check against. Every other environment is
+  // refused, because Apple's library skips the signature entirely for Xcode and local
+  // testing, and routing data that merely claims to be from Xcode there would be a
+  // free pass.
+  if (claimedEnvironment !== "Sandbox" && claimedEnvironment !== "Production") {
+    throw new Error("unsupported environment")
+  }
   const { SignedDataVerifier, Environment } = await import("@apple/app-store-server-library")
-  const verifier = new SignedDataVerifier(
+  return new SignedDataVerifier(
     trust.roots.map((root) => Buffer.from(root, "base64")),
     false,
-    claimed === "Production" ? Environment.PRODUCTION : Environment.SANDBOX,
+    claimedEnvironment === "Production" ? Environment.PRODUCTION : Environment.SANDBOX,
     trust.bundleId,
     trust.appAppleId,
   )
+}
+
+async function verifiedPayload(jws: string, trust: Trust): Promise<TransactionPayload> {
+  const verifier = await verifierFor(decodeJWSPayload(jws).environment, trust)
   const payload = await verifier.verifyAndDecodeTransaction(jws)
   return {
+    transactionId: payload.transactionId,
     bundleId: payload.bundleId,
     productId: payload.productId,
     expiresDate: payload.expiresDate,
@@ -127,14 +135,27 @@ async function verifiedPayload(jws: string, trust: Trust): Promise<TransactionPa
   }
 }
 
+/**
+ * `refunded` answers whether Apple has since refunded this transaction. The purchase a
+ * phone holds is signed before any refund and stays valid until its period ends, so
+ * without it somebody could buy a year, get their money back, and keep Pro for the year.
+ */
 export async function entitlement(
   jws: string | undefined,
   trust: Trust,
   nowMs: number,
+  refunded: (transactionId: string) => Promise<boolean> = async () => false,
 ): Promise<EntitlementResult> {
   if (!jws) return { subscriber: false, reason: "no transaction" }
   try {
-    return checkClaims(await verifiedPayload(jws, trust), trust.bundleId, nowMs)
+    const payload = await verifiedPayload(jws, trust)
+    const result = checkClaims(payload, trust.bundleId, nowMs)
+    if (!result.subscriber || !payload.transactionId) return result
+    // A second layer over a purchase Apple has already vouched for. If it cannot be
+    // read, the purchase stands: a storage hiccup must not lock every paying subscriber
+    // out at once, and the worst it lets through is a refund for as long as it lasts.
+    const wasRefunded = await refunded(payload.transactionId).catch(() => false)
+    return wasRefunded ? { subscriber: false, reason: "refunded" } : result
   } catch (error) {
     // Apple's exceptions carry a status rather than a message, and neither reaches the
     // client. Refusal is the only outcome that matters here.
