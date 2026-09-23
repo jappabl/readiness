@@ -8,6 +8,9 @@ enum MealPhotoEstimator {
         /// The server's count of free photo estimates is spent. It has the final say, so
         /// this can arrive even when the count on this phone thinks there are some left.
         case needsPro
+        /// The request never reached the server: no signal, a captive Wi-Fi page, a
+        /// connection that dropped. Said in words, not as the system's TLS error.
+        case offline
         /// What the model actually said, when it said something we could not use.
         /// Debug builds only: it is a diagnostic, not a sentence for anybody to read.
         case unusable(String)
@@ -27,6 +30,7 @@ enum MealPhotoEstimator {
             // A different sentence from a broken response, because it is a different
             // thing: the photo was read and there was no food in it.
             case .noFoodFound: return "I couldn't find food in that one. Try another angle, or enter the meal below."
+            case .offline: return "Couldn't reach Jett. Check your connection, then try again or enter your meal."
             case .needsPro: return "That was the last free photo estimate. You can still type the meal in."
             case .unusable(let reply): return "Couldn't use that reply: \(reply)"
             }
@@ -82,7 +86,13 @@ enum MealPhotoEstimator {
             direct.httpBody = try JSONSerialization.data(withJSONObject: body)
             request = direct
         }
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await URLSession.shared.data(for: request)
+        } catch is URLError {
+            throw Failure.offline
+        }
         guard let response = response as? HTTPURLResponse else { throw Failure.invalidResponse }
         guard (200...299).contains(response.statusCode) else {
             if Backend.isProxied && response.statusCode == 402 { throw Failure.needsPro }

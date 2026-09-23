@@ -146,10 +146,14 @@ struct MealLogView: View {
                     hero
                     photoCaption
                     if let message {
-                        Text(message)
-                            .font(.system(size: 13))
-                            .foregroundStyle(Tokens.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
+                        // One block with its way out, not two things 20 points apart.
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(message)
+                                .font(.system(size: 13))
+                                .foregroundStyle(Tokens.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                            TextHaoLink(screen: "Log a meal", problem: message)
+                        }
                     }
                     // The name comes first, because it is the field somebody is looking
                     // for. Notes sat here for a few hours today, on the reasoning that

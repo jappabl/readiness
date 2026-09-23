@@ -38,6 +38,7 @@ struct ProfileView: View {
                     about
                     memory
                     subscription
+                    textHao
                     baselines
                     weights
                     look
@@ -230,6 +231,21 @@ struct ProfileView: View {
             MemoryCard(notes: model.coachMemory.notes)
         }
         .buttonStyle(PressableStyle())
+    }
+
+    /// The person behind the app, one tap away. It opens their own Messages, so the
+    /// reply comes back as a text from Hao rather than a ticket number.
+    private var textHao: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            heading("Something off?")
+            ListCard {
+                AccessoryRow(symbol: "message.fill", label: "Text Hao", tint: Tokens.accent) {
+                    TextHao.open(screen: "Profile")
+                }
+            }
+            footnote("Hao built Coach Jett. Anything broken, confusing or missing goes "
+                     + "straight to his phone, with a picture of your screen.")
+        }
     }
 
     private var subscription: some View {

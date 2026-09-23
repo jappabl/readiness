@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		BA8A8895E13445C2D4C7B1BD /* FeedbackMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC8EC1196161BF8DDB01D4CD /* FeedbackMessage.swift */; };
+		A8BB8002C9B078A2B5A21D52 /* TextHao.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9BB96B17A4DAA52C357136E /* TextHao.swift */; };
 		D861650683AAF8377BAFF83D /* WorkoutActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AFBE96A16678168D0CF670A /* WorkoutActivityAttributes.swift */; };
 		F2A3F489783E79461DCCE732 /* WorkoutActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AFBE96A16678168D0CF670A /* WorkoutActivityAttributes.swift */; };
 		B1296E2518366AD1BF9D9F06 /* JettWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70E95DA7F3A738FDB02639DD /* JettWidgets.swift */; };
@@ -133,6 +135,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		AC8EC1196161BF8DDB01D4CD /* FeedbackMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "FeedbackMessage.swift"; sourceTree = "<group>"; };
+		D9BB96B17A4DAA52C357136E /* TextHao.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "TextHao.swift"; path = "App/Coach/TextHao.swift"; sourceTree = SOURCE_ROOT; };
 		3AFBE96A16678168D0CF670A /* WorkoutActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WorkoutActivityAttributes.swift"; sourceTree = "<group>"; };
 		70E95DA7F3A738FDB02639DD /* JettWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "JettWidgets.swift"; sourceTree = "<group>"; };
 		AD6FE2087A536CF3CC781DF7 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Info.plist"; sourceTree = "<group>"; };
@@ -327,6 +331,7 @@
 				B1CE7A0011EE44A2900D0006 /* SessionProgress.swift */,
 				B1CE7A0011EE44A2900D0004 /* WeightTrend.swift */,
 				D4F62BB82A7B412C869F000E /* MealPhotoEstimator.swift */,
+				D9BB96B17A4DAA52C357136E /* TextHao.swift */,
 				53FE074D7CB046BD9FD9B072 /* LoggingViews.swift */,
 				FD4B53768B1618CC75DD100A /* App */,
 				33EAE2F3F7B42395DE900E01 /* App/Coach */,
@@ -494,6 +499,7 @@
 				BE3A08F66F48FDF516D67A7A /* MorningVerdict.swift */,
 				0F283EC04A1E45C892E5F1EB /* MorningGreeting.swift */,
 				80D4DC0ED4378D93263A96F8 /* BedtimeTarget.swift */,
+				AC8EC1196161BF8DDB01D4CD /* FeedbackMessage.swift */,
 				44495CC3DB02374B24AD2855 /* NotificationDecision.swift */,
 				F45D316905EB425A9AB06DAB /* Paywall.swift */,
 				863E215B852B4F9F8410D01E /* BaselineSummary.swift */,
@@ -650,6 +656,7 @@
 				B1CE7A0011EE44A2900D0005 /* SessionProgress.swift in Sources */,
 				B1CE7A0011EE44A2900D0003 /* WeightTrend.swift in Sources */,
 				FCF62ED827454EC0B1080A35 /* MealPhotoEstimator.swift in Sources */,
+				A8BB8002C9B078A2B5A21D52 /* TextHao.swift in Sources */,
 				F87758D2AAFC41B8A5E9D327 /* LoggingViews.swift in Sources */,
 				58FD71D67A497BE6E4037D13 /* ClaudeCoachProvider.swift in Sources */,
 				7F4D405B9C01F5887FFDBF05 /* CoachProvider.swift in Sources */,
@@ -728,6 +735,7 @@
 				FEC29825C9FAF22B4866400D /* MorningVerdict.swift in Sources */,
 				3EE9A94B71EA4F0A97D72D97 /* MorningGreeting.swift in Sources */,
 				B7391404CDDC5FA78841934B /* BedtimeTarget.swift in Sources */,
+				BA8A8895E13445C2D4C7B1BD /* FeedbackMessage.swift in Sources */,
 				02F777B5EBF0B7E95B44AB60 /* NotificationDecision.swift in Sources */,
 				3FD94C8E64C14DE69AD81372 /* Paywall.swift in Sources */,
 				DC0F2F7CE79C418F889C57D4 /* BaselineSummary.swift in Sources */,
@@ -826,7 +834,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CODE_SIGNING_ALLOWED = YES;
 				CODE_SIGNING_REQUIRED = YES;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 6;
 				DEVELOPMENT_TEAM = V9JX42F864;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -836,7 +844,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.coachjett.ios;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -856,7 +864,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CODE_SIGNING_ALLOWED = YES;
 				CODE_SIGNING_REQUIRED = YES;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 6;
 				DEVELOPMENT_TEAM = V9JX42F864;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -865,7 +873,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.coachjett.ios;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -879,7 +887,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 6;
 				DEVELOPMENT_TEAM = V9JX42F864;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = LiveActivity/Info.plist;
@@ -889,7 +897,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.coachjett.ios.JettWidgets;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -905,7 +913,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 6;
 				DEVELOPMENT_TEAM = V9JX42F864;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = LiveActivity/Info.plist;
@@ -915,7 +923,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.coachjett.ios.JettWidgets;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;

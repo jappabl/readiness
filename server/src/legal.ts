@@ -98,6 +98,13 @@ used for advertising.</p>
 words are recognised on the device. On others, Apple processes the audio under its own
 privacy policy. The app never sends audio to our server.</p>
 
+<h2>Texting Hao</h2>
+<p>Text Hao opens a message from your own Messages app to Hao, who built Coach Jett. It
+fills in the app version, your iPhone model, the iOS version, the screen you were on, any
+error the app had just shown you, and a picture of that screen. You see all of it before
+you send, and nothing goes unless you press send. It goes by text message, not through our
+server, and none of your health data is added to it.</p>
+
 <h2>Payments</h2>
 <p>Subscriptions are handled by Apple. We never see your payment details. With each
 question to Jett, the app sends Apple's signed record of your subscription, so our server

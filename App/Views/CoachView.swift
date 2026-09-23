@@ -182,11 +182,14 @@ struct CoachSheet: View {
                             .foregroundStyle(Tokens.accent)
                     }
                     if let errorMessage {
-                        Text(errorMessage)
-                            .font(.subheadline)
-                            .foregroundStyle(Tokens.textTertiary)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .padding(.top, 4)
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(errorMessage)
+                                .font(.subheadline)
+                                .foregroundStyle(Tokens.textTertiary)
+                                .fixedSize(horizontal: false, vertical: true)
+                            TextHaoLink(screen: "Coach", problem: errorMessage)
+                        }
+                        .padding(.top, 4)
                     }
                     Color.clear.frame(height: 1).id("coachBottom")
                         .onAppear { proxy.scrollTo("coachBottom", anchor: .bottom) }

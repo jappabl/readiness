@@ -394,4 +394,32 @@ struct OnboardingDraftTests {
         #expect(after.missingHealthFields == flow.missingHealthFields)
         #expect(after.step == flow.step)
     }
+
+    // The last thing Jett says in onboarding is how to reach the person who built him,
+    // whichever way the notifications question went.
+    @Test("onboarding ends with how to text Hao")
+    func endsWithTextHao() {
+        for allowed in [true, false] {
+            var flow = OnboardingConversation()
+            flow.toggleGoal(.feelBetter); flow.confirmGoals()
+            flow.chooseFrequency(.few)
+            flow.chooseExperience(.regular)
+            flow.confirmObstacles()
+            flow.confirmLimitations(none: true)
+            flow.chooseEquipment(.fullGym)
+            flow.chooseUnits(metric: true)
+            flow.chooseWatch(wearsOne: true)
+            flow.beginReading()
+            flow.finishReading(hasHealthData: false)
+            flow.skipHealthDetails()
+            flow.skipWeight()
+            #expect(flow.step == OnboardingConversation.Step.notifications)
+            flow.chooseNotifications(allowed: allowed)
+            let last = flow.turns.last
+            #expect(last?.isUser == false)
+            #expect(last?.text.contains("text Hao") == true)
+            #expect(last?.text.contains("\u{2014}") == false)
+            #expect(flow.step == OnboardingConversation.Step.ready)
+        }
+    }
 }
