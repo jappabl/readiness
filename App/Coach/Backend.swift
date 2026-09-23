@@ -38,6 +38,7 @@ enum Backend {
     enum Route: String {
         case coach = "v1/coach"
         case meal = "v1/meal"
+        case member = "v1/member"
         /// A dry run of the gate. Answers only while attestation is not yet required.
         case attestCheck = "v1/attest/check"
     }

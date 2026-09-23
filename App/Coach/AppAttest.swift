@@ -1,6 +1,7 @@
 import CryptoKit
 import DeviceCheck
 import Foundation
+import StoreKit
 
 /// Proving this is a real build of this app on a real iPhone.
 ///
@@ -22,9 +23,12 @@ enum AppAttest {
     private static let service = DCAppAttestService.shared
     private static let keyIDKey = "attest.keyID"
     private static let attestedKey = "attest.registered"
-    private static let memberKey = "member.number"
+    /// Not "member.number": that held numbers from the pre-launch roll, which went to our
+    /// own phones and to TestFlight. The launch roll starts again at one.
+    private static let memberKey = "member.launch"
 
-    /// Which member this install is, issued by the server the first time it registered.
+    /// Which member this install is, issued by the server the first time it proved it
+    /// came from the App Store.
     ///
     /// Anchored to the install, which is the honest place for it: App Attest generates a
     /// fresh key on a reinstall, so a deleted app comes back as a new member. The
@@ -113,13 +117,30 @@ enum AppAttest {
         }
         keyID = key
         isRegistered = true
-        // Issued once, on the registration that created this install. A later
-        // registration returns the same number rather than spending another.
-        if let body = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-           let issued = body["member"] as? Int, issued > 0 {
-            member = issued
-        }
         lastFailure = nil
+    }
+
+    /// Asks for this install's member number, once it can prove it came from the App Store.
+    ///
+    /// Registering used to issue it, but a TestFlight or Xcode copy registers exactly
+    /// like a store copy, and the hundred founding places are for the App Store. Apple
+    /// signs how this copy was obtained, so the server can check it. A TestFlight copy
+    /// does not ask; when the store copy replaces it, that copy asks on its first launch.
+    static func claimMember() async {
+        guard member == nil, isSupported else { return }
+        guard let shared = try? await AppTransaction.shared,
+              case .verified(let transaction) = shared,
+              transaction.environment == .production,
+              let request = try? await Backend.attestedRequest(.member, body: [
+                  "appTransaction": shared.jwsRepresentation,
+              ]),
+              let reply = try? await URLSession.shared.data(for: request),
+              (reply.1 as? HTTPURLResponse)?.statusCode == 200,
+              let body = try? JSONSerialization.jsonObject(with: reply.0) as? [String: Any],
+              let issued = body["member"] as? Int, issued > 0
+        else { return }
+        // The server issues it once and returns the same number to every later ask.
+        member = issued
     }
 
     /// Signs one request, or returns nil having recorded why it could not.

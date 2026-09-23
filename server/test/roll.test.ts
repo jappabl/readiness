@@ -3,8 +3,8 @@ import { AttestedInstall, MemberRoll } from "../src/index"
 
 /** The smallest thing that behaves like Durable Object storage, plus the serialisation
  *  the platform guarantees: one caller inside `blockConcurrencyWhile` at a time. */
-function fakeState() {
-  const map = new Map<string, unknown>()
+function fakeState(seed: Record<string, unknown> = {}) {
+  const map = new Map<string, unknown>(Object.entries(seed))
   let queue: Promise<unknown> = Promise.resolve()
   return {
     storage: {
@@ -44,38 +44,39 @@ describe("the member roll", () => {
 })
 
 describe("an install's member number", () => {
-  const register = (install: AttestedInstall, member: number) =>
-    install.fetch(
-      new Request("https://attest/register", {
-        method: "POST",
-        body: JSON.stringify({ op: "register", key, member }),
-      }),
-    )
+  const send = (install: AttestedInstall, body: object) =>
+    install.fetch(new Request("https://attest/op", { method: "POST", body: JSON.stringify(body) }))
+  const load = async (install: AttestedInstall) =>
+    (await (await send(install, { op: "load" })).json<{ member: number | null }>()).member
 
-  it("is kept from the first registration", async () => {
+  // Registering proves the install is real. It no longer says whether it is from the
+  // App Store, so it no longer spends a place: TestFlight installs register too.
+  it("is not issued by registering", async () => {
     const install = new AttestedInstall(fakeState())
-    expect(await (await register(install, 7)).json()).toEqual({ ok: true, member: 7 })
+    expect(await (await send(install, { op: "register", key })).json()).toEqual({ ok: true })
+    expect(await load(install)).toBeNull()
   })
 
-  // Re-registering must not spend a second place. Otherwise a hundred founders becomes
-  // however many times the first hundred people reinstalled.
-  it("does not change when the same install registers again", async () => {
+  it("is kept from the first claim", async () => {
     const install = new AttestedInstall(fakeState())
-    await register(install, 7)
-    expect(await (await register(install, 999)).json()).toEqual({ ok: true, member: 7 })
+    expect(await (await send(install, { op: "claim", member: 7 })).json()).toEqual({ member: 7 })
+    expect(await load(install)).toBe(7)
   })
 
-  it("is readable afterwards, and absent before", async () => {
+  // Claiming again must not spend a second place. Otherwise a hundred founders becomes
+  // however many times the first hundred people opened the app.
+  it("does not change when the same install claims again", async () => {
     const install = new AttestedInstall(fakeState())
-    const load = () =>
-      install.fetch(
-        new Request("https://attest/load", {
-          method: "POST",
-          body: JSON.stringify({ op: "load" }),
-        }),
-      )
-    expect(await (await load()).json()).toEqual({ key: null, member: null })
-    await register(install, 42)
-    expect((await (await load()).json<{ member: number }>()).member).toBe(42)
+    await send(install, { op: "claim", member: 7 })
+    expect(await (await send(install, { op: "claim", member: 999 })).json()).toEqual({ member: 7 })
+  })
+
+  // Numbers handed out before launch went to our own phones and to TestFlight. The
+  // launch roll starts again at one, so an old number must not come back as a claim
+  // on somebody else's.
+  it("ignores a number from the pre-launch roll", async () => {
+    const install = new AttestedInstall(fakeState({ member: 3 }))
+    expect(await load(install)).toBeNull()
+    expect(await (await send(install, { op: "claim", member: 1 })).json()).toEqual({ member: 1 })
   })
 })

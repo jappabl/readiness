@@ -61,6 +61,9 @@ struct ReadinessApp: App {
                     model.wantsToFinishWorkout = true
                 }
                 .task { await store.load() }
+                // On every launch until it has one: an install that was offline during
+                // onboarding, or a TestFlight copy the App Store version has replaced.
+                .task { await AppAttest.claimMember() }
                 // The one notification about money, kept in step with the one thing
                 // that decides whether it is still true. Re-runs when the trial appears,
                 // when renewal is turned off, and when the subscription goes away, which

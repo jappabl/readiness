@@ -5,6 +5,7 @@
  * the request, and forwards. The client never sends a provider body and never sees a
  * provider key.
  */
+import { isAppStoreInstall } from "./members"
 import { freshBucket, meterDecision, type MeterState } from "./limits"
 import { entitlement, type Trust } from "./entitlement"
 import { APPLE_ROOT_G3 } from "./apple-root"
@@ -80,23 +81,27 @@ export class AttestedInstall implements DurableObject {
 
   async fetch(request: Request): Promise<Response> {
     const body = (await request.json()) as
-      | { op: "register"; key: AttestedKey; member: number }
+      | { op: "register"; key: AttestedKey }
+      | { op: "claim"; member: number }
       | { op: "load" }
       | { op: "advance"; counter: number }
 
     return await this.state.blockConcurrencyWhile(async () => {
       const stored = await this.state.storage.get<AttestedKey>("key")
-      const member = await this.state.storage.get<number>("member")
+      // Not "member": that key holds numbers from the pre-launch roll, which went to our
+      // own phones and to TestFlight, and the launch roll starts again at one.
+      const member = await this.state.storage.get<number>(LAUNCH_MEMBER)
       switch (body.op) {
         case "register":
           // Registering twice is not an error, but it must not reset a counter: that
-          // would hand a replayed assertion a clean slate. The member number is the
-          // same bargain for a different reason: re-registering must not spend a
-          // second place from the roll, or a hundred founders becomes however many
-          // times the first hundred people reinstalled.
+          // would hand a replayed assertion a clean slate.
           if (!stored) await this.state.storage.put("key", body.key)
-          if (member === undefined) await this.state.storage.put("member", body.member)
-          return Response.json({ ok: true, member: member ?? body.member })
+          return Response.json({ ok: true })
+        case "claim":
+          // Claiming twice must not spend a second place from the roll, or a hundred
+          // founders becomes however many times the first hundred opened the app.
+          if (member === undefined) await this.state.storage.put(LAUNCH_MEMBER, body.member)
+          return Response.json({ member: member ?? body.member })
         case "load":
           return Response.json({ key: stored ?? null, member: member ?? null })
         case "advance":
@@ -107,6 +112,8 @@ export class AttestedInstall implements DurableObject {
     })
   }
 }
+
+const LAUNCH_MEMBER = "launchMember"
 
 /**
  * A challenge, so an attestation or an assertion cannot be replayed.
@@ -377,20 +384,13 @@ async function handleAttest(request: Request, env: Env): Promise<Response> {
       appID: `${env.APPLE_TEAM_ID}.${env.BUNDLE_ID}`,
     })
     const install = env.ATTEST.get(env.ATTEST.idFromName(body.keyId))
-    // Claimed before the install is asked, because the install is the only thing that
-    // can tell us whether it already holds one, and a number claimed for an install
-    // that turns out to have one is simply not stored. A gap in the roll costs nothing;
-    // handing the same number to two people costs the only thing the roll is for.
-    const claimed = await (
-      await env.ROLL.get(env.ROLL.idFromName("roll")).fetch("https://roll/claim")
-    ).json<{ member: number }>()
-    const registered = await (
-      await install.fetch("https://attest/register", {
-        method: "POST",
-        body: JSON.stringify({ op: "register", key, member: claimed.member }),
-      })
-    ).json<{ member: number }>()
-    return Response.json({ ok: true, member: registered.member })
+    await install.fetch("https://attest/register", {
+      method: "POST",
+      body: JSON.stringify({ op: "register", key }),
+    })
+    // No member number here any more. Registering proves the install is real, not that
+    // it came from the App Store; the number is claimed at `/v1/member`.
+    return Response.json({ ok: true })
   } catch (error) {
     // Same bargain as `/v1/attest/check`: the reason a registration was refused is an
     // oracle, and it is also the only way to find out why a real device is being turned
@@ -457,6 +457,36 @@ export async function handleAppleNotification(request: Request, env: Env, trust:
   })
   return new Response(null, { status: 200 })
 }
+
+/**
+ * This install's member number, issued the first time it proves it came from the App
+ * Store. An install that cannot, TestFlight or Xcode, is told it has none and spends
+ * nothing, and can ask again once the store copy replaces it.
+ */
+async function handleMember(request: Request, env: Env, id: string): Promise<Response> {
+  const install = env.ATTEST.get(env.ATTEST.idFromName(id))
+  const held = await (
+    await install.fetch("https://attest/load", { method: "POST", body: JSON.stringify({ op: "load" }) })
+  ).json<{ member: number | null }>()
+  if (held.member !== null) return Response.json({ member: held.member })
+
+  const body = (await request.json()) as { appTransaction?: unknown }
+  if (!(await isAppStoreInstall(body.appTransaction, trustFor(env)))) return Response.json({ member: null })
+
+  // Claimed before the install is asked, as registration used to: a number claimed for
+  // an install that turns out to have one is simply not stored. A gap in the roll costs
+  // nothing; handing the same number to two people costs the only thing it is for.
+  const claimed = await (
+    await env.ROLL.get(env.ROLL.idFromName(LAUNCH_ROLL)).fetch("https://roll/claim")
+  ).json<{ member: number }>()
+  return await install.fetch("https://attest/claim", {
+    method: "POST",
+    body: JSON.stringify({ op: "claim", member: claimed.member }),
+  })
+}
+
+/** A new name for a new count. The old roll, "roll", numbered our test installs. */
+const LAUNCH_ROLL = "launch"
 
 async function handleCoach(request: Request, env: Env, id: string): Promise<Response> {
   const parsed = parseCoachBody(await request.json())
@@ -568,6 +598,8 @@ export default {
           return await handleCoach(request, env, who.id)
         case "/v1/meal":
           return await handleMeal(request, env, who.id)
+        case "/v1/member":
+          return await handleMember(request, env, who.id)
         default:
           return problem(404, "no such endpoint")
       }

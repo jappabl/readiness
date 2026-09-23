@@ -79,15 +79,11 @@ struct OnboardingView: View {
         // celebrates, and it happens once, to a hundred people.
         .overlay { if celebrating { Confetti().ignoresSafeArea() } }
         .onAppear { resumeIfSaved() }
-        // Registered here rather than lazily on the first message to Jett, because the
-        // member number is issued by that registration and somebody has to be told
-        // theirs while they are still in the conversation where it means something.
-        // Failing is fine and silent: the number arrives on the first request instead,
-        // and Profile shows it whenever it turns up.
-        .task {
-            guard let baseURL = Backend.baseURL, AppAttest.member == nil else { return }
-            try? await AppAttest.register(baseURL: baseURL)
-        }
+        // Claimed here rather than lazily on the first message to Jett, because somebody
+        // has to be told their number while they are still in the conversation where it
+        // means something. Failing is fine and silent: the app asks again on launch, and
+        // Profile shows it whenever it turns up.
+        .task { await AppAttest.claimMember() }
         .task(id: flow.turns.count) {
             visibleCount = min(visibleCount, flow.turns.count)
             do {
