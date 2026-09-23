@@ -5,6 +5,9 @@ import UIKit
 enum MealPhotoEstimator {
     enum Failure: LocalizedError {
         case missingKey, notVerified, invalidPhoto, service(Int), invalidResponse, noFoodFound
+        /// The server's count of free photo estimates is spent. It has the final say, so
+        /// this can arrive even when the count on this phone thinks there are some left.
+        case needsPro
         /// What the model actually said, when it said something we could not use.
         /// Debug builds only: it is a diagnostic, not a sentence for anybody to read.
         case unusable(String)
@@ -24,6 +27,7 @@ enum MealPhotoEstimator {
             // A different sentence from a broken response, because it is a different
             // thing: the photo was read and there was no food in it.
             case .noFoodFound: return "I couldn't find food in that one. Try another angle, or enter the meal below."
+            case .needsPro: return "That was the last free photo estimate. You can still type the meal in."
             case .unusable(let reply): return "Couldn't use that reply: \(reply)"
             }
         }
@@ -81,6 +85,7 @@ enum MealPhotoEstimator {
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let response = response as? HTTPURLResponse else { throw Failure.invalidResponse }
         guard (200...299).contains(response.statusCode) else {
+            if Backend.isProxied && response.statusCode == 402 { throw Failure.needsPro }
             throw response.statusCode == 401 && Backend.isProxied
                 ? Failure.notVerified : Failure.service(response.statusCode)
         }

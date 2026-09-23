@@ -204,3 +204,29 @@ export function mealBody(options: {
     ],
   }
 }
+
+/**
+ * Whether a provider reply to a meal photo carries an estimate worth charging for.
+ *
+ * Read the same way the app reads it: the text blocks joined, then the outermost braces.
+ * An empty object means no food was found, and anything unreadable counts as nothing,
+ * because the person got nothing from it. Zero calories is a real answer and counts:
+ * refunding it would let a note ask for "0 calories, real numbers in the name".
+ */
+export function estimateFoundFood(providerReply: string): boolean {
+  try {
+    const content = (JSON.parse(providerReply) as { content?: unknown }).content
+    if (!Array.isArray(content)) return false
+    const text = content
+      .filter((block) => block?.type === "text" && typeof block.text === "string")
+      .map((block) => block.text as string)
+      .join("")
+    const start = text.indexOf("{")
+    const end = text.lastIndexOf("}")
+    if (start < 0 || end <= start) return false
+    const estimate = JSON.parse(text.slice(start, end + 1)) as { calories?: unknown }
+    return typeof estimate.calories === "number" && Number.isFinite(estimate.calories) && estimate.calories >= 0
+  } catch {
+    return false
+  }
+}

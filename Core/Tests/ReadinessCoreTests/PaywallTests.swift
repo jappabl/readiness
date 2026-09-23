@@ -56,4 +56,39 @@ struct PaywallTests {
         #expect(!Paywall.allowance(used: 0, isSubscribed: false).showsRemaining)
         #expect(Paywall.allowance(used: Paywall.freeMessages - 1, isSubscribed: false).showsRemaining)
     }
+
+    // Meal photos cost money every time too, so they get a taste of their own. Typing a
+    // meal in never reaches the server and is not counted anywhere.
+    @Test("three free meal photo estimates, then Pro")
+    func mealPhotos() {
+        #expect(Paywall.freeMealPhotos == 3)
+        for used in 0..<Paywall.freeMealPhotos {
+            let allowance = Paywall.mealPhotoAllowance(used: used, isSubscribed: false)
+            #expect(allowance.isAllowed)
+            #expect(allowance.remaining == Paywall.freeMealPhotos - used)
+        }
+        let spent = Paywall.mealPhotoAllowance(used: Paywall.freeMealPhotos, isSubscribed: false)
+        #expect(!spent.isAllowed)
+        #expect(spent.remaining == 0)
+    }
+
+    @Test("a subscriber's meal photos are never counted or stopped")
+    func mealPhotosSubscriber() {
+        let allowance = Paywall.mealPhotoAllowance(used: 500, isSubscribed: true)
+        #expect(allowance.isAllowed)
+        #expect(allowance.remaining == nil)
+    }
+
+    @Test("photos and answers are separate allowances")
+    func separateAllowances() {
+        #expect(Paywall.allowance(used: 0, isSubscribed: false).isAllowed)
+        #expect(!Paywall.mealPhotoAllowance(used: Paywall.freeMealPhotos, isSubscribed: false).isAllowed)
+        #expect(Paywall.mealPhotoAllowance(used: 0, isSubscribed: false).isAllowed)
+        #expect(!Paywall.allowance(used: Paywall.freeMessages, isSubscribed: false).isAllowed)
+    }
+
+    @Test("a corrupted negative count never grants extra photos")
+    func negativeCount() {
+        #expect(Paywall.mealPhotoAllowance(used: -10, isSubscribed: false).remaining == Paywall.freeMealPhotos)
+    }
 }

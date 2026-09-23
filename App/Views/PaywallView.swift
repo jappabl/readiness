@@ -99,7 +99,7 @@ struct PaywallView: View {
             .padding(.vertical, 20)
         } else {
             VStack(alignment: .leading, spacing: 10) {
-                Text("Unlimited answers on every plan, on your own numbers.")
+                Text("Unlimited answers and meal photos on every plan, on your own numbers.")
                     .font(.system(size: 13))
                     .foregroundStyle(Tokens.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)

@@ -235,10 +235,10 @@ struct ProfileView: View {
     private var subscription: some View {
         VStack(alignment: .leading, spacing: 12) {
             heading("Coach Jett", info: store.isSubscribed
-                    ? "Unlimited answers. There is a burst limit to stop runaway usage, "
-                      + "which a conversation never reaches."
-                    : "Everything the app measures is free. Jett is the part with a "
-                      + "cost every time you ask.")
+                    ? "Unlimited answers and meal photos. There is a burst limit to stop "
+                      + "runaway usage, which normal use never reaches."
+                    : "Everything the app measures is free, and so is typing a meal in. "
+                      + "Jett and meal photos are the parts with a cost every time.")
             ListCard {
                 if store.isSubscribed {
                     FieldRow(label: "Plan") {
@@ -257,6 +257,13 @@ struct ProfileView: View {
                                                       isSubscribed: false)
                     FieldRow(label: "Free answers left") {
                         Text("\(allowance.remaining ?? 0) of \(Paywall.freeMessages)")
+                            .monospacedDigit()
+                    }
+                    Divider().overlay(Tokens.hairline).padding(.leading, 14)
+                    let photos = Paywall.mealPhotoAllowance(used: model.mealPhotosUsed,
+                                                            isSubscribed: false)
+                    FieldRow(label: "Free meal photos left") {
+                        Text("\(photos.remaining ?? 0) of \(Paywall.freeMealPhotos)")
                             .monospacedDigit()
                     }
                     Divider().overlay(Tokens.hairline).padding(.leading, 14)

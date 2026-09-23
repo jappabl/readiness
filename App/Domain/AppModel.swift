@@ -84,6 +84,17 @@ final class AppModel {
 
     func recordCoachMessage() { coachMessagesUsed += 1 }
 
+    /// Meal photo estimates the free tier has spent. Counted only when one produced an
+    /// estimate, which is the rule the server uses too: a failed reading or an empty
+    /// plate is handed back there, so it must not be spent here.
+    var mealPhotosUsed: Int {
+        get { UserDefaults.standard.integer(forKey: Self.mealPhotoUseKey) }
+        set { UserDefaults.standard.set(newValue, forKey: Self.mealPhotoUseKey) }
+    }
+    private static let mealPhotoUseKey = "meal.photos.used"
+
+    func recordMealPhoto() { mealPhotosUsed += 1 }
+
     #if DEBUG
     /// Testing only: spends no free answers, so a test pass is not interrupted by a
     /// paywall five messages in.

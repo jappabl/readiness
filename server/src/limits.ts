@@ -17,6 +17,15 @@ export const BURST_CAPACITY = 8
 export const REFILL_INTERVAL_SECONDS = 12
 /** Enough answers to find out whether Jett is any good. */
 export const FREE_MESSAGES = 5
+/**
+ * Meal photo estimates a free install gets before Pro. They cost money every time, so
+ * they are a taste rather than a feature; typing a meal in never reaches the server and
+ * stays free.
+ */
+export const FREE_PHOTOS = 3
+
+/** What a request is spending: an answer from the coach, or a meal photo estimate. */
+export type MeterKind = "message" | "photo"
 
 export interface BucketState {
   tokens: number
@@ -63,9 +72,9 @@ export interface Allowance {
   remaining: number | null
 }
 
-export function allowance(used: number, isSubscriber: boolean): Allowance {
+export function allowance(used: number, isSubscriber: boolean, free: number = FREE_MESSAGES): Allowance {
   if (isSubscriber) return { allowed: true, remaining: null }
-  const left = Math.max(0, FREE_MESSAGES - Math.max(0, used))
+  const left = Math.max(0, free - Math.max(0, used))
   return { allowed: left > 0, remaining: left }
 }
 
@@ -80,7 +89,10 @@ export function allowance(used: number, isSubscriber: boolean): Allowance {
  */
 export interface MeterState {
   bucket: BucketState
+  /** Free coach answers used. */
   freeUsed: number
+  /** Free meal photos used. Absent in state stored before photos were counted. */
+  freePhotosUsed?: number
 }
 
 export interface MeterOutcome {
@@ -95,26 +107,43 @@ export function meterDecision(
   state: MeterState,
   isSubscriber: boolean,
   nowMs: number,
+  kind: MeterKind = "message",
 ): MeterOutcome {
+  // Read as zero when absent. Undefined would become NaN below, and NaN fails every
+  // comparison, which here means "never out of free photos".
+  const counts = { freeUsed: state.freeUsed, freePhotosUsed: state.freePhotosUsed ?? 0 }
   const burst = consume(state.bucket, nowMs)
   if (!burst.allowed) {
     return {
       allowed: false,
       status: 429,
       retryAfter: burst.retryAfter ?? REFILL_INTERVAL_SECONDS,
-      state: { bucket: burst.state, freeUsed: state.freeUsed },
+      state: { bucket: burst.state, ...counts },
     }
   }
 
   if (isSubscriber) {
-    return { allowed: true, state: { bucket: burst.state, freeUsed: state.freeUsed } }
+    return { allowed: true, state: { bucket: burst.state, ...counts } }
   }
 
-  const room = allowance(state.freeUsed, false)
+  const used = kind === "photo" ? counts.freePhotosUsed : counts.freeUsed
+  const room = allowance(used, false, kind === "photo" ? FREE_PHOTOS : FREE_MESSAGES)
   if (!room.allowed) {
     // The burst token is still spent. Someone hammering the endpoint after running out
     // of free messages should still be rate limited.
-    return { allowed: false, status: 402, state: { bucket: burst.state, freeUsed: state.freeUsed } }
+    return { allowed: false, status: 402, state: { bucket: burst.state, ...counts } }
   }
-  return { allowed: true, state: { bucket: burst.state, freeUsed: state.freeUsed + 1 } }
+  const spent = kind === "photo"
+    ? { ...counts, freePhotosUsed: counts.freePhotosUsed + 1 }
+    : { ...counts, freeUsed: counts.freeUsed + 1 }
+  return { allowed: true, state: { bucket: burst.state, ...spent } }
+}
+
+/**
+ * Hands back a free photo that produced no estimate: the provider failed, or found no
+ * food. Three is few enough that losing one to either would feel like being cheated.
+ * The burst token stays spent, because the request still happened.
+ */
+export function refundPhoto(state: MeterState): MeterState {
+  return { ...state, freePhotosUsed: Math.max(0, (state.freePhotosUsed ?? 0) - 1) }
 }

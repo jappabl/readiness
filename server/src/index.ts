@@ -6,13 +6,13 @@
  * provider key.
  */
 import { isAppStoreInstall } from "./members"
-import { freshBucket, meterDecision, type MeterState } from "./limits"
+import { freshBucket, meterDecision, refundPhoto, type MeterKind, type MeterState } from "./limits"
 import { entitlement, type Trust } from "./entitlement"
 import { APPLE_ROOT_G3 } from "./apple-root"
 import { refundEvent, verifiedNotification } from "./refunds"
 
 export { RefundLedger } from "./refunds"
-import { coachBody, mealBody, trim } from "./prompt"
+import { coachBody, estimateFoundFood, mealBody, trim } from "./prompt"
 import { InvalidRequest, parseCoachBody, parseMealBody, MAX_MESSAGES } from "./schema"
 import { legalPage } from "./legal"
 import { assertionMessage, base64ToBytes, verifyAssertion, verifyAttestation, type AttestedKey } from "./attest"
@@ -173,18 +173,26 @@ export class RateBucket implements DurableObject {
   constructor(private state: DurableObjectState) {}
 
   async fetch(request: Request): Promise<Response> {
-    const { isSubscriber } = (await request.json()) as { isSubscriber: boolean }
-    // Both meters read and written inside one blocked section. The free counter used to
+    const body = (await request.json()) as
+      | { op?: "consume"; isSubscriber: boolean; kind?: MeterKind }
+      | { op: "refundPhoto" }
+    // Every meter read and written inside one blocked section. The free counter used to
     // live in KV as a get followed by a put, which two concurrent requests could both
     // pass before either wrote.
     return await this.state.blockConcurrencyWhile(async () => {
       const stored: MeterState = {
         bucket: (await this.state.storage.get<MeterState["bucket"]>("bucket")) ?? freshBucket(),
         freeUsed: (await this.state.storage.get<number>("freeUsed")) ?? 0,
+        freePhotosUsed: (await this.state.storage.get<number>("freePhotosUsed")) ?? 0,
       }
-      const outcome = meterDecision(stored, isSubscriber, Date.now())
+      if (body.op === "refundPhoto") {
+        await this.state.storage.put("freePhotosUsed", refundPhoto(stored).freePhotosUsed ?? 0)
+        return Response.json({ ok: true })
+      }
+      const outcome = meterDecision(stored, body.isSubscriber, Date.now(), body.kind ?? "message")
       await this.state.storage.put("bucket", outcome.state.bucket)
       await this.state.storage.put("freeUsed", outcome.state.freeUsed)
+      await this.state.storage.put("freePhotosUsed", outcome.state.freePhotosUsed ?? 0)
       return Response.json({
         allowed: outcome.allowed,
         status: outcome.status ?? null,
@@ -313,12 +321,17 @@ function isUnlimited(id: string, env: Env): boolean {
     .includes(id)
 }
 
-async function meter(id: string, isSubscriber: boolean, env: Env): Promise<Response | null> {
+async function meter(
+  id: string,
+  isSubscriber: boolean,
+  env: Env,
+  kind: MeterKind = "message",
+): Promise<Response | null> {
   const bucket = env.BUCKET.get(env.BUCKET.idFromName(id))
   const decision = (await (
     await bucket.fetch("https://bucket/consume", {
       method: "POST",
-      body: JSON.stringify({ isSubscriber }),
+      body: JSON.stringify({ isSubscriber, kind }),
     })
   ).json()) as { allowed: boolean; status: number | null; retryAfter: number | null }
 
@@ -326,7 +339,7 @@ async function meter(id: string, isSubscriber: boolean, env: Env): Promise<Respo
   if (decision.status === 429) {
     return problem(429, "one at a time", { "retry-after": String(decision.retryAfter ?? 12) })
   }
-  return problem(402, "free messages used up")
+  return problem(402, kind === "photo" ? "free photos used up" : "free messages used up")
 }
 
 async function callProvider(
@@ -536,8 +549,23 @@ export function streamOrPassError(upstream: Response, subscriber: boolean): Resp
 
 async function handleMeal(request: Request, env: Env, id: string): Promise<Response> {
   const parsed = parseMealBody(await request.json())
-  const limited = await meter(id, true, env) // photos are not on the free-message meter
+  const result = await entitlement(
+    request.headers.get("x-jett-transaction") ?? undefined,
+    trustFor(env),
+    Date.now(),
+    (transactionId) => refundedTransaction(transactionId, env),
+  )
+  const paying = result.subscriber || isUnlimited(id, env)
+  const limited = await meter(id, paying, env, "photo")
   if (limited) return limited
+  // A free photo that produced no estimate is handed back. Best effort: if the refund
+  // itself fails, the person is a photo down, which is better than failing the reply.
+  const handBack = async () => {
+    if (paying) return
+    await env.BUCKET.get(env.BUCKET.idFromName(id))
+      .fetch("https://bucket/refund", { method: "POST", body: JSON.stringify({ op: "refundPhoto" }) })
+      .catch(() => undefined)
+  }
 
   const upstream = await callProvider(
     env.MEAL_PROVIDER,
@@ -549,8 +577,13 @@ async function handleMeal(request: Request, env: Env, id: string): Promise<Respo
     }),
     env,
   )
-  if (!upstream.ok) return upstream
-  return new Response(await upstream.text(), {
+  if (!upstream.ok) {
+    await handBack()
+    return upstream
+  }
+  const reply = await upstream.text()
+  if (!estimateFoundFood(reply)) await handBack()
+  return new Response(reply, {
     status: 200,
     headers: { "content-type": "application/json" },
   })

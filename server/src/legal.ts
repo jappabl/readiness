@@ -80,7 +80,7 @@ them to the AI provider and keeps nothing of them. For each install it keeps onl
   <li>a key that proves requests come from a genuine copy of the app, and a counter that
       stops an old request being replayed;</li>
   <li>your member number;</li>
-  <li>counts used for rate limits and the free message allowance;</li>
+  <li>counts used for rate limits and the free message and meal photo allowances;</li>
   <li>if Apple refunds a purchase, that purchase's transaction ID, so the refund ends it.</li>
 </ul>
 <p>The app has no accounts, so none of this is linked to your name, your email or your
@@ -132,8 +132,9 @@ managing a condition, talk to a qualified professional and follow them rather th
 app. Training carries risk of injury, and what you choose to do is your decision.</p>
 
 <h2>Subscriptions</h2>
-<p>The measurements are free. A subscription pays for asking Jett questions, because that
-is the part with a cost every time it is used. Subscriptions are billed through your Apple
+<p>The measurements are free, and so is typing a meal in. A subscription pays for asking
+Jett questions and for meal photo estimates beyond the free ones, because those are the
+parts with a cost every time they are used. Subscriptions are billed through your Apple
 ID, renew automatically unless cancelled at least 24 hours before the period ends, and are
 managed and cancelled in your Apple account settings rather than here. A free trial, where
 offered, becomes a paid subscription unless cancelled before it ends. Refunds are Apple's

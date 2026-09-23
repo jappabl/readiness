@@ -67,6 +67,8 @@ struct WeightLogView: View {
 
 struct MealLogView: View {
     @Environment(AppModel.self) private var model
+    @Environment(Subscriptions.self) private var store
+    @State private var showingPaywall = false
     @Environment(\.dismiss) private var dismiss
     @State private var camera = false
     @State private var photo: UIImage?
@@ -110,7 +112,10 @@ struct MealLogView: View {
                 .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { cancelEstimate(); photoLoadTask?.cancel(); dismiss() }.disabled(busy) } }
                 .interactiveDismissDisabled(busy)
                 .fullScreenCover(isPresented: $camera) { MealCamera { image in usePhoto(image); camera = false } onCancel: { camera = false } }
-                .onAppear { if !started { started = true; openCamera() } }
+                // Straight to the camera only while there is a photo to spend. Once the
+                // free ones are gone the screen opens on the form, where typing is free,
+                // rather than on a wall.
+                .onAppear { if !started { started = true; if photoAllowance.isAllowed { openCamera() } } }
                 .onChange(of: selectedPhoto) { _, item in
                     guard let item else { return }
                     cancelEstimate()
@@ -139,6 +144,7 @@ struct MealLogView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     hero
+                    photoCaption
                     if let message {
                         Text(message)
                             .font(.system(size: 13))
@@ -169,6 +175,30 @@ struct MealLogView: View {
             logButton
         }
         .background(Tokens.canvas.ignoresSafeArea())
+        .fullScreenCover(isPresented: $showingPaywall) { PaywallView { showingPaywall = false } }
+    }
+
+    private var photoAllowance: CoachAllowance {
+        #if DEBUG
+        let unlimited = store.isSubscribed || model.coachUnlimitedForTesting
+        #else
+        let unlimited = store.isSubscribed
+        #endif
+        return Paywall.mealPhotoAllowance(used: model.mealPhotosUsed, isSubscribed: unlimited)
+    }
+
+    /// Said once there is something worth knowing: how many are left near the end, and
+    /// where they went once they are gone.
+    @ViewBuilder
+    private var photoCaption: some View {
+        let allowance = photoAllowance
+        if message == nil, photo == nil, allowance.showsRemaining, let left = allowance.remaining {
+            Text(left == 0
+                 ? "Photo estimates are on Pro. Typing a meal in is free."
+                 : "\(left) free photo \(left == 1 ? "estimate" : "estimates") left.")
+                .font(.system(size: 13))
+                .foregroundStyle(Tokens.textSecondary)
+        }
     }
 
     /// The photo, or the two ways to get one. Sized like a picture rather than like a
@@ -212,8 +242,12 @@ struct MealLogView: View {
             } else {
                 HStack(spacing: 8) {
                     heroButton(photo == nil ? "Camera" : "Retake", "camera") { openCamera() }
-                    PhotosPicker(selection: $selectedPhoto, matching: .images) {
-                        heroLabel("Library", "photo")
+                    if photoAllowance.isAllowed {
+                        PhotosPicker(selection: $selectedPhoto, matching: .images) {
+                            heroLabel("Library", "photo")
+                        }
+                    } else {
+                        heroButton("Library", "photo") { showingPaywall = true }
                     }
                 }
                 .padding(.bottom, 14)
@@ -425,6 +459,7 @@ struct MealLogView: View {
         return nil
     }
     private func openCamera() {
+        guard photoAllowance.isAllowed else { showingPaywall = true; return }
         guard UIImagePickerController.isSourceTypeAvailable(.camera) else { message = "Camera isn't available here. Choose a photo or enter a meal."; return }
         if AVCaptureDevice.authorizationStatus(for: .video) == .denied || AVCaptureDevice.authorizationStatus(for: .video) == .restricted {
             message = "Camera access is off. Enable Camera in Settings for Jett, choose a photo, or enter a meal."; return
@@ -480,10 +515,18 @@ struct MealLogView: View {
                 carbs = result.carbs.formatted(.number.grouping(.never).precision(.fractionLength(0)))
                 fat = result.fat.formatted(.number.grouping(.never).precision(.fractionLength(0)))
                 estimated = true
+                model.recordMealPhoto()
                 // The numbers are already on screen and editable. Saying so would be
                 // describing the interface to somebody looking at it.
                 message = nil
-            } catch is CancellationError {} catch {
+            } catch is CancellationError {} catch MealPhotoEstimator.Failure.needsPro {
+                // The server's count wins. Bring this phone's into line so the screen
+                // stops offering a photo it will refuse.
+                guard estimateRevision == revision else { return }
+                model.mealPhotosUsed = max(model.mealPhotosUsed, Paywall.freeMealPhotos)
+                message = MealPhotoEstimator.Failure.needsPro.errorDescription
+                showingPaywall = true
+            } catch {
                 if estimateRevision == revision && !Task.isCancelled { message = error.localizedDescription }
             }
         }
