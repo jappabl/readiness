@@ -778,3 +778,66 @@ struct RampBandSumTests {
         #expect(abs(minutes - 45) < 0.01, "rows account for \(minutes) of 45 minutes")
     }
 }
+
+/// Strain is what the day has cost so far, so reading it later can only find more.
+///
+/// Measured on the simulator fixture: 46 before a two-set bench session, 12 after it.
+/// The fixture has no waking heart rate, so the ring was the activity percentile; two
+/// hard sets switched it to the cardiac engine with nothing in it but lifting, which is
+/// 10 load, which is 11.55. Logging a workout took 34 points off the day.
+@Suite("Strain never goes backwards")
+struct StrainMonotonicityTests {
+
+    private let midnight = Calendar.current.startOfDay(for: Date())
+
+    /// Worn from eight to noon, then on the charger.
+    private func day(readAtHour: Double, hardSets: Int = 0) -> StrainInput {
+        let start = midnight.addingTimeInterval(8 * 3600)
+        let samples = (0..<48).map {
+            HeartRateSample(start: start.addingTimeInterval(Double($0) * 300),
+                            minutes: 5, beatsPerMinute: $0 < 12 ? 150 : 80)
+        }
+        return StrainInput(samples: samples, restingHeartRate: 55, ageYears: 30,
+                           biologicalSex: .male, hardSets: hardSets,
+                           readAt: midnight.addingTimeInterval(readAtHour * 3600),
+                           asleepPeriods: [DateInterval(
+                               start: midnight.addingTimeInterval(-1 * 3600),
+                               end: midnight.addingTimeInterval(7 * 3600))])
+    }
+
+    /// The clock only decides whether the day is called part-recorded. A watch left on
+    /// the charger all afternoon has to keep the morning it recorded.
+    @Test("the clock running on with no new samples leaves the number where it was")
+    func readAtAlone() throws {
+        let noon = try #require(StrainScore.of(day(readAtHour: 12)).value)
+        for hour in [13.0, 15, 18, 23.9] {
+            let later = StrainScore.of(day(readAtHour: hour))
+            #expect(try #require(later.value) >= noon, "read at \(hour)h")
+        }
+    }
+
+    private let activity = DailyStrainResult(percent: 46, metric: .activeEnergy, value: 420,
+                                             baselineDays: 14, coverage: .relativeToHistory)
+
+    private func unwatched(hardSets: Int) -> StrainInput {
+        StrainInput(samples: [], restingHeartRate: 55, ageYears: 30, biologicalSex: .male,
+                    hardSets: hardSets, fallback: activity)
+    }
+
+    @Test("logging sets on a day with no heart rate adds to it", arguments: [1, 2, 6, 20])
+    func liftingAddsToTheFallback(hardSets: Int) throws {
+        let before = try #require(StrainScore.of(unwatched(hardSets: 0)).value)
+        let after = StrainScore.of(unwatched(hardSets: hardSets))
+        #expect(try #require(after.value) > before, "\(hardSets) hard sets")
+    }
+
+    @Test("and the rows still sum to the ring")
+    func rowsSum() throws {
+        let result = StrainScore.of(unwatched(hardSets: 2))
+        let value = try #require(result.value)
+        let summed = result.contributors.reduce(0) { $0 + $1.magnitude }
+        #expect(abs(summed - value) < 0.01)
+        #expect(result.contributors.contains { $0.id == StrainScore.muscularContributorID })
+        #expect(result.missing.contains { $0.localizedCaseInsensitiveContains("heart rate") })
+    }
+}

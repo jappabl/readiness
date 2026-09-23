@@ -319,8 +319,13 @@ public enum StrainScore {
         let samples = input.samples.filter(\.isUsable)
         let muscular = muscularLoad(hardSets: input.hardSets)
 
-        guard !samples.isEmpty || muscular > 0 else {
-            return fallbackScore(input.fallback)
+        // With no heart rate, lifting goes on top of the activity comparison rather than
+        // replacing it. It used to replace it: the first hard set switched the ring from
+        // the percentile to an engine holding nothing but that set, so on the simulator
+        // fixture a two-set bench session took the day from 46 to 12. Logging a workout
+        // must never make the day read as easier than it did before.
+        guard !samples.isEmpty || (muscular > 0 && input.fallback?.percent == nil) else {
+            return fallbackScore(input.fallback, hardSets: input.hardSets)
         }
 
         let resting = input.restingHeartRate ?? assumedRestingHeartRate
@@ -385,21 +390,9 @@ public enum StrainScore {
         }
 
         if muscular > 0 {
-            rows.append(ScoreContributor(
-                id: muscularContributorID,
-                title: "Lifting",
-                value: Double(input.hardSets),
-                unit: input.hardSets == 1 ? "hard set" : "hard sets",
-                comparison: nil,
-                comparisonLabel: nil,
-                state: .fine,
-                level: heaviest > 0 ? muscular / heaviest : 0,
-                symbol: "dumbbell.fill",
-                magnitude: muscular * share,
-                explanation: "Sets taken within about three reps of failure. A heavy "
-                           + "triple barely moves your heart rate, so lifting is close "
-                           + "to invisible to a cardiac measure. It is counted "
-                           + "separately rather than missed."))
+            rows.append(liftingRow(hardSets: input.hardSets,
+                                   level: heaviest > 0 ? muscular / heaviest : 0,
+                                   magnitude: muscular * share))
         }
 
         var missing: [String] = []
@@ -522,10 +515,30 @@ public enum StrainScore {
         return windows
     }
 
+    private static func liftingRow(hardSets: Int, level: Double,
+                                   magnitude: Double) -> ScoreContributor {
+        ScoreContributor(
+            id: muscularContributorID,
+            title: "Lifting",
+            value: Double(hardSets),
+            unit: hardSets == 1 ? "hard set" : "hard sets",
+            comparison: nil,
+            comparisonLabel: nil,
+            state: .fine,
+            level: level,
+            symbol: "dumbbell.fill",
+            magnitude: magnitude,
+            explanation: "Sets taken within about three reps of failure. A heavy "
+                       + "triple barely moves your heart rate, so lifting is close "
+                       + "to invisible to a cardiac measure. It is counted "
+                       + "separately rather than missed.")
+    }
+
     /// No cardiac trace at all: the ordinary case for anybody without a watch. The ring
     /// falls back to the activity comparison that shipped before this engine, and says
     /// so, because an empty ring is worse than a labelled approximation.
-    private static func fallbackScore(_ fallback: DailyStrainResult?) -> SignalScore {
+    private static func fallbackScore(_ fallback: DailyStrainResult?,
+                                      hardSets: Int = 0) -> SignalScore {
         guard let fallback else {
             return SignalScore(kind: .strain, value: nil, band: nil, contributors: [],
                                coverage: .unavailable,
@@ -538,7 +551,31 @@ public enum StrainScore {
                                missing: ["Heart rate"],
                                modelVersion: modelVersion)
         }
-        let value = scaleMax * Double(percent) / 100
+        let activity = scaleMax * Double(percent) / 100
+        // The sets' load is added at the point on the curve where the percentile sits,
+        // so they move the ring by what they would move a traced day that read the same.
+        let muscular = muscularLoad(hardSets: hardSets)
+        let value = muscular > 0 ? strain(load: load(strain: activity) + muscular) : activity
+        var rows = [ScoreContributor(
+            id: "activity",
+            title: fallback.metric.label,
+            value: fallback.value,
+            unit: fallback.metric.unit,
+            comparison: nil,
+            comparisonLabel: nil,
+            state: .fine,
+            level: Double(percent) / 100,
+            symbol: "flame.fill",
+            magnitude: activity,
+            explanation: "Without heart rate there is no way to measure how hard "
+                       + "today actually was, so this compares today's \(fallback.metric.label.lowercased()) "
+                       + "against your own last \(fallback.baselineDays) recorded days. "
+                       + "It says where today sits among your days, not what it cost you.")]
+        if muscular > 0 {
+            rows.append(liftingRow(hardSets: hardSets,
+                                   level: muscular / Swift.max(load(strain: activity), muscular),
+                                   magnitude: value - activity))
+        }
         return SignalScore(
             kind: .strain,
             value: value,
@@ -546,21 +583,7 @@ public enum StrainScore {
             // scale, and calling somebody's laziest-but-one day "all out" because it
             // beat the other thirteen would be a lie told in colour.
             band: nil,
-            contributors: [ScoreContributor(
-                id: "activity",
-                title: fallback.metric.label,
-                value: fallback.value,
-                unit: fallback.metric.unit,
-                comparison: nil,
-                comparisonLabel: nil,
-                state: .fine,
-                level: Double(percent) / 100,
-                symbol: "flame.fill",
-                magnitude: value,
-                explanation: "Without heart rate there is no way to measure how hard "
-                           + "today actually was, so this compares today's \(fallback.metric.label.lowercased()) "
-                           + "against your own last \(fallback.baselineDays) recorded days. "
-                           + "It says where today sits among your days, not what it cost you.")],
+            contributors: rows.sorted { abs($0.magnitude) > abs($1.magnitude) },
             coverage: .partial,
             missing: ["Heart rate"],
             modelVersion: modelVersion)
