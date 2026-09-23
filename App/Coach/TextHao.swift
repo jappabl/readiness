@@ -22,10 +22,13 @@ enum TextHao {
     /// Whether the save-his-number card has been offered. Once is helpful; twice is a nag.
     private static let contactOfferedKey = "texthao.contact.offered"
 
-    /// Opens Messages to Hao, with a picture of the screen they were on.
+    /// Opens Messages to Hao.
     ///
-    /// The picture is taken here, before Messages covers the screen.
-    static func open(screen: String? = nil, problem: String? = nil) {
+    /// A picture of the screen goes with it only when something went wrong on that
+    /// screen, which is when it shows him what they saw. From Profile or onboarding it
+    /// would be a picture of their height, weight and goals, and tell him nothing.
+    /// Taken here, before Messages covers the screen.
+    static func open(screen: String? = nil, problem: String? = nil, attachesScreen: Bool = false) {
         Haptics.light()
         let body = FeedbackMessage.body(context(screen: screen, problem: problem))
         guard MFMessageComposeViewController.canSendText(), let top = topController() else {
@@ -37,7 +40,7 @@ enum TextHao {
         let composer = MFMessageComposeViewController()
         composer.recipients = [FeedbackMessage.recipient]
         composer.body = body
-        if let png = snapshot()?.pngData() {
+        if attachesScreen, let png = snapshot()?.pngData() {
             composer.addAttachmentData(png, typeIdentifier: "public.png", filename: "Coach Jett.png")
         }
         composer.messageComposeDelegate = delegate
@@ -126,7 +129,7 @@ struct TextHaoLink: View {
     let problem: String?
 
     var body: some View {
-        Button { TextHao.open(screen: screen, problem: problem) } label: {
+        Button { TextHao.open(screen: screen, problem: problem, attachesScreen: true) } label: {
             Text("Text Hao")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(Tokens.accent)

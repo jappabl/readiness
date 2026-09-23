@@ -244,7 +244,7 @@ struct ProfileView: View {
                 }
             }
             footnote("Hao built Coach Jett. Anything broken, confusing or missing goes "
-                     + "straight to his phone, with a picture of your screen.")
+                     + "straight to his phone.")
         }
     }
 

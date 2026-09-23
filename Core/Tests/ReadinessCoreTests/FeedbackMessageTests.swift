@@ -15,10 +15,14 @@ struct FeedbackMessageTests {
         #expect(FeedbackMessage.recipient == "+14242186248")
     }
 
-    @Test("their words go first, with room to type")
-    func roomToType() {
+    // Messages puts the cursor at the end of a pre-filled body, never the start. So the
+    // details come first and the body ends on an empty line: the cursor lands where
+    // they type, and nobody has to move it past the details first.
+    @Test("the cursor lands on an empty line, ready to type")
+    func readyToType() {
         let body = FeedbackMessage.body(context)
-        #expect(body.hasPrefix("\n\n"))
+        #expect(body.hasPrefix("("))
+        #expect(body.hasSuffix(")\n\n"))
     }
 
     @Test("it carries the version, the phone, the screen and what went wrong")

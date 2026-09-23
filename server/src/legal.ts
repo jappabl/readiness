@@ -100,9 +100,9 @@ privacy policy. The app never sends audio to our server.</p>
 
 <h2>Texting Hao</h2>
 <p>Text Hao opens a message from your own Messages app to Hao, who built Coach Jett. It
-fills in the app version, your iPhone model, the iOS version, the screen you were on, any
-error the app had just shown you, and a picture of that screen. You see all of it before
-you send, and nothing goes unless you press send. It goes by text message, not through our
+fills in the app version, your iPhone model, the iOS version and the screen you were on.
+When you tap it under an error, it also adds the error and a picture of that screen. You
+see all of it before you send, and nothing goes unless you press send. It goes by text message, not through our
 server, and none of your health data is added to it.</p>
 
 <h2>Payments</h2>

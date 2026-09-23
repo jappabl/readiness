@@ -2,10 +2,11 @@ import Foundation
 
 /// The text that opens in Messages when somebody taps Text Hao.
 ///
-/// Their own words go first, with the cursor in a blank space at the top, because the
-/// message is theirs. Underneath, in brackets, are the details Hao would otherwise have
-/// to ask for. They see all of it before sending, and none of it is about their health:
-/// no scores, no readings, nothing from the coach conversation.
+/// The details Hao would otherwise have to ask for, on one bracketed line, then an empty
+/// line. Messages puts the cursor at the end of a pre-filled body and there is no way to
+/// move it, so ending on the empty line is what leaves them ready to type. They see all
+/// of it before sending, and none of it is about their health: no scores, no readings,
+/// nothing from the coach conversation.
 public enum FeedbackMessage {
 
     /// A Google Voice number, so Hao's own stays private and can be retired.
@@ -45,6 +46,6 @@ public enum FeedbackMessage {
                 ? String(problem.prefix(problemLimit)) + "..." : problem
             details.append("Saw: \"\(cut)\"")
         }
-        return "\n\n(" + details.joined(separator: ". ") + ")"
+        return "(" + details.joined(separator: ". ") + ")\n\n"
     }
 }
