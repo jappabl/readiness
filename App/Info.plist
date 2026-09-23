@@ -23,8 +23,11 @@
 	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
+	<!-- The name App Store Connect checks for clashes. It was $(PRODUCT_NAME), which is
+	     "Readiness", the project's old name: a dictionary word another app already uses,
+	     and not the name on the listing. Apple rejected build 1 over it (ITMS-90129). -->
 	<key>CFBundleName</key>
-	<string>$(PRODUCT_NAME)</string>
+	<string>Coach Jett</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
