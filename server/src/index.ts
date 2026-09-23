@@ -11,7 +11,7 @@ import { APPLE_ROOT_G3 } from "./apple-root"
 import { coachBody, mealBody, trim } from "./prompt"
 import { InvalidRequest, parseCoachBody, parseMealBody, MAX_MESSAGES } from "./schema"
 import { legalPage } from "./legal"
-import { base64ToBytes, verifyAssertion, verifyAttestation, type AttestedKey } from "./attest"
+import { assertionMessage, base64ToBytes, verifyAssertion, verifyAttestation, type AttestedKey } from "./attest"
 
 export interface Env {
   ANTHROPIC_API_KEY: string
@@ -220,11 +220,10 @@ async function verifyAttested(request: Request, env: Env): Promise<AttestOutcome
 
   try {
     // The body is signed along with the challenge, so an assertion captured from one
-    // request cannot be replayed against a different question.
+    // request cannot be replayed against a different question. So is the purchase, so
+    // one subscriber's proof cannot be pasted into somebody else's requests.
     const body = new Uint8Array(await request.clone().arrayBuffer())
-    const signed = new Uint8Array(new TextEncoder().encode(challenge).length + body.length)
-    signed.set(new TextEncoder().encode(challenge))
-    signed.set(body, new TextEncoder().encode(challenge).length)
+    const signed = await assertionMessage(challenge, body, request.headers.get("x-jett-transaction"))
     const counter = await verifyAssertion({
       assertion: base64ToBytes(attestation),
       signedData: signed,

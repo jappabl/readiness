@@ -78,7 +78,11 @@ enum Backend {
         guard let baseURL, AppAttest.isSupported, let payload = request.httpBody else {
             return request
         }
-        guard let proof = await AppAttest.proof(for: payload, baseURL: baseURL) else {
+        // The purchase exactly as this request carries it, read back from the header
+        // rather than from the cache again, which could have refreshed in between and
+        // left the signature covering a different one.
+        let purchase = request.value(forHTTPHeaderField: "x-jett-transaction")
+        guard let proof = await AppAttest.proof(for: payload, purchase: purchase, baseURL: baseURL) else {
             return request
         }
         request.setValue(proof.keyID, forHTTPHeaderField: "x-jett-key-id")

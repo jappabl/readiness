@@ -17,6 +17,7 @@
 		AFECC2FD73F74759B378CC25 /* FoodLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D8BB139FB4C4604BDDD7DD5 /* FoodLog.swift */; };
 		B1CE7A0011EE44A2900D0009 /* FoundingMember.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1CE7A0011EE44A2900D000A /* FoundingMember.swift */; };
 		B1CE7A0011EE44A2900D0013 /* TrialReminder.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1CE7A0011EE44A2900D0012 /* TrialReminder.swift */; };
+		B1CE7A0011EE44A2900D0015 /* AssertionMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1CE7A0011EE44A2900D0014 /* AssertionMessage.swift */; };
 		B1CE7A0011EE44A2900D0005 /* SessionProgress.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1CE7A0011EE44A2900D0006 /* SessionProgress.swift */; };
 		B1CE7A0011EE44A2900D0003 /* WeightTrend.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1CE7A0011EE44A2900D0004 /* WeightTrend.swift */; };
 		FCF62ED827454EC0B1080A35 /* MealPhotoEstimator.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4F62BB82A7B412C869F000E /* MealPhotoEstimator.swift */; };
@@ -142,6 +143,7 @@
 		3D8BB139FB4C4604BDDD7DD5 /* FoodLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "FoodLog.swift"; path = "Core/Sources/ReadinessCore/FoodLog.swift"; sourceTree = SOURCE_ROOT; };
 		B1CE7A0011EE44A2900D000A /* FoundingMember.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "FoundingMember.swift"; path = "Core/Sources/ReadinessCore/FoundingMember.swift"; sourceTree = SOURCE_ROOT; };
 		B1CE7A0011EE44A2900D0012 /* TrialReminder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "TrialReminder.swift"; path = "Core/Sources/ReadinessCore/TrialReminder.swift"; sourceTree = SOURCE_ROOT; };
+		B1CE7A0011EE44A2900D0014 /* AssertionMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "AssertionMessage.swift"; path = "Core/Sources/ReadinessCore/AssertionMessage.swift"; sourceTree = SOURCE_ROOT; };
 		B1CE7A0011EE44A2900D0006 /* SessionProgress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "SessionProgress.swift"; path = "Core/Sources/ReadinessCore/SessionProgress.swift"; sourceTree = SOURCE_ROOT; };
 		B1CE7A0011EE44A2900D0004 /* WeightTrend.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "WeightTrend.swift"; path = "Core/Sources/ReadinessCore/WeightTrend.swift"; sourceTree = SOURCE_ROOT; };
 		D4F62BB82A7B412C869F000E /* MealPhotoEstimator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "MealPhotoEstimator.swift"; path = "App/Coach/MealPhotoEstimator.swift"; sourceTree = SOURCE_ROOT; };
@@ -321,6 +323,7 @@
 				3D8BB139FB4C4604BDDD7DD5 /* FoodLog.swift */,
 				B1CE7A0011EE44A2900D000A /* FoundingMember.swift */,
 				B1CE7A0011EE44A2900D0012 /* TrialReminder.swift */,
+				B1CE7A0011EE44A2900D0014 /* AssertionMessage.swift */,
 				B1CE7A0011EE44A2900D0006 /* SessionProgress.swift */,
 				B1CE7A0011EE44A2900D0004 /* WeightTrend.swift */,
 				D4F62BB82A7B412C869F000E /* MealPhotoEstimator.swift */,
@@ -643,6 +646,7 @@
 				AFECC2FD73F74759B378CC25 /* FoodLog.swift in Sources */,
 				B1CE7A0011EE44A2900D0009 /* FoundingMember.swift in Sources */,
 				B1CE7A0011EE44A2900D0013 /* TrialReminder.swift in Sources */,
+				B1CE7A0011EE44A2900D0015 /* AssertionMessage.swift in Sources */,
 				B1CE7A0011EE44A2900D0005 /* SessionProgress.swift in Sources */,
 				B1CE7A0011EE44A2900D0003 /* WeightTrend.swift in Sources */,
 				FCF62ED827454EC0B1080A35 /* MealPhotoEstimator.swift in Sources */,

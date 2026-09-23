@@ -375,6 +375,30 @@ export function readAuthenticatorData(bytes: Uint8Array): AuthenticatorData {
   }
 }
 
+/**
+ * Exactly what a request's signature covers: the challenge, the body, and the
+ * fingerprint of the purchase it carries, if it carries one.
+ *
+ * The purchase travels in a header, and a header nobody signed can be swapped by anyone
+ * who can watch their own traffic: one subscriber's proof, everybody's Pro. No purchase
+ * leaves the message exactly as it was before, so builds that never bought anything
+ * keep working. Pinned byte for byte against the app's `AssertionMessage` by a shared
+ * test vector.
+ */
+export async function assertionMessage(
+  challenge: string,
+  body: Uint8Array,
+  purchase: string | null,
+): Promise<Uint8Array> {
+  const head = new TextEncoder().encode(challenge)
+  const tail = purchase ? await sha256(new TextEncoder().encode(purchase)) : new Uint8Array(0)
+  const message = new Uint8Array(head.length + body.length + tail.length)
+  message.set(head)
+  message.set(body, head.length)
+  message.set(tail, head.length + body.length)
+  return message
+}
+
 export async function sha256(data: Uint8Array): Promise<Uint8Array> {
   return new Uint8Array(await crypto.subtle.digest("SHA-256", data))
 }

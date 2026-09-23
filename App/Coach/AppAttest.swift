@@ -127,17 +127,17 @@ enum AppAttest {
     /// Nil rather than a thrown error on purpose. Every caller wants the same thing from
     /// a failure here, which is to send the request anyway and let the server decide, so
     /// making them all write that is only an opportunity to get it wrong once.
-    static func proof(for body: Data, baseURL: URL) async -> Proof? {
+    static func proof(for body: Data, purchase: String?, baseURL: URL) async -> Proof? {
         guard isSupported else { return nil }
         do {
             try await register(baseURL: baseURL)
             guard let keyID else { return nil }
 
             let challenge = try await fetchChallenge(baseURL: baseURL)
-            // Challenge and body together: the first stops a replay, the second stops
-            // the same signature standing for a different request.
-            var signed = Data(challenge.utf8)
-            signed.append(body)
+            // Challenge, body and purchase together: the first stops a replay, the
+            // second stops the same signature standing for a different request, the
+            // third stops somebody else's purchase being pasted into this one.
+            let signed = AssertionMessage.bytes(challenge: challenge, body: body, purchase: purchase)
             let hash = Data(SHA256.hash(data: signed))
             let assertion = try await service.generateAssertion(keyID, clientDataHash: hash)
             lastFailure = nil
