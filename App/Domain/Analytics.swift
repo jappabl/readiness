@@ -27,9 +27,10 @@ enum Analytics {
         case subscriptionStarted = "subscription_started"
     }
 
-    /// The Coach Jett project's public token. It is meant to ship inside the app, which is
-    /// why it can live here. Empty sends nothing at all.
-    private static let projectToken = ""
+    /// The Coach Jett project's public token, in its own organisation so nothing mixes with
+    /// Skimly. It is meant to ship inside the app, which is why it can live here. Empty
+    /// sends nothing at all.
+    private static let projectToken = "phc_oLnsquuQoGrihvMfFg9xLMxvJcb7vbY6hFAMr7aNneY6"
     private static let host = "https://us.i.posthog.com"
 
     static func start() {
@@ -46,6 +47,13 @@ enum Analytics {
         config.setDefaultPersonProperties = false
         config.preloadFeatureFlags = false
         config.surveys = false
+        // The project discards IP addresses, but PostHog places the IP on a map before it
+        // does, so every event would still arrive with a city on it. The policy says no
+        // location leaves the phone, and this is what keeps that true.
+        config.setBeforeSend { event in
+            event.properties["$geoip_disable"] = true
+            return event
+        }
         #if DEBUG
         config.flushAt = 1
         #endif
