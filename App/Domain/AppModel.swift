@@ -153,6 +153,38 @@ final class AppModel {
     /// samples. A watch that never left the wrist was reported as a part-recorded day once
     /// the app was forty minutes stale, at any hour of the day.
     private(set) var healthReadAt: Date?
+
+    /// Today's ring as it last stood with no heart rate in it. See `StrainHandoff`.
+    ///
+    /// Persisted, so a relaunch between a morning without the watch and the first
+    /// readings still hands over from the number that was showing.
+    private static let strainHandoffKey = "strain.handoff"
+
+    private var strainHandoff: StrainHandoff? {
+        get {
+            guard let data = UserDefaults.standard.data(forKey: Self.strainHandoffKey) else { return nil }
+            return try? JSONDecoder().decode(StrainHandoff.self, from: data)
+        }
+        set {
+            UserDefaults.standard.set(newValue.flatMap { try? JSONEncoder().encode($0) },
+                                      forKey: Self.strainHandoffKey)
+        }
+    }
+
+    /// Called just before a refresh replaces the series, so what is kept is the number
+    /// that was on screen. Only while today has no waking trace: once it has one, the
+    /// ring is the trace's and there is nothing left to hand over. And only once Health
+    /// has been read today: the first refresh after a launch starts from an empty
+    /// series, and would have replaced the morning's number with the lifting alone.
+    private func noteStrainHandoff() {
+        let today = Date()
+        let day = series.last { Calendar.current.isDate($0.date, inSameDayAs: today) }
+        guard let readAt = healthReadAt, Calendar.current.isDateInToday(readAt),
+              Self.waking(day, asleep: asleepPeriods(spanning: today)).isEmpty,
+              let value = strainScore(on: today, context: context).value else { return }
+        strainHandoff = StrainHandoff(value: value, at: readAt,
+                                      hardSets: hardSets(on: today, context: context))
+    }
     fileprivate(set) var latestWeight: (date: Date, kilograms: Double)?
     private var healthWeight: (date: Date, kilograms: Double)?
     var healthReadError: String?
@@ -412,6 +444,7 @@ final class AppModel {
             #endif
 
             healthReadError = nil
+            noteStrainHandoff()
             healthSeries = fetched
             healthReadAt = Date()
             healthWeight = await healthKit.latestBodyMass()
@@ -1038,7 +1071,8 @@ final class AppModel {
             // samples on both sides of it.
             asleepPeriods: asleepPeriods(spanning: date),
             primarySleep: day?.sleep?.primarySleep,
-            fallback: DailyStrain.evaluate(days: activity, on: date)))
+            fallback: DailyStrain.evaluate(days: activity, on: date),
+            handoff: strainHandoff.flatMap { calendar.isDate($0.at, inSameDayAs: date) ? $0 : nil }))
     }
 
     var strainScore: SignalScore { strainScore(context: context) }

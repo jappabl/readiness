@@ -18,6 +18,24 @@ public struct HeartRateSample: Sendable, Equatable {
     }
 }
 
+/// The ring as it stood the last time it was read without any heart rate, kept so the
+/// first readings of the day take over from that number instead of starting again at
+/// the moment the watch went on.
+public struct StrainHandoff: Sendable, Equatable, Codable {
+    public let value: Double
+    /// When the data behind `value` was read. Heart rate from here on is what the ring
+    /// had not seen yet.
+    public let at: Date
+    /// Hard sets already inside `value`, so they are not counted a second time.
+    public let hardSets: Int
+
+    public init(value: Double, at: Date, hardSets: Int) {
+        self.value = value
+        self.at = at
+        self.hardSets = hardSets
+    }
+}
+
 public struct StrainInput: Sendable {
     public let samples: [HeartRateSample]
     /// The baseline, not this morning's reading: a bad night should not inflate the
@@ -45,13 +63,15 @@ public struct StrainInput: Sendable {
     /// What the ring showed before this engine existed. Used only when there is no
     /// cardiac trace at all, and always labelled.
     public let fallback: DailyStrainResult?
+    /// See `StrainHandoff`. Only read once there is a trace.
+    public let handoff: StrainHandoff?
 
     public init(samples: [HeartRateSample], restingHeartRate: Double?, ageYears: Int?,
                 biologicalSex: HealthProfile.BiologicalSex?,
                 observedMaxHeartRate: Double? = nil, hardSets: Int = 0,
                 readAt: Date = Date(), asleepPeriods: [DateInterval] = [],
                 primarySleep: DateInterval? = nil,
-                fallback: DailyStrainResult? = nil) {
+                fallback: DailyStrainResult? = nil, handoff: StrainHandoff? = nil) {
         self.samples = samples
         self.restingHeartRate = restingHeartRate
         self.ageYears = ageYears
@@ -62,6 +82,7 @@ public struct StrainInput: Sendable {
         self.asleepPeriods = asleepPeriods
         self.primarySleep = primarySleep
         self.fallback = fallback
+        self.handoff = handoff
     }
 }
 
@@ -291,6 +312,7 @@ public enum StrainScore {
     }
 
     public static let muscularContributorID = "muscular"
+    public static let handoffContributorID = "handoff"
 
     // MARK: - Target
 
@@ -334,42 +356,32 @@ public enum StrainScore {
 
         // Time and load per zone, so the breakdown can say where the day was spent
         // rather than only how much it cost.
-        var minutesByZone: [String: Double] = [:]
-        var loadByZone: [String: Double] = [:]
-        var everydayRaw = 0.0
-        var everydayMinutes = 0.0
-        for sample in samples {
-            let reserve = min(max((sample.beatsPerMinute - resting) / max(maximum - resting, 1), 0), 1)
-            let id = zone(forReserve: reserve).id
-            let load = trimp(minutes: sample.minutes, heartRate: sample.beatsPerMinute,
-                             resting: resting, maximum: maximum, sex: input.biologicalSex)
-            // Split across the ramp rather than assigned to one side of a line, and the
-            // minutes split with the load, or the two disagree about the same sample. They
-            // did: a trace whose every reading sat inside the ramp put everyday load in
-            // zone0 and no minutes there, and the row is emitted only where there are
-            // minutes, so that load vanished from the breakdown while staying in the ring.
-            // Measured on 45 minutes at 108 bpm: ring 21.19, rows summing to 10.21.
-            let training = trainingShare(reserve: reserve)
-            minutesByZone[id, default: 0] += sample.minutes * training
-            everydayMinutes += sample.minutes * (1 - training)
-            loadByZone[id, default: 0] += load * training
-            everydayRaw += load * (1 - training)
-        }
-
-        // Being awake saturates rather than clamping, so the bottom of the scale keeps
-        // its resolution: a hard ceiling made every easy day read exactly the same
-        // number by mid-morning and then stop moving for the rest of it.
-        let everyday = everydayLoadCap * (1 - exp(-everydayRaw / everydayLoadCap))
-        loadByZone[zones[zones.count - 1].id, default: 0] += everyday
-        minutesByZone[zones[zones.count - 1].id, default: 0] += everydayMinutes
+        let (minutesByZone, loadByZone) = zoneLoads(samples, resting: resting,
+                                                    maximum: maximum, sex: input.biologicalSex)
 
         let total = loadByZone.values.reduce(0, +) + muscular
-        let value = strain(load: total)
+        let traced = strain(load: total)
+
+        // The first readings of a day that had been read without them. The trace starts
+        // when the watch went on, so on its own it dropped the morning the percentile had
+        // counted: the ring fell the moment heart rate arrived. The day goes on from the
+        // number that was showing, with the trace since then and any sets logged since
+        // then on top. Whichever says more wins, because a trace that synced late covers
+        // the same hours the old number stood in for, and adding the two would count them
+        // twice.
+        let carried = input.handoff.map { handoff -> Double in
+            guard handoff.value.isFinite else { return 0 }
+            let since = zoneLoads(samples.filter { $0.start >= handoff.at }, resting: resting,
+                                  maximum: maximum, sex: input.biologicalSex).load
+            return strain(load: load(strain: handoff.value) + since.values.reduce(0, +)
+                          + muscularLoad(hardSets: input.hardSets - handoff.hardSets))
+        } ?? 0
+        let value = Swift.max(traced, carried)
 
         // Strain's neutral point is zero, so the rows sum to the number itself. A day
         // with no load at all gives every row a magnitude of zero rather than a
         // division by it.
-        let share = total > 0 ? value / total : 0
+        let share = total > 0 ? traced / total : 0
         let heaviest = Swift.max(loadByZone.values.max() ?? 0, muscular)
 
         var rows: [ScoreContributor] = zones.compactMap { zone in
@@ -393,6 +405,23 @@ public enum StrainScore {
             rows.append(liftingRow(hardSets: input.hardSets,
                                    level: heaviest > 0 ? muscular / heaviest : 0,
                                    magnitude: muscular * share))
+        }
+
+        if value > traced {
+            rows.append(ScoreContributor(
+                id: handoffContributorID,
+                title: "Before heart rate",
+                value: nil,
+                unit: "",
+                comparison: nil,
+                comparisonLabel: nil,
+                state: .fine,
+                level: nil,
+                symbol: "flame.fill",
+                magnitude: value - traced,
+                explanation: "What the ring read before any heart rate arrived today, from "
+                           + "your recorded activity. Heart rate since then is added to it "
+                           + "rather than starting the day again."))
         }
 
         var missing: [String] = []
@@ -439,6 +468,41 @@ public enum StrainScore {
             coverage: missing.isEmpty ? .full : .partial,
             missing: missing,
             modelVersion: modelVersion)
+    }
+
+    /// Minutes and load per zone for a trace, with being awake already saturated.
+    private static func zoneLoads(_ samples: [HeartRateSample], resting: Double,
+                                  maximum: Double, sex: HealthProfile.BiologicalSex?)
+        -> (minutes: [String: Double], load: [String: Double]) {
+        var minutesByZone: [String: Double] = [:]
+        var loadByZone: [String: Double] = [:]
+        var everydayRaw = 0.0
+        var everydayMinutes = 0.0
+        for sample in samples {
+            let reserve = min(max((sample.beatsPerMinute - resting) / max(maximum - resting, 1), 0), 1)
+            let id = zone(forReserve: reserve).id
+            let load = trimp(minutes: sample.minutes, heartRate: sample.beatsPerMinute,
+                             resting: resting, maximum: maximum, sex: sex)
+            // Split across the ramp rather than assigned to one side of a line, and the
+            // minutes split with the load, or the two disagree about the same sample. They
+            // did: a trace whose every reading sat inside the ramp put everyday load in
+            // zone0 and no minutes there, and the row is emitted only where there are
+            // minutes, so that load vanished from the breakdown while staying in the ring.
+            // Measured on 45 minutes at 108 bpm: ring 21.19, rows summing to 10.21.
+            let training = trainingShare(reserve: reserve)
+            minutesByZone[id, default: 0] += sample.minutes * training
+            everydayMinutes += sample.minutes * (1 - training)
+            loadByZone[id, default: 0] += load * training
+            everydayRaw += load * (1 - training)
+        }
+
+        // Being awake saturates rather than clamping, so the bottom of the scale keeps
+        // its resolution: a hard ceiling made every easy day read exactly the same
+        // number by mid-morning and then stop moving for the rest of it.
+        let everyday = everydayLoadCap * (1 - exp(-everydayRaw / everydayLoadCap))
+        loadByZone[zones[zones.count - 1].id, default: 0] += everyday
+        minutesByZone[zones[zones.count - 1].id, default: 0] += everydayMinutes
+        return (minutesByZone, loadByZone)
     }
 
     /// How much was recorded, in the unit that can express it. Rounding a short trace to

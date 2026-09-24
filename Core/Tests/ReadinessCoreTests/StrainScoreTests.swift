@@ -841,3 +841,88 @@ struct StrainMonotonicityTests {
         #expect(result.missing.contains { $0.localizedCaseInsensitiveContains("heart rate") })
     }
 }
+
+/// The watch going on after a morning without it. The ring had been the activity
+/// percentile, and the first reading switched it to a trace that started at that moment,
+/// so the morning the percentile had counted was dropped from the number.
+@Suite("Heart rate arriving takes over from the ring as it stood")
+struct StrainHandoffTests {
+
+    private let midnight = Calendar.current.startOfDay(for: Date())
+
+    private func at(_ hour: Double) -> Date { midnight.addingTimeInterval(hour * 3600) }
+
+    /// Five-minute readings from `fromHour` for `hours`.
+    private func trace(from fromHour: Double, hours: Double, bpm: Double) -> [HeartRateSample] {
+        (0..<Int(hours * 12)).map {
+            HeartRateSample(start: at(fromHour).addingTimeInterval(Double($0) * 300),
+                            minutes: 5, beatsPerMinute: bpm)
+        }
+    }
+
+    private func day(_ samples: [HeartRateSample], hardSets: Int = 0, readAtHour: Double,
+                     handoff: StrainHandoff? = nil) -> StrainInput {
+        StrainInput(samples: samples, restingHeartRate: 55, ageYears: 30,
+                    biologicalSex: .male, hardSets: hardSets, readAt: at(readAtHour),
+                    asleepPeriods: [DateInterval(start: at(-1), end: at(7))],
+                    fallback: DailyStrainResult(percent: 46, metric: .activeEnergy,
+                                                value: 420, baselineDays: 14,
+                                                coverage: .relativeToHistory),
+                    handoff: handoff)
+    }
+
+    private let noon = StrainHandoff(value: 46, at: Calendar.current.startOfDay(for: Date())
+                                        .addingTimeInterval(12 * 3600), hardSets: 0)
+
+    @Test("the first readings do not take the ring below where it stood")
+    func noDropAtHandoff() throws {
+        let before = try #require(StrainScore.of(day([], readAtHour: 12)).value)
+        let after = StrainScore.of(day(trace(from: 12, hours: 0.5, bpm: 80),
+                                       readAtHour: 12.5, handoff: noon))
+        #expect(try #require(after.value) >= before)
+    }
+
+    @Test("and what the watch sees afterwards goes on top", arguments: [1.0, 3, 6])
+    func traceAddsAfterHandoff(hours: Double) throws {
+        let first = try #require(StrainScore.of(day(trace(from: 12, hours: 0.5, bpm: 120),
+                                                    readAtHour: 12.5, handoff: noon)).value)
+        let later = StrainScore.of(day(trace(from: 12, hours: hours, bpm: 120),
+                                       readAtHour: 12 + hours, handoff: noon))
+        #expect(try #require(later.value) > first, "\(hours) h worn")
+    }
+
+    @Test("sets logged after the handoff count, sets before it are not counted twice")
+    func setsAfterHandoff() throws {
+        let samples = trace(from: 12, hours: 1, bpm: 80)
+        let handoff = StrainHandoff(value: 50, at: at(12), hardSets: 4)
+        let same = try #require(StrainScore.of(day(samples, hardSets: 4, readAtHour: 13,
+                                                   handoff: handoff)).value)
+        let more = try #require(StrainScore.of(day(samples, hardSets: 8, readAtHour: 13,
+                                                   handoff: handoff)).value)
+        let atHandoff = StrainScore.strain(load: StrainScore.load(strain: 50))
+        #expect(same < StrainScore.strain(load: StrainScore.load(strain: 50)
+                                          + StrainScore.muscularLoad(hardSets: 4)))
+        #expect(same >= atHandoff)
+        #expect(more > same)
+    }
+
+    /// A trace that arrived late but covers the morning outweighs the stand-in for it,
+    /// and is not added to it: they describe the same hours.
+    @Test("a trace that already says more is left alone")
+    func tracedDayWins() throws {
+        let samples = trace(from: 8, hours: 4, bpm: 150)
+        let plain = try #require(StrainScore.of(day(samples, readAtHour: 12)).value)
+        let handed = try #require(StrainScore.of(day(samples, readAtHour: 12, handoff: noon)).value)
+        #expect(plain > 46)
+        #expect(abs(handed - plain) < 0.0001)
+    }
+
+    @Test("the rows still sum to the ring")
+    func rowsSum() throws {
+        let result = StrainScore.of(day(trace(from: 12, hours: 1, bpm: 80), hardSets: 2,
+                                        readAtHour: 13, handoff: noon))
+        let value = try #require(result.value)
+        let summed = result.contributors.reduce(0) { $0 + $1.magnitude }
+        #expect(abs(summed - value) < 0.01)
+    }
+}
