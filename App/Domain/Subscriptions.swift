@@ -174,6 +174,7 @@ final class Subscriptions {
                 }
                 await transaction.finish()
                 await refreshEntitlement()
+                Analytics.record(.subscriptionStarted, ["product": product.id])
                 return isSubscribed
 
             case .pending:

@@ -340,6 +340,7 @@ struct CoachSheet: View {
             return
         }
         model.recordCoachMessage()
+        Analytics.record(.coachMessageSent)
         let reply = CoachMessage(role: .assistant, text: "")
         messages.append(reply)
         isStreaming = true

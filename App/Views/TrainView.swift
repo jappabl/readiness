@@ -813,6 +813,7 @@ struct FinishSessionView: View {
                             session.finishedAt = Date()
                             do {
                                 try context.save()
+                                Analytics.record(.workoutSaved)
                                 Haptics.committed()
                                 dismiss(); onDone()
                             } catch {

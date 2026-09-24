@@ -589,6 +589,7 @@ final class AppModel {
 
     func finishOnboarding() {
         onboardingFinished = true
+        Analytics.record(.onboardingFinished)
         if goal != nil { phase = .ready }
     }
 
@@ -639,6 +640,7 @@ final class AppModel {
         }
         context.insert(CheckInRow(date: today, checkIn: checkIn))
         try? context.save()
+        Analytics.record(.checkInSaved)
         await refresh()
     }
 

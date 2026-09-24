@@ -12,7 +12,7 @@
  * has not been reviewed by anybody qualified.
  */
 
-const UPDATED = "22 September 2026"
+const UPDATED = "24 September 2026"
 
 function page(title: string, body: string): Response {
   return new Response(
@@ -86,12 +86,24 @@ them to the AI provider and keeps nothing of them. For each install it keeps onl
 <p>The app has no accounts, so none of this is linked to your name, your email or your
 Apple Account.</p>
 
+<h2>How the app is used</h2>
+<p>So we can see where the app loses people, it sends PostHog, an analytics service, a
+short note when you reach certain steps: starting and finishing setup, connecting Health,
+saving a check-in or a workout, sending Jett a message, seeing the subscription screen,
+and subscribing, with which plan. It also notes when the app is installed, updated or
+opened, with the app's version and your iPhone's model and iOS version.</p>
+<p>Each note says only that the step happened. It never contains a Health reading, a
+score, a message, a photo or anything you typed. It carries a random ID the app makes, so
+one install's steps can be counted together. That ID is not linked to your name, your
+email, your Apple Account or your member number, and PostHog is set to discard your IP
+address.</p>
+
 <h2>Who else sees it</h2>
 <p>The AI provider processes each request to produce the reply, under its own terms for
 what it keeps. Our server runs on Cloudflare, which carries requests to and from it. Apple
-checks that the app is genuine and handles subscriptions. There are no analytics services,
-no advertising networks, and no data brokers. Nothing is sold, and Health data is never
-used for advertising.</p>
+checks that the app is genuine and handles subscriptions. PostHog receives the notes
+described above. There are no advertising networks and no data brokers. Nothing is sold,
+and Health data is never used for advertising.</p>
 
 <h2>Dictation</h2>
 <p>Logging a set by voice uses Apple's speech recognition. On iPhones that support it, the

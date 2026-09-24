@@ -44,6 +44,7 @@ struct PaywallView: View {
             }
         }
         .task {
+            Analytics.record(.paywallViewed)
             if store.products.isEmpty { await store.load() }
             // A founder's default is their own yearly row, not the standard one they are
             // never shown: selecting a product that is not on screen leaves the button

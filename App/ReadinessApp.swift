@@ -27,6 +27,8 @@ struct ReadinessApp: App {
 
     private let container = Store.container
 
+    init() { Analytics.start() }
+
     var body: some Scene {
         WindowGroup {
             RootView()

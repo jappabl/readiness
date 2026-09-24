@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		B13FC63D3A146081FB35F9C6 /* Analytics.swift in Sources */ = {isa = PBXBuildFile; fileRef = E83D381808EEA0DCC1538D31 /* Analytics.swift */; };
+		5B33D27851DFBD565EE48EA9 /* PostHog in Frameworks */ = {isa = PBXBuildFile; productRef = B3CCB6316D59A1A3FB1C4287 /* PostHog */; };
 		BA8A8895E13445C2D4C7B1BD /* FeedbackMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC8EC1196161BF8DDB01D4CD /* FeedbackMessage.swift */; };
 		A8BB8002C9B078A2B5A21D52 /* TextHao.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9BB96B17A4DAA52C357136E /* TextHao.swift */; };
 		D861650683AAF8377BAFF83D /* WorkoutActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AFBE96A16678168D0CF670A /* WorkoutActivityAttributes.swift */; };
@@ -136,6 +138,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		E83D381808EEA0DCC1538D31 /* Analytics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Analytics.swift"; sourceTree = "<group>"; };
 		AC8EC1196161BF8DDB01D4CD /* FeedbackMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "FeedbackMessage.swift"; sourceTree = "<group>"; };
 		D9BB96B17A4DAA52C357136E /* TextHao.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "TextHao.swift"; path = "App/Coach/TextHao.swift"; sourceTree = SOURCE_ROOT; };
 		3AFBE96A16678168D0CF670A /* WorkoutActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WorkoutActivityAttributes.swift"; sourceTree = "<group>"; };
@@ -304,6 +307,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				D3044245B5C9457DB81D0F5A /* RiveRuntime.xcframework in Frameworks */,
+				5B33D27851DFBD565EE48EA9 /* PostHog in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -423,6 +427,7 @@
 				05A0A41B5353776C43AB5F43 /* Notifications.swift */,
 				1AEA8A75DC789A0395CD19D1 /* Dictation.swift */,
 				FFC3C84970F1464F8574ABE3 /* Subscriptions.swift */,
+				E83D381808EEA0DCC1538D31 /* Analytics.swift */,
 				727B333776AC76D5EAD1EBBA /* Copy.swift */,
 				280764FE330CD4284D76C605 /* DayAssembler.swift */,
 			);
@@ -569,6 +574,9 @@
 				8FE8EEB91CCB1EFAEB64EFFF /* PBXTargetDependency */,
 			);
 			name = Readiness;
+			packageProductDependencies = (
+				B3CCB6316D59A1A3FB1C4287 /* PostHog */,
+			);
 			productName = Readiness;
 			productReference = 0D98DAD3689D87A13BB0FEF1 /* Readiness.app */;
 			productType = "com.apple.product-type.application";
@@ -600,6 +608,9 @@
 				Base,
 			);
 			mainGroup = A79553F44358C0E99046B58E;
+			packageReferences = (
+				2861327A70D29F7F962DE43D /* XCRemoteSwiftPackageReference "posthog-ios" */,
+			);
 			productRefGroup = 786F9325F29F7C3BE8A6717D /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -684,6 +695,7 @@
 				D861650683AAF8377BAFF83D /* WorkoutActivityAttributes.swift in Sources */,
 				26EC5CA84A95FA981E6FE1E4 /* Dictation.swift in Sources */,
 				699DE0D93E6F4551A62F39B6 /* Subscriptions.swift in Sources */,
+				B13FC63D3A146081FB35F9C6 /* Analytics.swift in Sources */,
 				3637D17E12D76F9EAA126693 /* Copy.swift in Sources */,
 				1D66984FFF3FD202CDD45688 /* DayAssembler.swift in Sources */,
 				65B64C69A26B4F12EE1C2003 /* HealthKitSeeder.swift in Sources */,
@@ -969,6 +981,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		2861327A70D29F7F962DE43D /* XCRemoteSwiftPackageReference "posthog-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/PostHog/posthog-ios.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 3.82.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		B3CCB6316D59A1A3FB1C4287 /* PostHog */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 2861327A70D29F7F962DE43D /* XCRemoteSwiftPackageReference "posthog-ios" */;
+			productName = PostHog;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = EEB28B694E178D22952BF92A /* Project object */;
 }

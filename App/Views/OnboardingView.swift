@@ -78,7 +78,10 @@ struct OnboardingView: View {
         // Over everything, hit testing nothing. It is the only thing in this app that
         // celebrates, and it happens once, to a hundred people.
         .overlay { if celebrating { Confetti().ignoresSafeArea() } }
-        .onAppear { resumeIfSaved() }
+        .onAppear {
+            resumeIfSaved()
+            Analytics.record(.onboardingStarted)
+        }
         // Claimed here rather than lazily on the first message to Jett, because somebody
         // has to be told their number while they are still in the conversation where it
         // means something. Failing is fine and silent: the app asks again on launch, and
@@ -581,6 +584,7 @@ struct OnboardingView: View {
                 flow.beginReading()
                 began = .now
             }, onHealthRead: { hasFreshHealthData = $0 })
+            Analytics.record(.healthConnected, ["has_data": hasFreshHealthData])
             // Authorization errors still reach the honest empty-data result.
             if began == nil { flow.beginReading(); began = .now }
             if let began {

@@ -11,7 +11,7 @@
 	<array/>
 
 	<!-- What actually leaves the phone, and only that. The answers in App Store
-	     Connect's App Privacy section must say the same five things.
+	     Connect's App Privacy section must say the same seven things.
 	     Location never does: gym presence is compared on device against gyms the
 	     person named themselves. Dictation is Apple's, on device where the phone
 	     supports it. Subscription status is a signed Apple transaction the server
@@ -77,7 +77,9 @@
 			<!-- The App Attest key ID for this install, which the server keeps with its
 			     member number and rate limits. It proves requests come from a genuine
 			     copy of the app. It names an install, not a person, and there are no
-			     accounts to link it to. -->
+			     accounts to link it to. Analytics as well: PostHog tells one install's
+			     events from another's by a random ID made on the phone, on the same
+			     terms. -->
 			<key>NSPrivacyCollectedDataType</key>
 			<string>NSPrivacyCollectedDataTypeDeviceID</string>
 			<key>NSPrivacyCollectedDataTypeLinked</key>
@@ -87,6 +89,36 @@
 			<key>NSPrivacyCollectedDataTypePurposes</key>
 			<array>
 				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+				<string>NSPrivacyCollectedDataTypePurposeAnalytics</string>
+			</array>
+		</dict>
+		<dict>
+			<!-- Which steps somebody reached: onboarding, Health connected, a check-in,
+			     a workout, a message to Jett, the paywall, a subscription. See
+			     `Analytics`. Never a value, a message or anything Health said. -->
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeProductInteraction</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAnalytics</string>
+			</array>
+		</dict>
+		<dict>
+			<!-- That the app was opened, installed or updated, with its version and the
+			     phone's model and iOS version. It is what retention is read from. -->
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeOtherUsageData</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAnalytics</string>
 			</array>
 		</dict>
 	</array>
