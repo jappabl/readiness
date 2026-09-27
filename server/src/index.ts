@@ -6,7 +6,8 @@
  * provider key.
  */
 import { isAppStoreInstall } from "./members"
-import { freshBucket, meterDecision, refundPhoto, type MeterKind, type MeterState } from "./limits"
+import { freshBucket, meterDecision, refundPhoto, tallyDaily, type DailyUsage, type MeterKind, type MeterState } from "./limits"
+import { alertAbuse } from "./alarm"
 import { entitlement, type Trust } from "./entitlement"
 import { APPLE_ROOT_G3 } from "./apple-root"
 import { refundEvent, verifiedNotification } from "./refunds"
@@ -45,6 +46,9 @@ export interface Env {
   ATTEST: DurableObjectNamespace
   /// One object per refunded transaction, holding Apple's latest word on it.
   REFUNDS: DurableObjectNamespace
+  /// Optional. Where the silent abuse alarm posts, besides the logs. A secret, set with
+  /// `wrangler secret put ALERT_WEBHOOK_URL`; see `alarm.ts`.
+  ALERT_WEBHOOK_URL?: string
 }
 
 /**
@@ -189,14 +193,25 @@ export class RateBucket implements DurableObject {
         await this.state.storage.put("freePhotosUsed", refundPhoto(stored).freePhotosUsed ?? 0)
         return Response.json({ ok: true })
       }
-      const outcome = meterDecision(stored, body.isSubscriber, Date.now(), body.kind ?? "message")
+      const now = Date.now()
+      const outcome = meterDecision(stored, body.isSubscriber, now, body.kind ?? "message")
       await this.state.storage.put("bucket", outcome.state.bucket)
       await this.state.storage.put("freeUsed", outcome.state.freeUsed)
       await this.state.storage.put("freePhotosUsed", outcome.state.freePhotosUsed ?? 0)
+      // The abuse alarm, counted after the decision and never read by it. Only allowed
+      // subscriber and allowlisted traffic: free traffic has its own cap, and a refused
+      // request cost nothing.
+      let alert: DailyUsage | null = null
+      if (body.isSubscriber && outcome.allowed) {
+        const tally = tallyDaily(await this.state.storage.get<DailyUsage>("daily"), body.kind ?? "message", now)
+        await this.state.storage.put("daily", tally.usage)
+        if (tally.alert) alert = tally.usage
+      }
       return Response.json({
         allowed: outcome.allowed,
         status: outcome.status ?? null,
         retryAfter: outcome.retryAfter ?? null,
+        alert,
       })
     })
   }
@@ -326,6 +341,7 @@ async function meter(
   isSubscriber: boolean,
   env: Env,
   kind: MeterKind = "message",
+  ctx?: ExecutionContext,
 ): Promise<Response | null> {
   const bucket = env.BUCKET.get(env.BUCKET.idFromName(id))
   const decision = (await (
@@ -333,7 +349,15 @@ async function meter(
       method: "POST",
       body: JSON.stringify({ isSubscriber, kind }),
     })
-  ).json()) as { allowed: boolean; status: number | null; retryAfter: number | null }
+  ).json()) as { allowed: boolean; status: number | null; retryAfter: number | null; alert?: DailyUsage | null }
+
+  // Off the response path. `alertAbuse` never throws, and the decision below does not
+  // look at it, so a slow or broken webhook cannot delay or change an answer.
+  if (decision.alert) {
+    const raised = alertAbuse(id, decision.alert, env)
+    if (ctx) ctx.waitUntil(raised)
+    else void raised
+  }
 
   if (decision.allowed) return null
   if (decision.status === 429) {
@@ -501,7 +525,7 @@ async function handleMember(request: Request, env: Env, id: string): Promise<Res
 /** A new name for a new count. The old roll, "roll", numbered our test installs. */
 const LAUNCH_ROLL = "launch"
 
-async function handleCoach(request: Request, env: Env, id: string): Promise<Response> {
+async function handleCoach(request: Request, env: Env, id: string, ctx?: ExecutionContext): Promise<Response> {
   const parsed = parseCoachBody(await request.json())
   const result = await entitlement(
     request.headers.get("x-jett-transaction") ?? undefined,
@@ -509,7 +533,7 @@ async function handleCoach(request: Request, env: Env, id: string): Promise<Resp
     Date.now(),
     (transactionId) => refundedTransaction(transactionId, env),
   )
-  const limited = await meter(id, result.subscriber || isUnlimited(id, env), env)
+  const limited = await meter(id, result.subscriber || isUnlimited(id, env), env, "message", ctx)
   if (limited) return limited
 
   const body = coachBody({
@@ -547,7 +571,7 @@ export function streamOrPassError(upstream: Response, subscriber: boolean): Resp
   })
 }
 
-async function handleMeal(request: Request, env: Env, id: string): Promise<Response> {
+async function handleMeal(request: Request, env: Env, id: string, ctx?: ExecutionContext): Promise<Response> {
   const parsed = parseMealBody(await request.json())
   const result = await entitlement(
     request.headers.get("x-jett-transaction") ?? undefined,
@@ -556,7 +580,7 @@ async function handleMeal(request: Request, env: Env, id: string): Promise<Respo
     (transactionId) => refundedTransaction(transactionId, env),
   )
   const paying = result.subscriber || isUnlimited(id, env)
-  const limited = await meter(id, paying, env, "photo")
+  const limited = await meter(id, paying, env, "photo", ctx)
   if (limited) return limited
   // A free photo that produced no estimate is handed back. Best effort: if the refund
   // itself fails, the person is a photo down, which is better than failing the reply.
@@ -590,7 +614,7 @@ async function handleMeal(request: Request, env: Env, id: string): Promise<Respo
 }
 
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(request: Request, env: Env, ctx?: ExecutionContext): Promise<Response> {
     const url = new URL(request.url)
 
     // Before the method check and before identification: these are pages a reviewer,
@@ -628,9 +652,9 @@ export default {
     try {
       switch (url.pathname) {
         case "/v1/coach":
-          return await handleCoach(request, env, who.id)
+          return await handleCoach(request, env, who.id, ctx)
         case "/v1/meal":
-          return await handleMeal(request, env, who.id)
+          return await handleMeal(request, env, who.id, ctx)
         case "/v1/member":
           return await handleMember(request, env, who.id)
         default:

@@ -147,3 +147,49 @@ export function meterDecision(
 export function refundPhoto(state: MeterState): MeterState {
   return { ...state, freePhotosUsed: Math.max(0, (state.freePhotosUsed ?? 0) - 1) }
 }
+
+/**
+ * The silent alarm. Pro is unlimited and stays unlimited: nothing below ever decides a
+ * request. It exists so that an install doing what no person does, a script or a key
+ * shared around, reaches Hao as a message rather than as a provider bill.
+ *
+ * Per install, per UTC day, subscriber and allowlisted traffic only. Free traffic is
+ * already capped by the free tier, and the burst limit already caps everyone at five a
+ * minute, which is about 7,200 a day, so these lines are reachable but far past anyone
+ * typing by hand.
+ */
+export const ABUSE_ALERT_MESSAGES = 1000
+export const ABUSE_ALERT_PHOTOS = 200
+
+export interface DailyUsage {
+  /** The UTC day these counts belong to, as YYYY-MM-DD. */
+  day: string
+  messages: number
+  photos: number
+  /** Whether today's alert has gone. One per install per day, whichever line was crossed. */
+  alerted: boolean
+}
+
+export function utcDay(nowMs: number): string {
+  return new Date(nowMs).toISOString().slice(0, 10)
+}
+
+/**
+ * Counts one allowed request and says whether this one crossed a line for the first
+ * time today. A stored day that is not today, including one in the future from a clock
+ * that moved, starts again from zero rather than carrying yesterday's count.
+ */
+export function tallyDaily(
+  usage: DailyUsage | undefined,
+  kind: MeterKind,
+  nowMs: number,
+): { usage: DailyUsage; alert: boolean } {
+  const day = utcDay(nowMs)
+  const base = usage && usage.day === day ? usage : { day, messages: 0, photos: 0, alerted: false }
+  const next = kind === "photo"
+    ? { ...base, photos: base.photos + 1 }
+    : { ...base, messages: base.messages + 1 }
+  const over = next.messages >= ABUSE_ALERT_MESSAGES || next.photos >= ABUSE_ALERT_PHOTOS
+  const alert = over && !next.alerted
+  return { usage: { ...next, alerted: next.alerted || alert }, alert }
+}

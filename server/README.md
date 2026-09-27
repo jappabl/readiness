@@ -17,7 +17,46 @@ Secrets are never committed. Locally they live in `.dev.vars` (gitignored); in p
 wrangler secret put ANTHROPIC_API_KEY
 wrangler secret put DEEPSEEK_API_KEY
 wrangler secret put DEV_SHARED_SECRET
+wrangler secret put ALERT_WEBHOOK_URL   # optional, see "The abuse alarm"
 ```
+
+## The abuse alarm
+
+Pro is unlimited. The alarm never blocks, slows or changes a response; users see
+nothing. It exists so that an install doing what no person does reaches Hao as a
+message rather than as a provider bill.
+
+- The meter's Durable Object keeps one count per install per UTC day of allowed
+  subscriber (and `UNLIMITED_IDS`) coach messages and meal photos, separately.
+- The first time in a day an install reaches `ABUSE_ALERT_MESSAGES` (1000) messages or
+  `ABUSE_ALERT_PHOTOS` (200) photos, one alert goes out. One per install per day,
+  whichever line it crossed. Both constants live in `src/limits.ts`.
+- Every alert writes one `console.warn` line, visible in the Cloudflare dashboard logs
+  and in `npx wrangler tail`:
+  `{"event":"abuse_alert","install":"<12 hex chars>","day":"2026-09-27","messages":1000,"photos":3,...}`.
+  `install` is the first 12 hex characters of a SHA-256 of the attested key id, never the
+  id itself. The same install always gets the same tag.
+- If the `ALERT_WEBHOOK_URL` secret is set, the alert is also POSTed there as
+  `{"text": "...", "content": "..."}`, the same sentence in both fields. A webhook that
+  fails or is slow is logged as `abuse_alert_webhook_failed` and otherwise ignored; the
+  URL itself is never logged.
+
+Setting the webhook (optional, a secret, never in `wrangler.toml`):
+
+```
+wrangler secret put ALERT_WEBHOOK_URL
+```
+
+and paste one of:
+
+- **Slack:** the incoming webhook URL, `https://hooks.slack.com/services/...` (reads `text`).
+- **Discord:** the channel webhook URL, `https://discord.com/api/webhooks/...` (reads `content`).
+- **ntfy:** `https://ntfy.sh/<your-topic>?tpl=yes&m={{.text}}`. The template tells ntfy
+  to show the `text` field rather than the raw JSON. Pick a long random topic name: on
+  ntfy.sh the topic is the only password.
+
+To remove it: `wrangler secret delete ALERT_WEBHOOK_URL`. With no webhook the log line
+still goes out.
 
 ## What is finished
 
