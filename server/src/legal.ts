@@ -12,7 +12,7 @@
  * has not been reviewed by anybody qualified.
  */
 
-const UPDATED = "22 September 2026"
+const UPDATED = "27 September 2026"
 
 function page(title: string, body: string): Response {
   return new Response(
@@ -81,6 +81,8 @@ them to the AI provider and keeps nothing of them. For each install it keeps onl
       stops an old request being replayed;</li>
   <li>your member number;</li>
   <li>counts used for rate limits and the free message and meal photo allowances;</li>
+  <li>for subscribers, a count of the day's coach messages and meal photos, used only to
+      spot automated or abusive use. Only the latest day's count is kept;</li>
   <li>if Apple refunds a purchase, that purchase's transaction ID, so the refund ends it.</li>
 </ul>
 <p>The app has no accounts, so none of this is linked to your name, your email or your
@@ -148,8 +150,10 @@ offered, becomes a paid subscription unless cancelled before it ends. Refunds ar
 to give.</p>
 
 <h2>Fair use</h2>
-<p>There is no monthly cap for subscribers, but there is a rate limit to stop runaway
-usage. Do not attempt to access the service other than through the app.</p>
+<p>Pro includes unlimited coach messages and meal photo estimates for personal use. There
+is no daily or monthly cap, only a rate limit on bursts that normal use never reaches. We
+may limit or suspend automated, shared or abusive use. Do not attempt to access the
+service other than through the app.</p>
 
 <h2>Availability</h2>
 <p>The app depends on Apple Health and on an AI provider, either of which can change or be
